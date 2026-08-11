@@ -1,0 +1,70 @@
+import Link from "next/link";
+import { Menu, Bell, ChevronLeft, Heart, Share2 } from "lucide-react";
+
+interface AppHeaderProps {
+  variant?: "home" | "page" | "apply";
+  title?: string;
+  subtitle?: string;
+  backHref?: string;
+  showMenu?: boolean;
+  showBell?: boolean;
+  showActions?: boolean;
+  compact?: boolean;
+}
+
+export function AppHeader({
+  variant = "home",
+  title,
+  subtitle = "당신의 이야기를 노래로",
+  backHref,
+  showMenu = variant === "home",
+  showBell = variant === "home",
+  showActions = variant === "page" || variant === "apply",
+  compact = false,
+}: AppHeaderProps) {
+  return (
+    <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 backdrop-blur-sm">
+      <div className={`flex items-center justify-between px-4 ${compact ? "h-12" : "h-[52px]"}`}>
+        <div className="flex w-10 items-center justify-start">
+          {backHref ? (
+            <Link href={backHref} className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="뒤로">
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+          ) : showMenu ? (
+            <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
+              <Menu className="h-5 w-5" />
+            </button>
+          ) : (
+            <span className="w-5" />
+          )}
+        </div>
+
+        <div className="flex flex-1 flex-col items-center text-center">
+          <h1 className={`font-bold text-[#3d2b1f] ${compact ? "text-sm" : "text-[15px]"}`}>
+            {variant === "home" ? "인생스토리" : title}
+          </h1>
+          <p className={`text-[#8b6f5c] ${compact ? "text-[10px]" : "text-[10px]"}`}>{subtitle}</p>
+        </div>
+
+        <div className="flex w-10 items-center justify-end gap-1">
+          {showBell && (
+            <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
+              <Bell className="h-5 w-5" />
+            </button>
+          )}
+          {showActions && (
+            <>
+              <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="찜">
+                <Heart className="h-5 w-5" />
+              </button>
+              <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="공유">
+                <Share2 className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          {!showBell && !showActions && <span className="w-5" />}
+        </div>
+      </div>
+    </header>
+  );
+}

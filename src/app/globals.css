@@ -1,0 +1,58 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --background: #faf8f5;
+  --foreground: #3d2b1f;
+  --cream: #fffdf9;
+  --ivory: #f5f0e8;
+  --beige: #ebe3d8;
+  --brown: #5c3d2e;
+  --brown-dark: #4a2c2a;
+  --brown-light: #8b6f5c;
+  --gold: #c4a574;
+  --card: #ffffff;
+  --border: #e8dfd4;
+  --font-noto-sans-kr: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --font-noto-serif-kr: "Noto Serif KR", "Noto Sans KR", serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cream: var(--cream);
+  --color-ivory: var(--ivory);
+  --color-beige: var(--beige);
+  --color-brown: var(--brown);
+  --color-brown-dark: var(--brown-dark);
+  --color-brown-light: var(--brown-light);
+  --color-gold: var(--gold);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --font-sans: var(--font-noto-sans-kr);
+  --font-serif: var(--font-noto-serif-kr);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-noto-sans-kr), "Apple SD Gothic Neo", sans-serif;
+  line-height: 1.5;
+}
+
+/* Hide scrollbar for horizontal carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
