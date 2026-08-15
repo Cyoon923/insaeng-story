@@ -2,136 +2,123 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Play, Heart, ExternalLink } from "lucide-react";
+import { Play } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { cn } from "@/lib/utils";
-import { YOUTUBE_CHANNEL_URL } from "@/lib/constants/youtube";
 
-const CATEGORIES = ["전체", "부모님", "가족", "반려동물", "사랑", "나의 이야기"];
+const TABS = [
+  { id: "all", label: "전체" },
+  { id: "parents", label: "부모님" },
+  { id: "family", label: "가족" },
+  { id: "pet", label: "반려동물" },
+  { id: "love", label: "사랑" },
+  { id: "self", label: "나의 이야기" },
+] as const;
 
-const CASES = [
-  {
-    id: "1",
-    title: "어머니의 삶을 노래로 담다",
-    category: "부모님",
-    duration: "4:35",
-    image: "https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=400&h=400&fit=crop",
-  },
-  {
-    id: "2",
-    title: "우리 가족의 이야기",
-    category: "가족",
-    duration: "5:10",
-    image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=400&fit=crop",
-  },
-  {
-    id: "3",
-    title: "반려견 뭉치의 추억",
-    category: "반려동물",
-    duration: "3:48",
-    image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop",
-  },
-  {
-    id: "4",
-    title: "평생의 동반자에게",
-    category: "사랑",
-    duration: "4:22",
-    image: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=400&fit=crop",
-  },
-  {
-    id: "5",
-    title: "나의 50년 인생",
-    category: "나의 이야기",
-    duration: "6:05",
-    image: "https://images.unsplash.com/photo-1455396577869-51adff057779?w=400&h=400&fit=crop",
-  },
-  {
-    id: "6",
-    title: "아버지께 전하는 마음",
-    category: "부모님",
-    duration: "4:15",
-    image: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&h=400&fit=crop",
-  },
+type CategoryId = (typeof TABS)[number]["id"];
+
+const VIDEOS: { id: string; title: string; category: Exclude<CategoryId, "all"> }[] = [
+  { id: "GOmwOHmZ-4w", title: "포니 네가 있으면 좋아", category: "pet" },
+  { id: "Q_DzSJQU6KA", title: "살아낸 하루", category: "self" },
+  { id: "4paL0lkU6Lo", title: "내 속도로", category: "self" },
+  { id: "cKoT_wCiDcs", title: "내 불씨야", category: "self" },
+  { id: "Xfhvbd-6XoI", title: "네가 온 그날부터", category: "love" },
+  { id: "94lEF9saIz4", title: "다시 웃는 캔디", category: "self" },
+  { id: "zLgacL5bngk", title: "그러려니 웃어버리는 트롯 팝", category: "self" },
+  { id: "xzijfOd_UN8", title: "거기 있으면 안 되잖아", category: "love" },
+  { id: "vILp9lMvNPk", title: "내 인생은 꽃길이다", category: "self" },
+  { id: "o7hhR3wP_6I", title: "아직도 네가 산다", category: "love" },
+  { id: "UYvX7k84hu4", title: "멈춰버린 일상 속에서도", category: "self" },
+  { id: "GQiPmravOhw", title: "공부할 때·일할 때 듣는 연주곡", category: "self" },
+  { id: "Uo_6v5oLo_U", title: "너라는 비", category: "love" },
+  { id: "GRzVS90gpzo", title: "10분간의 평온함", category: "self" },
+  { id: "gs5qvtR0oaE", title: "사과 시러 우주 조아", category: "self" },
+  { id: "JSfMZEedZWo", title: "로그아웃 증후군", category: "self" },
+  { id: "7lUVzUfqzqk", title: "고양이 이별", category: "pet" },
+  { id: "a68VXAj5DTQ", title: "첫사랑 생각에 잠 못 이룰때", category: "love" },
+  { id: "WUopef4d4oc", title: "희노애락을 다 느끼고 싶을때", category: "self" },
+  { id: "46LKeAiA0wg", title: "보란 듯 복수하고 싶을 때", category: "self" },
+  { id: "lDP5Gx8dIGI", title: "여름앓이", category: "love" },
+  { id: "BaJvNTIU_fk", title: "미치도록 보고싶을때", category: "love" },
+  { id: "qqfV0CNnPaw", title: "닿지 못한 용서", category: "love" },
+  { id: "17w3ypCWNUE", title: "그날의 우리", category: "love" },
+  { id: "DKgEmo3jM_I", title: "새벽 3시의 불면증", category: "self" },
+  { id: "lRItuLpuOrU", title: "오늘의 나는 어제와 달라", category: "self" },
 ];
 
 export default function CasesPage() {
-  const [active, setActive] = useState("전체");
-  const filtered = active === "전체" ? CASES : CASES.filter((c) => c.category === active);
+  const [tab, setTab] = useState<CategoryId>("all");
+  const videos = tab === "all" ? VIDEOS : VIDEOS.filter((video) => video.category === tab);
 
   return (
     <MobileShell>
       <AppHeader variant="home" title="인생스토리" />
 
       <section className="px-4 py-5">
-        <h2 className="font-[family-name:var(--font-noto-serif-kr)] text-2xl font-bold text-brown-dark">
-          제작 사례
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-brown-light">
-          실제 고객님의 이야기가
-          <br />
-          어떻게 노래로 탄생했는지 만나보세요.
+        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">제작 사례</h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          인생곡 창작소 유튜브의 완성 작품입니다.
         </p>
       </section>
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setActive(cat)}
-            className={cn(
-              "shrink-0 rounded-full px-4 py-2 text-sm font-medium",
-              active === cat ? "bg-brown text-white" : "bg-ivory text-brown-dark"
-            )}
-          >
-            {cat}
-          </button>
-        ))}
+        {TABS.map((item) => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={`h-11 shrink-0 rounded-full px-4 text-[14px] font-semibold ${
+                active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-[#faf6f1] text-[#5c3d2e]"
+              }`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 px-4 pb-6">
-        {filtered.map((item) => (
-          <article key={item.id}>
-            <div className="relative aspect-square overflow-hidden rounded-2xl">
-              <Image src={item.image} alt={item.title} fill className="object-cover" />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90">
-                  <Play className="h-5 w-5 fill-brown text-brown" />
+      {videos.length === 0 ? (
+        <div className="px-4 pb-8">
+          <div className="rounded-2xl bg-white px-5 py-12 text-center ring-1 ring-[#ebe3d8]">
+            <p className="text-[17px] font-bold text-[#3d2b1f]">준비 중입니다</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
+              이 주제의 완성 작품은 곧 공개됩니다.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 px-4 pb-8">
+          {videos.map((video) => (
+            <a
+              key={video.id}
+              href={`https://www.youtube.com/watch?v=${video.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <div className="relative aspect-video overflow-hidden rounded-xl bg-[#f5efe6]">
+                <Image
+                  src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
+                  alt={video.title}
+                  fill
+                  className="object-cover"
+                  sizes="180px"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95">
+                    <Play className="ml-0.5 h-4 w-4 fill-[#5c3d2e] text-[#5c3d2e]" />
+                  </div>
                 </div>
               </div>
-              <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-                {item.duration}
-              </span>
-            </div>
-            <div className="mt-2 flex items-start justify-between gap-1">
-              <div>
-                <h3 className="text-xs font-bold text-brown-dark">{item.title}</h3>
-                <p className="text-[10px] text-brown-light">
-                  {item.category} 인생곡 · {item.duration}
-                </p>
-              </div>
-              <Heart className="h-4 w-4 shrink-0 text-brown-light" />
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="mx-4 mb-6 rounded-2xl bg-ivory p-4">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-[10px] font-bold text-white">
-            ▶
-          </span>
-          <p className="text-sm text-brown-dark">인생스토리 유튜브에서 더 많은 인생곡을 만나보세요.</p>
+              <h3 className="mt-2 line-clamp-2 text-[13px] font-bold leading-snug text-[#3d2b1f]">
+                {video.title}
+              </h3>
+            </a>
+          ))}
         </div>
-        <Link
-          href={YOUTUBE_CHANNEL_URL}
-          className="mt-3 flex items-center justify-center gap-1 rounded-xl border border-brown py-2.5 text-sm font-medium text-brown"
-        >
-          인생곡 바로가기 <ExternalLink className="h-4 w-4" />
-        </Link>
-      </div>
+      )}
     </MobileShell>
   );
 }

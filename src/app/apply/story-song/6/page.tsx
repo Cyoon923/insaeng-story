@@ -1,13 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { formatPrice } from "@/lib/constants/products";
-import { cn } from "@/lib/utils";
+import { PaySubmit } from "@/components/apply/PaySubmit";
+import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
 
-const BASE_PRICE = 240000;
-const OPTIONS_TOTAL = 160000;
+const BASE_PRICE = LIFE_SONG_PRODUCTS[0].priceFrom;
+const OPTIONS = [
+  { name: "내 얼굴 AI 뮤직비디오", price: 100000 },
+  { name: "추억사진 영상 제작", price: 50000 },
+  { name: "가사 수정 1회 추가", price: 10000 },
+];
+const OPTIONS_TOTAL = OPTIONS.reduce((sum, item) => sum + item.price, 0);
 const FINAL_PRICE = BASE_PRICE + OPTIONS_TOTAL;
+
+const ORDER_ROWS = [
+  { label: "이야기 주인공", value: "부모님", href: "/apply/story-song/2" },
+  { label: "가사 분위기", value: "따뜻한 / 잔잔한 / 희망적인", href: "/apply/story-song/4" },
+  { label: "추가 옵션", value: "AI 뮤직비디오, 추억사진 영상, 가사 수정 1회", href: "/apply/story-song/5" },
+  { label: "예상 제작 기간", value: "결제 후 평균 7~10일", href: "" },
+];
 
 const PAYMENT_METHODS = ["신용/체크카드", "무통장 입금", "카카오페이", "네이버페이"];
 
@@ -17,102 +30,114 @@ export default function ApplyStep6Page() {
 
   return (
     <ApplyLayout step={6} prevHref="/apply/story-song/5" hideNav>
-      <h2 className="font-[family-name:var(--font-noto-serif-kr)] text-xl font-bold text-brown-dark">
-        6. 확인 및 결제
-      </h2>
-      <p className="mt-2 text-sm text-brown-light">입력하신 정보를 확인하고 결제를 진행해 주세요.</p>
+      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">6. 확인 및 결제</h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+        입력하신 정보를 확인하고 결제를 진행해 주세요. 주문 완료 후 제작이 시작됩니다.
+      </p>
 
-      <div className="mt-5 space-y-4">
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-border">
-          <h3 className="mb-3 text-sm font-bold text-brown-dark">주문 정보 확인</h3>
-          {[
-            ["이야기 주인공", "부모님"],
-            ["가사 분위기", "따뜻한 / 잔잔한 / 희망적인"],
-            ["추가 옵션", "AI MV, 추억사진 영상, 가사 수정, 선물 패키지"],
-            ["예상 제작 기간", "결제 후 평균 7~10일"],
-          ].map(([label, value]) => (
-            <div key={label} className="flex items-start justify-between border-b border-border py-2 last:border-0">
-              <span className="text-xs text-brown-light">{label}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-right text-xs font-medium text-brown-dark">{value}</span>
-                <button type="button" className="text-[10px] text-brown underline">
-                  수정
-                </button>
+      <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <h3 className="text-[16px] font-bold text-[#3d2b1f]">주문 정보 확인</h3>
+        <div className="mt-2">
+          {ORDER_ROWS.map((row) => (
+            <div key={row.label} className="flex items-start justify-between border-b border-[#ebe3d8] py-3 last:border-0">
+              <div>
+                <p className="text-[13px] text-[#8b6f5c]">{row.label}</p>
+                <p className="mt-0.5 text-[15px] font-medium text-[#3d2b1f]">{row.value}</p>
               </div>
+              {row.href ? (
+                <Link href={row.href} className="text-[13px] font-medium text-[#5c3d2e]">
+                  수정
+                </Link>
+              ) : null}
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-border">
-          <h3 className="mb-3 text-sm font-bold text-brown-dark">결제 금액 확인</h3>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-brown-light">기본 제작 상품 (인생곡)</span>
-              <span>{formatPrice(BASE_PRICE)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-brown-light">추가 옵션 합계</span>
-              <span>+ {formatPrice(OPTIONS_TOTAL)}</span>
-            </div>
-            <div className="flex justify-between text-red-500">
-              <span>할인 금액</span>
-              <span>- 0원</span>
-            </div>
+      <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <h3 className="text-[16px] font-bold text-[#3d2b1f]">결제 금액 확인</h3>
+        <div className="mt-3 space-y-2 text-[14px]">
+          <div className="flex justify-between">
+            <span className="text-[#8b6f5c]">이야기로 만드는 인생곡</span>
+            <span className="text-[#3d2b1f]">{formatPrice(BASE_PRICE)}</span>
           </div>
-          <div className="mt-3 rounded-xl bg-ivory p-4 text-center">
-            <p className="text-xs text-brown-light">최종 결제 금액</p>
-            <p className="text-2xl font-bold text-brown">{formatPrice(FINAL_PRICE)}</p>
-          </div>
+          {OPTIONS.map((opt) => (
+            <div key={opt.name} className="flex justify-between">
+              <span className="text-[#8b6f5c]">{opt.name}</span>
+              <span className="text-[#3d2b1f]">+ {formatPrice(opt.price)}</span>
+            </div>
+          ))}
         </div>
-
-        <div className="rounded-2xl bg-[#f5ebe3] p-4">
-          <h3 className="text-sm font-bold text-brown-dark">저작권 및 창작물 이용 안내 [필수]</h3>
-          <p className="mt-2 text-xs leading-relaxed text-brown-light">
-            제작된 창작물(가사, 음원, 영상 등)의 저작권은 인생스토리가 가집니다. 고객은 완성된 창작물을
-            개인적인 감상, 소장, 선물 등의 목적으로 이용할 수 있습니다. 상업적 이용, 재판매, 무단 배포,
-            2차 저작물 제작 등은 인생스토리의 사전 동의 없이 할 수 없습니다.
-          </p>
-          <label className="mt-3 flex cursor-pointer items-start gap-2">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-brown"
-            />
-            <span className="text-xs text-brown-dark">
-              위 내용을 모두 확인하였으며 이에 동의합니다. [필수]
-            </span>
-          </label>
-        </div>
-
-        <div>
-          <h3 className="mb-3 text-sm font-bold text-brown-dark">결제 방법 선택</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {PAYMENT_METHODS.map((method) => (
-              <button
-                key={method}
-                type="button"
-                onClick={() => setPayment(method)}
-                className={cn(
-                  "rounded-xl border py-3 text-xs font-medium",
-                  payment === method ? "border-brown bg-brown/10 text-brown" : "border-border bg-white"
-                )}
-              >
-                {method}
-              </button>
-            ))}
-          </div>
+        <div className="mt-4 rounded-xl bg-[#f5efe6] p-4 text-center">
+          <p className="text-[13px] text-[#8b6f5c]">최종 결제 금액</p>
+          <p className="mt-1 text-[24px] font-bold text-[#5c3d2e]">{formatPrice(FINAL_PRICE)}</p>
         </div>
       </div>
 
-      <button
-        type="button"
-        disabled={!agreed}
-        className="mt-6 flex w-full items-center justify-center rounded-full bg-brown py-4 text-base font-bold text-white disabled:opacity-40"
-      >
-        🔒 {formatPrice(FINAL_PRICE)} 결제하기 &gt;
-      </button>
-      <p className="mt-2 text-center text-[10px] text-brown-light">
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#3d2b1f]">저작권 및 이용 안내 [필수]</h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
+          인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
+          있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.
+        </p>
+        <label className="mt-3 flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-1 h-5 w-5 accent-[#5c3d2e]"
+          />
+          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
+            저작권 및 창작물 이용 안내를 확인했으며 동의합니다. [필수]
+          </span>
+        </label>
+      </div>
+
+      <div className="mt-5">
+        <h3 className="mb-3 text-[16px] font-bold text-[#3d2b1f]">결제 방법 선택</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {PAYMENT_METHODS.map((method) => (
+            <button
+              key={method}
+              type="button"
+              onClick={() => setPayment(method)}
+              className={`h-12 rounded-xl text-[14px] font-medium ${
+                payment === method
+                  ? "bg-[#5c3d2e] text-white"
+                  : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+              }`}
+            >
+              {method}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {agreed ? (
+        <PaySubmit
+          flow="story"
+          kind="order"
+          product="story"
+          title="이야기로 만드는 인생곡"
+          amount={FINAL_PRICE}
+          payment={payment}
+          details={{
+            주인공: "부모님",
+            분위기: "따뜻한 / 잔잔한 / 희망적인",
+            옵션: "AI 뮤직비디오, 추억사진 영상, 가사 수정 1회",
+          }}
+          label={`${formatPrice(FINAL_PRICE)} 결제하기`}
+        />
+      ) : (
+        <button
+          type="button"
+          disabled
+          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white opacity-40"
+        >
+          {formatPrice(FINAL_PRICE)} 결제하기
+        </button>
+      )}
+      <p className="mt-2 text-center text-[12px] text-[#8b6f5c]">
         모든 결제 정보는 안전하게 암호화되어 처리됩니다.
       </p>
     </ApplyLayout>

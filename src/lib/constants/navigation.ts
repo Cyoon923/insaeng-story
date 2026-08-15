@@ -10,6 +10,7 @@ export const BOTTOM_NAV = [
 
 export function getActiveTab(pathname: string): NavTab {
   if (pathname === "/") return "home";
+  if (pathname.startsWith("/apply/consultation")) return "consultation";
   if (pathname.startsWith("/products") || pathname.startsWith("/apply")) return "products";
   if (pathname.startsWith("/consultation")) return "consultation";
   if (pathname.startsWith("/cases")) return "cases";

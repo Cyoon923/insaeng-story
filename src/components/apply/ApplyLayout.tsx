@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { ApplyStepper, ApplyNavButtons } from "@/components/apply/ApplyStepper";
+import { ApplyStepper, ApplyNavButtons, STORY_STEPS } from "@/components/apply/ApplyStepper";
 
 interface ApplyLayoutProps {
   step: number;
@@ -10,6 +10,11 @@ interface ApplyLayoutProps {
   nextHref?: string;
   nextLabel?: string;
   hideNav?: boolean;
+  title?: string;
+  backHref?: string;
+  basePath?: string;
+  steps?: { num: number; label: string }[];
+  heroText?: string;
 }
 
 export function ApplyLayout({
@@ -19,27 +24,28 @@ export function ApplyLayout({
   nextHref,
   nextLabel,
   hideNav = false,
+  title = "인생곡 신청하기",
+  backHref,
+  basePath = "/apply/story-song",
+  steps = STORY_STEPS,
+  heroText = "당신의 이야기가\n세상에 단 하나뿐인 노래가 됩니다",
 }: ApplyLayoutProps) {
   return (
     <MobileShell>
-      <AppHeader variant="apply" title="인생곡 신청하기" backHref={prevHref ?? "/products/story"} showActions />
+      <AppHeader
+        variant="apply"
+        title={title}
+        backHref={backHref ?? prevHref ?? "/products/story"}
+        showActions
+      />
       <div className="relative h-36 w-full">
-        <Image
-          src="https://images.unsplash.com/photo-1455396577869-51adff057779?w=800&h=300&fit=crop"
-          alt=""
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black/40" />
+        <Image src="/images/photo-hero.jpg" alt="" fill className="object-cover object-[70%_center]" />
+        <div className="absolute inset-0 bg-[#3d2b1f]/45" />
         <div className="absolute bottom-0 p-4 text-white">
-          <p className="text-sm font-bold leading-snug">
-            당신의 이야기가
-            <br />
-            세상에 단 하나뿐인 노래가 됩니다
-          </p>
+          <p className="text-[15px] font-bold leading-snug whitespace-pre-line">{heroText}</p>
         </div>
       </div>
-      <ApplyStepper currentStep={step} />
+      <ApplyStepper currentStep={step} basePath={basePath} steps={steps} />
       <div className="px-4 py-5">{children}</div>
       {!hideNav && nextHref && (
         <ApplyNavButtons prevHref={prevHref} nextHref={nextHref} nextLabel={nextLabel} />

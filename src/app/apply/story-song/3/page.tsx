@@ -1,85 +1,133 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
+import { getDraft, saveDraft } from "@/lib/client/api";
+
+const PROTAGONIST_IMAGES: Record<string, string> = {
+  self: "/images/photo-self.jpg",
+  parents: "/images/photo-parents.jpg",
+  partner: "/images/photo-couple.jpg",
+  family: "/images/photo-family.jpg",
+  pet: "/images/photo-pet.jpg",
+  other: "/images/photo-self.jpg",
+};
 
 const QUESTIONS = [
   {
+    key: "memory",
     q: "가장 기억에 남는 순간은 언제인가요?",
-    hint: "예: 함께 여행했던 순간, 따뜻한 한마디, 특별한 추억",
+    hint: "함께 여행했던 순간, 따뜻한 한마디, 특별한 추억",
     max: 500,
   },
   {
+    key: "message",
     q: "꼭 전하고 싶은 말은 무엇인가요?",
-    hint: "예: 감사의 마음, 사랑의 표현, 전하지 못했던 말",
+    hint: "감사의 마음, 사랑의 표현, 전하지 못했던 말",
     max: 500,
   },
   {
+    key: "image",
     q: "가장 기억하고 싶은 모습은 어떤 모습인가요?",
-    hint: "예: 환하게 웃는 모습, 열심히 사는 모습",
+    hint: "환하게 웃는 모습, 열심히 사는 모습, 함께한 행복한 순간",
     max: 500,
   },
-];
+] as const;
 
 export default function ApplyStep3Page() {
+  const [answers, setAnswers] = useState({ memory: "", message: "", image: "", free: "" });
+  const [protagonist, setProtagonist] = useState("부모님");
+  const [protagonistId, setProtagonistId] = useState("parents");
+
+  useEffect(() => {
+    const draft = getDraft("story");
+    setAnswers({
+      memory: draft.memory ?? "",
+      message: draft.message ?? "",
+      image: draft.image ?? "",
+      free: draft.free ?? "",
+    });
+    if (draft.protagonist) setProtagonist(draft.protagonist);
+    if (draft.protagonistId) setProtagonistId(draft.protagonistId);
+  }, []);
+
+  const update = (key: keyof typeof answers, value: string) => {
+    const next = { ...answers, [key]: value };
+    setAnswers(next);
+    saveDraft("story", next);
+  };
+
   return (
     <ApplyLayout step={3} prevHref="/apply/story-song/2" nextHref="/apply/story-song/4">
-      <div className="mb-4 flex items-center justify-between rounded-xl bg-ivory p-3">
-        <div className="flex items-center gap-2">
-          <div className="relative h-8 w-8 overflow-hidden rounded-full">
+      <div className="mb-4 flex items-center justify-between rounded-xl bg-[#f5efe6] p-3">
+        <div className="flex items-center gap-3">
+          <div className="relative h-10 w-10 overflow-hidden rounded-full bg-white">
             <Image
-              src="https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=80&h=80&fit=crop"
+              src={PROTAGONIST_IMAGES[protagonistId] ?? "/images/photo-parents.jpg"}
               alt=""
               fill
               className="object-cover"
+              sizes="40px"
             />
           </div>
-          <span className="text-sm font-medium text-brown-dark">
-            선택한 주인공: <strong>부모님</strong>
-          </span>
+          <div>
+            <p className="text-[12px] text-[#8b6f5c]">선택한 주인공</p>
+            <p className="text-[16px] font-bold text-[#3d2b1f]">{protagonist}</p>
+          </div>
         </div>
-        <button type="button" className="text-xs text-brown underline">
+        <Link href="/apply/story-song/2" className="text-[13px] font-medium text-[#5c3d2e]">
           주인공 변경
-        </button>
+        </Link>
       </div>
 
-      <h2 className="font-[family-name:var(--font-noto-serif-kr)] text-xl font-bold text-brown-dark">
-        3. 당신의 이야기를 들려주세요
-      </h2>
-      <p className="mt-2 text-sm text-brown-light">
-        정해진 질문에 자유롭게 답해 주세요. 당신의 이야기가 가사와 음악의 소재가 됩니다.
+      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">3. 당신의 이야기를 들려주세요</h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+        선택하신 주인공에 대한 이야기를 자유롭게 작성해주세요. 작성하신 내용은 가사와 음악 제작에 소중한 재료가 됩니다.
       </p>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-5 space-y-6">
         {QUESTIONS.map((item, i) => (
-          <div key={i}>
-            <label className="mb-1 block text-sm font-semibold text-brown-dark">
+          <div key={item.key}>
+            <label className="mb-1 block text-[16px] font-semibold text-[#3d2b1f]">
               {i + 1}. {item.q}
             </label>
-            <p className="mb-2 text-xs text-brown-light">{item.hint}</p>
+            <p className="mb-2 text-[13px] text-[#8b6f5c]">{item.hint}</p>
             <textarea
-              rows={4}
+              rows={5}
+              maxLength={item.max}
+              value={answers[item.key]}
+              onChange={(e) => update(item.key, e.target.value)}
               placeholder="자유롭게 작성해주세요"
-              className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-base outline-none focus:border-brown"
+              className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
             />
-            <p className="mt-1 text-right text-xs text-brown-light">0 / {item.max}</p>
+            <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+              {answers[item.key].length} / {item.max}
+            </p>
           </div>
         ))}
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-brown-dark">
-            마지막으로 더 하고 싶은 이야기가 있으신가요?
-          </label>
+          <label className="mb-1 block text-[16px] font-semibold text-[#3d2b1f]">하고 싶은 말</label>
+          <p className="mb-2 text-[13px] text-[#8b6f5c]">
+            위 질문 외에 전하고 싶은 이야기를 자유롭게 적어주세요.
+          </p>
           <textarea
-            rows={5}
-            placeholder="형식 없이 자유롭게 작성해 주세요"
-            className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-base outline-none focus:border-brown"
+            rows={7}
+            maxLength={1000}
+            value={answers.free}
+            onChange={(e) => update("free", e.target.value)}
+            placeholder="당신의 이야기를 자유롭게 들려주세요."
+            className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
-          <p className="mt-1 text-right text-xs text-brown-light">0 / 1000</p>
+          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{answers.free.length} / 1000</p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl bg-[#fdf3eb] p-4 text-xs leading-relaxed text-brown">
-        ❤️ 많이 쓸수록 더 깊고 감동적인 노래가 됩니다. 부담 없이 마음 가는 대로 작성해 주세요.
-      </div>
+      <p className="mt-4 rounded-xl bg-[#f5efe6] px-4 py-3 text-[13px] leading-relaxed text-[#5c3d2e]">
+        많이 쓸수록 더 깊고 감동적인 노래가 됩니다. 부담 없이 마음 가는 대로 작성해 주세요.
+      </p>
     </ApplyLayout>
   );
 }

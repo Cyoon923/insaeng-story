@@ -1,138 +1,287 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Star, Calendar } from "lucide-react";
+import {
+  ChevronRight,
+  Star,
+  ClipboardList,
+  Pencil,
+  MessageCircle,
+  CheckCircle,
+} from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { Button } from "@/components/ui/Button";
-import { formatPriceFrom } from "@/lib/constants/products";
+import { CONSULT_REVIEWS } from "@/lib/constants/reviews";
 
-const PURPOSES = [
-  { icon: "❤️", title: "자존감·치유", sub: "마음의 회복" },
-  { icon: "🧭", title: "진로·인생방향", sub: "앞길 탐색" },
-  { icon: "👨‍👩‍👧", title: "가족관계", sub: "관계 이해" },
-  { icon: "💕", title: "연애·관계", sub: "사랑의 흐름" },
-  { icon: "💼", title: "직장·사업", sub: "일과 재물" },
-  { icon: "🍃", title: "기타 고민", sub: "자유 상담" },
+const RECOMMENDS = [
+  {
+    title: "앞으로의 방향이 고민되는 분",
+    desc: "이직·사업·진로 등 중요한 선택을 앞두고 있을 때",
+    image: "/images/photo-career.jpg",
+  },
+  {
+    title: "연애와 인연이 궁금한 분",
+    desc: "연애·결혼·궁합 등 관계의 흐름이 궁금할 때",
+    image: "/images/photo-couple.jpg",
+  },
+  {
+    title: "재물과 일의 흐름이 궁금한 분",
+    desc: "금전·직장·사업의 흐름을 살펴보고 싶을 때",
+    image: "/images/photo-talk.jpg",
+  },
+  {
+    title: "마음속 고민을 나누고 싶은 분",
+    desc: "혼자 결정하기 어려운 고민을 편안하게 이야기하고 싶을 때",
+    image: "/images/photo-tea.jpg",
+  },
+];
+
+const FIELDS = [
+  "전체적인 운세",
+  "재물·금전",
+  "직장·사업",
+  "연애·인연",
+  "결혼·궁합",
+  "가족",
+  "진로",
+  "올해의 흐름",
+];
+
+const STEPS = [
+  { num: "01", title: "상담 신청", desc: "선생님과 시간을 고릅니다", icon: ClipboardList },
+  { num: "02", title: "사주정보 입력", desc: "생년월일과 시간을 알려주세요", icon: Pencil },
+  { num: "03", title: "선생님과 1:1 상담", desc: "카카오톡 또는 전화로 약 50분", icon: MessageCircle },
+  { num: "04", title: "상담 완료", desc: "흐름과 방향을 정리합니다", icon: CheckCircle },
+];
+
+const FAQS = [
+  {
+    q: "처음 사주상담을 받아도 괜찮을까요?",
+    a: "괜찮습니다. 선생님이 편안하게 이끌어 드리며, 궁금한 것부터 천천히 살펴봅니다.",
+  },
+  {
+    q: "상담은 어떻게 진행되나요?",
+    a: "카카오톡 상담 또는 전화 상담 중 하나를 선택해, 약 50분 동안 진행합니다. 화상 상담은 하지 않습니다.",
+  },
+  {
+    q: "상담 후에는 무엇을 받을 수 있나요?",
+    a: "상담을 통해 지금의 흐름과 앞으로의 방향을 함께 정리해 드립니다. 상담 기록 요약 리포트는 신청 시 옵션으로 선택하실 수 있습니다.",
+  },
 ];
 
 export default function ConsultationPage() {
   return (
     <MobileShell>
-      <AppHeader variant="page" title="1:1 사주상담" subtitle="전문 상담사와 함께 당신의 흐름을 살펴보세요" backHref="/" />
+      <AppHeader
+        variant="page"
+        title="1:1 사주상담"
+        subtitle="전문 선생님과 함께 당신의 흐름을 살펴보세요"
+        backHref="/"
+      />
 
-      <div className="relative h-44">
-        <Image
-          src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&h=300&fit=crop"
-          alt=""
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute bottom-0 left-0 p-5 text-white">
-          <p className="text-lg font-bold leading-snug">
-            전문 상담사와 함께
-            <br />
-            당신의 현재와 미래를 더 깊이 이해하세요
-          </p>
-        </div>
-      </div>
-
-      {/* Counselor */}
-      <div className="mx-4 -mt-6 relative rounded-2xl bg-white p-4 shadow-md ring-1 ring-border">
-        <div className="flex items-center gap-3">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full">
-            <Image
-              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop"
-              alt="이채윤 상담사"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-brown-dark">이채윤 상담사</span>
-              <span className="rounded bg-ivory px-1.5 py-0.5 text-[10px] text-brown">인생스토리 전담</span>
-            </div>
-            <div className="mt-0.5 flex items-center gap-1 text-xs text-gold">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-3 w-3 fill-gold text-gold" />
-              ))}
-              <span className="text-brown-light">5.0 (후기 128개)</span>
-            </div>
-            <p className="mt-1 text-xs leading-relaxed text-brown-light">
-              사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
+      <section className="relative overflow-hidden bg-[#faf8f5] px-4 pb-4 pt-5">
+        <div className="relative flex min-h-[268px] items-stretch">
+          <div className="relative z-10 flex w-[56%] flex-col justify-center pr-1">
+            <p className="text-[13px] font-medium text-[#5c3d2e]">혼자 고민하지 마세요</p>
+            <h2 className="mt-2 break-keep font-serif text-[20px] font-bold leading-[1.4] text-[#3d2b1f]">
+              지금의 흐름을
+              <br />
+              이해하면
+              <br />
+              앞으로의 방향이
+              <br />
+              보입니다
+            </h2>
+            <p className="mt-3 break-keep text-[13px] leading-relaxed text-[#8b6f5c]">
+              사주를 바탕으로
+              <br />
+              현재의 고민과 흐름을
+              <br />
+              살펴보고 방향을 찾습니다.
             </p>
+            <p className="mt-4 text-[18px] font-bold text-[#3d2b1f]">100,000원~</p>
+            <Link
+              href="/apply/consultation/1"
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
+            >
+              상담 신청하기
+              <ChevronRight className="ml-0.5 h-4 w-4" />
+            </Link>
           </div>
-          <ChevronRight className="h-5 w-5 text-brown-light" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-[48%] items-center justify-end">
+            <div className="relative aspect-square h-full overflow-hidden rounded-2xl">
+              <Image
+                src="/images/life-graph-radar.png"
+                alt=""
+                fill
+                priority
+                className="object-cover"
+                sizes="268px"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Schedule */}
       <section className="px-4 py-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-bold text-brown-dark">상담 가능 일정</h3>
-          <button type="button" className="text-xs text-brown">
-            다른 날짜 보기 &gt;
-          </button>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {["8/12 화", "8/13 수", "8/14 목", "8/15 금", "8/16 토"].map((d, i) => (
-            <button
-              key={d}
-              type="button"
-              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-semibold ${
-                i === 0 ? "bg-brown text-white" : "bg-ivory text-brown-dark"
-              }`}
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 flex gap-2">
-          {["오전 10:00", "오후 2:00", "오후 6:00"].map((t, i) => (
-            <button
-              key={t}
-              type="button"
-              className={`flex-1 rounded-xl py-3 text-sm font-semibold ${
-                i === 0 ? "bg-brown text-white" : "border border-border bg-white text-brown"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Purpose */}
-      <section className="px-4 pb-6">
-        <h3 className="mb-3 font-bold text-brown-dark">상담 목적을 선택해주세요</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {PURPOSES.map((p) => (
-            <button
-              key={p.title}
-              type="button"
-              className="rounded-2xl border border-border bg-white p-4 text-left"
-            >
-              <span className="text-xl">{p.icon}</span>
-              <p className="mt-2 text-sm font-bold text-brown-dark">{p.title}</p>
-              <p className="text-xs text-brown-light">{p.sub}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <div className="sticky bottom-16 border-t border-border bg-cream px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-base font-bold text-brown-dark">{formatPriceFrom(99000)}</p>
-            <p className="text-xs text-brown-light">선택한 옵션에 따라 금액이 달라져요</p>
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담 선생님 소개</h3>
+        <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+          <div className="flex items-start gap-3">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
+              <Image
+                src="/images/photo-yubi-teacher.png"
+                alt="유비 선생"
+                fill
+                className="object-cover object-top"
+                sizes="64px"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[16px] font-bold text-[#3d2b1f]">유비 선생</p>
+                <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
+                  인생스토리 전담 선생
+                </span>
+              </div>
+              <div className="mt-1 flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
+                ))}
+                <span className="text-[12px] text-[#8b6f5c]">5.0 (후기 128개)</span>
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+                사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
+              </p>
+            </div>
           </div>
-          <Button href="/apply/consultation/1" size="lg" className="gap-2">
-            <Calendar className="h-4 w-4" /> 상담 신청하기
-          </Button>
         </div>
-      </div>
+      </section>
+
+      <section className="px-4 pb-6">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담에서 보는 그래프</h3>
+        <p className="mt-2 break-keep text-[14px] leading-relaxed text-[#8b6f5c]">
+          12개 항목을 개별 그래프와 누적 그래프로 살펴보며 방향을 정리합니다.
+        </p>
+        <div className="mt-4 space-y-4">
+          <div>
+            <p className="mb-2 text-[15px] font-bold text-[#3d2b1f]">개별 그래프</p>
+            <p className="mb-2 text-[13px] text-[#8b6f5c]">항목별 흐름을 따로 봅니다.</p>
+            <div className="overflow-hidden rounded-2xl bg-[#f3f4f6] ring-1 ring-[#ebe3d8]">
+              <Image
+                src="/images/life-graph-business.png"
+                alt="개별 그래프 예시"
+                width={1400}
+                height={420}
+                className="h-auto w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[15px] font-bold text-[#3d2b1f]">누적 그래프</p>
+            <p className="mb-2 text-[13px] text-[#8b6f5c]">흐름을 모아 함께 봅니다.</p>
+            <div className="overflow-hidden rounded-2xl bg-[#f3f4f6] ring-1 ring-[#ebe3d8]">
+              <Image
+                src="/images/life-graph-health.png"
+                alt="누적 그래프 예시"
+                width={1400}
+                height={420}
+                className="h-auto w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 pb-6">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">이런 분께 추천드려요</h3>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {RECOMMENDS.map((item) => (
+            <div key={item.title} className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#ebe3d8]">
+              <div className="relative h-24">
+                <Image src={item.image} alt="" fill className="object-cover" sizes="180px" />
+              </div>
+              <div className="p-3">
+                <p className="text-[13px] font-bold leading-snug text-[#3d2b1f]">{item.title}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#8b6f5c]">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-4 pb-6">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담 분야</h3>
+        <p className="mt-1 text-[13px] text-[#8b6f5c]">이런 주제로 상담을 받으실 수 있습니다.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {FIELDS.map((field) => (
+            <div
+              key={field}
+              className="rounded-xl bg-[#f5efe6] px-3 py-3 text-center text-[13px] font-medium text-[#3d2b1f]"
+            >
+              {field}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-[#f5efe6] px-4 py-6">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담은 이렇게 진행돼요</h3>
+        <div className="mt-4 grid grid-cols-4 gap-1">
+          {STEPS.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.num} className="flex flex-col items-center text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#5c3d2e]">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <p className="mt-2 text-[10px] font-bold text-[#8b6f5c]">{step.num}</p>
+                <p className="text-[11px] font-bold leading-snug text-[#3d2b1f]">{step.title}</p>
+                <p className="mt-1 text-[10px] leading-snug text-[#8b6f5c]">{step.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <span className="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#5c3d2e]">카카오톡 또는 전화</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#5c3d2e]">약 50분</span>
+        </div>
+      </section>
+
+      <section className="px-4 py-6">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담 후기</h3>
+        <p className="mt-1 text-[13px] text-[#8b6f5c]">유비 선생과 상담하신 분의 이야기입니다.</p>
+        <div className="mt-3 space-y-3">
+          {CONSULT_REVIEWS.map((review) => (
+            <div key={review.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[15px] font-bold text-[#3d2b1f]">{review.name}</p>
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: review.rating }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
+                  ))}
+                </div>
+              </div>
+              <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">{review.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-4 pb-8">
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">자주 묻는 질문</h3>
+        <div className="mt-3 space-y-2">
+          {FAQS.map((faq) => (
+            <details key={faq.q} className="rounded-xl bg-white ring-1 ring-[#ebe3d8]">
+              <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-[14px] font-medium text-[#3d2b1f]">
+                {faq.q}
+                <ChevronRight className="h-4 w-4 shrink-0 text-[#8b6f5c]" />
+              </summary>
+              <p className="border-t border-[#ebe3d8] px-4 pb-4 pt-3 text-[13px] leading-relaxed text-[#8b6f5c]">
+                {faq.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
     </MobileShell>
   );
 }

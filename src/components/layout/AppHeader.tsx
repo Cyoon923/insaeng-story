@@ -1,5 +1,26 @@
+"use client";
+
 import Link from "next/link";
-import { Menu, Bell, ChevronLeft, Heart, Share2 } from "lucide-react";
+import { Menu, Bell, ChevronLeft, Share2 } from "lucide-react";
+
+async function shareCurrentPage() {
+  const url = window.location.href;
+  const title = document.title;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url });
+    } catch {
+      return;
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    window.alert("링크를 복사했습니다.");
+  } catch {
+    return;
+  }
+}
 
 interface AppHeaderProps {
   variant?: "home" | "page" | "apply";
@@ -31,9 +52,9 @@ export function AppHeader({
               <ChevronLeft className="h-5 w-5" />
             </Link>
           ) : showMenu ? (
-            <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
+            <Link href="/menu" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
               <Menu className="h-5 w-5" />
-            </button>
+            </Link>
           ) : (
             <span className="w-5" />
           )}
@@ -48,19 +69,19 @@ export function AppHeader({
 
         <div className="flex w-10 items-center justify-end gap-1">
           {showBell && (
-            <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
+            <Link href="/my/notifications" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
               <Bell className="h-5 w-5" />
-            </button>
+            </Link>
           )}
           {showActions && (
-            <>
-              <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="찜">
-                <Heart className="h-5 w-5" />
-              </button>
-              <button type="button" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="공유">
-                <Share2 className="h-4 w-4" />
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={shareCurrentPage}
+              className="rounded-lg p-2 text-brown hover:bg-ivory"
+              aria-label="공유"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
           )}
           {!showBell && !showActions && <span className="w-5" />}
         </div>

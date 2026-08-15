@@ -13,12 +13,13 @@ interface MockupSliceProps {
 /** 시안 PNG 슬라이스 + 클릭 영역 오버레이 */
 export function MockupSlice({ src, width, height, alt = "", priority, children }: MockupSliceProps) {
   return (
-    <div className="relative w-full" style={{ aspectRatio: `${width} / ${height}` }}>
+    <div className="relative w-full">
       <Image
         src={src}
         alt={alt}
-        fill
-        className="object-cover object-top"
+        width={width}
+        height={height}
+        className="block h-auto w-full"
         sizes="430px"
         priority={priority}
       />

@@ -29,7 +29,7 @@ export const LIFE_SONG_PRODUCTS: LifeSongProduct[] = [
     applyHref: "/apply/story-song/1",
     icon: "pencil",
     accent: "#5c3d2e",
-    heroImage: "https://images.unsplash.com/photo-1455396577869-51adff057779?w=800&h=400&fit=crop",
+    heroImage: "/images/photo-writing.jpg",
   },
   {
     id: "premium",
@@ -43,7 +43,7 @@ export const LIFE_SONG_PRODUCTS: LifeSongProduct[] = [
     applyHref: "/apply/premium/1",
     icon: "crown",
     accent: "#c4a574",
-    heroImage: "https://images.unsplash.com/photo-1549465220-1a391b3ca556?w=800&h=400&fit=crop",
+    heroImage: "/images/photo-premium-life.png",
   },
   {
     id: "saju-song",
@@ -57,14 +57,14 @@ export const LIFE_SONG_PRODUCTS: LifeSongProduct[] = [
     applyHref: "/apply/saju-song/1",
     icon: "sparkles",
     accent: "#7c6b9e",
-    heroImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
+    heroImage: "/images/photo-ohaeng.png",
   },
 ];
 
 export const CONSULTATION = {
   title: "1:1 사주상담",
   description: "인생곡과 별도로 이용할 수 있는 전문 사주상담 서비스입니다.",
-  priceFrom: 99000,
+  priceFrom: 100000,
   href: "/consultation",
   applyHref: "/apply/consultation/1",
 };

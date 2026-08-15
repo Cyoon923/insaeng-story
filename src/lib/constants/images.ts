@@ -1,0 +1,15 @@
+export const IMAGES = {
+  hero: "/images/photo-hero.jpg",
+  writing: "/images/photo-writing.jpg",
+  premium: "/images/photo-premium-life.png",
+  saju: "/images/photo-ohaeng.png",
+  consult: "/images/life-graph-radar.png",
+  teacher: "/images/photo-yubi-teacher.png",
+  parents: "/images/photo-parents.jpg",
+  couple: "/images/photo-couple.jpg",
+  family: "/images/photo-family.jpg",
+  pet: "/images/photo-pet.jpg",
+  self: "/images/photo-self.jpg",
+  career: "/images/photo-career.jpg",
+  talk: "/images/photo-talk.jpg",
+} as const;

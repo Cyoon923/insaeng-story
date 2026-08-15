@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const STEPS = [
+export const STORY_STEPS = [
   { num: 1, label: "기본정보" },
   { num: 2, label: "이야기 주인공" },
   { num: 3, label: "이야기 작성" },
@@ -12,16 +12,35 @@ const STEPS = [
   { num: 6, label: "확인 및 결제" },
 ];
 
+export const SAJU_STEPS = [
+  { num: 1, label: "사주 정보" },
+  { num: 2, label: "노래 스타일" },
+  { num: 3, label: "추가 옵션" },
+  { num: 4, label: "확인 및 결제" },
+];
+
+export const CONSULT_STEPS = [
+  { num: 1, label: "예약 선택" },
+  { num: 2, label: "상담 정보" },
+  { num: 3, label: "상담 내용" },
+  { num: 4, label: "확인 및 결제" },
+];
+
 interface ApplyStepperProps {
   currentStep: number;
   basePath?: string;
+  steps?: { num: number; label: string }[];
 }
 
-export function ApplyStepper({ currentStep, basePath = "/apply/story-song" }: ApplyStepperProps) {
+export function ApplyStepper({
+  currentStep,
+  basePath = "/apply/story-song",
+  steps = STORY_STEPS,
+}: ApplyStepperProps) {
   return (
     <div className="border-b border-border bg-cream px-2 py-4">
       <div className="flex items-start justify-between">
-        {STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const isActive = step.num === currentStep;
           const isDone = step.num < currentStep;
           return (
@@ -41,7 +60,7 @@ export function ApplyStepper({ currentStep, basePath = "/apply/story-song" }: Ap
                 >
                   {step.num}
                 </Link>
-                {i < STEPS.length - 1 && (
+                {i < steps.length - 1 && (
                   <div className={cn("h-px flex-1", isDone ? "bg-brown" : "bg-border")} />
                 )}
               </div>
