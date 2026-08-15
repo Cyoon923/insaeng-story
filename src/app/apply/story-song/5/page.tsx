@@ -1,16 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { formatPrice } from "@/lib/constants/products";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
 const VIDEO_STYLES = [
-  "과거 레트로풍",
-  "감성 애니메이션풍",
-  "AI 실사 영상풍",
-  "감성 일러스트풍",
-  "영화 시네마틱풍",
+  {
+    name: "AI 실사 영상풍",
+    desc: "실제 사람처럼 보이는 영상",
+    image: "/images/video-style-live.png",
+  },
+  {
+    name: "과거 레트로풍",
+    desc: "옛날 사진처럼 따뜻하고 빛바랜 느낌",
+    image: "/images/video-style-retro.png",
+  },
+  {
+    name: "애니메이션풍",
+    desc: "만화처럼 부드럽고 따뜻한 그림 느낌",
+    image: "/images/video-style-animation.png",
+  },
+  {
+    name: "시네마풍",
+    desc: "영화 한 장면처럼 크고 드라마틱한 느낌",
+    image: "/images/video-style-cinematic.png",
+  },
 ];
 
 const OPTIONS = [
@@ -18,31 +34,31 @@ const OPTIONS = [
     id: "ai-mv",
     title: "내 얼굴 AI 뮤직비디오",
     price: 100000,
-    desc: "얼굴 사진을 바탕으로 노래에 맞는 AI 뮤직비디오를 제작합니다.",
+    desc: "내 얼굴 사진으로 뮤직비디오를 만듭니다.",
   },
   {
     id: "photo-mv",
     title: "추억사진 영상 제작",
     price: 50000,
-    desc: "보내주신 사진을 인생곡에 맞춰 영상으로 편집합니다.",
+    desc: "보내주신 사진으로 영상을 만듭니다.",
   },
   {
     id: "lyric-edit",
     title: "가사 수정 1회 추가",
     price: 10000,
-    desc: "기본 수정 1회에 더해 가사 수정을 1회 추가합니다.",
+    desc: "가사 고치기를 한 번 더 할 수 있습니다.",
   },
   {
     id: "gift",
     title: "선물 패키지",
     price: null,
-    desc: "음원, 가사 카드, 프리미엄 포장 등 실물 선물 구성입니다.",
+    desc: "음원과 가사 카드를 선물로 포장합니다.",
   },
 ];
 
 export default function ApplyStep5Page() {
   const [selected, setSelected] = useState<string[]>(["ai-mv"]);
-  const [videoStyle, setVideoStyle] = useState("과거 레트로풍");
+  const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
 
   const persist = (ids: string[], style: string) => {
     const labels = OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title);
@@ -58,15 +74,18 @@ export default function ApplyStep5Page() {
       const ids = OPTIONS.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id);
       if (ids.length) setSelected(ids);
     }
-    if (draft.videoStyle) setVideoStyle(draft.videoStyle);
+    if (draft.videoStyle) {
+      const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
+      setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
+    }
   }, []);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
-      const style = id === "ai-mv" && !next.includes("ai-mv") ? "과거 레트로풍" : videoStyle;
+      const style = id === "ai-mv" && !next.includes("ai-mv") ? "AI 실사 영상풍" : videoStyle;
       if (id === "ai-mv" && !next.includes("ai-mv")) {
-        setVideoStyle("과거 레트로풍");
+        setVideoStyle("AI 실사 영상풍");
       }
       persist(next, style);
       return next;
@@ -81,7 +100,7 @@ export default function ApplyStep5Page() {
   return (
     <ApplyLayout step={5} prevHref="/apply/story-song/4" nextHref="/apply/story-song/6">
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">5. 추가 옵션을 선택해주세요</h2>
-      <p className="mt-2 text-[14px] text-[#8b6f5c]">여러 개를 함께 선택하실 수 있습니다.</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">여러 개를 함께 선택하실 수 있습니다.</p>
 
       <div className="mt-5 space-y-3">
         {OPTIONS.map((opt) => {
@@ -95,16 +114,16 @@ export default function ApplyStep5Page() {
             >
               <button type="button" onClick={() => toggle(opt.id)} className="flex w-full items-start gap-3 text-left">
                 <span
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 text-[12px] ${
+                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-[16px] ${
                     active ? "border-[#5c3d2e] bg-[#5c3d2e] text-white" : "border-[#d4c8ba] bg-white"
                   }`}
                 >
                   {active ? "✓" : ""}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[16px] font-bold text-[#3d2b1f]">{opt.title}</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">{opt.desc}</p>
-                  <p className="mt-2 text-[15px] font-bold text-[#5c3d2e]">
+                  <p className="text-[18px] font-bold text-[#3d2b1f]">{opt.title}</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-[#8b6f5c]">{opt.desc}</p>
+                  <p className="mt-2 text-[16px] font-bold text-[#5c3d2e]">
                     {opt.price !== null ? `+ ${formatPrice(opt.price)}` : "가격 별도 문의"}
                   </p>
                 </div>
@@ -112,28 +131,32 @@ export default function ApplyStep5Page() {
 
               {opt.id === "ai-mv" && active ? (
                 <div className="mt-4 border-t border-[#ebe3d8] pt-4">
-                  <p className="text-[14px] font-semibold text-[#3d2b1f]">
+                  <p className="text-[17px] font-semibold text-[#3d2b1f]">
                     영상 스타일 <span className="text-red-500">*</span>
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">5가지 중 1개를 선택해주세요.</p>
-                  <div className="mt-3 grid grid-cols-1 gap-2">
+                  <p className="mt-1 text-[14px] text-[#8b6f5c]">사진을 보고 1개를 골라 주세요.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     {VIDEO_STYLES.map((style) => {
-                      const styleActive = videoStyle === style;
+                      const styleActive = videoStyle === style.name;
                       return (
                         <button
-                          key={style}
+                          key={style.name}
                           type="button"
                           onClick={() => {
-                            setVideoStyle(style);
-                            persist(selected, style);
+                            setVideoStyle(style.name);
+                            persist(selected, style.name);
                           }}
-                          className={`h-12 rounded-xl text-[15px] font-medium ${
-                            styleActive
-                              ? "bg-[#5c3d2e] text-white"
-                              : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                          className={`overflow-hidden rounded-2xl bg-white text-left ${
+                            styleActive ? "ring-2 ring-[#5c3d2e]" : "ring-1 ring-[#ebe3d8]"
                           }`}
                         >
-                          {style}
+                          <div className="relative h-[88px] w-full bg-[#f5efe6]">
+                            <Image src={style.image} alt="" fill className="object-cover" sizes="160px" />
+                          </div>
+                          <div className="px-2 py-2.5">
+                            <p className="text-[14px] font-bold leading-snug text-[#3d2b1f]">{style.name}</p>
+                            <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">{style.desc}</p>
+                          </div>
                         </button>
                       );
                     })}
@@ -146,10 +169,10 @@ export default function ApplyStep5Page() {
       </div>
 
       <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#f5efe6] p-4">
-        <span className="text-[14px] text-[#3d2b1f]">선택한 추가 옵션 금액</span>
+        <span className="text-[15px] text-[#3d2b1f]">선택한 추가 옵션 금액</span>
         <span className="text-[20px] font-bold text-[#5c3d2e]">{formatPrice(total)}</span>
       </div>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
         기본 상품 금액과 합산된 최종 금액은 다음 단계에서 확인하실 수 있습니다.
       </p>
     </ApplyLayout>

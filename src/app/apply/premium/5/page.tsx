@@ -1,17 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { STORY_STEPS } from "@/components/apply/ApplyStepper";
 import { formatPrice } from "@/lib/constants/products";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
 const VIDEO_STYLES = [
-  "과거 레트로풍",
-  "감성 애니메이션풍",
-  "AI 실사 영상풍",
-  "감성 일러스트풍",
-  "영화 시네마틱풍",
+  {
+    name: "AI 실사 영상풍",
+    desc: "실제 사람처럼 보이는 영상",
+    image: "/images/video-style-live.png",
+  },
+  {
+    name: "과거 레트로풍",
+    desc: "옛날 사진처럼 따뜻하고 빛바랜 느낌",
+    image: "/images/video-style-retro.png",
+  },
+  {
+    name: "애니메이션풍",
+    desc: "만화처럼 부드럽고 따뜻한 그림 느낌",
+    image: "/images/video-style-animation.png",
+  },
+  {
+    name: "시네마풍",
+    desc: "영화 한 장면처럼 크고 드라마틱한 느낌",
+    image: "/images/video-style-cinematic.png",
+  },
 ];
 
 const OPTIONS = [
@@ -43,7 +59,7 @@ const OPTIONS = [
 
 export default function ApplyStep5Page() {
   const [selected, setSelected] = useState<string[]>(["ai-mv"]);
-  const [videoStyle, setVideoStyle] = useState("과거 레트로풍");
+  const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
 
   const persist = (ids: string[], style: string) => {
     const labels = OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title);
@@ -59,15 +75,18 @@ export default function ApplyStep5Page() {
       const ids = OPTIONS.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id);
       if (ids.length) setSelected(ids);
     }
-    if (draft.videoStyle) setVideoStyle(draft.videoStyle);
+    if (draft.videoStyle) {
+      const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
+      setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
+    }
   }, []);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
-      const style = id === "ai-mv" && !next.includes("ai-mv") ? "과거 레트로풍" : videoStyle;
+      const style = id === "ai-mv" && !next.includes("ai-mv") ? "AI 실사 영상풍" : videoStyle;
       if (id === "ai-mv" && !next.includes("ai-mv")) {
-        setVideoStyle("과거 레트로풍");
+        setVideoStyle("AI 실사 영상풍");
       }
       persist(next, style);
       return next;
@@ -121,28 +140,32 @@ export default function ApplyStep5Page() {
 
               {opt.id === "ai-mv" && active ? (
                 <div className="mt-4 border-t border-[#ebe3d8] pt-4">
-                  <p className="text-[14px] font-semibold text-[#3d2b1f]">
+                  <p className="text-[17px] font-semibold text-[#3d2b1f]">
                     영상 스타일 <span className="text-red-500">*</span>
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">5가지 중 1개를 선택해주세요.</p>
-                  <div className="mt-3 grid grid-cols-1 gap-2">
+                  <p className="mt-1 text-[14px] text-[#8b6f5c]">사진을 보고 1개를 골라 주세요.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     {VIDEO_STYLES.map((style) => {
-                      const styleActive = videoStyle === style;
+                      const styleActive = videoStyle === style.name;
                       return (
                         <button
-                          key={style}
+                          key={style.name}
                           type="button"
                           onClick={() => {
-                            setVideoStyle(style);
-                            persist(selected, style);
+                            setVideoStyle(style.name);
+                            persist(selected, style.name);
                           }}
-                          className={`h-12 rounded-xl text-[15px] font-medium ${
-                            styleActive
-                              ? "bg-[#5c3d2e] text-white"
-                              : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                          className={`overflow-hidden rounded-2xl bg-white text-left ${
+                            styleActive ? "ring-2 ring-[#5c3d2e]" : "ring-1 ring-[#ebe3d8]"
                           }`}
                         >
-                          {style}
+                          <div className="relative h-[88px] w-full bg-[#f5efe6]">
+                            <Image src={style.image} alt="" fill className="object-cover" sizes="160px" />
+                          </div>
+                          <div className="px-2 py-2.5">
+                            <p className="text-[14px] font-bold leading-snug text-[#3d2b1f]">{style.name}</p>
+                            <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">{style.desc}</p>
+                          </div>
                         </button>
                       );
                     })}

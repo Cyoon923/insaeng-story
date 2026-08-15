@@ -15,6 +15,7 @@ interface ApplyLayoutProps {
   basePath?: string;
   steps?: { num: number; label: string }[];
   heroText?: string;
+  heroImage?: string;
 }
 
 export function ApplyLayout({
@@ -29,7 +30,15 @@ export function ApplyLayout({
   basePath = "/apply/story-song",
   steps = STORY_STEPS,
   heroText = "당신의 이야기가\n세상에 단 하나뿐인 노래가 됩니다",
+  heroImage,
 }: ApplyLayoutProps) {
+  const isConsultation = basePath.startsWith("/apply/consultation");
+  const heroSrc =
+    heroImage ??
+    (basePath.startsWith("/apply/consultation")
+      ? "/images/life-graph-radar.png"
+      : "/images/photo-hero.jpg");
+
   return (
     <MobileShell>
       <AppHeader
@@ -39,7 +48,12 @@ export function ApplyLayout({
         showActions
       />
       <div className="relative h-36 w-full">
-        <Image src="/images/photo-hero.jpg" alt="" fill className="object-cover object-[70%_center]" />
+        <Image
+          src={heroSrc}
+          alt=""
+          fill
+          className={`object-cover ${isConsultation ? "object-center" : "object-[70%_center]"}`}
+        />
         <div className="absolute inset-0 bg-[#3d2b1f]/45" />
         <div className="absolute bottom-0 p-4 text-white">
           <p className="text-[15px] font-bold leading-snug whitespace-pre-line">{heroText}</p>

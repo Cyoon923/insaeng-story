@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -11,6 +14,7 @@ import {
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { CONSULT_REVIEWS } from "@/lib/constants/reviews";
+import { formatPriceFrom } from "@/lib/constants/products";
 
 const RECOMMENDS = [
   {
@@ -68,7 +72,76 @@ const FAQS = [
   },
 ];
 
+const EASY_MODE_KEY = "insaeng-easy-mode";
+
+const EASY_STEPS = [
+  { title: "1. 신청하기" },
+  { title: "2. 사주 정보 넣기" },
+  { title: "3. 선생님과 상담", note: "카카오톡 또는 전화로 약 50분" },
+  { title: "4. 상담 마치기" },
+];
+
 export default function ConsultationPage() {
+  const [easyMode, setEasyMode] = useState(false);
+
+  useEffect(() => {
+    setEasyMode(localStorage.getItem(EASY_MODE_KEY) === "on");
+  }, []);
+
+  const turnOnEasyMode = () => {
+    localStorage.setItem(EASY_MODE_KEY, "on");
+    setEasyMode(true);
+  };
+
+  const turnOffEasyMode = () => {
+    localStorage.setItem(EASY_MODE_KEY, "off");
+    setEasyMode(false);
+  };
+
+  if (easyMode) {
+    return (
+      <MobileShell>
+        <AppHeader variant="page" title="1:1 사주상담" backHref="/" />
+        <section className="px-4 py-6">
+          <p className="text-center text-[20px] font-bold leading-relaxed text-[#3d2b1f]">
+            선생님과 함께
+            <br />
+            지금의 흐름을 살펴보세요
+          </p>
+          <p className="mt-4 text-center text-[22px] font-bold text-[#5c3d2e]">
+            {formatPriceFrom(100000)}
+          </p>
+          <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
+            <p className="text-[17px] font-bold text-[#3d2b1f]">이렇게 진행됩니다</p>
+            <ul className="mt-3 space-y-3">
+              {EASY_STEPS.map((step) => (
+                <li key={step.title}>
+                  <p className="text-[16px] leading-relaxed text-[#5c3d2e]">{step.title}</p>
+                  {step.note ? (
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-[#8b6f5c]">{step.note}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Link
+            href="/apply/consultation/1"
+            className="mt-6 flex h-16 items-center justify-center rounded-xl bg-[#5c3d2e] text-[20px] font-semibold text-white"
+          >
+            상담 신청하기
+          </Link>
+          <button
+            type="button"
+            onClick={turnOffEasyMode}
+            className="mt-3 flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+          >
+            일반 화면으로
+          </button>
+        </section>
+      </MobileShell>
+    );
+  }
+
   return (
     <MobileShell>
       <AppHeader
@@ -77,6 +150,16 @@ export default function ConsultationPage() {
         subtitle="전문 선생님과 함께 당신의 흐름을 살펴보세요"
         backHref="/"
       />
+
+      <div className="px-4 pt-3">
+        <button
+          type="button"
+          onClick={turnOnEasyMode}
+          className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+        >
+          어르신 쉬운 화면
+        </button>
+      </div>
 
       <section className="relative overflow-hidden bg-[#faf8f5] px-4 pb-4 pt-5">
         <div className="relative flex min-h-[268px] items-stretch">

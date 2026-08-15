@@ -17,11 +17,15 @@ const PROTAGONISTS = [
 
 export default function ApplyStep2Page() {
   const [selected, setSelected] = useState<string>("self");
+  const [otherName, setOtherName] = useState("");
 
   useEffect(() => {
     const draft = getDraft("story");
     if (draft.protagonistId) {
       setSelected(draft.protagonistId);
+      if (draft.protagonistId === "other" && draft.protagonist && draft.protagonist !== "기타") {
+        setOtherName(draft.protagonist);
+      }
       return;
     }
     const item = PROTAGONISTS.find((row) => row.id === "self");
@@ -30,6 +34,10 @@ export default function ApplyStep2Page() {
 
   const choose = (id: string, label: string) => {
     setSelected(id);
+    if (id === "other") {
+      saveDraft("story", { protagonistId: id, protagonist: otherName || "기타" });
+      return;
+    }
     saveDraft("story", { protagonistId: id, protagonist: label });
   };
 
@@ -40,7 +48,7 @@ export default function ApplyStep2Page() {
         노래의 주인공을 선택하시면, 더 잘 어울리는 질문을 드릴게요.
       </p>
 
-      <div className="mt-5 flex flex-col gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         {PROTAGONISTS.map((item) => {
           const active = selected === item.id;
           return (
@@ -48,29 +56,42 @@ export default function ApplyStep2Page() {
               key={item.id}
               type="button"
               onClick={() => choose(item.id, item.label)}
-              className={`flex min-h-[72px] items-center gap-3 overflow-hidden rounded-2xl bg-white pr-4 text-left ${
+              className={`overflow-hidden rounded-2xl bg-white text-left ${
                 active ? "ring-2 ring-[#5c3d2e]" : "ring-1 ring-[#ebe3d8]"
               }`}
             >
-              <div className="relative h-[72px] w-[72px] shrink-0 bg-[#f5efe6]">
+              <div className="relative h-[100px] bg-[#f5efe6]">
                 {item.image ? (
-                  <Image src={item.image} alt="" fill className="object-cover" sizes="72px" />
+                  <Image src={item.image} alt="" fill className="object-cover" sizes="180px" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[#5c3d2e]">
-                    <Pencil className="h-7 w-7" />
+                    <Pencil className="h-8 w-8" />
                   </div>
                 )}
               </div>
-              <div className="min-w-0 py-3">
-                <p className="text-[18px] font-bold text-[#3d2b1f]">{item.label}</p>
+              <div className="px-3 py-2.5">
+                <p className="text-[15px] font-bold text-[#3d2b1f]">{item.label}</p>
                 {"hint" in item && item.hint ? (
-                  <p className="mt-0.5 text-[14px] text-[#8b6f5c]">{item.hint}</p>
+                  <p className="mt-0.5 text-[12px] text-[#8b6f5c]">{item.hint}</p>
                 ) : null}
               </div>
             </button>
           );
         })}
       </div>
+
+      {selected === "other" ? (
+        <input
+          type="text"
+          value={otherName}
+          onChange={(e) => {
+            setOtherName(e.target.value);
+            saveDraft("story", { protagonistId: "other", protagonist: e.target.value || "기타" });
+          }}
+          placeholder="예) 친구, 스승님"
+          className="mt-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]"
+        />
+      ) : null}
 
       <p className="mt-4 rounded-xl bg-[#f5efe6] px-4 py-3 text-[13px] leading-relaxed text-[#5c3d2e]">
         선택하신 주인공에 따라 더 알맞은 질문을 준비할게요.

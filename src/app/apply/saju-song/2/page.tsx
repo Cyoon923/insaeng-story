@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { SAJU_STEPS } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
@@ -13,12 +13,37 @@ const SONG_PLACEHOLDERS = [
   "가수와 노래 제목을 입력해주세요",
   "가수와 노래 제목을 입력해주세요",
 ];
+const STORY_MAX = 500;
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { resultIndex: number; results: { length: number; [index: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+function createSpeechRecognition(): BrowserSpeechRecognition | null {
+  const speechWindow = window as unknown as {
+    SpeechRecognition?: new () => BrowserSpeechRecognition;
+    webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+  };
+  const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+  return Recognition ? new Recognition() : null;
+}
 
 export default function SajuStep2Page() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>(["따뜻한"]);
   const [customMood, setCustomMood] = useState("");
   const [songs, setSongs] = useState(["", "", ""]);
   const [story, setStory] = useState("");
+  const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState("");
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const keepListeningRef = useRef(false);
 
   const persist = (moods: string[], mood: string, nextSongs: string[], nextStory: string) => {
     saveDraft("saju-song", {
@@ -39,6 +64,86 @@ export default function SajuStep2Page() {
     }
     if (draft.story) setStory(draft.story);
   }, []);
+
+  const stopListening = () => {
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    setInterim("");
+  };
+
+  useEffect(() => {
+    return () => {
+      keepListeningRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const shownStory = listening && interim ? (story ? `${story} ${interim}` : interim) : story;
+
+  const startListening = () => {
+    if (listening) {
+      stopListening();
+      return;
+    }
+
+    const recognition = createSpeechRecognition();
+    if (!recognition) {
+      window.alert("이 브라우저에서는 말하기로 적을 수 없습니다. 글로 작성해 주세요.");
+      return;
+    }
+
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    keepListeningRef.current = true;
+    setInterim("");
+    setListening(true);
+
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let spoken = "";
+      let live = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) spoken += text;
+        else live += text;
+      }
+      setInterim(live);
+      if (!spoken) return;
+      setStory((current) => {
+        const merged = (current ? `${current} ${spoken}` : spoken).slice(0, STORY_MAX);
+        saveDraft("saju-song", { story: merged });
+        return merged;
+      });
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed") {
+        stopListening();
+        window.alert("마이크 사용을 허용해 주세요.");
+      }
+    };
+    recognition.onend = () => {
+      if (!keepListeningRef.current) {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   return (
     <ApplyLayout
@@ -129,12 +234,12 @@ export default function SajuStep2Page() {
           당신의 이야기 <span className="text-red-500">*</span>
         </p>
         <p className="mb-2 text-[13px] text-[#8b6f5c]">
-          힘들었던 순간, 감사한 사람, 이루고 싶은 꿈, 나에게 전하고 싶은 말
+          힘들었던 순간, 감사한 사람, 이루고 싶은 꿈, 나에게 전하고 싶은 말. 글로 쓰거나, 말로 하셔도 됩니다.
         </p>
         <textarea
           rows={7}
-          maxLength={500}
-          value={story}
+          maxLength={STORY_MAX}
+          value={shownStory}
           onChange={(e) => {
             setStory(e.target.value);
             persist(selectedMoods, customMood, songs, e.target.value);
@@ -142,7 +247,23 @@ export default function SajuStep2Page() {
           placeholder="당신의 이야기를 자유롭게 들려주세요."
           className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
         />
-        <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{story.length} / 500</p>
+        <button
+          type="button"
+          onClick={startListening}
+          className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
+            listening
+              ? "bg-[#5c3d2e] text-white"
+              : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+          }`}
+        >
+          {listening ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+        </button>
+        {listening ? (
+          <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+            지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
+          </p>
+        ) : null}
+        <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{shownStory.length} / {STORY_MAX}</p>
       </div>
     </ApplyLayout>
   );

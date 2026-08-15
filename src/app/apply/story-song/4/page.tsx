@@ -89,10 +89,10 @@ export default function ApplyStep4Page() {
       </div>
 
       <div className="mt-6">
-        <p className="mb-3 text-[16px] font-semibold text-[#3d2b1f]">
-          ① 가사 분위기 <span className="text-[13px] font-normal text-[#8b6f5c]">복수 선택 가능</span>
+        <p className="mb-3 text-[18px] font-semibold text-[#3d2b1f]">
+          ① 가사 분위기 <span className="text-[14px] font-normal text-[#8b6f5c]">여러 개 고를 수 있어요</span>
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {MOODS.map((mood) => {
             const active = selectedMoods.includes(mood);
             return (
@@ -100,7 +100,7 @@ export default function ApplyStep4Page() {
                 key={mood}
                 type="button"
                 onClick={() => toggleMood(mood)}
-                className={`h-12 rounded-xl text-[15px] font-medium ${
+                className={`min-h-14 rounded-xl px-2 text-[17px] font-semibold ${
                   active
                     ? "bg-[#5c3d2e] text-white"
                     : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
@@ -120,16 +120,16 @@ export default function ApplyStep4Page() {
               persist(selectedMoods, e.target.value, songs);
             }}
             placeholder="원하는 분위기를 직접 입력해주세요"
-            className="mt-3 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
+            className="mt-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]"
           />
         ) : null}
       </div>
 
       <div className="mt-7">
-        <p className="mb-1 text-[16px] font-semibold text-[#3d2b1f]">
+        <p className="mb-1 text-[18px] font-semibold text-[#3d2b1f]">
           ② 참고하고 싶은 가수와 노래 <span className="text-red-500">*</span>
         </p>
-        <p className="mb-3 text-[13px] text-[#8b6f5c]">최소 3곡, 최대 5곡까지 입력할 수 있습니다.</p>
+        <p className="mb-3 text-[15px] text-[#8b6f5c]">최소 3곡, 최대 5곡까지 입력할 수 있습니다.</p>
         {songs.map((song, i) => (
           <input
             key={i}
@@ -141,19 +141,19 @@ export default function ApplyStep4Page() {
               persist(selectedMoods, customMood, next);
             }}
             placeholder={SONG_PLACEHOLDERS[i]}
-            className="mb-2 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
+            className="mb-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]"
           />
         ))}
         {songs.length < 5 ? (
           <button
             type="button"
             onClick={() => setSongs((prev) => [...prev, ""])}
-            className="mt-1 h-12 w-full rounded-xl border border-dashed border-[#5c3d2e] text-[15px] font-medium text-[#5c3d2e]"
+            className="mt-1 h-14 w-full rounded-xl border border-dashed border-[#5c3d2e] text-[17px] font-semibold text-[#5c3d2e]"
           >
             + 노래 추가하기
           </button>
         ) : null}
-        <p className="mt-3 rounded-xl bg-[#f5efe6] px-4 py-3 text-[13px] leading-relaxed text-[#5c3d2e]">
+        <p className="mt-3 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
           입력하신 노래는 분위기와 스타일을 이해하기 위한 참고용입니다.
         </p>
       </div>

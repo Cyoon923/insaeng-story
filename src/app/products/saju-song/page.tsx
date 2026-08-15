@@ -1,5 +1,14 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ProductDetailPage } from "@/components/products/ProductDetailPage";
 import { Grid3X3, Mic, Music, Play } from "lucide-react";
+import { MobileShell } from "@/components/layout/MobileShell";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { formatPriceFrom } from "@/lib/constants/products";
+
+const EASY_MODE_KEY = "insaeng-easy-mode";
 
 const config = {
   slug: "saju-song",
@@ -36,8 +45,8 @@ const config = {
   ],
   process: [
     { num: "01", title: "사주 정보 입력", desc: "생년월일·시간을 입력합니다" },
-    { num: "02", title: "사주 분석", desc: "사주 흐름을 살펴봅니다" },
-    { num: "03", title: "AI 작사·작곡", desc: "이야기와 메시지를 담아 곡을 만듭니다" },
+    { num: "02", title: "당신의 이야기", desc: "글로 쓰거나 말로 들려주세요" },
+    { num: "03", title: "AI 작사·작곡", desc: "사주와 이야기를 담아 곡을 만듭니다" },
     { num: "04", title: "완성·전달", desc: "음원과 가사를 전달합니다" },
   ],
   faqs: [
@@ -64,6 +73,59 @@ const config = {
   ],
 };
 
+const EASY_STEPS = [
+  { title: "1. 사주 정보 넣기" },
+  {
+    title: "2. 이야기와 좋아하는 노래 고르기",
+    note: "이야기는 글로 쓰거나, 말로 할 수 있습니다",
+  },
+  { title: "3. 노래 만들기" },
+  { title: "4. 완성해서 보내드리기" },
+];
+
 export default function SajuSongProductPage() {
+  const [easyMode, setEasyMode] = useState(false);
+
+  useEffect(() => {
+    setEasyMode(localStorage.getItem(EASY_MODE_KEY) === "on");
+  }, []);
+
+  if (easyMode) {
+    return (
+      <MobileShell>
+        <AppHeader variant="page" title="사주 인생곡" backHref="/products" />
+        <section className="px-4 py-6">
+          <p className="text-center text-[20px] font-bold leading-relaxed text-[#3d2b1f]">
+            사주 정보를 넣으면
+            <br />
+            노래를 만들어 드립니다
+          </p>
+          <p className="mt-4 text-center text-[22px] font-bold text-[#5c3d2e]">
+            {formatPriceFrom(config.priceFrom)}
+          </p>
+          <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
+            <p className="text-[17px] font-bold text-[#3d2b1f]">이렇게 진행됩니다</p>
+            <ul className="mt-3 space-y-3">
+              {EASY_STEPS.map((step) => (
+                <li key={step.title}>
+                  <p className="text-[16px] leading-relaxed text-[#5c3d2e]">{step.title}</p>
+                  {step.note ? (
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-[#8b6f5c]">{step.note}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Link
+            href={config.applyHref}
+            className="mt-6 flex h-16 items-center justify-center rounded-xl bg-[#5c3d2e] text-[20px] font-semibold text-white"
+          >
+            신청하기
+          </Link>
+        </section>
+      </MobileShell>
+    );
+  }
+
   return <ProductDetailPage config={config} />;
 }

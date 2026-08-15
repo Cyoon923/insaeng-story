@@ -20,7 +20,7 @@ export default function PremiumStep1Page() {
       heroText={"당신의 인생을 깊이 이해하고,\n하나뿐인 인생곡으로 남겨드립니다"}
     >
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 기본정보</h2>
-      <p className="mt-2 text-[14px] text-[#8b6f5c]">프리미엄 인생곡 제작을 위한 기본 정보를 입력해 주세요.</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">프리미엄 인생곡 제작을 위한 기본 정보를 입력해 주세요.</p>
 
       <div className="mt-5 space-y-5">
         <Field label="이름" required>
@@ -123,7 +123,7 @@ export default function PremiumStep1Page() {
 }
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+  "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]";
 
 function Field({
   label,
@@ -136,7 +136,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
+      <label className="mb-1.5 block text-[16px] font-medium text-[#3d2b1f]">
         {label} {required ? <span className="text-red-500">*</span> : null}
       </label>
       {children}
@@ -149,7 +149,7 @@ function Choice({ active, onClick, label }: { active: boolean; onClick: () => vo
     <button
       type="button"
       onClick={onClick}
-      className={`h-12 rounded-xl text-[15px] font-semibold ${
+      className={`min-h-14 rounded-xl text-[17px] font-semibold ${
         active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
       }`}
     >

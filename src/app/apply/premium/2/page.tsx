@@ -18,11 +18,15 @@ const PROTAGONISTS = [
 
 export default function PremiumStep2Page() {
   const [selected, setSelected] = useState("parents");
+  const [otherName, setOtherName] = useState("");
 
   useEffect(() => {
     const draft = getDraft("premium");
     if (draft.protagonistId) {
       setSelected(draft.protagonistId);
+      if (draft.protagonistId === "other" && draft.protagonist && draft.protagonist !== "기타") {
+        setOtherName(draft.protagonist);
+      }
       return;
     }
     const item = PROTAGONISTS.find((row) => row.id === "parents");
@@ -31,6 +35,10 @@ export default function PremiumStep2Page() {
 
   const choose = (id: string, label: string) => {
     setSelected(id);
+    if (id === "other") {
+      saveDraft("premium", { protagonistId: id, protagonist: otherName || "기타" });
+      return;
+    }
     saveDraft("premium", { protagonistId: id, protagonist: label });
   };
 
@@ -45,7 +53,7 @@ export default function PremiumStep2Page() {
       heroText={"사주상담과 스토리상담을 바탕으로\n하나뿐인 인생곡을 만듭니다"}
     >
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">2. 누구를 위한 노래인가요?</h2>
-      <p className="mt-2 text-[14px] text-[#8b6f5c]">선택한 주인공을 기준으로 사주상담과 스토리상담이 진행됩니다.</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">선택한 주인공을 기준으로 사주상담과 스토리상담이 진행됩니다.</p>
       <div className="mt-5 grid grid-cols-2 gap-3">
         {PROTAGONISTS.map((item) => {
           const active = selected === item.id;
@@ -58,7 +66,7 @@ export default function PremiumStep2Page() {
             >
               <div className="relative h-[100px] bg-[#f5efe6]">
                 {item.image ? (
-                  <Image src={item.image} alt={item.label} fill className="object-cover" sizes="180px" />
+                  <Image src={item.image} alt="" fill className="object-cover" sizes="180px" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[#5c3d2e]">
                     <Pencil className="h-8 w-8" />
@@ -73,6 +81,19 @@ export default function PremiumStep2Page() {
           );
         })}
       </div>
+
+      {selected === "other" ? (
+        <input
+          type="text"
+          value={otherName}
+          onChange={(e) => {
+            setOtherName(e.target.value);
+            saveDraft("premium", { protagonistId: "other", protagonist: e.target.value || "기타" });
+          }}
+          placeholder="예) 친구, 스승님"
+          className="mt-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]"
+        />
+      ) : null}
     </ApplyLayout>
   );
 }

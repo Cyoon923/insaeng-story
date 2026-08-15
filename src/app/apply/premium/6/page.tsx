@@ -84,6 +84,14 @@ export default function ApplyStep6Page() {
       </div>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#3d2b1f]">사진 안내</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+          얼굴 사진, 추억 사진은 지금 올리지 않으셔도 됩니다. 결제 후 카카오톡으로 연락드려 사진을
+          받겠습니다.
+        </p>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
         <h3 className="text-[16px] font-bold text-[#3d2b1f]">저작권 및 이용 안내 [필수]</h3>
         <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
           인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
