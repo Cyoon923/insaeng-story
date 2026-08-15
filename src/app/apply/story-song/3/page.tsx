@@ -45,7 +45,7 @@ interface BrowserSpeechRecognition {
   start: () => void;
   stop: () => void;
   onresult: ((event: { resultIndex: number; results: { length: number; [index: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
 }
 
@@ -63,7 +63,10 @@ export default function ApplyStep3Page() {
   const [protagonist, setProtagonist] = useState("부모님");
   const [protagonistId, setProtagonistId] = useState("parents");
   const [listeningKey, setListeningKey] = useState<AnswerKey | null>(null);
+  const [interim, setInterim] = useState("");
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const keepListeningRef = useRef<AnswerKey | null>(null);
+  const maxRef = useRef(500);
 
   useEffect(() => {
     const draft = getDraft("story");
@@ -78,13 +81,16 @@ export default function ApplyStep3Page() {
   }, []);
 
   const stopListening = () => {
+    keepListeningRef.current = null;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
     setListeningKey(null);
+    setInterim("");
   };
 
   useEffect(() => {
     return () => {
+      keepListeningRef.current = null;
       recognitionRef.current?.stop();
     };
   }, []);
@@ -95,48 +101,73 @@ export default function ApplyStep3Page() {
     saveDraft("story", next);
   };
 
+  const shownText = (key: AnswerKey) => {
+    if (listeningKey !== key || !interim) return answers[key];
+    return answers[key] ? `${answers[key]} ${interim}` : interim;
+  };
+
   const startListening = (key: AnswerKey, max: number) => {
     if (listeningKey === key) {
       stopListening();
       return;
     }
 
-    recognitionRef.current?.stop();
     const recognition = createSpeechRecognition();
     if (!recognition) {
       window.alert("이 브라우저에서는 말하기로 적을 수 없습니다. 글로 작성해 주세요.");
       return;
     }
 
+    keepListeningRef.current = null;
+    recognitionRef.current?.stop();
+    maxRef.current = max;
+    keepListeningRef.current = key;
+    setInterim("");
+    setListeningKey(key);
+
     recognition.lang = "ko-KR";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.onresult = (event) => {
       let spoken = "";
+      let live = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        if (event.results[i].isFinal) {
-          spoken += event.results[i][0].transcript;
-        }
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) spoken += text;
+        else live += text;
       }
+      setInterim(live);
       if (!spoken) return;
       setAnswers((current) => {
         const merged = current[key] ? `${current[key]} ${spoken}` : spoken;
-        const next = { ...current, [key]: merged.slice(0, max) };
+        const next = { ...current, [key]: merged.slice(0, maxRef.current) };
         saveDraft("story", next);
         return next;
       });
     };
-    recognition.onerror = () => {
-      recognitionRef.current = null;
-      setListeningKey(null);
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed") {
+        stopListening();
+        window.alert("마이크 사용을 허용해 주세요.");
+      }
     };
     recognition.onend = () => {
-      recognitionRef.current = null;
-      setListeningKey(null);
+      if (keepListeningRef.current !== key) {
+        recognitionRef.current = null;
+        setListeningKey(null);
+        setInterim("");
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        recognitionRef.current = null;
+        setListeningKey(null);
+        setInterim("");
+      }
     };
 
     recognitionRef.current = recognition;
-    setListeningKey(key);
     recognition.start();
   };
 
@@ -165,7 +196,7 @@ export default function ApplyStep3Page() {
 
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">3. 당신의 이야기를 들려주세요</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
-        글로 쓰거나, 말로 하셔도 됩니다. 작성하신 내용은 가사와 음악 제작에 소중한 재료가 됩니다.
+        글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
       </p>
 
       <div className="mt-5 space-y-6">
@@ -178,7 +209,7 @@ export default function ApplyStep3Page() {
             <textarea
               rows={5}
               maxLength={item.max}
-              value={answers[item.key]}
+              value={shownText(item.key)}
               onChange={(e) => update(item.key, e.target.value)}
               placeholder="자유롭게 작성해주세요"
               className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
@@ -194,8 +225,13 @@ export default function ApplyStep3Page() {
             >
               {listeningKey === item.key ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
             </button>
+            {listeningKey === item.key ? (
+              <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+                지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
+              </p>
+            ) : null}
             <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
-              {answers[item.key].length} / {item.max}
+              {shownText(item.key).length} / {item.max}
             </p>
           </div>
         ))}
@@ -208,7 +244,7 @@ export default function ApplyStep3Page() {
           <textarea
             rows={7}
             maxLength={1000}
-            value={answers.free}
+            value={shownText("free")}
             onChange={(e) => update("free", e.target.value)}
             placeholder="당신의 이야기를 자유롭게 들려주세요."
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
@@ -224,7 +260,12 @@ export default function ApplyStep3Page() {
           >
             {listeningKey === "free" ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
           </button>
-          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{answers.free.length} / 1000</p>
+          {listeningKey === "free" ? (
+            <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+              지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
+            </p>
+          ) : null}
+          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{shownText("free").length} / 1000</p>
         </div>
       </div>
 
