@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -68,6 +68,29 @@ const PROCESS = [
   { num: "04", label: "완성·전달", icon: Music },
 ];
 
+const EASY_MODE_KEY = "insaeng-easy-mode";
+
+const EASY_ITEMS = [
+  {
+    href: LIFE_SONG_PRODUCTS[0].href,
+    title: "이야기 인생곡",
+    description: "내가 쓴 이야기로 노래를 만듭니다",
+    price: formatPriceFrom(LIFE_SONG_PRODUCTS[0].priceFrom),
+  },
+  {
+    href: LIFE_SONG_PRODUCTS[1].href,
+    title: "프리미엄 인생곡",
+    description: "상담부터 노래, 영상까지 함께합니다",
+    price: formatPriceFrom(LIFE_SONG_PRODUCTS[1].priceFrom),
+  },
+  {
+    href: LIFE_SONG_PRODUCTS[2].href,
+    title: "사주 인생곡",
+    description: "사주 정보로 노래를 만듭니다",
+    price: formatPriceFrom(LIFE_SONG_PRODUCTS[2].priceFrom),
+  },
+];
+
 function ProcessStep({ step, className = "" }: { step: (typeof PROCESS)[number]; className?: string }) {
   const Icon = step.icon;
   return (
@@ -87,7 +110,38 @@ function ProcessStep({ step, className = "" }: { step: (typeof PROCESS)[number];
 
 export default function ProductsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
+  const [easyMode, setEasyMode] = useState(false);
   const items = tab === "all" ? ITEMS : ITEMS.filter((item) => item.id === tab);
+
+  useEffect(() => {
+    setEasyMode(localStorage.getItem(EASY_MODE_KEY) === "on");
+  }, []);
+
+  if (easyMode) {
+    return (
+      <MobileShell>
+        <AppHeader variant="page" title="인생곡" backHref="/" />
+        <section className="px-4 py-6">
+          <p className="text-center text-[20px] font-bold leading-relaxed text-[#3d2b1f]">
+            어떤 노래를 만들까요?
+          </p>
+          <div className="mt-6 flex flex-col gap-4">
+            {EASY_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex min-h-[88px] flex-col items-center justify-center rounded-xl bg-[#5c3d2e] px-4 py-5 text-center"
+              >
+                <span className="text-[22px] font-bold text-white">{item.title}</span>
+                <span className="mt-1 text-[15px] leading-relaxed text-white/90">{item.description}</span>
+                <span className="mt-2 text-[16px] font-semibold text-white">{item.price}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </MobileShell>
+    );
+  }
 
   return (
     <MobileShell>
