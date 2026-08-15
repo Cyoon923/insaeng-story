@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
@@ -36,10 +36,34 @@ const QUESTIONS = [
   },
 ] as const;
 
+type AnswerKey = "memory" | "message" | "image" | "free";
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { resultIndex: number; results: { length: number; [index: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+}
+
+function createSpeechRecognition(): BrowserSpeechRecognition | null {
+  const speechWindow = window as unknown as {
+    SpeechRecognition?: new () => BrowserSpeechRecognition;
+    webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+  };
+  const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+  return Recognition ? new Recognition() : null;
+}
+
 export default function ApplyStep3Page() {
   const [answers, setAnswers] = useState({ memory: "", message: "", image: "", free: "" });
   const [protagonist, setProtagonist] = useState("부모님");
   const [protagonistId, setProtagonistId] = useState("parents");
+  const [listeningKey, setListeningKey] = useState<AnswerKey | null>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
     const draft = getDraft("story");
@@ -53,10 +77,67 @@ export default function ApplyStep3Page() {
     if (draft.protagonistId) setProtagonistId(draft.protagonistId);
   }, []);
 
-  const update = (key: keyof typeof answers, value: string) => {
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListeningKey(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const update = (key: AnswerKey, value: string) => {
     const next = { ...answers, [key]: value };
     setAnswers(next);
     saveDraft("story", next);
+  };
+
+  const startListening = (key: AnswerKey, max: number) => {
+    if (listeningKey === key) {
+      stopListening();
+      return;
+    }
+
+    recognitionRef.current?.stop();
+    const recognition = createSpeechRecognition();
+    if (!recognition) {
+      window.alert("이 브라우저에서는 말하기로 적을 수 없습니다. 글로 작성해 주세요.");
+      return;
+    }
+
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      let spoken = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (event.results[i].isFinal) {
+          spoken += event.results[i][0].transcript;
+        }
+      }
+      if (!spoken) return;
+      setAnswers((current) => {
+        const merged = current[key] ? `${current[key]} ${spoken}` : spoken;
+        const next = { ...current, [key]: merged.slice(0, max) };
+        saveDraft("story", next);
+        return next;
+      });
+    };
+    recognition.onerror = () => {
+      recognitionRef.current = null;
+      setListeningKey(null);
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setListeningKey(null);
+    };
+
+    recognitionRef.current = recognition;
+    setListeningKey(key);
+    recognition.start();
   };
 
   return (
@@ -84,7 +165,7 @@ export default function ApplyStep3Page() {
 
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">3. 당신의 이야기를 들려주세요</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
-        선택하신 주인공에 대한 이야기를 자유롭게 작성해주세요. 작성하신 내용은 가사와 음악 제작에 소중한 재료가 됩니다.
+        글로 쓰거나, 말로 하셔도 됩니다. 작성하신 내용은 가사와 음악 제작에 소중한 재료가 됩니다.
       </p>
 
       <div className="mt-5 space-y-6">
@@ -102,6 +183,17 @@ export default function ApplyStep3Page() {
               placeholder="자유롭게 작성해주세요"
               className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
             />
+            <button
+              type="button"
+              onClick={() => startListening(item.key, item.max)}
+              className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
+                listeningKey === item.key
+                  ? "bg-[#5c3d2e] text-white"
+                  : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+              }`}
+            >
+              {listeningKey === item.key ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+            </button>
             <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
               {answers[item.key].length} / {item.max}
             </p>
@@ -121,6 +213,17 @@ export default function ApplyStep3Page() {
             placeholder="당신의 이야기를 자유롭게 들려주세요."
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
+          <button
+            type="button"
+            onClick={() => startListening("free", 1000)}
+            className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
+              listeningKey === "free"
+                ? "bg-[#5c3d2e] text-white"
+                : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+            }`}
+          >
+            {listeningKey === "free" ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+          </button>
           <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{answers.free.length} / 1000</p>
         </div>
       </div>

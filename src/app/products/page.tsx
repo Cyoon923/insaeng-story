@@ -74,13 +74,13 @@ const EASY_ITEMS = [
   {
     href: LIFE_SONG_PRODUCTS[0].href,
     title: "이야기 인생곡",
-    description: "내가 쓴 이야기로 노래를 만듭니다",
+    description: "글로 쓰거나 말로 이야기를 접수합니다",
     price: formatPriceFrom(LIFE_SONG_PRODUCTS[0].priceFrom),
   },
   {
     href: LIFE_SONG_PRODUCTS[1].href,
     title: "프리미엄 인생곡",
-    description: "상담부터 노래, 영상까지 함께합니다",
+    description: "사주상담부터 노래, 영상까지 함께합니다",
     price: formatPriceFrom(LIFE_SONG_PRODUCTS[1].priceFrom),
   },
   {

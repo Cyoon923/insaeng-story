@@ -108,13 +108,13 @@ export default function ApplyStep1Page() {
 
       <section className="mt-8">
         <h3 className="text-[17px] font-bold text-[#3d2b1f]">이런 이야기를 노래로 만들 수 있어요</h3>
-        <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto">
+        <div className="mt-3 grid grid-cols-2 gap-3">
           {EXAMPLES.map((item) => (
-            <div key={item.title} className="w-[120px] shrink-0">
-              <div className="relative h-[88px] overflow-hidden rounded-xl bg-[#f5efe6]">
-                <Image src={item.image} alt="" fill className="object-cover" sizes="120px" />
+            <div key={item.title}>
+              <div className="relative h-[100px] overflow-hidden rounded-xl bg-[#f5efe6]">
+                <Image src={item.image} alt="" fill className="object-cover" sizes="160px" />
               </div>
-              <p className="mt-2 text-[12px] font-medium leading-snug text-[#3d2b1f]">{item.title}</p>
+              <p className="mt-2 text-[14px] font-medium leading-snug text-[#3d2b1f]">{item.title}</p>
             </div>
           ))}
         </div>
