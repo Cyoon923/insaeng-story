@@ -1,20 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CONSULT_STEPS } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
+const CONTENT_MAX = 500;
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { resultIndex: number; results: { length: number; [index: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+function createSpeechRecognition(): BrowserSpeechRecognition | null {
+  const speechWindow = window as unknown as {
+    SpeechRecognition?: new () => BrowserSpeechRecognition;
+    webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+  };
+  const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+  return Recognition ? new Recognition() : null;
+}
+
 export default function ConsultationStep3Page() {
   const [content, setContent] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
+  const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState("");
   const [summary, setSummary] = useState({
     datetime: "8월 12일(화) 오전 10:00",
     teacher: "유비 선생",
     purpose: "직업 · 사업 고민",
     option: "추가 인원 1명(궁합) +50,000원",
   });
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const keepListeningRef = useRef(false);
 
   useEffect(() => {
     const draft = getDraft("consultation");
@@ -33,6 +59,86 @@ export default function ConsultationStep3Page() {
       content: nextContent,
       method: nextMethod === "kakao" ? "카카오톡 상담" : "전화 상담",
     });
+  };
+
+  const stopListening = () => {
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    setInterim("");
+  };
+
+  useEffect(() => {
+    return () => {
+      keepListeningRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const shownContent = listening && interim ? (content ? `${content} ${interim}` : interim) : content;
+
+  const startListening = () => {
+    if (listening) {
+      stopListening();
+      return;
+    }
+
+    const recognition = createSpeechRecognition();
+    if (!recognition) {
+      window.alert("이 브라우저에서는 말하기로 적을 수 없습니다. 글로 작성해 주세요.");
+      return;
+    }
+
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    keepListeningRef.current = true;
+    setInterim("");
+    setListening(true);
+
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let spoken = "";
+      let live = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) spoken += text;
+        else live += text;
+      }
+      setInterim(live);
+      if (!spoken) return;
+      setContent((current) => {
+        const merged = (current ? `${current} ${spoken}` : spoken).slice(0, CONTENT_MAX);
+        saveDraft("consultation", { content: merged });
+        return merged;
+      });
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed") {
+        stopListening();
+        window.alert("마이크 사용을 허용해 주세요.");
+      }
+    };
+    recognition.onend = () => {
+      if (!keepListeningRef.current) {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   return (
@@ -66,10 +172,13 @@ export default function ConsultationStep3Page() {
         <label className="mb-2 block text-[16px] font-semibold text-[#3d2b1f]">
           가장 궁금한 내용을 적어주세요 <span className="text-red-500">*</span>
         </label>
+        <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
+        </p>
         <textarea
           rows={8}
-          maxLength={500}
-          value={content}
+          maxLength={CONTENT_MAX}
+          value={shownContent}
           onChange={(e) => {
             setContent(e.target.value);
             persist(e.target.value, method);
@@ -77,7 +186,25 @@ export default function ConsultationStep3Page() {
           placeholder="지금 가장 고민되는 부분이나 궁금한 내용을 자세히 적어주시면 더 정확한 상담이 가능합니다."
           className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
         />
-        <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{content.length} / 500</p>
+        <button
+          type="button"
+          onClick={startListening}
+          className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
+            listening
+              ? "bg-[#5c3d2e] text-white"
+              : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+          }`}
+        >
+          {listening ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+        </button>
+        {listening ? (
+          <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+            지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
+          </p>
+        ) : null}
+        <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+          {shownContent.length} / {CONTENT_MAX}
+        </p>
       </div>
 
       <div className="mt-6">
