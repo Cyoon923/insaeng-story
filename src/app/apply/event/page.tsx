@@ -61,6 +61,7 @@ function EventApplyForm() {
   const [message, setMessage] = useState("");
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
@@ -161,6 +162,10 @@ function EventApplyForm() {
     }
     if (source === "기타" && !customSource.trim()) {
       setError("기타를 고르셨으면 내용을 적어 주세요.");
+      return;
+    }
+    if (!agreed) {
+      setError("개인정보 수집·이용에 동의해 주세요.");
       return;
     }
     const sourceLabel = source === "기타" ? `기타 (${customSource.trim()})` : source;
@@ -357,6 +362,28 @@ function EventApplyForm() {
           <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
             {shownMessage.length} / {MESSAGE_MAX}
           </p>
+        </div>
+
+        <div className="rounded-2xl bg-[#f5efe6] p-4">
+          <p className="text-[15px] font-bold text-[#3d2b1f]">개인정보 수집·이용 안내</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+            받는 정보: 이름, 연락처{isSubscribe ? ", 유튜브 아이디" : ""}
+            <br />
+            쓰는 이유: 이벤트 확인과 당첨·안내 연락
+            <br />
+            보관: 이벤트 끝나고 지웁니다
+          </p>
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
+            />
+            <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
+              개인정보 수집·이용에 동의합니다. <span className="text-red-500">[필수]</span>
+            </span>
+          </label>
         </div>
 
         {error ? <p className="text-[14px] text-red-600">{error}</p> : null}
