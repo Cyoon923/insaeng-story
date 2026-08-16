@@ -26,6 +26,7 @@ export function PaySubmit({
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
 
   const submit = async () => {
     setError("");
@@ -35,7 +36,11 @@ export function PaySubmit({
       if (!draft.phone) {
         throw new Error("1단계에서 이름과 연락처를 입력해 주세요.");
       }
-      const merged = { ...details, ...draft };
+      const merged = {
+        ...details,
+        ...draft,
+        referralCode: referralCode.trim().toUpperCase(),
+      };
       await postApp({ action: "ensureUser", phone: draft.phone, name: draft.name ?? "" });
       if (kind === "order") {
         const result = await postApp({
@@ -71,12 +76,23 @@ export function PaySubmit({
 
   return (
     <div className="mt-6">
-      {error ? <p className="mb-3 text-center text-[14px] text-red-600">{error}</p> : null}
+      <label className="block text-[16px] font-bold text-[#3d2b1f]" htmlFor="referral-code">
+        추천인 코드
+      </label>
+      <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">없으면 비워 두세요.</p>
+      <input
+        id="referral-code"
+        value={referralCode}
+        onChange={(event) => setReferralCode(event.target.value)}
+        placeholder="예: IS12AB34"
+        className="mt-2 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
+      />
+      {error ? <p className="mt-3 text-center text-[14px] text-red-600">{error}</p> : null}
       <button
         type="button"
         onClick={submit}
         disabled={loading}
-        className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+        className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
       >
         {loading ? "처리 중..." : payment === "무통장 입금" ? "신청하고 입금 안내받기" : label}
       </button>
