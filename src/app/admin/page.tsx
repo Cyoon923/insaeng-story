@@ -6,7 +6,7 @@ import type { AdminPromo, Consultation, Inquiry, Order, User } from "@/lib/types
 
 type SlotStatus = "available" | "booked" | "blocked";
 
-type TabId = "users" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
+type TabId = "users" | "points" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
 
 type ReviewItem = {
   id: string;
@@ -20,6 +20,7 @@ type ReviewItem = {
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "users", label: "회원" },
+  { id: "points", label: "적립금" },
   { id: "orders", label: "주문" },
   { id: "consultations", label: "상담" },
   { id: "reviews", label: "후기" },
@@ -113,6 +114,7 @@ export default function AdminPage() {
   const [teacher, setTeacher] = useState("유비 선생");
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
   const [promoPercent, setPromoPercent] = useState(20);
+  const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -218,6 +220,21 @@ export default function AdminPage() {
     setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
   }
 
+  async function handleAdjustPoints(userId: string, direction: "add" | "subtract") {
+    const amount = Math.floor(Number(pointInputs[userId] ?? ""));
+    if (!Number.isFinite(amount) || amount < 1) return;
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "adjustPoints", userId, amount, direction }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const nextUser = data.user as User;
+    setUsers((current) => current.map((item) => (item.id === nextUser.id ? nextUser : item)));
+    setPointInputs((current) => ({ ...current, [userId]: "" }));
+  }
+
   const userMap = new Map(users.map((user) => [user.id, user]));
 
   if (loading) {
@@ -270,6 +287,7 @@ export default function AdminPage() {
   const inquiryItems = inquiries.filter((item) => !isEventInquiry(item));
   const counts: Record<Exclude<TabId, "schedule">, number> = {
     users: users.length,
+    points: users.length,
     orders: orders.length,
     consultations: consultations.length,
     reviews: reviews.length,
@@ -362,6 +380,54 @@ export default function AdminPage() {
                 <p className="mt-1 text-[13px] text-[#8b6f5c]">가입일 {formatDate(user.createdAt)}</p>
               </article>
             ))
+          : null}
+
+        {tab === "points"
+          ? users.map((user) => {
+              const amount = Math.floor(Number(pointInputs[user.id] ?? ""));
+              const canAdjust = Number.isFinite(amount) && amount >= 1;
+              return (
+                <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                  <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
+                  <p className="mt-2 text-[15px] font-semibold text-[#3d2b1f]">
+                    적립금 {(user.points ?? 0).toLocaleString("ko-KR")}원
+                  </p>
+                  <label htmlFor={`points-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                    금액
+                  </label>
+                  <input
+                    id={`points-${user.id}`}
+                    type="number"
+                    min={1}
+                    value={pointInputs[user.id] ?? ""}
+                    onChange={(event) =>
+                      setPointInputs((current) => ({ ...current, [user.id]: event.target.value }))
+                    }
+                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                    placeholder="10000"
+                  />
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(user.id, "add")}
+                      disabled={!canAdjust}
+                      className="h-12 rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                    >
+                      지급
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(user.id, "subtract")}
+                      disabled={!canAdjust}
+                      className="h-12 rounded-xl border border-[#d4c8ba] bg-white text-[15px] font-semibold text-[#5c3d2e] disabled:opacity-40"
+                    >
+                      차감
+                    </button>
+                  </div>
+                </article>
+              );
+            })
           : null}
 
         {tab === "orders"

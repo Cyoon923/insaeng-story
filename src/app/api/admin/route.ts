@@ -91,5 +91,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, adminPromo: data.adminPromo });
   }
 
+  if (action === "adjustPoints") {
+    const userId = String(body.userId ?? "");
+    const amount = Math.floor(Number(body.amount));
+    const direction = String(body.direction ?? "");
+    if (!userId) {
+      return NextResponse.json({ error: "회원을 확인해 주세요." }, { status: 400 });
+    }
+    if (!Number.isFinite(amount) || amount < 1 || amount > 10000000) {
+      return NextResponse.json({ error: "적립금 금액을 확인해 주세요." }, { status: 400 });
+    }
+    if (direction !== "add" && direction !== "subtract") {
+      return NextResponse.json({ error: "지급 또는 차감을 선택해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const user = data.users.find((item) => item.id === userId);
+    if (!user) {
+      return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const current = user.points ?? 0;
+    user.points = direction === "add" ? current + amount : Math.max(0, current - amount);
+    await writeData(data);
+    return NextResponse.json({ ok: true, user });
+  }
+
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
 }
