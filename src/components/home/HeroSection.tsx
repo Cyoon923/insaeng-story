@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -42,6 +42,13 @@ export function HeroSection() {
     else if (next > last) setIndex(0);
     else setIndex(next);
   };
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % SLIDES.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [index]);
 
   const slide = SLIDES[index];
 
