@@ -322,14 +322,20 @@ function EventApplyForm() {
         <div>
           <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">하고 싶은 말</label>
           <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
-            글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
+            {isSubscribe
+              ? "인생에서 가장 좋았던 때와 가장 힘들었던 때를 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."
+              : "글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다."}
           </p>
           <textarea
             rows={5}
             maxLength={MESSAGE_MAX}
             value={shownMessage}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="사연이나 남기고 싶은 말을 적어 주세요."
+            placeholder={
+              isSubscribe
+                ? "가장 좋았던 때, 가장 힘들었던 때를 적어 주세요."
+                : "사연이나 남기고 싶은 말을 적어 주세요."
+            }
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
           <button
