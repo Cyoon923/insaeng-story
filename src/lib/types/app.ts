@@ -1,4 +1,5 @@
 export type ProductId = "story" | "premium" | "saju-song";
+export type CouponProduct = ProductId | "consultation";
 export type OrderStatus = "신청접수" | "상담진행" | "제작중" | "완성/전달" | "완료";
 export type ConsultStatus = "상담 신청" | "사주정보 입력" | "선생님과 1:1 상담" | "상담 완료";
 
@@ -71,6 +72,8 @@ export interface Coupon {
   title: string;
   desc: string;
   createdAt: string;
+  product?: CouponProduct;
+  usedAt?: string;
 }
 
 export interface AppNotification {

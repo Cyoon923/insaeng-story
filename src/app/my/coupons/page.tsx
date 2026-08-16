@@ -76,7 +76,13 @@ export default function CouponsPage() {
               <div>
                 <p className="text-[16px] font-bold text-[#3d2b1f]">{coupon.title}</p>
                 <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">{coupon.desc}</p>
-                <p className="mt-2 text-[12px] text-[#8b6f5c]">받은 날 {formatDate(coupon.createdAt)}</p>
+                <p className="mt-2 text-[12px] text-[#8b6f5c]">
+                  {coupon.usedAt
+                    ? "사용함"
+                    : coupon.product
+                      ? "신청할 때 쓰면 무료입니다"
+                      : `받은 날 ${formatDate(coupon.createdAt)}`}
+                </p>
               </div>
             </div>
           </div>

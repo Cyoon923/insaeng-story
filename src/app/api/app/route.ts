@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
-import type { AppData, Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
+import type { AppData, Consultation, Coupon, CouponProduct, Inquiry, Order, User } from "@/lib/types/app";
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
@@ -51,6 +51,38 @@ function applyReferral(
       referralCode: code,
       referralDiscount: String(REFERRAL_DISCOUNT),
       referrerId: referrer.id,
+    },
+  };
+}
+
+function applyFreeCoupon(
+  data: AppData,
+  userId: string,
+  details: Record<string, string>,
+  amount: number,
+  product: CouponProduct,
+): { amount: number; details: Record<string, string>; error?: string } {
+  const couponId = (details.couponId ?? "").trim();
+  if (!couponId) return { amount, details };
+  const list = data.coupons[userId] ?? [];
+  const coupon = list.find((item) => item.id === couponId);
+  if (!coupon) {
+    return { amount, details, error: "쿠폰을 확인해 주세요." };
+  }
+  if (coupon.usedAt) {
+    return { amount, details, error: "이미 사용한 쿠폰입니다." };
+  }
+  if (!coupon.product || coupon.product !== product) {
+    return { amount, details, error: "이 상품에 사용할 수 없는 쿠폰입니다." };
+  }
+  coupon.usedAt = new Date().toISOString();
+  return {
+    amount: 0,
+    details: {
+      ...details,
+      couponId: coupon.id,
+      couponTitle: coupon.title,
+      couponFree: "1",
     },
   };
 }
@@ -238,18 +270,26 @@ export async function POST(request: Request) {
 
   if (action === "createOrder") {
     const details = (body.details as Record<string, string>) ?? {};
-    const referred = applyReferral(data, userId, details, Number(body.amount ?? 0));
+    const product = body.product as Order["product"];
+    const couponed = applyFreeCoupon(data, userId, details, Number(body.amount ?? 0), product);
+    if (couponed.error) {
+      return NextResponse.json({ error: couponed.error }, { status: 400 });
+    }
+    const referred =
+      couponed.amount > 0
+        ? applyReferral(data, userId, couponed.details, couponed.amount)
+        : couponed;
     if (referred.error) {
       return NextResponse.json({ error: referred.error }, { status: 400 });
     }
     const order: Order = {
       id: nowId(),
       userId,
-      product: body.product as Order["product"],
+      product,
       title: String(body.title ?? "인생곡"),
       status: "신청접수",
       amount: referred.amount,
-      payment: String(body.payment ?? ""),
+      payment: referred.amount === 0 ? "무료 쿠폰" : String(body.payment ?? ""),
       details: referred.details,
       createdAt: new Date().toISOString(),
     };
@@ -285,7 +325,20 @@ export async function POST(request: Request) {
     }
 
     const details = (body.details as Record<string, string>) ?? {};
-    const referred = applyReferral(data, userId, details, Number(body.amount ?? 100000));
+    const couponed = applyFreeCoupon(
+      data,
+      userId,
+      details,
+      Number(body.amount ?? 100000),
+      "consultation",
+    );
+    if (couponed.error) {
+      return NextResponse.json({ error: couponed.error }, { status: 400 });
+    }
+    const referred =
+      couponed.amount > 0
+        ? applyReferral(data, userId, couponed.details, couponed.amount)
+        : couponed;
     if (referred.error) {
       return NextResponse.json({ error: referred.error }, { status: 400 });
     }

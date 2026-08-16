@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
-import type { AdminPromo, Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
+import type { AdminPromo, Consultation, Coupon, CouponProduct, Inquiry, Order, User } from "@/lib/types/app";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -28,6 +28,13 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "schedule", label: "일정" },
   { id: "points", label: "적립금" },
   { id: "coupons", label: "쿠폰" },
+];
+
+const FREE_COUPON_PRODUCTS: { id: CouponProduct; label: string }[] = [
+  { id: "story", label: "이야기로 만드는 인생곡" },
+  { id: "premium", label: "프리미엄 인생곡" },
+  { id: "saju-song", label: "사주 인생곡" },
+  { id: "consultation", label: "1:1 사주상담" },
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -117,8 +124,7 @@ export default function AdminPage() {
   const [promoPercent, setPromoPercent] = useState(20);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
   const [userCoupons, setUserCoupons] = useState<Record<string, Coupon[]>>({});
-  const [couponTitles, setCouponTitles] = useState<Record<string, string>>({});
-  const [couponDescs, setCouponDescs] = useState<Record<string, string>>({});
+  const [couponProducts, setCouponProducts] = useState<Record<string, CouponProduct>>({});
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -242,19 +248,16 @@ export default function AdminPage() {
   }
 
   async function handleGiveCoupon(userId: string) {
-    const title = (couponTitles[userId] ?? "").trim();
-    const desc = (couponDescs[userId] ?? "").trim();
-    if (!title) return;
+    const product = couponProducts[userId];
+    if (!product) return;
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "giveCoupon", userId, title, desc }),
+      body: JSON.stringify({ action: "giveCoupon", userId, product }),
     });
     const data = await res.json();
     if (!res.ok) return;
     setUserCoupons((current) => ({ ...current, [userId]: (data.coupons ?? []) as Coupon[] }));
-    setCouponTitles((current) => ({ ...current, [userId]: "" }));
-    setCouponDescs((current) => ({ ...current, [userId]: "" }));
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -456,7 +459,7 @@ export default function AdminPage() {
         {tab === "coupons"
           ? users.map((user) => {
               const list = userCoupons[user.id] ?? [];
-              const title = (couponTitles[user.id] ?? "").trim();
+              const selected = couponProducts[user.id];
               return (
                 <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
@@ -468,46 +471,37 @@ export default function AdminPage() {
                       {list.map((coupon) => (
                         <div key={coupon.id} className="rounded-xl bg-[#f5efe6] px-3 py-2">
                           <p className="text-[14px] font-semibold text-[#3d2b1f]">{coupon.title}</p>
-                          {coupon.desc ? (
-                            <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">{coupon.desc}</p>
-                          ) : null}
+                          <p className="mt-1 text-[13px] text-[#8b6f5c]">
+                            {coupon.usedAt ? "사용함" : "사용 전"}
+                          </p>
                         </div>
                       ))}
                     </div>
                   )}
-                  <label htmlFor={`coupon-title-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
-                    쿠폰 이름
-                  </label>
-                  <input
-                    id={`coupon-title-${user.id}`}
-                    type="text"
-                    value={couponTitles[user.id] ?? ""}
-                    onChange={(event) =>
-                      setCouponTitles((current) => ({ ...current, [user.id]: event.target.value }))
-                    }
-                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
-                    placeholder="예: 1만원 할인"
-                  />
-                  <label htmlFor={`coupon-desc-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
-                    설명
-                  </label>
-                  <input
-                    id={`coupon-desc-${user.id}`}
-                    type="text"
-                    value={couponDescs[user.id] ?? ""}
-                    onChange={(event) =>
-                      setCouponDescs((current) => ({ ...current, [user.id]: event.target.value }))
-                    }
-                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
-                    placeholder="예: 다음 신청 때 사용"
-                  />
+                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">무료로 줄 상품</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {FREE_COUPON_PRODUCTS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setCouponProducts((current) => ({ ...current, [user.id]: item.id }))}
+                        className={`min-h-12 rounded-xl px-2 text-[13px] font-semibold ${
+                          selected === item.id
+                            ? "bg-[#5c3d2e] text-white"
+                            : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleGiveCoupon(user.id)}
-                    disabled={!title}
+                    disabled={!selected}
                     className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
                   >
-                    쿠폰 지급
+                    무료 쿠폰 지급
                   </button>
                 </article>
               );

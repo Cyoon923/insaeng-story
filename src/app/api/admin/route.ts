@@ -118,24 +118,35 @@ export async function POST(request: Request) {
 
   if (action === "giveCoupon") {
     const userId = String(body.userId ?? "");
-    const title = String(body.title ?? "").trim();
-    const desc = String(body.desc ?? "").trim();
+    const product = String(body.product ?? "") as
+      | "story"
+      | "premium"
+      | "saju-song"
+      | "consultation";
+    const titles: Record<typeof product, string> = {
+      story: "이야기로 만드는 인생곡",
+      premium: "프리미엄 인생곡",
+      "saju-song": "사주 인생곡",
+      consultation: "1:1 사주상담",
+    };
     if (!userId) {
       return NextResponse.json({ error: "회원을 확인해 주세요." }, { status: 400 });
     }
-    if (!title) {
-      return NextResponse.json({ error: "쿠폰 이름을 입력해 주세요." }, { status: 400 });
+    if (!titles[product]) {
+      return NextResponse.json({ error: "무료로 줄 상품을 선택해 주세요." }, { status: 400 });
     }
     const data = await readData();
     const user = data.users.find((item) => item.id === userId);
     if (!user) {
       return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
     }
+    const productTitle = titles[product];
     const next = [
       {
         id: nowId(),
-        title,
-        desc,
+        title: `${productTitle} 무료 쿠폰`,
+        desc: `이 쿠폰으로 ${productTitle}을 무료로 신청할 수 있습니다.`,
+        product,
         createdAt: new Date().toISOString(),
       },
       ...(data.coupons[userId] ?? []),
