@@ -20,13 +20,13 @@ type ReviewItem = {
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "users", label: "회원" },
-  { id: "points", label: "적립금" },
   { id: "orders", label: "주문" },
   { id: "consultations", label: "상담" },
   { id: "reviews", label: "후기" },
   { id: "events", label: "이벤트" },
   { id: "inquiries", label: "문의" },
   { id: "schedule", label: "일정" },
+  { id: "points", label: "적립금" },
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
