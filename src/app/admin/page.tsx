@@ -49,6 +49,12 @@ function contactLabel(user: User) {
   return user.phone || user.email || "-";
 }
 
+function referralCodeFor(user: User): string {
+  const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const tail = (raw.slice(-6) || "HOME").padStart(6, "0");
+  return `IS${tail}`;
+}
+
 function isEventInquiry(item: Inquiry) {
   return item.product.startsWith("이벤트");
 }
@@ -272,7 +278,8 @@ export default function AdminPage() {
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                 <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
                 <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
-                <p className="mt-2 text-[13px] text-[#8b6f5c]">가입일 {formatDate(user.createdAt)}</p>
+                <p className="mt-2 text-[13px] text-[#8b6f5c]">추천인 코드 {referralCodeFor(user)}</p>
+                <p className="mt-1 text-[13px] text-[#8b6f5c]">가입일 {formatDate(user.createdAt)}</p>
               </article>
             ))
           : null}
