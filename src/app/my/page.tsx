@@ -137,7 +137,7 @@ export default function MyPage() {
         <section className="px-4 pt-4">
           <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#ebe3d8]">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[15px] font-bold text-[#3d2b1f]">소개 코드</p>
+              <p className="text-[15px] font-bold text-[#3d2b1f]">추천인 코드</p>
               <p className="text-[15px] font-bold text-[#3d2b1f]">적립금 0원</p>
             </div>
             <div className="mt-2 flex items-center gap-2">
