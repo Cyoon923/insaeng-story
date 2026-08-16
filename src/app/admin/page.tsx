@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
-import type { AdminPromo, Consultation, Inquiry, Order, User } from "@/lib/types/app";
+import type { AdminPromo, Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
-type TabId = "users" | "points" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
+type TabId = "users" | "points" | "coupons" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
 
 type ReviewItem = {
   id: string;
@@ -27,6 +27,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "inquiries", label: "문의" },
   { id: "schedule", label: "일정" },
   { id: "points", label: "적립금" },
+  { id: "coupons", label: "쿠폰" },
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -115,6 +116,9 @@ export default function AdminPage() {
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
   const [promoPercent, setPromoPercent] = useState(20);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
+  const [userCoupons, setUserCoupons] = useState<Record<string, Coupon[]>>({});
+  const [couponTitles, setCouponTitles] = useState<Record<string, string>>({});
+  const [couponDescs, setCouponDescs] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -134,6 +138,7 @@ export default function AdminPage() {
     setScheduleDate((current) => current || nextDates[0] || "");
     setTeacher(String(data.teacher ?? "유비 선생"));
     setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
+    setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
     setAuthed(true);
     setLoading(false);
   }, []);
@@ -191,6 +196,7 @@ export default function AdminPage() {
     setReviews([]);
     setInquiries([]);
     setAdminPromo(null);
+    setUserCoupons({});
   }
 
   async function handleToggleSlot(time: string) {
@@ -233,6 +239,22 @@ export default function AdminPage() {
     const nextUser = data.user as User;
     setUsers((current) => current.map((item) => (item.id === nextUser.id ? nextUser : item)));
     setPointInputs((current) => ({ ...current, [userId]: "" }));
+  }
+
+  async function handleGiveCoupon(userId: string) {
+    const title = (couponTitles[userId] ?? "").trim();
+    const desc = (couponDescs[userId] ?? "").trim();
+    if (!title) return;
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "giveCoupon", userId, title, desc }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    setUserCoupons((current) => ({ ...current, [userId]: (data.coupons ?? []) as Coupon[] }));
+    setCouponTitles((current) => ({ ...current, [userId]: "" }));
+    setCouponDescs((current) => ({ ...current, [userId]: "" }));
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -288,6 +310,7 @@ export default function AdminPage() {
   const counts: Record<Exclude<TabId, "schedule">, number> = {
     users: users.length,
     points: users.length,
+    coupons: users.length,
     orders: orders.length,
     consultations: consultations.length,
     reviews: reviews.length,
@@ -425,6 +448,67 @@ export default function AdminPage() {
                       차감
                     </button>
                   </div>
+                </article>
+              );
+            })
+          : null}
+
+        {tab === "coupons"
+          ? users.map((user) => {
+              const list = userCoupons[user.id] ?? [];
+              const title = (couponTitles[user.id] ?? "").trim();
+              return (
+                <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                  <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
+                  {list.length === 0 ? (
+                    <p className="mt-2 text-[14px] text-[#8b6f5c]">보유 쿠폰 없음</p>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      {list.map((coupon) => (
+                        <div key={coupon.id} className="rounded-xl bg-[#f5efe6] px-3 py-2">
+                          <p className="text-[14px] font-semibold text-[#3d2b1f]">{coupon.title}</p>
+                          {coupon.desc ? (
+                            <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">{coupon.desc}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label htmlFor={`coupon-title-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                    쿠폰 이름
+                  </label>
+                  <input
+                    id={`coupon-title-${user.id}`}
+                    type="text"
+                    value={couponTitles[user.id] ?? ""}
+                    onChange={(event) =>
+                      setCouponTitles((current) => ({ ...current, [user.id]: event.target.value }))
+                    }
+                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                    placeholder="예: 1만원 할인"
+                  />
+                  <label htmlFor={`coupon-desc-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                    설명
+                  </label>
+                  <input
+                    id={`coupon-desc-${user.id}`}
+                    type="text"
+                    value={couponDescs[user.id] ?? ""}
+                    onChange={(event) =>
+                      setCouponDescs((current) => ({ ...current, [user.id]: event.target.value }))
+                    }
+                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                    placeholder="예: 다음 신청 때 사용"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleGiveCoupon(user.id)}
+                    disabled={!title}
+                    className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                  >
+                    쿠폰 지급
+                  </button>
                 </article>
               );
             })

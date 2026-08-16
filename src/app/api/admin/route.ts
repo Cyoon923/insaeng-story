@@ -5,7 +5,7 @@ import {
   isAdminAuthenticated,
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
-import { readData, writeData } from "@/lib/server/store";
+import { nowId, readData, writeData } from "@/lib/server/store";
 import {
   DEFAULT_TEACHER,
   CONSULT_TIMES,
@@ -30,6 +30,7 @@ export async function GET() {
     times: CONSULT_TIMES,
     teacher: DEFAULT_TEACHER,
     adminPromo: data.adminPromo ?? null,
+    coupons: data.coupons ?? {},
   });
 }
 
@@ -113,6 +114,35 @@ export async function POST(request: Request) {
     user.points = direction === "add" ? current + amount : Math.max(0, current - amount);
     await writeData(data);
     return NextResponse.json({ ok: true, user });
+  }
+
+  if (action === "giveCoupon") {
+    const userId = String(body.userId ?? "");
+    const title = String(body.title ?? "").trim();
+    const desc = String(body.desc ?? "").trim();
+    if (!userId) {
+      return NextResponse.json({ error: "회원을 확인해 주세요." }, { status: 400 });
+    }
+    if (!title) {
+      return NextResponse.json({ error: "쿠폰 이름을 입력해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const user = data.users.find((item) => item.id === userId);
+    if (!user) {
+      return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const next = [
+      {
+        id: nowId(),
+        title,
+        desc,
+        createdAt: new Date().toISOString(),
+      },
+      ...(data.coupons[userId] ?? []),
+    ];
+    data.coupons[userId] = next;
+    await writeData(data);
+    return NextResponse.json({ ok: true, userId, coupons: next });
   }
 
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
