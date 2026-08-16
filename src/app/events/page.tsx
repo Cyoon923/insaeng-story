@@ -89,6 +89,12 @@ export default function EventsPage() {
           >
             유튜브 바로가기
           </a>
+          <Link
+            href="/apply/free-consult"
+            className="mt-3 flex h-14 items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+          >
+            이벤트 신청
+          </Link>
         </div>
       </article>
     </MobileShell>

@@ -37,10 +37,10 @@ const SLIDES = [
     desc: "구독·좋아요·댓글을 남기면\n인생의 포춘타임을 알려 드립니다.",
     image: "/images/photo-listen.jpg",
     imageAlt: "",
-    primaryHref: "/events#subscribe",
-    primaryLabel: "이벤트 보기",
-    secondaryHref: "",
-    secondaryLabel: "",
+    primaryHref: "https://www.youtube.com/@Asha-Music-8",
+    primaryLabel: "유튜브 바로가기",
+    secondaryHref: "/apply/free-consult",
+    secondaryLabel: "이벤트 신청",
   },
 ] as const;
 
@@ -95,6 +95,8 @@ export function HeroSection() {
           <div className="mt-5 flex flex-col gap-2">
             <Link
               href={slide.primaryHref}
+              target={slide.primaryHref.startsWith("http") ? "_blank" : undefined}
+              rel={slide.primaryHref.startsWith("http") ? "noreferrer" : undefined}
               className="inline-flex h-11 items-center justify-center rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
             >
               {slide.primaryLabel}
