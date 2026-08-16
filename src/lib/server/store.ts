@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { neon } from "@neondatabase/serverless";
 import type { AppData } from "@/lib/types/app";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -15,20 +16,66 @@ const EMPTY: AppData = {
   notifications: {},
   notificationSettings: {},
   codes: {},
+  blockedSlots: [],
 };
 
+function databaseUrl() {
+  return process.env.DATABASE_URL?.trim() || "";
+}
+
+function sqlClient() {
+  const url = databaseUrl();
+  return url ? neon(url) : null;
+}
+
+async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+  await sql.query(`
+    CREATE TABLE IF NOT EXISTS app_store (
+      id INTEGER PRIMARY KEY,
+      data JSONB NOT NULL
+    )
+  `);
+}
+
+function mergeData(value: unknown): AppData {
+  if (!value || typeof value !== "object") return structuredClone(EMPTY);
+  return { ...EMPTY, ...(value as AppData) };
+}
+
 export async function readData(): Promise<AppData> {
+  const sql = sqlClient();
+  if (sql) {
+    await ensureTable(sql);
+    const rows = (await sql.query("SELECT data FROM app_store WHERE id = 1")) as { data: unknown }[];
+    if (!rows[0]) return structuredClone(EMPTY);
+    return mergeData(rows[0].data);
+  }
+
   try {
     const raw = await readFile(DATA_FILE, "utf8");
-    return { ...EMPTY, ...JSON.parse(raw) } as AppData;
+    return mergeData(JSON.parse(raw));
   } catch {
     return structuredClone(EMPTY);
   }
 }
 
 export async function writeData(data: AppData): Promise<void> {
+  const sql = sqlClient();
+  if (sql) {
+    await ensureTable(sql);
+    await sql.query(
+      `
+        INSERT INTO app_store (id, data)
+        VALUES (1, $1::jsonb)
+        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+      `,
+      [JSON.stringify(data)],
+    );
+    return;
+  }
+
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
+  await writeFile(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
 export function nowId(): string {
