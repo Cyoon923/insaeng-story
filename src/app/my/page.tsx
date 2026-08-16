@@ -56,10 +56,17 @@ function formatDate(value: string) {
   return value.slice(0, 10).replaceAll("-", ".");
 }
 
+function referralCodeFor(user: User): string {
+  const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const tail = (raw.slice(-6) || "HOME").padStart(6, "0");
+  return `IS${tail}`;
+}
+
 export default function MyPage() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchMe().then((data) => {
@@ -70,6 +77,23 @@ export default function MyPage() {
   }, []);
 
   const currentStatus = orders[0]?.status ?? "신청접수";
+  const referralCode = user ? referralCodeFor(user) : "";
+
+  const copyReferralCode = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(referralCode);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = referralCode;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <MobileShell>
@@ -108,6 +132,31 @@ export default function MyPage() {
           </Link>
         </div>
       </div>
+
+      {user ? (
+        <section className="px-4 pt-4">
+          <div className="rounded-2xl bg-white p-5 ring-1 ring-[#ebe3d8]">
+            <h3 className="text-[17px] font-bold text-[#3d2b1f]">소개 혜택</h3>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+              이 코드를 알려 주면, 오신 분은 할인받고 회원님은 적립금이 쌓입니다.
+            </p>
+            <p className="mt-4 text-[13px] text-[#8b6f5c]">내 소개 코드</p>
+            <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{referralCode}</p>
+            <button
+              type="button"
+              onClick={copyReferralCode}
+              className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[16px] font-semibold text-white"
+            >
+              {copied ? "복사했습니다" : "코드 복사하기"}
+            </button>
+            <p className="mt-5 text-[13px] text-[#8b6f5c]">적립금</p>
+            <p className="mt-1 text-[22px] font-bold text-[#3d2b1f]">0원</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+              소개가 확인되면 여기에 쌓입니다.
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="px-4 py-6">
         <div className="mb-3 flex items-center justify-between">
