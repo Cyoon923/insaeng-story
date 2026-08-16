@@ -30,6 +30,18 @@ const SLIDES = [
     secondaryHref: "",
     secondaryLabel: "",
   },
+  {
+    id: "subscribe",
+    badge: "구독 이벤트",
+    title: "인생곡 창작소",
+    desc: "구독·좋아요·댓글을 남기면\n인생의 포춘타임을 알려 드립니다.",
+    image: "/images/photo-listen.jpg",
+    imageAlt: "",
+    primaryHref: "/events#subscribe",
+    primaryLabel: "이벤트 보기",
+    secondaryHref: "",
+    secondaryLabel: "",
+  },
 ] as const;
 
 export function HeroSection() {
