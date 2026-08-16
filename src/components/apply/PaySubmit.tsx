@@ -51,7 +51,7 @@ export function PaySubmit({
       if (!draft.phone) {
         throw new Error("1단계에서 이름과 연락처를 입력해 주세요.");
       }
-      const merged = {
+      const merged: Record<string, string> = {
         ...details,
         ...draft,
         referralCode: usingCoupon ? "" : referralCode.trim().toUpperCase(),
