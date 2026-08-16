@@ -53,6 +53,7 @@ export default function FreeConsultPage() {
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
   const [product, setProduct] = useState("잘 모르겠어요");
   const [source, setSource] = useState("");
+  const [customSource, setCustomSource] = useState("");
   const [message, setMessage] = useState("");
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
@@ -150,6 +151,11 @@ export default function FreeConsultPage() {
       setError("어떻게 알게 되셨는지 골라 주세요.");
       return;
     }
+    if (source === "기타" && !customSource.trim()) {
+      setError("기타를 고르셨으면 내용을 적어 주세요.");
+      return;
+    }
+    const sourceLabel = source === "기타" ? `기타 (${customSource.trim()})` : source;
     stopListening();
     setLoading(true);
     try {
@@ -160,7 +166,7 @@ export default function FreeConsultPage() {
         phone,
         method: method === "kakao" ? "카카오톡 상담" : "전화 상담",
         product,
-        message: `알게 된 경로: ${source}${message.trim() ? `\n${message}` : ""}`,
+        message: `알게 된 경로: ${sourceLabel}${message.trim() ? `\n${message}` : ""}`,
       });
       router.push("/apply/complete?type=inquiry");
     } catch (err) {
@@ -272,6 +278,15 @@ export default function FreeConsultPage() {
               </button>
             ))}
           </div>
+          {source === "기타" ? (
+            <input
+              type="text"
+              value={customSource}
+              onChange={(e) => setCustomSource(e.target.value)}
+              placeholder="어떻게 알게 되셨는지 적어 주세요"
+              className={`mt-3 ${inputClass}`}
+            />
+          ) : null}
         </div>
 
         <div>
