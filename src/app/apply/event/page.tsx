@@ -52,8 +52,10 @@ function EventApplyForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
-  const [eventName, setEventName] = useState("사연 보내기 (프리미엄 인생곡)");
   const [product, setProduct] = useState("잘 모르겠어요");
+  const [youtubeId, setYoutubeId] = useState("");
+  const isSubscribe = searchParams.get("type") === "subscribe";
+  const eventName = isSubscribe ? "인생곡 창작소 구독 이벤트" : "사연 보내기 (프리미엄 인생곡)";
   const [source, setSource] = useState("");
   const [customSource, setCustomSource] = useState("");
   const [message, setMessage] = useState("");
@@ -63,15 +65,6 @@ function EventApplyForm() {
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const keepListeningRef = useRef(false);
-
-  useEffect(() => {
-    if (searchParams.get("type") === "subscribe") {
-      setEventName("인생곡 창작소 구독 이벤트");
-    }
-    if (searchParams.get("type") === "story") {
-      setEventName("사연 보내기 (프리미엄 인생곡)");
-    }
-  }, [searchParams]);
 
   const stopListening = () => {
     keepListeningRef.current = false;
@@ -158,6 +151,10 @@ function EventApplyForm() {
       setError("이름과 연락처를 입력해 주세요.");
       return;
     }
+    if (isSubscribe && !youtubeId.trim()) {
+      setError("유튜브 아이디를 입력해 주세요.");
+      return;
+    }
     if (!source) {
       setError("어떻게 알게 되셨는지 골라 주세요.");
       return;
@@ -176,8 +173,10 @@ function EventApplyForm() {
         name,
         phone,
         method: method === "kakao" ? "카카오톡 상담" : "전화 상담",
-        product: `이벤트: ${eventName} / 궁금한 상품: ${product}`,
-        message: `알게 된 경로: ${sourceLabel}${message.trim() ? `\n${message}` : ""}`,
+        product: isSubscribe
+          ? `이벤트: ${eventName} / 유튜브: ${youtubeId.trim()}`
+          : `이벤트: ${eventName} / 궁금한 상품: ${product}`,
+        message: `${isSubscribe ? `유튜브 아이디: ${youtubeId.trim()}\n` : ""}알게 된 경로: ${sourceLabel}${message.trim() ? `\n${message}` : ""}`,
       });
       router.push("/apply/complete?type=inquiry");
     } catch (err) {
@@ -193,10 +192,12 @@ function EventApplyForm() {
 
       <section className="px-4 py-5">
         <h2 className="font-serif text-[24px] font-bold leading-snug text-[#3d2b1f]">
-          이벤트에 신청해 주세요
+          {isSubscribe ? "구독 이벤트 신청" : "이벤트에 신청해 주세요"}
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
-          이름과 연락처를 남겨 주세요. 카카오톡 또는 전화로 안내해 드립니다.
+          {isSubscribe
+            ? "구독과 댓글을 남긴 분께 인생의 포춘타임을 알려 드립니다. 유튜브 아이디를 꼭 적어 주세요."
+            : "이름과 연락처를 남겨 주세요. 카카오톡 또는 전화로 안내해 드립니다."}
         </p>
       </section>
 
@@ -253,23 +254,41 @@ function EventApplyForm() {
           </div>
         </div>
 
-        <div>
-          <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">궁금한 상품</p>
-          <div className="grid grid-cols-1 gap-2">
-            {PRODUCTS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setProduct(item)}
-                className={`h-12 rounded-xl text-[15px] font-medium ${
-                  product === item ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+        {isSubscribe ? (
+          <div>
+            <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
+              유튜브 아이디 <span className="text-red-500">*</span>
+            </label>
+            <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+              구독하고 댓글을 남긴 유튜브 아이디를 적어 주세요.
+            </p>
+            <input
+              type="text"
+              value={youtubeId}
+              onChange={(e) => setYoutubeId(e.target.value)}
+              placeholder="예) @이름 또는 댓글에 쓴 아이디"
+              className={inputClass}
+            />
           </div>
-        </div>
+        ) : (
+          <div>
+            <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">궁금한 상품</p>
+            <div className="grid grid-cols-1 gap-2">
+              {PRODUCTS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setProduct(item)}
+                  className={`h-12 rounded-xl text-[15px] font-medium ${
+                    product === item ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">
