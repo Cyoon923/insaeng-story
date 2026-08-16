@@ -10,9 +10,11 @@ const inputClass =
   "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
 const MESSAGE_MAX = 300;
 
-const EVENT_OPTIONS = [
-  "사연 보내기 (프리미엄 인생곡)",
-  "인생곡 창작소 구독 이벤트",
+const PRODUCTS = [
+  "이야기로 만드는 인생곡",
+  "프리미엄 인생곡",
+  "사주 인생곡",
+  "잘 모르겠어요",
 ];
 
 const SOURCES = [
@@ -50,7 +52,8 @@ function EventApplyForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
-  const [eventName, setEventName] = useState(EVENT_OPTIONS[0]);
+  const [eventName, setEventName] = useState("사연 보내기 (프리미엄 인생곡)");
+  const [product, setProduct] = useState("잘 모르겠어요");
   const [source, setSource] = useState("");
   const [customSource, setCustomSource] = useState("");
   const [message, setMessage] = useState("");
@@ -63,10 +66,10 @@ function EventApplyForm() {
 
   useEffect(() => {
     if (searchParams.get("type") === "subscribe") {
-      setEventName(EVENT_OPTIONS[1]);
+      setEventName("인생곡 창작소 구독 이벤트");
     }
     if (searchParams.get("type") === "story") {
-      setEventName(EVENT_OPTIONS[0]);
+      setEventName("사연 보내기 (프리미엄 인생곡)");
     }
   }, [searchParams]);
 
@@ -173,7 +176,7 @@ function EventApplyForm() {
         name,
         phone,
         method: method === "kakao" ? "카카오톡 상담" : "전화 상담",
-        product: `이벤트: ${eventName}`,
+        product: `이벤트: ${eventName} / 궁금한 상품: ${product}`,
         message: `알게 된 경로: ${sourceLabel}${message.trim() ? `\n${message}` : ""}`,
       });
       router.push("/apply/complete?type=inquiry");
@@ -251,17 +254,15 @@ function EventApplyForm() {
         </div>
 
         <div>
-          <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">
-            참여할 이벤트 <span className="text-red-500">*</span>
-          </p>
+          <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">궁금한 상품</p>
           <div className="grid grid-cols-1 gap-2">
-            {EVENT_OPTIONS.map((item) => (
+            {PRODUCTS.map((item) => (
               <button
                 key={item}
                 type="button"
-                onClick={() => setEventName(item)}
-                className={`min-h-12 rounded-xl px-3 py-3 text-[15px] font-medium ${
-                  eventName === item ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                onClick={() => setProduct(item)}
+                className={`h-12 rounded-xl text-[15px] font-medium ${
+                  product === item ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
                 }`}
               >
                 {item}
