@@ -47,22 +47,36 @@ export function AppHeader({
   showActions = variant === "page" || variant === "apply",
   compact = false,
 }: AppHeaderProps) {
+  const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
 
-  const shareCurrentPage = async () => {
-    const url = window.location.href;
-    const titleText = document.title;
+  const pageUrl = () => window.location.href;
+  const pageTitle = () => document.title;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: titleText, url });
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
+  const shareKakao = () => {
+    const url = pageUrl();
+    window.open(
+      `https://story.kakao.com/share?url=${encodeURIComponent(url)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setShareOpen(false);
+  };
 
-    const copied = await copyLink(url);
+  const shareTelegram = () => {
+    const url = pageUrl();
+    const text = pageTitle();
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setShareOpen(false);
+  };
+
+  const shareCopy = async () => {
+    const copied = await copyLink(pageUrl());
+    setShareOpen(false);
     setShareMessage(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
     window.setTimeout(() => setShareMessage(""), 2500);
   };
@@ -100,7 +114,7 @@ export function AppHeader({
           {showActions && (
             <button
               type="button"
-              onClick={shareCurrentPage}
+              onClick={() => setShareOpen(true)}
               className="rounded-lg p-2 text-brown hover:bg-ivory"
               aria-label="공유"
             >
@@ -114,6 +128,50 @@ export function AppHeader({
         <p className="border-t border-[#ebe3d8] bg-[#f5efe6] px-4 py-2 text-center text-[14px] font-medium text-[#5c3d2e]">
           {shareMessage}
         </p>
+      ) : null}
+
+      {shareOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+          <button
+            type="button"
+            className="absolute inset-0"
+            aria-label="닫기"
+            onClick={() => setShareOpen(false)}
+          />
+          <div className="relative w-full max-w-[430px] rounded-t-2xl bg-[#fffdf9] px-4 pb-8 pt-5">
+            <p className="text-center text-[18px] font-bold text-[#3d2b1f]">공유하기</p>
+            <div className="mt-4 space-y-3">
+              <button
+                type="button"
+                onClick={shareKakao}
+                className="flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
+              >
+                카카오톡
+              </button>
+              <button
+                type="button"
+                onClick={shareCopy}
+                className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+              >
+                주소 복사
+              </button>
+              <button
+                type="button"
+                onClick={shareTelegram}
+                className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+              >
+                텔레그램
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShareOpen(false)}
+              className="mt-4 flex h-12 w-full items-center justify-center text-[16px] font-medium text-[#8b6f5c]"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
       ) : null}
     </header>
   );
