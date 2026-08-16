@@ -60,7 +60,17 @@ function ReviewWriteForm() {
         (data.orders ?? []) as Order[],
         (data.consultations ?? []) as Consultation[],
       );
-      setTargets(next);
+      const previewTargets =
+        searchParams.get("preview") === "1" && next.length === 0
+          ? [
+              {
+                key: "preview:sample",
+                title: "이야기로 만드는 인생곡",
+                subtitle: "미리보기",
+              },
+            ]
+          : next;
+      setTargets(previewTargets);
 
       const orderId = searchParams.get("order");
       const consultId = searchParams.get("consult");
@@ -69,8 +79,8 @@ function ReviewWriteForm() {
         : consultId
           ? `consult:${consultId}`
           : "";
-      const matched = next.find((item) => item.key === fromLink);
-      setSelectedKey(matched?.key ?? (next.length === 1 ? next[0].key : ""));
+      const matched = previewTargets.find((item) => item.key === fromLink);
+      setSelectedKey(matched?.key ?? (previewTargets.length === 1 ? previewTargets[0].key : ""));
       setLoaded(true);
     });
   }, [searchParams]);
