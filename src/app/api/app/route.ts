@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData } from "@/lib/server/store";
+import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import type { Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
 
 function emptyUser(phone = "", name = "", email = ""): User {
@@ -213,6 +214,19 @@ export async function POST(request: Request) {
   }
 
   if (action === "createConsultation") {
+    const teacher = String(body.teacher ?? "유비 선생");
+    const datetime = String(body.datetime ?? "");
+    const parsed = parseDatetime(datetime);
+    if (!parsed) {
+      return NextResponse.json({ error: "상담 시간을 다시 선택해 주세요." }, { status: 400 });
+    }
+    if (!isSlotAvailable(data, teacher, parsed.date, parsed.time)) {
+      return NextResponse.json(
+        { error: "이미 예약되었거나 선택할 수 없는 시간입니다. 다른 시간을 선택해 주세요." },
+        { status: 409 },
+      );
+    }
+
     const item: Consultation = {
       id: nowId(),
       userId,
@@ -259,7 +273,9 @@ export async function POST(request: Request) {
       data.notifications[userId] = [
         {
           id: nowId(),
-          title: "무료 상담 문의가 접수되었습니다",
+          title: item.product.startsWith("이벤트")
+            ? "이벤트 신청이 접수되었습니다"
+            : "무료 상담 문의가 접수되었습니다",
           body: `${item.method}으로 연락드리겠습니다.`,
           createdAt: new Date().toISOString(),
           read: false,

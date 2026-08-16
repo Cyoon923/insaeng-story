@@ -20,7 +20,7 @@ export default function EventsPage() {
           <Image src="/images/photo-hero.jpg" alt="" fill className="object-cover" sizes="400px" />
         </div>
         <div className="p-4">
-          <p className="text-[13px] font-medium text-[#5c3d2e]">오픈 기념 · 진행 중</p>
+          <p className="text-[13px] font-medium text-[#5c3d2e]">오픈 기념 · 9월 30일까지</p>
           <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#3d2b1f]">
             사연을 보내 주세요
           </h3>
@@ -40,8 +40,9 @@ export default function EventsPage() {
             <p className="text-[16px] font-bold text-[#3d2b1f]">이렇게 참여하세요</p>
             <ol className="mt-3 space-y-2 text-[15px] leading-relaxed text-[#5c3d2e]">
               <li>1. 아래 버튼으로 사연을 보냅니다</li>
-              <li>2. 사연을 살펴보고 추천을 통해 5분을 선정합니다</li>
-              <li>3. 선정된 분께 연락드려 프리미엄 인생곡을 만들어 드립니다</li>
+              <li>2. 9월 30일까지 사연을 받습니다</li>
+              <li>3. 마감 후 추천을 통해 5분을 선정합니다</li>
+              <li>4. 선정된 분께 연락드려 프리미엄 인생곡을 만들어 드립니다</li>
             </ol>
           </div>
 
@@ -62,7 +63,7 @@ export default function EventsPage() {
           <Image src="/images/photo-changjakso.png" alt="" fill className="object-cover" sizes="400px" />
         </div>
         <div className="p-4">
-          <p className="text-[13px] font-medium text-[#5c3d2e]">구독 이벤트 · 진행 중</p>
+          <p className="text-[13px] font-medium text-[#5c3d2e]">구독 이벤트 · 9월 30일까지</p>
           <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#3d2b1f]">
             인생곡 창작소 구독 이벤트
           </h3>
