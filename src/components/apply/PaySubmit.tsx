@@ -78,8 +78,13 @@ export function PaySubmit({
         disabled={loading}
         className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
       >
-        {loading ? "처리 중..." : label}
+        {loading ? "처리 중..." : payment === "무통장 입금" ? "신청하고 입금 안내받기" : label}
       </button>
+      <p className="mt-2 text-center text-[13px] leading-relaxed text-[#8b6f5c]">
+        {payment === "무통장 입금"
+          ? "신청을 받아 둔 뒤, 입금 계좌를 카카오톡 또는 전화로 알려 드립니다."
+          : "카드·간편결제는 결제사 등록 후 바로 결제됩니다. 지금은 신청만 접수됩니다."}
+      </p>
     </div>
   );
 }

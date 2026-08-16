@@ -62,9 +62,9 @@ export default async function ApplyCompletePage({
             </>
           ) : (
             <>
-              신청 내용을 저장했습니다.
+              신청을 받아 두었습니다.
               <br />
-              제작이 시작되면 연락드리겠습니다.
+              결제와 제작 안내는 연락처로 드리겠습니다.
             </>
           )}
         </p>

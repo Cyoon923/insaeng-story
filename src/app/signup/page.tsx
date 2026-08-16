@@ -83,55 +83,11 @@ export default function SignupPage() {
   };
 
   const kakao = async () => {
-    if (!name.trim()) {
-      setError("이름을 입력해 주세요.");
-      return;
-    }
-    if (!agreedGuide || !agreedPrivacy) {
-      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      await postApp({ action: "kakao", phone });
-      await postApp({
-        action: "updateProfile",
-        profile: { name: name.trim(), phone },
-      });
-      router.push("/my");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "카카오 회원가입에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    setError("카카오 회원가입은 연결 준비 중입니다. 지금은 연락처로 가입해 주세요.");
   };
 
   const naver = async () => {
-    if (!name.trim()) {
-      setError("이름을 입력해 주세요.");
-      return;
-    }
-    if (!agreedGuide || !agreedPrivacy) {
-      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      await postApp({ action: "naver", phone });
-      await postApp({
-        action: "updateProfile",
-        profile: { name: name.trim(), phone },
-      });
-      router.push("/my");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "네이버 회원가입에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    setError("네이버 회원가입은 연결 준비 중입니다. 지금은 연락처로 가입해 주세요.");
   };
 
   return (

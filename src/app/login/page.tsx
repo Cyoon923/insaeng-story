@@ -65,31 +65,11 @@ export default function LoginPage() {
   };
 
   const kakao = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await postApp({ action: "kakao", phone });
-      router.push("/my");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "카카오 로그인에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    setError("카카오 로그인은 연결 준비 중입니다. 지금은 연락처로 로그인해 주세요.");
   };
 
   const naver = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await postApp({ action: "naver", phone });
-      router.push("/my");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "네이버 로그인에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
+    setError("네이버 로그인은 연결 준비 중입니다. 지금은 연락처로 로그인해 주세요.");
   };
 
   return (
@@ -230,8 +210,7 @@ export default function LoginPage() {
               네이버 시작하기
             </button>
             <p className="text-center text-[12px] leading-relaxed text-[#8b6f5c]">
-              문자 발송 대신 화면에 인증번호를 보여 드립니다. 카카오·네이버는 연락처만 있으면 바로 시작할 수
-              있습니다.
+              지금은 연락처 인증으로 로그인합니다. 카카오·네이버는 연결 준비 중입니다.
             </p>
           </>
         ) : (
