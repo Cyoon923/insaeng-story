@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const SLIDES = [
   {
     id: "story",
+    badge: "",
     title: "당신의 이야기가\n세상에 단 하나뿐인\n노래가 됩니다",
     desc: "당신의 삶을 특별한 노래로\n오래도록 간직하세요.",
     image: "/images/photo-hero-memories.png",
@@ -19,14 +20,15 @@ const SLIDES = [
   },
   {
     id: "event",
-    title: "사연을 보내 주세요\n5분께 프리미엄\n인생곡을 드립니다",
-    desc: "오픈을 기념해 사연을 받습니다.\n추천을 통해 5분을 선정합니다.",
+    badge: "오픈 이벤트",
+    title: "사연을 보내 주세요",
+    desc: "추천을 통해 5분을 선정해\n프리미엄 인생곡을 만들어 드립니다.",
     image: "/images/photo-premium-life.png",
     imageAlt: "",
     primaryHref: "/events",
     primaryLabel: "사연 보내기",
-    secondaryHref: "/products/premium",
-    secondaryLabel: "프리미엄 보기",
+    secondaryHref: "",
+    secondaryLabel: "",
   },
 ] as const;
 
@@ -60,6 +62,11 @@ export function HeroSection() {
         }}
       >
         <div className="relative z-10 flex w-[56%] flex-col justify-center pr-1">
+          {slide.badge ? (
+            <p className="mb-2 inline-flex w-fit rounded-full bg-[#5c3d2e] px-2.5 py-1 text-[11px] font-bold text-white">
+              {slide.badge}
+            </p>
+          ) : null}
           <h2 className="whitespace-pre-line font-serif text-[22px] font-bold leading-[1.35] text-[#3d2b1f]">
             {slide.title}
           </h2>
@@ -74,12 +81,14 @@ export function HeroSection() {
               {slide.primaryLabel}
               <ChevronRight className="ml-0.5 h-4 w-4" />
             </Link>
-            <Link
-              href={slide.secondaryHref}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-[#d4c8ba] bg-white px-3 text-[13px] font-medium text-[#5c3d2e]"
-            >
-              {slide.secondaryLabel}
-            </Link>
+            {slide.secondaryHref ? (
+              <Link
+                href={slide.secondaryHref}
+                className="inline-flex h-11 items-center justify-center rounded-lg border border-[#d4c8ba] bg-white px-3 text-[13px] font-medium text-[#5c3d2e]"
+              >
+                {slide.secondaryLabel}
+              </Link>
+            ) : null}
           </div>
         </div>
 
