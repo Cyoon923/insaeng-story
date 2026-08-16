@@ -1,24 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Menu, Bell, ChevronLeft, Share2 } from "lucide-react";
 
-async function shareCurrentPage() {
-  const url = window.location.href;
-  const title = document.title;
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, url });
-    } catch {
-      return;
-    }
-    return;
-  }
+async function copyLink(url: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(url);
-    window.alert("링크를 복사했습니다.");
+    return true;
   } catch {
-    return;
+    try {
+      const input = document.createElement("textarea");
+      input.value = url;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.left = "-9999px";
+      document.body.appendChild(input);
+      input.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(input);
+      return ok;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -43,6 +47,26 @@ export function AppHeader({
   showActions = variant === "page" || variant === "apply",
   compact = false,
 }: AppHeaderProps) {
+  const [shareMessage, setShareMessage] = useState("");
+
+  const shareCurrentPage = async () => {
+    const url = window.location.href;
+    const titleText = document.title;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: titleText, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    const copied = await copyLink(url);
+    setShareMessage(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
+    window.setTimeout(() => setShareMessage(""), 2500);
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 backdrop-blur-sm">
       <div className={`flex items-center justify-between px-4 ${compact ? "h-12" : "h-[52px]"}`}>
@@ -86,6 +110,11 @@ export function AppHeader({
           {!showBell && !showActions && <span className="w-5" />}
         </div>
       </div>
+      {shareMessage ? (
+        <p className="border-t border-[#ebe3d8] bg-[#f5efe6] px-4 py-2 text-center text-[14px] font-medium text-[#5c3d2e]">
+          {shareMessage}
+        </p>
+      ) : null}
     </header>
   );
 }
