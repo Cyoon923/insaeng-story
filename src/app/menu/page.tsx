@@ -9,7 +9,7 @@ const GROUPS = [
     items: [
       { label: "홈", href: "/" },
       { label: "인생곡", href: "/products" },
-      { label: "상담", href: "/consultation" },
+      { label: "사주상담", href: "/consultation" },
       { label: "사례", href: "/cases" },
       { label: "MY", href: "/my" },
     ],
@@ -21,6 +21,8 @@ const GROUPS = [
       { label: "자주 묻는 질문", href: "/faq" },
       { label: "공지사항", href: "/notice" },
       { label: "이용 안내", href: "/guide" },
+      { label: "이용약관", href: "/terms" },
+      { label: "개인정보 처리방침", href: "/privacy" },
     ],
   },
   {

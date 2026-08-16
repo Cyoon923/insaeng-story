@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -388,7 +389,10 @@ function EventApplyForm() {
               className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
             />
             <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
-              개인정보 수집·이용에 동의합니다. <span className="text-red-500">[필수]</span>
+              <Link href="/privacy" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+                개인정보 처리방침
+              </Link>
+              에 동의합니다. <span className="text-red-500">[필수]</span>
             </span>
           </label>
         </div>

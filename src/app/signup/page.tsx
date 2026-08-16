@@ -55,7 +55,7 @@ export default function SignupPage() {
       return;
     }
     if (!agreedGuide || !agreedPrivacy) {
-      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
+      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
       return;
     }
     setError("");
@@ -88,7 +88,7 @@ export default function SignupPage() {
       return;
     }
     if (!agreedGuide || !agreedPrivacy) {
-      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
+      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
       return;
     }
     setError("");
@@ -114,7 +114,7 @@ export default function SignupPage() {
       return;
     }
     if (!agreedGuide || !agreedPrivacy) {
-      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
+      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
       return;
     }
     setError("");
@@ -271,8 +271,8 @@ export default function SignupPage() {
               className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
             />
             <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
-              <Link href="/guide" className="font-medium text-[#5c3d2e] underline underline-offset-2">
-                이용 안내
+              <Link href="/terms?from=signup" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+                이용약관
               </Link>
               에 동의합니다. <span className="text-red-500">[필수]</span>
             </span>
@@ -285,7 +285,10 @@ export default function SignupPage() {
               className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
             />
             <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
-              개인정보 수집·이용에 동의합니다. <span className="text-red-500">[필수]</span>
+              <Link href="/privacy?from=signup" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+                개인정보 처리방침
+              </Link>
+              에 동의합니다. <span className="text-red-500">[필수]</span>
             </span>
           </label>
         </div>

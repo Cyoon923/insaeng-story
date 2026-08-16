@@ -81,17 +81,27 @@ export default function ConsultationStep4Page() {
         <p className="text-center text-[24px] font-bold text-[#5c3d2e]">{formatPrice(finalPrice)}</p>
       </div>
 
-      <label className="mt-5 flex items-start gap-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <input
-          type="checkbox"
-          checked={agreed}
-          onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-1 h-5 w-5 accent-[#5c3d2e]"
-        />
-        <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
-          상담 이용 안내 및 취소·환불 규정에 동의합니다. [필수]
-        </span>
-      </label>
+      <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <p className="text-[15px] font-bold text-[#3d2b1f]">취소·환불 안내</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+          상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다. 상담 시간이 지난 뒤에는 환불이 어려울 수
+          있습니다.
+        </p>
+        <label className="mt-3 flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-1 h-5 w-5 accent-[#5c3d2e]"
+          />
+          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
+            <Link href="/terms" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+              이용약관
+            </Link>
+            의 상담 이용 안내 및 취소·환불 규정에 동의합니다. [필수]
+          </span>
+        </label>
+      </div>
 
       <div className="mt-5">
         <h3 className="mb-3 text-[16px] font-bold text-[#3d2b1f]">결제수단</h3>

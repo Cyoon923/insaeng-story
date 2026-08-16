@@ -73,6 +73,33 @@ export default async function GuidePage({
         </div>
       </section>
 
+      <section className="px-4 pb-6">
+        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">취소·환불</h3>
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
+            제작이나 상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다.
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+            제작이 시작된 뒤, 또는 상담 시간이 지난 뒤에는 환불이 어려울 수 있습니다.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-4 pb-6">
+        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">사업자 정보</h3>
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 인생스토리</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: 등록 후 적어 주세요</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
+            사업자등록번호: 등록 후 적어 주세요
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">연락처: 등록 후 적어 주세요</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+            사업자 정보는 등록이 끝나면 여기에 넣습니다.
+          </p>
+        </div>
+      </section>
+
       <section className="px-4 pb-8">
         <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">저작권 안내</h3>
         <div className="rounded-2xl bg-[#f5efe6] p-4">
