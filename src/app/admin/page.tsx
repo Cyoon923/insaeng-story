@@ -253,7 +253,7 @@ export default function AdminPage() {
             로그아웃
           </button>
         </div>
-        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           {TABS.map((item) => {
             const active = tab === item.id;
             return (
@@ -261,7 +261,7 @@ export default function AdminPage() {
                 key={item.id}
                 type="button"
                 onClick={() => setTab(item.id)}
-                className={`h-10 shrink-0 rounded-full px-4 text-[13px] font-semibold ${
+                className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
                   active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
                 }`}
               >
