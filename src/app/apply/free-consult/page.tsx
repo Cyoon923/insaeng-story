@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -8,6 +8,7 @@ import { postApp } from "@/lib/client/api";
 
 const inputClass =
   "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+const MESSAGE_MAX = 300;
 
 const PRODUCTS = [
   "이야기로 만드는 인생곡",
@@ -16,15 +17,128 @@ const PRODUCTS = [
   "잘 모르겠어요",
 ];
 
+const SOURCES = [
+  "지인 소개",
+  "검색",
+  "유튜브",
+  "인스타그램",
+  "카카오톡",
+  "기타",
+];
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { resultIndex: number; results: { length: number; [index: number]: { isFinal: boolean; 0: { transcript: string } } } }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+function createSpeechRecognition(): BrowserSpeechRecognition | null {
+  const speechWindow = window as unknown as {
+    SpeechRecognition?: new () => BrowserSpeechRecognition;
+    webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+  };
+  const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+  return Recognition ? new Recognition() : null;
+}
+
 export default function FreeConsultPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
   const [product, setProduct] = useState("잘 모르겠어요");
+  const [source, setSource] = useState("");
   const [message, setMessage] = useState("");
+  const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const keepListeningRef = useRef(false);
+
+  const stopListening = () => {
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    setInterim("");
+  };
+
+  useEffect(() => {
+    return () => {
+      keepListeningRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const shownMessage = listening && interim ? (message ? `${message} ${interim}` : interim) : message;
+
+  const startListening = () => {
+    if (listening) {
+      stopListening();
+      return;
+    }
+
+    const recognition = createSpeechRecognition();
+    if (!recognition) {
+      window.alert("이 브라우저에서는 말하기로 적을 수 없습니다. 글로 작성해 주세요.");
+      return;
+    }
+
+    keepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    keepListeningRef.current = true;
+    setInterim("");
+    setListening(true);
+
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let spoken = "";
+      let live = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) spoken += text;
+        else live += text;
+      }
+      setInterim(live);
+      if (!spoken) return;
+      setMessage((current) => {
+        const merged = current ? `${current} ${spoken}` : spoken;
+        return merged.slice(0, MESSAGE_MAX);
+      });
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed") {
+        stopListening();
+        window.alert("마이크 사용을 허용해 주세요.");
+      }
+    };
+    recognition.onend = () => {
+      if (!keepListeningRef.current) {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        recognitionRef.current = null;
+        setListening(false);
+        setInterim("");
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   const submit = async () => {
     setError("");
@@ -32,6 +146,11 @@ export default function FreeConsultPage() {
       setError("이름과 연락처를 입력해 주세요.");
       return;
     }
+    if (!source) {
+      setError("어떻게 알게 되셨는지 골라 주세요.");
+      return;
+    }
+    stopListening();
     setLoading(true);
     try {
       await postApp({ action: "ensureUser", phone, name });
@@ -41,7 +160,7 @@ export default function FreeConsultPage() {
         phone,
         method: method === "kakao" ? "카카오톡 상담" : "전화 상담",
         product,
-        message,
+        message: `알게 된 경로: ${source}${message.trim() ? `\n${message}` : ""}`,
       });
       router.push("/apply/complete?type=inquiry");
     } catch (err) {
@@ -136,16 +255,57 @@ export default function FreeConsultPage() {
         </div>
 
         <div>
+          <p className="mb-2 text-[15px] font-medium text-[#3d2b1f]">
+            어떻게 알게 되셨나요? <span className="text-red-500">*</span>
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {SOURCES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setSource(item)}
+                className={`h-12 rounded-xl text-[15px] font-medium ${
+                  source === item ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
           <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">하고 싶은 말</label>
+          <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+            글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
+          </p>
           <textarea
             rows={5}
-            maxLength={300}
-            value={message}
+            maxLength={MESSAGE_MAX}
+            value={shownMessage}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="궁금한 점을 짧게 적어 주셔도 됩니다."
+            placeholder="궁금한 점이나 사연을 적어 주셔도 됩니다."
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
-          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">{message.length} / 300</p>
+          <button
+            type="button"
+            onClick={startListening}
+            className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
+              listening
+                ? "bg-[#5c3d2e] text-white"
+                : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+            }`}
+          >
+            {listening ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+          </button>
+          {listening ? (
+            <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+              지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
+            </p>
+          ) : null}
+          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+            {shownMessage.length} / {MESSAGE_MAX}
+          </p>
         </div>
 
         {error ? <p className="text-[14px] text-red-600">{error}</p> : null}
