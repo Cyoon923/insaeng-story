@@ -2,7 +2,44 @@ import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
-import type { Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
+import type { AppData, Consultation, Coupon, Inquiry, Order, User } from "@/lib/types/app";
+
+const REFERRAL_DISCOUNT = 10000;
+const REFERRAL_POINTS = 10000;
+
+function referralCodeFor(user: User): string {
+  const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const tail = (raw.slice(-6) || "HOME").padStart(6, "0");
+  return `IS${tail}`;
+}
+
+function applyReferral(
+  data: AppData,
+  buyerUserId: string,
+  details: Record<string, string>,
+  amount: number,
+): { amount: number; details: Record<string, string>; error?: string } {
+  const code = (details.referralCode ?? "").trim().toUpperCase();
+  if (!code) return { amount, details };
+  const buyer = data.users.find((item) => item.id === buyerUserId);
+  if (buyer && referralCodeFor(buyer) === code) {
+    return { amount, details, error: "본인 코드는 사용할 수 없습니다." };
+  }
+  const referrer = data.users.find((item) => referralCodeFor(item) === code);
+  if (!referrer) {
+    return { amount, details, error: "추천인 코드를 확인해 주세요." };
+  }
+  referrer.points = (referrer.points ?? 0) + REFERRAL_POINTS;
+  return {
+    amount: Math.max(0, amount - REFERRAL_DISCOUNT),
+    details: {
+      ...details,
+      referralCode: code,
+      referralDiscount: String(REFERRAL_DISCOUNT),
+      referrerId: referrer.id,
+    },
+  };
+}
 
 function emptyUser(phone = "", name = "", email = ""): User {
   return {
@@ -16,6 +53,7 @@ function emptyUser(phone = "", name = "", email = ""): User {
     unknownTime: false,
     calendar: "solar",
     bloodType: "",
+    points: 0,
     createdAt: new Date().toISOString(),
   };
 }
@@ -185,15 +223,20 @@ export async function POST(request: Request) {
   }
 
   if (action === "createOrder") {
+    const details = (body.details as Record<string, string>) ?? {};
+    const referred = applyReferral(data, userId, details, Number(body.amount ?? 0));
+    if (referred.error) {
+      return NextResponse.json({ error: referred.error }, { status: 400 });
+    }
     const order: Order = {
       id: nowId(),
       userId,
       product: body.product as Order["product"],
       title: String(body.title ?? "인생곡"),
       status: "신청접수",
-      amount: Number(body.amount ?? 0),
+      amount: referred.amount,
       payment: String(body.payment ?? ""),
-      details: (body.details as Record<string, string>) ?? {},
+      details: referred.details,
       createdAt: new Date().toISOString(),
     };
     data.orders.unshift(order);
@@ -227,6 +270,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const details = (body.details as Record<string, string>) ?? {};
+    const referred = applyReferral(data, userId, details, Number(body.amount ?? 100000));
+    if (referred.error) {
+      return NextResponse.json({ error: referred.error }, { status: 400 });
+    }
+
     const item: Consultation = {
       id: nowId(),
       userId,
@@ -236,8 +285,8 @@ export async function POST(request: Request) {
       method: String(body.method ?? "카카오톡 상담"),
       option: String(body.option ?? "없음"),
       status: "상담 신청",
-      amount: Number(body.amount ?? 100000),
-      details: (body.details as Record<string, string>) ?? {},
+      amount: referred.amount,
+      details: referred.details,
       createdAt: new Date().toISOString(),
     };
     data.consultations.unshift(item);

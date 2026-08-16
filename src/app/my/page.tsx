@@ -138,7 +138,9 @@ export default function MyPage() {
           <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#ebe3d8]">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[15px] font-bold text-[#3d2b1f]">추천인 코드</p>
-              <p className="text-[15px] font-bold text-[#3d2b1f]">적립금 0원</p>
+              <p className="text-[15px] font-bold text-[#3d2b1f]">
+                적립금 {(user.points ?? 0).toLocaleString("ko-KR")}원
+              </p>
             </div>
             <div className="mt-2 flex items-center gap-2">
               <p className="min-w-0 flex-1 text-[16px] font-semibold tracking-wide text-[#5c3d2e]">

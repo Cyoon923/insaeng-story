@@ -13,6 +13,7 @@ export interface User {
   unknownTime: boolean;
   calendar: "solar" | "lunar";
   bloodType: string;
+  points: number;
   createdAt: string;
 }
 
