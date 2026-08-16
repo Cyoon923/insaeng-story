@@ -1,25 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe } from "@/lib/client/api";
+import type { Consultation, Order } from "@/lib/types/app";
 
 const inputClass =
   "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
 
-const KINDS = [
-  { id: "story", label: "이야기로 만드는 인생곡" },
-  { id: "premium", label: "프리미엄 인생곡" },
-  { id: "saju-song", label: "사주 인생곡" },
-  { id: "consultation", label: "1:1 사주상담" },
-] as const;
-
 const MESSAGE_MAX = 300;
 
-export default function ReviewWritePage() {
-  const [kind, setKind] = useState<(typeof KINDS)[number]["id"] | "">("");
+type Target = {
+  key: string;
+  title: string;
+  subtitle: string;
+};
+
+function receivedTargets(orders: Order[], consultations: Consultation[]): Target[] {
+  const songs = orders
+    .filter((item) => item.status === "완성/전달" || item.status === "완료")
+    .map((item) => ({
+      key: `order:${item.id}`,
+      title: item.title,
+      subtitle: item.status,
+    }));
+  const consults = consultations
+    .filter((item) => item.status === "상담 완료")
+    .map((item) => ({
+      key: `consult:${item.id}`,
+      title: "1:1 사주상담",
+      subtitle: `${item.teacher} · ${item.datetime}`,
+    }));
+  return [...songs, ...consults];
+}
+
+function ReviewWriteForm() {
+  const searchParams = useSearchParams();
+  const [loaded, setLoaded] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [targets, setTargets] = useState<Target[]>([]);
+  const [selectedKey, setSelectedKey] = useState("");
   const [name, setName] = useState("");
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
@@ -28,14 +52,35 @@ export default function ReviewWritePage() {
 
   useEffect(() => {
     fetchMe().then((data) => {
-      if (data.user?.name) setName(data.user.name);
+      const user = data.user ?? null;
+      setLoggedIn(Boolean(user));
+      if (user?.name) setName(user.name);
+
+      const next = receivedTargets(
+        (data.orders ?? []) as Order[],
+        (data.consultations ?? []) as Consultation[],
+      );
+      setTargets(next);
+
+      const orderId = searchParams.get("order");
+      const consultId = searchParams.get("consult");
+      const fromLink = orderId
+        ? `order:${orderId}`
+        : consultId
+          ? `consult:${consultId}`
+          : "";
+      const matched = next.find((item) => item.key === fromLink);
+      setSelectedKey(matched?.key ?? (next.length === 1 ? next[0].key : ""));
+      setLoaded(true);
     });
-  }, []);
+  }, [searchParams]);
+
+  const selected = targets.find((item) => item.key === selectedKey) ?? null;
 
   const submit = () => {
     setError("");
-    if (!kind) {
-      setError("어떤 후기인지 골라 주세요.");
+    if (!selected) {
+      setError("받으신 상품이 있어야 후기를 남길 수 있습니다.");
       return;
     }
     if (!name.trim()) {
@@ -53,7 +98,23 @@ export default function ReviewWritePage() {
     <MobileShell>
       <AppHeader variant="page" title="후기 작성" backHref="/my" />
 
-      {done ? (
+      {!loaded ? (
+        <p className="px-4 py-10 text-center text-[15px] text-[#8b6f5c]">불러오는 중...</p>
+      ) : !loggedIn ? (
+        <section className="px-4 py-10 text-center">
+          <p className="text-[16px] leading-relaxed text-[#8b6f5c]">
+            로그인하면
+            <br />
+            받으신 상품의 후기를 남길 수 있습니다.
+          </p>
+          <Link
+            href="/login"
+            className="mt-6 inline-flex h-14 items-center justify-center rounded-xl bg-[#5c3d2e] px-8 text-[17px] font-semibold text-white"
+          >
+            로그인하기
+          </Link>
+        </section>
+      ) : done ? (
         <section className="px-4 py-10 text-center">
           <p className="text-[22px] font-bold text-[#3d2b1f]">적어 주셔서 감사합니다</p>
           <p className="mt-3 text-[16px] leading-relaxed text-[#8b6f5c]">
@@ -62,30 +123,57 @@ export default function ReviewWritePage() {
             확인 후 화면에 보여 드리겠습니다.
           </p>
         </section>
+      ) : targets.length === 0 ? (
+        <section className="px-4 py-10 text-center">
+          <p className="text-[20px] font-bold text-[#3d2b1f]">아직 후기를 남길 수 없습니다</p>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#8b6f5c]">
+            결제하고 상품을 받으신 뒤,
+            <br />
+            또는 사주상담이 끝난 뒤에
+            <br />
+            후기를 남기실 수 있습니다.
+          </p>
+        </section>
       ) : (
         <section className="px-4 py-5">
           <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">후기 작성</h2>
           <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
-            받으신 서비스와 마음을 짧게 남겨 주세요.
+            받으신 상품에 대한 마음을 남겨 주세요.
           </p>
 
-          <p className="mt-6 text-[16px] font-bold text-[#3d2b1f]">어떤 후기인가요?</p>
-          <div className="mt-3 grid grid-cols-1 gap-2">
-            {KINDS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setKind(item.id)}
-                className={`flex min-h-14 items-center justify-center rounded-xl px-4 text-[16px] font-semibold ${
-                  kind === item.id
-                    ? "bg-[#5c3d2e] text-white"
-                    : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <p className="mt-6 text-[16px] font-bold text-[#3d2b1f]">받으신 상품</p>
+          {targets.length === 1 ? (
+            <div className="mt-3 rounded-xl bg-white px-4 py-4 ring-1 ring-[#ebe3d8]">
+              <p className="text-[16px] font-semibold text-[#3d2b1f]">{selected?.title}</p>
+              {selected?.subtitle ? (
+                <p className="mt-1 text-[14px] text-[#8b6f5c]">{selected.subtitle}</p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {targets.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setSelectedKey(item.key)}
+                  className={`flex min-h-16 w-full flex-col items-start justify-center rounded-xl px-4 py-3 text-left ${
+                    selectedKey === item.key
+                      ? "bg-[#5c3d2e] text-white"
+                      : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                  }`}
+                >
+                  <span className="text-[16px] font-semibold">{item.title}</span>
+                  <span
+                    className={`mt-0.5 text-[13px] ${
+                      selectedKey === item.key ? "text-white/80" : "text-[#8b6f5c]"
+                    }`}
+                  >
+                    {item.subtitle}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <label className="mt-6 block text-[16px] font-bold text-[#3d2b1f]" htmlFor="review-name">
             이름
@@ -102,7 +190,7 @@ export default function ReviewWritePage() {
           <div className="mt-2 flex gap-2">
             {Array.from({ length: 5 }).map((_, index) => {
               const value = index + 1;
-              const selected = value <= rating;
+              const selectedStar = value <= rating;
               return (
                 <button
                   key={value}
@@ -113,7 +201,7 @@ export default function ReviewWritePage() {
                 >
                   <Star
                     className={`h-8 w-8 ${
-                      selected ? "fill-[#c4a574] text-[#c4a574]" : "text-[#d4c8ba]"
+                      selectedStar ? "fill-[#c4a574] text-[#c4a574]" : "text-[#d4c8ba]"
                     }`}
                   />
                 </button>
@@ -149,5 +237,13 @@ export default function ReviewWritePage() {
         </section>
       )}
     </MobileShell>
+  );
+}
+
+export default function ReviewWritePage() {
+  return (
+    <Suspense>
+      <ReviewWriteForm />
+    </Suspense>
   );
 }
