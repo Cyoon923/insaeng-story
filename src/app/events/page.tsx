@@ -46,7 +46,7 @@ export default function EventsPage() {
           </div>
 
           <Link
-            href="/apply/free-consult"
+            href="/apply/event?type=story"
             className="mt-5 flex h-14 items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
           >
             사연 보내기
@@ -90,7 +90,7 @@ export default function EventsPage() {
             유튜브 바로가기
           </a>
           <Link
-            href="/apply/free-consult"
+            href="/apply/event?type=subscribe"
             className="mt-3 flex h-14 items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
           >
             이벤트 신청

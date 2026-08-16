@@ -42,7 +42,7 @@ const SLIDES = [
     imageAlt: "",
     primaryHref: "https://www.youtube.com/@Asha-Music-8",
     primaryLabel: "유튜브 바로가기",
-    secondaryHref: "/apply/free-consult",
+    secondaryHref: "/apply/event?type=subscribe",
     secondaryLabel: "이벤트 신청",
   },
 ] as const;
