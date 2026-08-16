@@ -82,7 +82,7 @@ export function HeroSection() {
       >
         <div className="relative z-10 flex w-[56%] flex-col justify-center pr-1">
           {slide.badge ? (
-            <p className="mb-2 inline-flex w-fit rounded-full bg-[#5c3d2e] px-2.5 py-1 text-[11px] font-bold text-white">
+            <p className="mb-2 inline-flex w-fit rounded-full bg-[#c53030] px-2.5 py-1 text-[11px] font-bold text-white">
               {slide.badge}
             </p>
           ) : null}
