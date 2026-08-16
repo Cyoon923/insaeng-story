@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
-import type { AdminPromo, Consultation, Coupon, CouponProduct, Inquiry, Order, User } from "@/lib/types/app";
+import type {
+  AdminPromo,
+  Consultation,
+  ConsultStatus,
+  Coupon,
+  CouponProduct,
+  Inquiry,
+  Order,
+  OrderStatus,
+  User,
+} from "@/lib/types/app";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -30,6 +40,9 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "coupons", label: "쿠폰" },
   { id: "codes", label: "코드" },
 ];
+
+const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
+const CONSULT_STATUSES: ConsultStatus[] = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"];
 
 const FREE_COUPON_PRODUCTS: { id: CouponProduct; label: string }[] = [
   { id: "story", label: "이야기로 만드는 인생곡" },
@@ -361,6 +374,34 @@ export default function AdminPage() {
     });
     if (!res.ok) return;
     setCodeNotifyDone(true);
+  }
+
+  async function handleUpdateOrderStatus(id: string, status: OrderStatus) {
+    const current = orders.find((item) => item.id === id);
+    if (!current || current.status === status) return;
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "updateOrderStatus", id, status }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const next = data.order as Order;
+    setOrders((list) => list.map((item) => (item.id === next.id ? next : item)));
+  }
+
+  async function handleUpdateConsultationStatus(id: string, status: ConsultStatus) {
+    const current = consultations.find((item) => item.id === id);
+    if (!current || current.status === status) return;
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "updateConsultationStatus", id, status }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const next = data.consultation as Consultation;
+    setConsultations((list) => list.map((item) => (item.id === next.id ? next : item)));
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -784,6 +825,26 @@ export default function AdminPage() {
                   <p className="mt-1 text-[13px] text-[#8b6f5c]">
                     {order.payment} · {formatDate(order.createdAt)}
                   </p>
+                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">진행 상태</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {ORDER_STATUSES.map((status) => {
+                      const active = order.status === status;
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => handleUpdateOrderStatus(order.id, status)}
+                          className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
+                            active
+                              ? "bg-[#5c3d2e] text-white"
+                              : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </article>
               );
             })
@@ -807,6 +868,26 @@ export default function AdminPage() {
                     {item.datetime} · {item.method}
                   </p>
                   <p className="mt-1 text-[13px] text-[#8b6f5c]">{item.purpose}</p>
+                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">진행 상태</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {CONSULT_STATUSES.map((status) => {
+                      const active = item.status === status;
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => handleUpdateConsultationStatus(item.id, status)}
+                          className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
+                            active
+                              ? "bg-[#5c3d2e] text-white"
+                              : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </article>
               );
             })

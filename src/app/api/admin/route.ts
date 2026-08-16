@@ -13,6 +13,10 @@ import {
   upcomingConsultDates,
   listSlotStatuses,
 } from "@/lib/server/consultationSlots";
+import type { ConsultStatus, OrderStatus } from "@/lib/types/app";
+
+const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
+const CONSULT_STATUSES: ConsultStatus[] = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"];
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
@@ -194,6 +198,74 @@ export async function POST(request: Request) {
     ];
     await writeData(data);
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "updateOrderStatus") {
+    const id = String(body.id ?? "");
+    const status = String(body.status ?? "") as OrderStatus;
+    if (!id) {
+      return NextResponse.json({ error: "주문을 확인해 주세요." }, { status: 400 });
+    }
+    if (!ORDER_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "진행 상태를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const order = data.orders.find((item) => item.id === id);
+    if (!order) {
+      return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
+    }
+    order.status = status;
+    if (data.notificationSettings[order.userId]?.order !== false) {
+      data.notifications[order.userId] = [
+        {
+          id: nowId(),
+          title: `주문 상태가 ${status}로 바뀌었습니다`,
+          body:
+            status === "완성/전달" || status === "완료"
+              ? `${order.title} 진행이 ${status}입니다. MY에서 후기를 남기실 수 있습니다.`
+              : `${order.title} 진행이 ${status}입니다.`,
+          createdAt: new Date().toISOString(),
+          read: false,
+        },
+        ...(data.notifications[order.userId] ?? []),
+      ];
+    }
+    await writeData(data);
+    return NextResponse.json({ ok: true, order });
+  }
+
+  if (action === "updateConsultationStatus") {
+    const id = String(body.id ?? "");
+    const status = String(body.status ?? "") as ConsultStatus;
+    if (!id) {
+      return NextResponse.json({ error: "사주상담을 확인해 주세요." }, { status: 400 });
+    }
+    if (!CONSULT_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "진행 상태를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const item = data.consultations.find((consult) => consult.id === id);
+    if (!item) {
+      return NextResponse.json({ error: "사주상담을 찾을 수 없습니다." }, { status: 404 });
+    }
+    item.status = status;
+    if (data.notificationSettings[item.userId]?.consult !== false) {
+      data.notifications[item.userId] = [
+        {
+          id: nowId(),
+          title: `사주상담 상태가 ${status}로 바뀌었습니다`,
+          body:
+            status === "상담 완료"
+              ? `${item.teacher} · ${item.datetime}. MY에서 후기를 남기실 수 있습니다.`
+              : `${item.teacher} · ${item.datetime}`,
+          createdAt: new Date().toISOString(),
+          read: false,
+        },
+        ...(data.notifications[item.userId] ?? []),
+      ];
+    }
+    await writeData(data);
+    return NextResponse.json({ ok: true, consultation: item });
   }
 
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
