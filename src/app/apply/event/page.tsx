@@ -183,7 +183,7 @@ function EventApplyForm() {
           : `이벤트: ${eventName} / 궁금한 상품: ${product}`,
         message: `${isSubscribe ? `유튜브 아이디: ${youtubeId.trim()}\n` : ""}알게 된 경로: ${sourceLabel}${message.trim() ? `\n${message}` : ""}`,
       });
-      router.push("/apply/complete?type=inquiry");
+      router.push(isSubscribe ? "/apply/complete?type=event&kind=subscribe" : "/apply/complete?type=event&kind=story");
     } catch (err) {
       setError(err instanceof Error ? err.message : "신청에 실패했습니다.");
     } finally {
