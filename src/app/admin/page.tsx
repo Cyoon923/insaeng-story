@@ -359,24 +359,24 @@ export default function AdminPage() {
             로그아웃
           </button>
         </div>
-        <article className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
+        <article className="mt-3 rounded-xl bg-white p-3 ring-1 ring-[#ebe3d8]">
+          <p className="text-[12px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
           {adminPromo ? (
             <>
-              <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
-              <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
-                결제할 때 이 코드를 넣으면 {adminPromo.percent}% 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
+              <p className="mt-0.5 text-[16px] font-bold tracking-wide text-[#3d2b1f]">
+                {adminPromo.code} · {adminPromo.percent}%
+              </p>
+              <p className="mt-1 text-[12px] leading-snug text-[#5c3d2e]">
+                결제 시 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
               </p>
             </>
           ) : (
-            <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
-              아직 코드가 없습니다. 아래에서 만들어 주세요.
-            </p>
+            <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">아직 코드가 없습니다. 아래에서 만들어 주세요.</p>
           )}
-          <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
-            할인율
-          </label>
           <div className="mt-2 flex items-center gap-2">
+            <label htmlFor="promo-percent" className="sr-only">
+              할인율
+            </label>
             <input
               id="promo-percent"
               type="number"
@@ -385,18 +385,18 @@ export default function AdminPage() {
               step={10}
               value={promoPercent}
               onChange={(event) => setPromoPercent(Number(event.target.value))}
-              className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+              className="h-9 w-16 rounded-lg border border-[#d4c8ba] bg-white px-2 text-center text-[14px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
             />
-            <span className="shrink-0 text-[16px] font-semibold text-[#3d2b1f]">%</span>
+            <span className="shrink-0 text-[13px] font-semibold text-[#3d2b1f]">%</span>
+            <button
+              type="button"
+              onClick={handleGeneratePromo}
+              disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
+              className="flex h-9 flex-1 items-center justify-center rounded-lg bg-[#5c3d2e] text-[13px] font-semibold text-white disabled:opacity-40"
+            >
+              코드 만들기
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleGeneratePromo}
-            disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
-          >
-            {promoPercent}% 코드 만들기
-          </button>
         </article>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {TABS.map((item) => {
