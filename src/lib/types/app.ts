@@ -60,6 +60,12 @@ export interface BlockedSlot {
   time: string;
 }
 
+export interface AdminPromo {
+  code: string;
+  percent: number;
+  createdAt: string;
+}
+
 export interface Coupon {
   id: string;
   title: string;
@@ -92,4 +98,5 @@ export interface AppData {
   notificationSettings: Record<string, NotificationSettings>;
   codes: Record<string, { code: string; expiresAt: number }>;
   blockedSlots: BlockedSlot[];
+  adminPromo: AdminPromo | null;
 }

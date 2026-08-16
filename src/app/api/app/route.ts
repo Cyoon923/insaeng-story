@@ -6,7 +6,6 @@ import type { AppData, Consultation, Coupon, Inquiry, Order, User } from "@/lib/
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
-const ADMIN_REFERRAL_CODE = "INSAENG30";
 
 function referralCodeFor(user: User): string {
   const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -22,8 +21,9 @@ function applyReferral(
 ): { amount: number; details: Record<string, string>; error?: string } {
   const code = (details.referralCode ?? "").trim().toUpperCase();
   if (!code) return { amount, details };
-  if (code === ADMIN_REFERRAL_CODE) {
-    const discount = Math.round(amount * 0.3);
+  if (code === data.adminPromo?.code) {
+    const percent = data.adminPromo.percent;
+    const discount = Math.round(amount * (percent / 100));
     return {
       amount: Math.max(0, amount - discount),
       details: {
@@ -31,6 +31,7 @@ function applyReferral(
         referralCode: code,
         referralDiscount: String(discount),
         referralType: "admin",
+        referralPercent: String(percent),
       },
     };
   }

@@ -17,6 +17,7 @@ const EMPTY: AppData = {
   notificationSettings: {},
   codes: {},
   blockedSlots: [],
+  adminPromo: null,
 };
 
 function databaseUrl() {

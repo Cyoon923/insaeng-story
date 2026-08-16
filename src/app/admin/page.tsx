@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
-import type { Consultation, Inquiry, Order, User } from "@/lib/types/app";
+import type { AdminPromo, Consultation, Inquiry, Order, User } from "@/lib/types/app";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -86,6 +86,7 @@ export default function AdminPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
   const [teacher, setTeacher] = useState("유비 선생");
+  const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -104,6 +105,7 @@ export default function AdminPage() {
     setScheduleDates(nextDates);
     setScheduleDate((current) => current || nextDates[0] || "");
     setTeacher(String(data.teacher ?? "유비 선생"));
+    setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
     setAuthed(true);
     setLoading(false);
   }, []);
@@ -160,6 +162,7 @@ export default function AdminPage() {
     setConsultations([]);
     setReviews([]);
     setInquiries([]);
+    setAdminPromo(null);
   }
 
   async function handleToggleSlot(time: string) {
@@ -176,6 +179,17 @@ export default function AdminPage() {
     const data = await res.json();
     if (!res.ok) return;
     setScheduleSlots((data.slots ?? []) as { time: string; status: SlotStatus }[]);
+  }
+
+  async function handleGeneratePromo(percent: 20 | 30) {
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "generateAdminPromo", percent }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -275,10 +289,34 @@ export default function AdminPage() {
       <div className="space-y-3 px-4 py-5">
         <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
-          <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">INSAENG30</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
-            결제할 때 이 코드를 넣으면 금액의 30%가 할인됩니다. 적립금은 쌓이지 않습니다.
-          </p>
+          {adminPromo ? (
+            <>
+              <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+                결제할 때 이 코드를 넣으면 {adminPromo.percent}% 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+              아직 코드가 없습니다. 아래에서 만들어 주세요.
+            </p>
+          )}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleGeneratePromo(20)}
+              className="h-11 rounded-xl bg-[#5c3d2e] text-[14px] font-semibold text-white"
+            >
+              20% 코드 만들기
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGeneratePromo(30)}
+              className="h-11 rounded-xl bg-[#5c3d2e] text-[14px] font-semibold text-white"
+            >
+              30% 코드 만들기
+            </button>
+          </div>
         </article>
 
         {tab === "users"

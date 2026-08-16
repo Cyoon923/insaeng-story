@@ -5,7 +5,14 @@ import {
   isAdminAuthenticated,
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
-import { readData } from "@/lib/server/store";
+import { readData, writeData } from "@/lib/server/store";
+import {
+  DEFAULT_TEACHER,
+  CONSULT_TIMES,
+  toggleBlockedSlot,
+  upcomingConsultDates,
+  listSlotStatuses,
+} from "@/lib/server/consultationSlots";
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
@@ -18,6 +25,11 @@ export async function GET() {
     orders: data.orders,
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],
+    blockedSlots: data.blockedSlots ?? [],
+    dates: upcomingConsultDates(),
+    times: CONSULT_TIMES,
+    teacher: DEFAULT_TEACHER,
+    adminPromo: data.adminPromo ?? null,
   });
 }
 
@@ -37,6 +49,46 @@ export async function POST(request: Request) {
   if (action === "logout") {
     await clearAdminSession();
     return NextResponse.json({ ok: true });
+  }
+
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
+  }
+
+  if (action === "toggleBlockSlot") {
+    const data = await readData();
+    const teacher = String(body.teacher ?? DEFAULT_TEACHER);
+    const date = String(body.date ?? "");
+    const time = String(body.time ?? "");
+    if (!date || !CONSULT_TIMES.includes(time)) {
+      return NextResponse.json({ error: "날짜와 시간을 확인해 주세요." }, { status: 400 });
+    }
+    data.blockedSlots = toggleBlockedSlot(data, teacher, date, time);
+    await writeData(data);
+    return NextResponse.json({
+      ok: true,
+      slots: listSlotStatuses(data, teacher, date),
+    });
+  }
+
+  if (action === "generateAdminPromo") {
+    const percent = Number(body.percent);
+    if (percent !== 20 && percent !== 30) {
+      return NextResponse.json({ error: "할인율은 20% 또는 30%만 가능합니다." }, { status: 400 });
+    }
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let tail = "";
+    for (let i = 0; i < 6; i += 1) {
+      tail += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const data = await readData();
+    data.adminPromo = {
+      code: `AD${tail}`,
+      percent,
+      createdAt: new Date().toISOString(),
+    };
+    await writeData(data);
+    return NextResponse.json({ ok: true, adminPromo: data.adminPromo });
   }
 
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
