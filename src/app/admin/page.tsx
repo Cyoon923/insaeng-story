@@ -334,8 +334,9 @@ export default function AdminPage() {
             <input
               id="promo-percent"
               type="number"
-              min={1}
+              min={10}
               max={90}
+              step={10}
               value={promoPercent}
               onChange={(event) => setPromoPercent(Number(event.target.value))}
               className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
