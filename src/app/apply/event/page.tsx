@@ -330,13 +330,13 @@ function EventApplyForm() {
 
         <div>
           <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
-            {isSubscribe ? "하고 싶은 말" : "나의 사연"}
+            {isSubscribe ? "하고 싶은 말" : "사연 신청"}
             {!isSubscribe ? <span className="text-red-500"> *</span> : null}
           </label>
           <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
             {isSubscribe
               ? "인생에서 가장 좋았던 때와 가장 힘들었던 때를 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."
-              : "자신의 사연을 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."}
+              : "본인이나 소중한 분의 사연을 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."}
           </p>
           <textarea
             rows={5}
@@ -346,7 +346,7 @@ function EventApplyForm() {
             placeholder={
               isSubscribe
                 ? "가장 좋았던 때, 가장 힘들었던 때를 적어 주세요."
-                : "자신의 사연을 적어 주세요."
+                : "본인이나 소중한 분의 사연을 적어 주세요."
             }
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
