@@ -72,9 +72,9 @@ export async function POST(request: Request) {
   }
 
   if (action === "generateAdminPromo") {
-    const percent = Number(body.percent);
-    if (percent !== 20 && percent !== 30) {
-      return NextResponse.json({ error: "할인율은 20% 또는 30%만 가능합니다." }, { status: 400 });
+    const percent = Math.floor(Number(body.percent));
+    if (!Number.isFinite(percent) || percent < 1 || percent > 90) {
+      return NextResponse.json({ error: "할인율은 1%부터 90%까지 선택할 수 있습니다." }, { status: 400 });
     }
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let tail = "";

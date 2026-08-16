@@ -112,6 +112,7 @@ export default function AdminPage() {
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
   const [teacher, setTeacher] = useState("유비 선생");
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
+  const [promoPercent, setPromoPercent] = useState(20);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -206,11 +207,11 @@ export default function AdminPage() {
     setScheduleSlots((data.slots ?? []) as { time: string; status: SlotStatus }[]);
   }
 
-  async function handleGeneratePromo(percent: 20 | 30) {
+  async function handleGeneratePromo() {
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "generateAdminPromo", percent }),
+      body: JSON.stringify({ action: "generateAdminPromo", percent: promoPercent }),
     });
     const data = await res.json();
     if (!res.ok) return;
@@ -326,22 +327,44 @@ export default function AdminPage() {
               아직 코드가 없습니다. 아래에서 만들어 주세요.
             </p>
           )}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleGeneratePromo(20)}
-              className="h-11 rounded-xl bg-[#5c3d2e] text-[14px] font-semibold text-white"
-            >
-              20% 코드 만들기
-            </button>
-            <button
-              type="button"
-              onClick={() => handleGeneratePromo(30)}
-              className="h-11 rounded-xl bg-[#5c3d2e] text-[14px] font-semibold text-white"
-            >
-              30% 코드 만들기
-            </button>
+          <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">할인율 선택</p>
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {[10, 20, 30, 50].map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setPromoPercent(item)}
+                className={`h-11 rounded-xl text-[14px] font-semibold ${
+                  promoPercent === item ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                }`}
+              >
+                {item}%
+              </button>
+            ))}
           </div>
+          <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+            직접 입력
+          </label>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              id="promo-percent"
+              type="number"
+              min={1}
+              max={90}
+              value={promoPercent}
+              onChange={(event) => setPromoPercent(Number(event.target.value))}
+              className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+            />
+            <span className="shrink-0 text-[16px] font-semibold text-[#3d2b1f]">%</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleGeneratePromo}
+            disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+          >
+            {promoPercent}% 코드 만들기
+          </button>
         </article>
 
         {tab === "users"
