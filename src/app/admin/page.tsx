@@ -138,6 +138,19 @@ function scheduleStatusLabel(status: SlotStatus) {
   return "가능";
 }
 
+async function copyText(value: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+  }
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,6 +168,7 @@ export default function AdminPage() {
   const [teacher, setTeacher] = useState("유비 선생");
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
   const [promoPercent, setPromoPercent] = useState(20);
+  const [promoCopied, setPromoCopied] = useState(false);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
   const [userCoupons, setUserCoupons] = useState<Record<string, Coupon[]>>({});
   const [couponName, setCouponName] = useState("");
@@ -271,7 +285,20 @@ export default function AdminPage() {
     });
     const data = await res.json();
     if (!res.ok) return;
-    setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
+    const next = (data.adminPromo ?? null) as AdminPromo | null;
+    setAdminPromo(next);
+    if (next?.code) {
+      await copyText(next.code);
+      setPromoCopied(true);
+      window.setTimeout(() => setPromoCopied(false), 2000);
+    }
+  }
+
+  async function copyAdminPromo() {
+    if (!adminPromo?.code) return;
+    await copyText(adminPromo.code);
+    setPromoCopied(true);
+    window.setTimeout(() => setPromoCopied(false), 2000);
   }
 
   async function handleAdjustPoints(userId: string, direction: "add" | "subtract") {
@@ -566,7 +593,16 @@ export default function AdminPage() {
               <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
               {adminPromo ? (
                 <>
-                  <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <p className="min-w-0 flex-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
+                    <button
+                      type="button"
+                      onClick={copyAdminPromo}
+                      className="h-10 shrink-0 rounded-lg bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white"
+                    >
+                      {promoCopied ? "복사됨" : "복사"}
+                    </button>
+                  </div>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
                     결제할 때 이 코드를 넣으면 {adminPromo.percent}% 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
                   </p>
