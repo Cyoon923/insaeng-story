@@ -83,6 +83,12 @@ function contactLabel(user: User) {
   return user.phone || user.email || "-";
 }
 
+function findUsersByName(users: User[], query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return users.filter((user) => user.name.trim().toLowerCase().includes(q));
+}
+
 function referralCodeFor(user: User): string {
   const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   const tail = (raw.slice(-6) || "HOME").padStart(6, "0");
@@ -124,7 +130,11 @@ export default function AdminPage() {
   const [promoPercent, setPromoPercent] = useState(20);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
   const [userCoupons, setUserCoupons] = useState<Record<string, Coupon[]>>({});
-  const [couponProducts, setCouponProducts] = useState<Record<string, CouponProduct>>({});
+  const [couponName, setCouponName] = useState("");
+  const [couponMatches, setCouponMatches] = useState<User[]>([]);
+  const [couponTarget, setCouponTarget] = useState<User | null>(null);
+  const [couponProduct, setCouponProduct] = useState<CouponProduct | "">("");
+  const [couponSearched, setCouponSearched] = useState(false);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -203,6 +213,11 @@ export default function AdminPage() {
     setInquiries([]);
     setAdminPromo(null);
     setUserCoupons({});
+    setCouponName("");
+    setCouponMatches([]);
+    setCouponTarget(null);
+    setCouponProduct("");
+    setCouponSearched(false);
   }
 
   async function handleToggleSlot(time: string) {
@@ -247,17 +262,24 @@ export default function AdminPage() {
     setPointInputs((current) => ({ ...current, [userId]: "" }));
   }
 
-  async function handleGiveCoupon(userId: string) {
-    const product = couponProducts[userId];
-    if (!product) return;
+  function handleFindCouponUser() {
+    const matches = findUsersByName(users, couponName);
+    setCouponSearched(true);
+    setCouponMatches(matches);
+    setCouponTarget(matches.length === 1 ? matches[0] : null);
+    setCouponProduct("");
+  }
+
+  async function handleGiveCoupon() {
+    if (!couponTarget || !couponProduct) return;
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "giveCoupon", userId, product }),
+      body: JSON.stringify({ action: "giveCoupon", userId: couponTarget.id, product: couponProduct }),
     });
     const data = await res.json();
     if (!res.ok) return;
-    setUserCoupons((current) => ({ ...current, [userId]: (data.coupons ?? []) as Coupon[] }));
+    setUserCoupons((current) => ({ ...current, [couponTarget.id]: (data.coupons ?? []) as Coupon[] }));
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -349,7 +371,7 @@ export default function AdminPage() {
                   active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
                 }`}
               >
-                {item.id === "schedule" ? item.label : `${item.label} ${counts[item.id as Exclude<TabId, "schedule">] ?? ""}`}
+                {item.id === "schedule" || item.id === "coupons" ? item.label : `${item.label} ${counts[item.id as Exclude<TabId, "schedule">] ?? ""}`}
               </button>
             );
           })}
@@ -456,57 +478,97 @@ export default function AdminPage() {
             })
           : null}
 
-        {tab === "coupons"
-          ? users.map((user) => {
-              const list = userCoupons[user.id] ?? [];
-              const selected = couponProducts[user.id];
-              return (
-                <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
-                  <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
-                  {list.length === 0 ? (
-                    <p className="mt-2 text-[14px] text-[#8b6f5c]">보유 쿠폰 없음</p>
-                  ) : (
-                    <div className="mt-2 space-y-2">
-                      {list.map((coupon) => (
-                        <div key={coupon.id} className="rounded-xl bg-[#f5efe6] px-3 py-2">
-                          <p className="text-[14px] font-semibold text-[#3d2b1f]">{coupon.title}</p>
-                          <p className="mt-1 text-[13px] text-[#8b6f5c]">
-                            {coupon.usedAt ? "사용함" : "사용 전"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">무료로 줄 상품</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {FREE_COUPON_PRODUCTS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setCouponProducts((current) => ({ ...current, [user.id]: item.id }))}
-                        className={`min-h-12 rounded-xl px-2 text-[13px] font-semibold ${
-                          selected === item.id
-                            ? "bg-[#5c3d2e] text-white"
-                            : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
+        {tab === "coupons" ? (
+          <>
+            <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <label htmlFor="coupon-name" className="block text-[15px] font-bold text-[#3d2b1f]">
+                회원 이름
+              </label>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">
+                쿠폰을 줄 회원 이름을 적고 찾아 주세요.
+              </p>
+              <input
+                id="coupon-name"
+                type="text"
+                value={couponName}
+                onChange={(event) => setCouponName(event.target.value)}
+                className="mt-3 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                placeholder="예: 김민수"
+              />
+              <button
+                type="button"
+                onClick={handleFindCouponUser}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+              >
+                회원 찾기
+              </button>
+            </article>
+
+            {couponSearched && couponMatches.length === 0 ? (
+              <p className="rounded-2xl bg-[#f5efe6] px-4 py-8 text-center text-[15px] text-[#8b6f5c]">
+                그 이름의 회원을 찾을 수 없습니다.
+              </p>
+            ) : null}
+
+            {couponMatches.length > 1 && !couponTarget
+              ? couponMatches.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setCouponTarget(user)}
+                    className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-[#ebe3d8]"
+                  >
+                    <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                    <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
+                  </button>
+                ))
+              : null}
+
+            {couponTarget ? (
+              <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(couponTarget)}</p>
+                <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(couponTarget)}</p>
+                {(userCoupons[couponTarget.id] ?? []).length === 0 ? (
+                  <p className="mt-2 text-[14px] text-[#8b6f5c]">보유 쿠폰 없음</p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {(userCoupons[couponTarget.id] ?? []).map((coupon) => (
+                      <div key={coupon.id} className="rounded-xl bg-[#f5efe6] px-3 py-2">
+                        <p className="text-[14px] font-semibold text-[#3d2b1f]">{coupon.title}</p>
+                        <p className="mt-1 text-[13px] text-[#8b6f5c]">{coupon.usedAt ? "사용함" : "사용 전"}</p>
+                      </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleGiveCoupon(user.id)}
-                    disabled={!selected}
-                    className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
-                  >
-                    무료 쿠폰 지급
-                  </button>
-                </article>
-              );
-            })
-          : null}
+                )}
+                <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">무료로 줄 상품</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {FREE_COUPON_PRODUCTS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setCouponProduct(item.id)}
+                      className={`min-h-12 rounded-xl px-2 text-[13px] font-semibold ${
+                        couponProduct === item.id
+                          ? "bg-[#5c3d2e] text-white"
+                          : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGiveCoupon}
+                  disabled={!couponProduct}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                >
+                  무료 쿠폰 지급
+                </button>
+              </article>
+            ) : null}
+          </>
+        ) : null}
 
         {tab === "orders"
           ? orders.map((order) => {
@@ -684,7 +746,7 @@ export default function AdminPage() {
           </>
         ) : null}
 
-        {counts[tab as Exclude<TabId, "schedule">] === 0 && tab !== "schedule" ? (
+        {counts[tab as Exclude<TabId, "schedule">] === 0 && tab !== "schedule" && tab !== "coupons" ? (
           <div className="rounded-2xl bg-[#f5efe6] px-4 py-10 text-center text-[15px] text-[#8b6f5c]">
             아직 등록된 내역이 없습니다.
           </div>
