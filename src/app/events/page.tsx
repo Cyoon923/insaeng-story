@@ -59,7 +59,7 @@ export default function EventsPage() {
         className="mx-4 mb-8 overflow-hidden rounded-2xl bg-white ring-1 ring-[#ebe3d8]"
       >
         <div className="relative h-40 w-full bg-[#f5efe6]">
-          <Image src="/images/photo-listen.jpg" alt="" fill className="object-cover" sizes="400px" />
+          <Image src="/images/photo-hero.jpg" alt="" fill className="object-cover" sizes="400px" />
         </div>
         <div className="p-4">
           <p className="text-[13px] font-medium text-[#5c3d2e]">구독 이벤트 · 진행 중</p>

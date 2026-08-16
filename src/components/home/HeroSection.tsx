@@ -35,7 +35,7 @@ const SLIDES = [
     badge: "구독 이벤트",
     title: "인생곡 창작소",
     desc: "구독·좋아요·댓글을 남기면\n인생의 포춘타임을 알려 드립니다.",
-    image: "/images/photo-ohaeng.png",
+    image: "/images/photo-hero.jpg",
     imageAlt: "",
     primaryHref: "https://www.youtube.com/@Asha-Music-8",
     primaryLabel: "유튜브 바로가기",
