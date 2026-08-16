@@ -65,9 +65,9 @@ export function HeroSection() {
   const slide = SLIDES[index];
 
   return (
-    <section className="relative overflow-hidden bg-[#faf8f5] px-4 pb-4 pt-5">
+    <section className="relative bg-[#faf8f5] px-4 pb-4 pt-5">
       <div
-        className="relative flex min-h-[268px] items-stretch"
+        className="relative flex min-h-[300px] items-stretch overflow-hidden"
         onTouchStart={(e) => {
           startX.current = e.changedTouches[0]?.clientX ?? null;
         }}
@@ -92,20 +92,20 @@ export function HeroSection() {
           <p className="mt-3 whitespace-pre-line text-[13px] leading-relaxed text-[#8b6f5c]">
             {slide.desc}
           </p>
-          <div className="mt-5 flex flex-col gap-2">
+          <div className="mt-5 flex w-full flex-col gap-2">
             <Link
               href={slide.primaryHref}
               target={slide.primaryHref.startsWith("http") ? "_blank" : undefined}
               rel={slide.primaryHref.startsWith("http") ? "noreferrer" : undefined}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
             >
               {slide.primaryLabel}
               <ChevronRight className="ml-0.5 h-4 w-4" />
             </Link>
-            {slide.secondaryHref ? (
+            {slide.secondaryLabel ? (
               <Link
                 href={slide.secondaryHref}
-                className="inline-flex h-11 items-center justify-center rounded-lg border border-[#d4c8ba] bg-white px-3 text-[13px] font-medium text-[#5c3d2e]"
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-[#d4c8ba] bg-white px-3 text-[13px] font-medium text-[#5c3d2e]"
               >
                 {slide.secondaryLabel}
               </Link>
