@@ -53,6 +53,12 @@ export interface Inquiry {
   createdAt: string;
 }
 
+export interface BlockedSlot {
+  teacher: string;
+  date: string;
+  time: string;
+}
+
 export interface Coupon {
   id: string;
   title: string;
@@ -84,4 +90,5 @@ export interface AppData {
   notifications: Record<string, AppNotification[]>;
   notificationSettings: Record<string, NotificationSettings>;
   codes: Record<string, { code: string; expiresAt: number }>;
+  blockedSlots: BlockedSlot[];
 }
