@@ -23,9 +23,14 @@ function databaseUrl() {
   return process.env.DATABASE_URL?.trim() || "";
 }
 
+function canUseDatabase() {
+  if (process.env.NEXT_PHASE === "phase-production-build") return false;
+  return Boolean(databaseUrl());
+}
+
 function sqlClient() {
-  const url = databaseUrl();
-  return url ? neon(url) : null;
+  if (!canUseDatabase()) return null;
+  return neon(databaseUrl());
 }
 
 async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
