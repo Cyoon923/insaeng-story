@@ -28,6 +28,31 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "schedule", label: "일정" },
 ];
 
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function parseConsultDate(value: string) {
+  const match = value.match(/^(\d+)월 (\d+)일\((.+)\)$/);
+  if (!match) return null;
+  return { month: Number(match[1]), day: Number(match[2]), weekday: match[3] };
+}
+
+function buildCalendarCells(dates: string[]) {
+  if (!dates.length) return [] as ({ empty: true } | { empty: false; date: string; day: number })[];
+
+  const first = parseConsultDate(dates[0]);
+  const offset = first ? WEEKDAYS.indexOf(first.weekday) : 0;
+  const cells: ({ empty: true } | { empty: false; date: string; day: number })[] = [];
+
+  for (let i = 0; i < offset; i++) cells.push({ empty: true });
+  for (const date of dates) {
+    const parsed = parseConsultDate(date);
+    cells.push({ empty: false, date, day: parsed?.day ?? 0 });
+  }
+  while (cells.length % 7 !== 0) cells.push({ empty: true });
+
+  return cells;
+}
+
 function formatDate(value: string) {
   if (!value) return "-";
   return value.slice(0, 16).replace("T", " ").replaceAll("-", ".");
@@ -444,19 +469,36 @@ export default function AdminPage() {
             <p className="mt-1 text-[13px] text-[#8b6f5c]">
               예약된 시간은 자동으로 막힙니다. 선생님 개인 일정은 아래에서 막거나 열 수 있습니다.
             </p>
-            <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-              {scheduleDates.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setScheduleDate(item)}
-                  className={`h-11 shrink-0 rounded-xl px-3 text-[13px] font-semibold ${
-                    scheduleDate === item ? "bg-[#5c3d2e] text-white" : "bg-[#f5efe6] text-[#3d2b1f]"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
+            <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <p className="text-center text-[17px] font-bold text-[#3d2b1f]">
+                {parseConsultDate(scheduleDate)?.month ?? parseConsultDate(scheduleDates[0] ?? "")?.month ?? ""}월
+              </p>
+              {scheduleDate ? (
+                <p className="mt-1 text-center text-[13px] font-semibold text-[#5c3d2e]">{scheduleDate}</p>
+              ) : null}
+              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[12px] font-semibold text-[#8b6f5c]">
+                {WEEKDAYS.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+              <div className="mt-1 grid grid-cols-7 gap-1">
+                {buildCalendarCells(scheduleDates).map((cell, index) =>
+                  cell.empty ? (
+                    <span key={`empty-${index}`} className="aspect-square" />
+                  ) : (
+                    <button
+                      key={cell.date}
+                      type="button"
+                      onClick={() => setScheduleDate(cell.date)}
+                      className={`flex aspect-square items-center justify-center rounded-full text-[15px] font-bold ${
+                        scheduleDate === cell.date ? "bg-[#5c3d2e] text-white" : "bg-[#f5efe6] text-[#3d2b1f]"
+                      }`}
+                    >
+                      {cell.day}
+                    </button>
+                  ),
+                )}
+              </div>
             </div>
             <div className="mt-4 space-y-2">
               {scheduleSlots.map((item) => (
