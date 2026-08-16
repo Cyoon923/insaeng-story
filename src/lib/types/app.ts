@@ -82,6 +82,7 @@ export interface AppNotification {
   body: string;
   createdAt: string;
   read: boolean;
+  kind?: "coupon" | "promo";
 }
 
 export interface NotificationSettings {

@@ -423,5 +423,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, notificationSettings: data.notificationSettings[userId] });
   }
 
+  if (action === "readNotifications") {
+    const ids = Array.isArray(body.ids) ? body.ids.map((item) => String(item)) : [];
+    data.notifications[userId] = (data.notifications[userId] ?? []).map((item) =>
+      ids.includes(item.id) ? { ...item, read: true } : item,
+    );
+    await writeData(data);
+    return NextResponse.json({ ok: true, notifications: data.notifications[userId] });
+  }
+
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
 }

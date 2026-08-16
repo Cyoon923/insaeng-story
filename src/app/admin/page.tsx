@@ -176,6 +176,12 @@ export default function AdminPage() {
   const [couponTarget, setCouponTarget] = useState<User | null>(null);
   const [couponProduct, setCouponProduct] = useState<CouponProduct | "">("");
   const [couponSearched, setCouponSearched] = useState(false);
+  const [couponNotifyDone, setCouponNotifyDone] = useState(false);
+  const [codeNotifyName, setCodeNotifyName] = useState("");
+  const [codeNotifyMatches, setCodeNotifyMatches] = useState<User[]>([]);
+  const [codeNotifyTarget, setCodeNotifyTarget] = useState<User | null>(null);
+  const [codeNotifySearched, setCodeNotifySearched] = useState(false);
+  const [codeNotifyDone, setCodeNotifyDone] = useState(false);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -322,6 +328,7 @@ export default function AdminPage() {
     setCouponMatches(matches);
     setCouponTarget(matches.length === 1 ? matches[0] : null);
     setCouponProduct("");
+    setCouponNotifyDone(false);
   }
 
   async function handleGiveCoupon() {
@@ -334,6 +341,26 @@ export default function AdminPage() {
     const data = await res.json();
     if (!res.ok) return;
     setUserCoupons((current) => ({ ...current, [couponTarget.id]: (data.coupons ?? []) as Coupon[] }));
+    setCouponNotifyDone(true);
+  }
+
+  function handleFindCodeUser() {
+    const matches = findUsersByName(users, codeNotifyName);
+    setCodeNotifySearched(true);
+    setCodeNotifyMatches(matches);
+    setCodeNotifyTarget(matches.length === 1 ? matches[0] : null);
+    setCodeNotifyDone(false);
+  }
+
+  async function handleNotifyPromo() {
+    if (!codeNotifyTarget) return;
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "notifyPromoCode", userId: codeNotifyTarget.id }),
+    });
+    if (!res.ok) return;
+    setCodeNotifyDone(true);
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -582,6 +609,9 @@ export default function AdminPage() {
                 >
                   무료 쿠폰 지급
                 </button>
+                {couponNotifyDone ? (
+                  <p className="mt-2 text-[14px] font-semibold text-[#5c3d2e]">쿠폰을 주고 회원에게 알림을 보냈습니다.</p>
+                ) : null}
               </article>
             ) : null}
           </>
@@ -642,6 +672,66 @@ export default function AdminPage() {
                 {promoPercent}% 코드 만들기
               </button>
             </article>
+
+            {adminPromo ? (
+              <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                <p className="text-[15px] font-bold text-[#3d2b1f]">회원에게 알리기</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">
+                  코드를 받은 회원 이름을 적으면, 그 회원 화면에 알림이 뜹니다.
+                </p>
+                <label htmlFor="code-notify-name" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                  회원 이름
+                </label>
+                <input
+                  id="code-notify-name"
+                  type="text"
+                  value={codeNotifyName}
+                  onChange={(event) => setCodeNotifyName(event.target.value)}
+                  className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                  placeholder="예: 김민수"
+                />
+                <button
+                  type="button"
+                  onClick={handleFindCodeUser}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[15px] font-semibold text-[#5c3d2e]"
+                >
+                  회원 찾기
+                </button>
+                {codeNotifySearched && codeNotifyMatches.length === 0 ? (
+                  <p className="mt-3 text-[14px] text-[#8b6f5c]">그 이름의 회원을 찾을 수 없습니다.</p>
+                ) : null}
+                {codeNotifyMatches.length > 1 && !codeNotifyTarget
+                  ? codeNotifyMatches.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => setCodeNotifyTarget(user)}
+                        className="mt-2 w-full rounded-xl bg-[#f5efe6] px-4 py-3 text-left"
+                      >
+                        <p className="text-[15px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                        <p className="mt-1 text-[13px] text-[#5c3d2e]">{contactLabel(user)}</p>
+                      </button>
+                    ))
+                  : null}
+                {codeNotifyTarget ? (
+                  <>
+                    <p className="mt-3 text-[15px] font-semibold text-[#3d2b1f]">
+                      {userLabel(codeNotifyTarget)} · {contactLabel(codeNotifyTarget)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleNotifyPromo}
+                      className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+                    >
+                      이 코드 알리기
+                    </button>
+                    {codeNotifyDone ? (
+                      <p className="mt-2 text-[14px] font-semibold text-[#5c3d2e]">회원에게 알림을 보냈습니다.</p>
+                    ) : null}
+                  </>
+                ) : null}
+              </article>
+            ) : null}
 
             <p className="pt-2 text-[15px] font-bold text-[#3d2b1f]">사용 내역</p>
             {codeUses.length === 0 ? (

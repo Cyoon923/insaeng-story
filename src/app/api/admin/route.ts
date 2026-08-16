@@ -152,8 +152,47 @@ export async function POST(request: Request) {
       ...(data.coupons[userId] ?? []),
     ];
     data.coupons[userId] = next;
+    data.notifications[userId] = [
+      {
+        id: nowId(),
+        title: "무료 쿠폰이 도착했습니다",
+        body: `이 쿠폰으로 ${productTitle}을 무료로 신청할 수 있습니다. MY 쿠폰함에서 확인해 주세요.`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        kind: "coupon",
+      },
+      ...(data.notifications[userId] ?? []),
+    ];
     await writeData(data);
     return NextResponse.json({ ok: true, userId, coupons: next });
+  }
+
+  if (action === "notifyPromoCode") {
+    const userId = String(body.userId ?? "");
+    if (!userId) {
+      return NextResponse.json({ error: "회원을 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const user = data.users.find((item) => item.id === userId);
+    if (!user) {
+      return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
+    }
+    if (!data.adminPromo?.code) {
+      return NextResponse.json({ error: "먼저 코드를 만들어 주세요." }, { status: 400 });
+    }
+    data.notifications[userId] = [
+      {
+        id: nowId(),
+        title: "할인 코드가 도착했습니다",
+        body: `결제할 때 ${data.adminPromo.code}를 넣으면 ${data.adminPromo.percent}% 할인됩니다.`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        kind: "promo",
+      },
+      ...(data.notifications[userId] ?? []),
+    ];
+    await writeData(data);
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
