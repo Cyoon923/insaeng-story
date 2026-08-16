@@ -327,23 +327,8 @@ export default function AdminPage() {
               아직 코드가 없습니다. 아래에서 만들어 주세요.
             </p>
           )}
-          <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">할인율 선택</p>
-          <div className="mt-2 grid grid-cols-4 gap-2">
-            {[10, 20, 30, 50].map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setPromoPercent(item)}
-                className={`h-11 rounded-xl text-[14px] font-semibold ${
-                  promoPercent === item ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                }`}
-              >
-                {item}%
-              </button>
-            ))}
-          </div>
           <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
-            직접 입력
+            할인율
           </label>
           <div className="mt-2 flex items-center gap-2">
             <input
