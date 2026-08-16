@@ -48,20 +48,36 @@ function mergeData(value: unknown): AppData {
   return { ...EMPTY, ...(value as AppData) };
 }
 
+async function clearTestDataOnce(data: AppData): Promise<AppData> {
+  if (data.testResetAt) return data;
+  data.users = [];
+  data.orders = [];
+  data.consultations = [];
+  data.inquiries = [];
+  data.wishlists = {};
+  data.coupons = {};
+  data.notifications = {};
+  data.notificationSettings = {};
+  data.codes = {};
+  data.testResetAt = new Date().toISOString();
+  await writeData(data);
+  return data;
+}
+
 export async function readData(): Promise<AppData> {
   const sql = sqlClient();
   if (sql) {
     await ensureTable(sql);
     const rows = (await sql.query("SELECT data FROM app_store WHERE id = 1")) as { data: unknown }[];
-    if (!rows[0]) return structuredClone(EMPTY);
-    return mergeData(rows[0].data);
+    if (!rows[0]) return clearTestDataOnce(structuredClone(EMPTY));
+    return clearTestDataOnce(mergeData(rows[0].data));
   }
 
   try {
     const raw = await readFile(DATA_FILE, "utf8");
-    return mergeData(JSON.parse(raw));
+    return clearTestDataOnce(mergeData(JSON.parse(raw)));
   } catch {
-    return structuredClone(EMPTY);
+    return clearTestDataOnce(structuredClone(EMPTY));
   }
 }
 

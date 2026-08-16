@@ -103,4 +103,5 @@ export interface AppData {
   codes: Record<string, { code: string; expiresAt: number }>;
   blockedSlots: BlockedSlot[];
   adminPromo: AdminPromo | null;
+  testResetAt?: string;
 }
