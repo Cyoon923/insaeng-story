@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SLIDES = [
   {
@@ -96,18 +96,36 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="mt-3 flex justify-center gap-1.5">
-        {SLIDES.map((item, i) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-label={`${i + 1}번째 배너`}
-            onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full ${
-              i === index ? "w-4 bg-[#5c3d2e]" : "w-1.5 bg-[#d4c8ba]"
-            }`}
-          />
-        ))}
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          aria-label="이전 배너"
+          onClick={() => goTo(index - 1)}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          {SLIDES.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={`${i + 1}번째 배너`}
+              onClick={() => setIndex(i)}
+              className={`h-1.5 rounded-full ${
+                i === index ? "w-4 bg-[#5c3d2e]" : "w-1.5 bg-[#d4c8ba]"
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          aria-label="다음 배너"
+          onClick={() => goTo(index + 1)}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
       </div>
     </section>
   );
