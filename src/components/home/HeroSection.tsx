@@ -23,7 +23,7 @@ const SLIDES = [
     badge: "오픈 이벤트",
     title: "사연을 보내 주세요",
     desc: "추천을 통해 5분을 선정해\n프리미엄 인생곡을 만들어 드립니다.",
-    image: "/images/photo-premium-life.png",
+    image: "/images/photo-gift.jpg",
     imageAlt: "",
     primaryHref: "/events",
     primaryLabel: "사연 보내기",
