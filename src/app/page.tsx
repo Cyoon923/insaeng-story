@@ -70,7 +70,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={turnOnEasyMode}
-              className="flex h-16 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[20px] font-semibold text-white"
+              className="flex h-16 w-full items-center justify-center rounded-xl border-2 border-[#5c3d2e] bg-white text-[20px] font-semibold text-[#3d2b1f]"
             >
               어르신 쉬운 화면
             </button>
