@@ -6,7 +6,7 @@ import type { AdminPromo, Consultation, Coupon, CouponProduct, Inquiry, Order, U
 
 type SlotStatus = "available" | "booked" | "blocked";
 
-type TabId = "users" | "points" | "coupons" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
+type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
 
 type ReviewItem = {
   id: string;
@@ -28,6 +28,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "schedule", label: "일정" },
   { id: "points", label: "적립금" },
   { id: "coupons", label: "쿠폰" },
+  { id: "codes", label: "코드" },
 ];
 
 const FREE_COUPON_PRODUCTS: { id: CouponProduct; label: string }[] = [
@@ -87,6 +88,32 @@ function findUsersByName(users: User[], query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   return users.filter((user) => user.name.trim().toLowerCase().includes(q));
+}
+
+function adminCodeUses(orders: Order[], consultations: Consultation[]) {
+  const fromOrders = orders
+    .filter((item) => item.details.referralType === "admin")
+    .map((item) => ({
+      id: `order-${item.id}`,
+      userId: item.userId,
+      title: item.title,
+      code: item.details.referralCode ?? "",
+      percent: item.details.referralPercent ?? "",
+      discount: item.details.referralDiscount ?? "",
+      createdAt: item.createdAt,
+    }));
+  const fromConsults = consultations
+    .filter((item) => item.details.referralType === "admin")
+    .map((item) => ({
+      id: `consult-${item.id}`,
+      userId: item.userId,
+      title: "1:1 사주상담",
+      code: item.details.referralCode ?? "",
+      percent: item.details.referralPercent ?? "",
+      discount: item.details.referralDiscount ?? "",
+      createdAt: item.createdAt,
+    }));
+  return [...fromOrders, ...fromConsults].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function referralCodeFor(user: User): string {
@@ -332,10 +359,13 @@ export default function AdminPage() {
 
   const eventItems = inquiries.filter(isEventInquiry);
   const inquiryItems = inquiries.filter((item) => !isEventInquiry(item));
+  const codeUses = adminCodeUses(orders, consultations);
+  const currentCodeUses = codeUses.filter((item) => item.code === adminPromo?.code);
   const counts: Record<Exclude<TabId, "schedule">, number> = {
     users: users.length,
     points: users.length,
     coupons: users.length,
+    codes: codeUses.length,
     orders: orders.length,
     consultations: consultations.length,
     reviews: reviews.length,
@@ -345,7 +375,7 @@ export default function AdminPage() {
 
   return (
     <MobileShell>
-      <header className="border-b border-[#ebe3d8] bg-[#fffdf9] px-4 py-4">
+      <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 px-4 py-4 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
@@ -359,45 +389,6 @@ export default function AdminPage() {
             로그아웃
           </button>
         </div>
-        <article className="mt-3 rounded-xl bg-white p-3 ring-1 ring-[#ebe3d8]">
-          <p className="text-[12px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
-          {adminPromo ? (
-            <>
-              <p className="mt-0.5 text-[16px] font-bold tracking-wide text-[#3d2b1f]">
-                {adminPromo.code} · {adminPromo.percent}%
-              </p>
-              <p className="mt-1 text-[12px] leading-snug text-[#5c3d2e]">
-                결제 시 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
-              </p>
-            </>
-          ) : (
-            <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">아직 코드가 없습니다. 아래에서 만들어 주세요.</p>
-          )}
-          <div className="mt-2 flex items-center gap-2">
-            <label htmlFor="promo-percent" className="sr-only">
-              할인율
-            </label>
-            <input
-              id="promo-percent"
-              type="number"
-              min={10}
-              max={90}
-              step={10}
-              value={promoPercent}
-              onChange={(event) => setPromoPercent(Number(event.target.value))}
-              className="h-9 w-16 rounded-lg border border-[#d4c8ba] bg-white px-2 text-center text-[14px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
-            />
-            <span className="shrink-0 text-[13px] font-semibold text-[#3d2b1f]">%</span>
-            <button
-              type="button"
-              onClick={handleGeneratePromo}
-              disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
-              className="flex h-9 flex-1 items-center justify-center rounded-lg bg-[#5c3d2e] text-[13px] font-semibold text-white disabled:opacity-40"
-            >
-              코드 만들기
-            </button>
-          </div>
-        </article>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {TABS.map((item) => {
             const active = tab === item.id;
@@ -566,6 +557,87 @@ export default function AdminPage() {
                 </button>
               </article>
             ) : null}
+          </>
+        ) : null}
+
+        {tab === "codes" ? (
+          <>
+            <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
+              {adminPromo ? (
+                <>
+                  <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+                    결제할 때 이 코드를 넣으면 {adminPromo.percent}% 할인됩니다. 새 코드를 만들면 이전 코드는 사용할 수 없습니다.
+                  </p>
+                  <p className="mt-2 text-[14px] font-semibold text-[#3d2b1f]">
+                    {currentCodeUses.length === 0
+                      ? "아직 사용한 사람이 없습니다."
+                      : `지금 코드를 ${currentCodeUses.length}명이 사용했습니다.`}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+                  아직 코드가 없습니다. 아래에서 만들어 주세요.
+                </p>
+              )}
+              <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                할인율
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="promo-percent"
+                  type="number"
+                  min={10}
+                  max={90}
+                  step={10}
+                  value={promoPercent}
+                  onChange={(event) => setPromoPercent(Number(event.target.value))}
+                  className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                />
+                <span className="shrink-0 text-[16px] font-semibold text-[#3d2b1f]">%</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleGeneratePromo}
+                disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+              >
+                {promoPercent}% 코드 만들기
+              </button>
+            </article>
+
+            <p className="pt-2 text-[15px] font-bold text-[#3d2b1f]">사용 내역</p>
+            {codeUses.length === 0 ? (
+              <p className="rounded-2xl bg-[#f5efe6] px-4 py-8 text-center text-[15px] text-[#8b6f5c]">
+                아직 코드를 사용한 신청이 없습니다.
+              </p>
+            ) : (
+              codeUses.map((item) => {
+                const member = userMap.get(item.userId);
+                const isCurrent = item.code === adminPromo?.code;
+                return (
+                  <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-[16px] font-bold text-[#3d2b1f]">
+                        {member ? userLabel(member) : "회원 정보 없음"}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                        {isCurrent ? "사용함" : "이전 코드"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[14px] text-[#5c3d2e]">{item.title}</p>
+                    <p className="mt-1 text-[13px] text-[#8b6f5c]">
+                      {item.code}
+                      {item.percent ? ` · ${item.percent}%` : ""}
+                      {item.discount ? ` · ${formatAmount(Number(item.discount))}` : ""}
+                    </p>
+                    {member ? <p className="mt-1 text-[13px] text-[#8b6f5c]">{contactLabel(member)}</p> : null}
+                    <p className="mt-1 text-[13px] text-[#8b6f5c]">{formatDate(item.createdAt)}</p>
+                  </article>
+                );
+              })
+            )}
           </>
         ) : null}
 
@@ -745,7 +817,7 @@ export default function AdminPage() {
           </>
         ) : null}
 
-        {counts[tab as Exclude<TabId, "schedule">] === 0 && tab !== "schedule" && tab !== "coupons" ? (
+        {counts[tab as Exclude<TabId, "schedule">] === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
           <div className="rounded-2xl bg-[#f5efe6] px-4 py-10 text-center text-[15px] text-[#8b6f5c]">
             아직 등록된 내역이 없습니다.
           </div>
