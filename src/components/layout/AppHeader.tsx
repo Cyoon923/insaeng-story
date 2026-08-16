@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Menu, Bell, ChevronLeft, Share2 } from "lucide-react";
 
@@ -26,6 +27,10 @@ async function copyLink(url: string): Promise<boolean> {
   }
 }
 
+function isLocalPreview() {
+  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+}
+
 interface AppHeaderProps {
   variant?: "home" | "page" | "apply";
   title?: string;
@@ -47,14 +52,30 @@ export function AppHeader({
   showActions = variant === "page" || variant === "apply",
   compact = false,
 }: AppHeaderProps) {
+  const [mounted, setMounted] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const pageUrl = () => window.location.href;
   const pageTitle = () => document.title;
 
-  const shareKakao = () => {
+  const showCopied = (message: string) => {
+    setShareOpen(false);
+    setShareMessage(message);
+    window.setTimeout(() => setShareMessage(""), 2500);
+  };
+
+  const shareKakao = async () => {
     const url = pageUrl();
+    if (isLocalPreview()) {
+      const copied = await copyLink(url);
+      showCopied(copied ? "미리보기에서는 링크를 복사합니다." : "링크를 복사하지 못했습니다.");
+      return;
+    }
     window.open(
       `https://story.kakao.com/share?url=${encodeURIComponent(url)}`,
       "_blank",
@@ -63,9 +84,14 @@ export function AppHeader({
     setShareOpen(false);
   };
 
-  const shareTelegram = () => {
+  const shareTelegram = async () => {
     const url = pageUrl();
     const text = pageTitle();
+    if (isLocalPreview()) {
+      const copied = await copyLink(url);
+      showCopied(copied ? "미리보기에서는 링크를 복사합니다." : "링크를 복사하지 못했습니다.");
+      return;
+    }
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
       "_blank",
@@ -76,9 +102,7 @@ export function AppHeader({
 
   const shareCopy = async () => {
     const copied = await copyLink(pageUrl());
-    setShareOpen(false);
-    setShareMessage(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
-    window.setTimeout(() => setShareMessage(""), 2500);
+    showCopied(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
   };
 
   return (
@@ -130,49 +154,54 @@ export function AppHeader({
         </p>
       ) : null}
 
-      {shareOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <button
-            type="button"
-            className="absolute inset-0"
-            aria-label="닫기"
-            onClick={() => setShareOpen(false)}
-          />
-          <div className="relative w-full max-w-[430px] rounded-t-2xl bg-[#fffdf9] px-4 pb-8 pt-5">
-            <p className="text-center text-[18px] font-bold text-[#3d2b1f]">공유하기</p>
-            <div className="mt-4 space-y-3">
-              <button
-                type="button"
-                onClick={shareKakao}
-                className="flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
-              >
-                카카오톡
-              </button>
-              <button
-                type="button"
-                onClick={shareCopy}
-                className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
-              >
-                주소 복사
-              </button>
-              <button
-                type="button"
-                onClick={shareTelegram}
-                className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
-              >
-                텔레그램
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShareOpen(false)}
-              className="mt-4 flex h-12 w-full items-center justify-center text-[16px] font-medium text-[#8b6f5c]"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {mounted && shareOpen
+        ? createPortal(
+            <div className="fixed inset-0 z-[80] flex items-end justify-center">
+              <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col justify-end bg-black/40">
+                <button
+                  type="button"
+                  className="absolute inset-0"
+                  aria-label="닫기"
+                  onClick={() => setShareOpen(false)}
+                />
+                <div className="relative w-full rounded-t-2xl bg-[#fffdf9] px-4 pb-24 pt-5">
+                  <p className="text-center text-[18px] font-bold text-[#3d2b1f]">공유하기</p>
+                  <div className="mt-4 space-y-3">
+                    <button
+                      type="button"
+                      onClick={shareKakao}
+                      className="flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
+                    >
+                      카카오톡
+                    </button>
+                    <button
+                      type="button"
+                      onClick={shareCopy}
+                      className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+                    >
+                      주소 복사
+                    </button>
+                    <button
+                      type="button"
+                      onClick={shareTelegram}
+                      className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+                    >
+                      텔레그램
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShareOpen(false)}
+                    className="mt-4 flex h-12 w-full items-center justify-center text-[16px] font-medium text-[#8b6f5c]"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </header>
   );
 }
