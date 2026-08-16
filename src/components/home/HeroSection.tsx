@@ -12,6 +12,7 @@ const SLIDES = [
     title: "당신의 이야기가\n세상에 단 하나뿐인\n노래가 됩니다",
     desc: "당신의 삶을 특별한 노래로\n오래도록 간직하세요.",
     image: "/images/photo-hero-memories.png",
+    imageClass: "object-[85%_center]",
     imageAlt: "음악을 들으며 추억을 떠올리는 모습",
     primaryHref: "/products",
     primaryLabel: "인생곡 만들기",
@@ -24,6 +25,7 @@ const SLIDES = [
     title: "사연을 보내 주세요",
     desc: "추천을 통해 5분을 선정해\n프리미엄 인생곡을 만들어 드립니다.",
     image: "/images/photo-gift.jpg",
+    imageClass: "object-center",
     imageAlt: "",
     primaryHref: "/events",
     primaryLabel: "사연 보내기",
@@ -35,7 +37,8 @@ const SLIDES = [
     badge: "구독 이벤트",
     title: "인생곡 창작소",
     desc: "구독·좋아요·댓글을 남기면\n인생의 포춘타임을 알려 드립니다.",
-    image: "/images/photo-hero.jpg",
+    image: "/images/photo-changjakso.png",
+    imageClass: "object-center",
     imageAlt: "",
     primaryHref: "https://www.youtube.com/@Asha-Music-8",
     primaryLabel: "유튜브 바로가기",
@@ -112,7 +115,7 @@ export function HeroSection() {
             alt={slide.imageAlt}
             fill
             priority={index === 0}
-            className="object-cover object-[85%_center]"
+            className={`object-cover ${slide.imageClass}`}
             sizes="220px"
           />
           <div className="absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-[#faf8f5] to-transparent" />
