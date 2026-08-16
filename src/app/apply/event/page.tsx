@@ -156,6 +156,10 @@ function EventApplyForm() {
       setError("유튜브 아이디를 입력해 주세요.");
       return;
     }
+    if (!isSubscribe && !message.trim()) {
+      setError("사연을 적어 주세요.");
+      return;
+    }
     if (!source) {
       setError("어떻게 알게 되셨는지 골라 주세요.");
       return;
@@ -325,11 +329,14 @@ function EventApplyForm() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">하고 싶은 말</label>
+          <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
+            {isSubscribe ? "하고 싶은 말" : "나의 사연"}
+            {!isSubscribe ? <span className="text-red-500"> *</span> : null}
+          </label>
           <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
             {isSubscribe
               ? "인생에서 가장 좋았던 때와 가장 힘들었던 때를 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."
-              : "글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다."}
+              : "자신의 사연을 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."}
           </p>
           <textarea
             rows={5}
@@ -339,7 +346,7 @@ function EventApplyForm() {
             placeholder={
               isSubscribe
                 ? "가장 좋았던 때, 가장 힘들었던 때를 적어 주세요."
-                : "사연이나 남기고 싶은 말을 적어 주세요."
+                : "자신의 사연을 적어 주세요."
             }
             className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
           />
