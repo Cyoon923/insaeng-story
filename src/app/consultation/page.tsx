@@ -16,23 +16,23 @@ import { CONSULT_REVIEWS } from "@/lib/constants/reviews";
 
 const RECOMMENDS = [
   {
-    title: "앞으로의 방향이 고민되는 분",
-    desc: "이직·사업·진로 등 중요한 선택을 앞두고 있을 때",
+    title: "앞으로의 방향이\n고민되는 분",
+    desc: "이직·사업·진로 등\n중요한 선택을 앞두고 있을 때",
     image: "/images/photo-career.jpg",
   },
   {
-    title: "연애와 인연이 궁금한 분",
-    desc: "연애·결혼·궁합 등 관계의 흐름이 궁금할 때",
+    title: "연애와 인연이\n궁금한 분",
+    desc: "연애·결혼·궁합 등\n관계의 흐름이 궁금할 때",
     image: "/images/photo-couple.jpg",
   },
   {
-    title: "재물과 일의 흐름이 궁금한 분",
-    desc: "금전·직장·사업의 흐름을 살펴보고 싶을 때",
+    title: "재물과 일의 흐름이\n궁금한 분",
+    desc: "금전·직장·사업의 흐름을\n살펴보고 싶을 때",
     image: "/images/photo-talk.jpg",
   },
   {
-    title: "마음속 고민을 나누고 싶은 분",
-    desc: "혼자 결정하기 어려운 고민을 편안하게 이야기하고 싶을 때",
+    title: "마음속 고민을\n나누고 싶은 분",
+    desc: "혼자 결정하기 어려운 고민을\n편안하게 이야기하고 싶을 때",
     image: "/images/photo-tea.jpg",
   },
 ];
@@ -202,8 +202,8 @@ export default function ConsultationPage() {
                 <Image src={item.image} alt="" fill className="object-cover" sizes="180px" />
               </div>
               <div className="p-3">
-                <p className="text-[13px] font-bold leading-snug text-[#3d2b1f]">{item.title}</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-[#8b6f5c]">{item.desc}</p>
+                <p className="whitespace-pre-line break-keep text-[13px] font-bold leading-snug text-[#3d2b1f]">{item.title}</p>
+                <p className="mt-1 whitespace-pre-line break-keep text-[11px] leading-relaxed text-[#8b6f5c]">{item.desc}</p>
               </div>
             </div>
           ))}
