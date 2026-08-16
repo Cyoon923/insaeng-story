@@ -244,7 +244,6 @@ export default function AdminPage() {
           <div>
             <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
             <p className="text-[12px] text-[#8b6f5c]">인생스토리 운영 현황</p>
-            <p className="mt-1 text-[12px] font-semibold text-[#5c3d2e]">관리자 코드 INSAENG30 · 30% 할인</p>
           </div>
           <button
             type="button"
@@ -274,6 +273,14 @@ export default function AdminPage() {
       </header>
 
       <div className="space-y-3 px-4 py-5">
+        <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+          <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
+          <p className="mt-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">INSAENG30</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+            결제할 때 이 코드를 넣으면 금액의 30%가 할인됩니다. 적립금은 쌓이지 않습니다.
+          </p>
+        </article>
+
         {tab === "users"
           ? users.map((user) => (
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
