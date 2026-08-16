@@ -20,7 +20,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sentCode, setSentCode] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  const [agreedGuide, setAgreedGuide] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -53,8 +54,8 @@ export default function SignupPage() {
       setError("이름을 입력해 주세요.");
       return;
     }
-    if (!agreed) {
-      setError("이용약관 및 개인정보 처리방침에 동의해 주세요.");
+    if (!agreedGuide || !agreedPrivacy) {
+      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
       return;
     }
     setError("");
@@ -86,8 +87,8 @@ export default function SignupPage() {
       setError("이름을 입력해 주세요.");
       return;
     }
-    if (!agreed) {
-      setError("이용약관 및 개인정보 처리방침에 동의해 주세요.");
+    if (!agreedGuide || !agreedPrivacy) {
+      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
       return;
     }
     setError("");
@@ -112,8 +113,8 @@ export default function SignupPage() {
       setError("이름을 입력해 주세요.");
       return;
     }
-    if (!agreed) {
-      setError("이용약관 및 개인정보 처리방침에 동의해 주세요.");
+    if (!agreedGuide || !agreedPrivacy) {
+      setError("이용 안내와 개인정보 수집·이용에 동의해 주세요.");
       return;
     }
     setError("");
@@ -253,20 +254,41 @@ export default function SignupPage() {
           ) : null}
         </div>
 
-        <label className="flex items-start gap-3 rounded-xl bg-[#f5efe6] p-4">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
-          />
-          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
-            <Link href="/guide" className="font-medium text-[#5c3d2e] underline underline-offset-2">
-              이용 안내
-            </Link>
-            및 개인정보 처리방침에 동의합니다. <span className="text-red-500">[필수]</span>
-          </span>
-        </label>
+        <div className="rounded-2xl bg-[#f5efe6] p-4">
+          <p className="text-[15px] font-bold text-[#3d2b1f]">개인정보 수집·이용 안내</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+            받는 정보: {channel === "phone" ? "이름, 연락처" : "이름, 이메일"}
+            <br />
+            쓰는 이유: 회원가입, 주문과 상담 진행 확인
+            <br />
+            보관: 회원 탈퇴할 때까지
+          </p>
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={agreedGuide}
+              onChange={(e) => setAgreedGuide(e.target.checked)}
+              className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
+            />
+            <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
+              <Link href="/guide" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+                이용 안내
+              </Link>
+              에 동의합니다. <span className="text-red-500">[필수]</span>
+            </span>
+          </label>
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={agreedPrivacy}
+              onChange={(e) => setAgreedPrivacy(e.target.checked)}
+              className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
+            />
+            <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
+              개인정보 수집·이용에 동의합니다. <span className="text-red-500">[필수]</span>
+            </span>
+          </label>
+        </div>
 
         {error ? <p className="text-[14px] text-red-600">{error}</p> : null}
 
