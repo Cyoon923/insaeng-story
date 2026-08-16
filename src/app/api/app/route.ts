@@ -6,6 +6,7 @@ import type { AppData, Consultation, Coupon, Inquiry, Order, User } from "@/lib/
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
+const ADMIN_REFERRAL_CODE = "INSAENG30";
 
 function referralCodeFor(user: User): string {
   const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -21,6 +22,18 @@ function applyReferral(
 ): { amount: number; details: Record<string, string>; error?: string } {
   const code = (details.referralCode ?? "").trim().toUpperCase();
   if (!code) return { amount, details };
+  if (code === ADMIN_REFERRAL_CODE) {
+    const discount = Math.round(amount * 0.3);
+    return {
+      amount: Math.max(0, amount - discount),
+      details: {
+        ...details,
+        referralCode: code,
+        referralDiscount: String(discount),
+        referralType: "admin",
+      },
+    };
+  }
   const buyer = data.users.find((item) => item.id === buyerUserId);
   if (buyer && referralCodeFor(buyer) === code) {
     return { amount, details, error: "본인 코드는 사용할 수 없습니다." };

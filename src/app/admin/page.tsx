@@ -244,6 +244,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
             <p className="text-[12px] text-[#8b6f5c]">인생스토리 운영 현황</p>
+            <p className="mt-1 text-[12px] font-semibold text-[#5c3d2e]">관리자 코드 INSAENG30 · 30% 할인</p>
           </div>
           <button
             type="button"

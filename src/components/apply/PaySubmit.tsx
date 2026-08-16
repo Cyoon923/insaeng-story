@@ -28,6 +28,9 @@ export function PaySubmit({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  const normalizedCode = referralCode.trim().toUpperCase();
+  const adminDiscount = normalizedCode === "INSAENG30" ? Math.round(amount * 0.3) : 0;
+  const previewDiscount = adminDiscount || (normalizedCode ? 10000 : 0);
 
   const submit = async () => {
     setError("");
@@ -88,11 +91,11 @@ export function PaySubmit({
         placeholder="예: IS12AB34"
         className="mt-2 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
       />
-      {referralCode.trim() ? (
+      {previewDiscount ? (
         <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
-          코드가 맞으면 {formatPrice(10000)} 할인됩니다.
+          코드가 맞으면 {formatPrice(previewDiscount)} 할인됩니다.
           <br />
-          결제 금액 {formatPrice(Math.max(0, amount - 10000))}
+          결제 금액 {formatPrice(Math.max(0, amount - previewDiscount))}
         </p>
       ) : null}
       {error ? <p className="mt-3 text-center text-[14px] text-red-600">{error}</p> : null}
