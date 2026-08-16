@@ -21,7 +21,7 @@ type ReviewItem = {
 const TABS: { id: TabId; label: string }[] = [
   { id: "users", label: "회원" },
   { id: "orders", label: "주문" },
-  { id: "consultations", label: "상담" },
+  { id: "consultations", label: "사주상담" },
   { id: "reviews", label: "후기" },
   { id: "events", label: "이벤트" },
   { id: "inquiries", label: "문의" },

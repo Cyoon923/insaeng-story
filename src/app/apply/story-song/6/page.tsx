@@ -22,7 +22,7 @@ function moodLabel(draft: Record<string, string>) {
 
 function selectedOptions(draft: Record<string, string>) {
   const raw = draft.options ?? "";
-  if (!raw) return OPTION_PRICES.filter((opt) => opt.name === "내 얼굴 AI 뮤직비디오");
+  if (!raw) return [];
   return OPTION_PRICES.filter((opt) => raw.includes(opt.name));
 }
 

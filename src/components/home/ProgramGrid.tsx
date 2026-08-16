@@ -38,7 +38,7 @@ const PROGRAMS = [
     href: "/consultation",
     title: "1:1 사주상담",
     desc: "인생곡과 별도로 받는 전문 사주상담입니다.",
-    cta: "상담 신청하기",
+    cta: "사주상담 신청하기",
     icon: Headphones,
     iconBg: "bg-[#6b8f6e]",
     image: "/images/photo-yubi-teacher.png",

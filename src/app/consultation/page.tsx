@@ -105,7 +105,7 @@ export default function ConsultationPage() {
               href="/apply/consultation/1"
               className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
             >
-              상담 신청하기
+              사주상담 신청하기
               <ChevronRight className="ml-0.5 h-4 w-4" />
             </Link>
           </div>

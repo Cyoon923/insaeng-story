@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
-import type { AppData, Consultation, Coupon, CouponProduct, Inquiry, Order, User } from "@/lib/types/app";
+import type { AppData, Consultation, Coupon, CouponProduct, Inquiry, Order, Review, User } from "@/lib/types/app";
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
@@ -401,6 +401,45 @@ export async function POST(request: Request) {
     }
     await writeData(data);
     return NextResponse.json({ ok: true, inquiry: item });
+  }
+
+  if (action === "createReview") {
+    const title = String(body.title ?? "").trim();
+    const text = String(body.text ?? "").trim();
+    const name = String(body.name ?? user.name).trim();
+    const rating = Number(body.rating ?? 0);
+    const targetKey = String(body.targetKey ?? "");
+    if (targetKey.startsWith("preview:")) {
+      return NextResponse.json({ error: "미리보기는 저장되지 않습니다." }, { status: 400 });
+    }
+    if (!title) {
+      return NextResponse.json({ error: "받으신 상품을 선택해 주세요." }, { status: 400 });
+    }
+    if (!name) {
+      return NextResponse.json({ error: "이름을 적어 주세요." }, { status: 400 });
+    }
+    if (!text) {
+      return NextResponse.json({ error: "후기를 적어 주세요." }, { status: 400 });
+    }
+    if (text.length > 300) {
+      return NextResponse.json({ error: "후기는 300자까지 적을 수 있습니다." }, { status: 400 });
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return NextResponse.json({ error: "별점을 선택해 주세요." }, { status: 400 });
+    }
+    const review: Review = {
+      id: nowId(),
+      userId,
+      name,
+      title,
+      rating,
+      text,
+      createdAt: new Date().toISOString(),
+      visible: false,
+    };
+    data.reviews = [review, ...(data.reviews ?? [])];
+    await writeData(data);
+    return NextResponse.json({ ok: true, review });
   }
 
   if (action === "toggleWishlist") {

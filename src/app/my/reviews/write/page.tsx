@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { fetchMe } from "@/lib/client/api";
+import { fetchMe, postApp } from "@/lib/client/api";
 import type { Consultation, Order } from "@/lib/types/app";
 
 const inputClass =
@@ -49,6 +49,7 @@ function ReviewWriteForm() {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchMe().then((data) => {
@@ -87,7 +88,7 @@ function ReviewWriteForm() {
 
   const selected = targets.find((item) => item.key === selectedKey) ?? null;
 
-  const submit = () => {
+  const submit = async () => {
     setError("");
     if (!selected) {
       setError("받으신 상품이 있어야 후기를 남길 수 있습니다.");
@@ -101,7 +102,26 @@ function ReviewWriteForm() {
       setError("후기를 적어 주세요.");
       return;
     }
-    setDone(true);
+    if (selected.key.startsWith("preview:")) {
+      setDone(true);
+      return;
+    }
+    setSaving(true);
+    try {
+      await postApp({
+        action: "createReview",
+        targetKey: selected.key,
+        title: selected.title,
+        name: name.trim(),
+        rating,
+        text: text.trim(),
+      });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "후기를 저장하지 못했습니다.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -240,9 +260,10 @@ function ReviewWriteForm() {
           <button
             type="button"
             onClick={submit}
-            className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[18px] font-semibold text-white"
+            disabled={saving}
+            className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[18px] font-semibold text-white disabled:opacity-60"
           >
-            후기 남기기
+            {saving ? "저장하는 중..." : "후기 남기기"}
           </button>
         </section>
       )}

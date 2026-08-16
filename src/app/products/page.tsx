@@ -19,7 +19,7 @@ const TABS = [
   { id: "story", label: "인생곡 제작" },
   { id: "premium", label: "프리미엄" },
   { id: "saju-song", label: "사주 인생곡" },
-  { id: "consultation", label: "상담" },
+  { id: "consultation", label: "사주상담" },
 ] as const;
 
 const ITEMS = [

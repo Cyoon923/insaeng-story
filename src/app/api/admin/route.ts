@@ -25,6 +25,7 @@ export async function GET() {
     orders: data.orders,
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],
+    reviews: data.reviews ?? [],
     blockedSlots: data.blockedSlots ?? [],
     dates: upcomingConsultDates(),
     times: CONSULT_TIMES,

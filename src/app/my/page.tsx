@@ -28,7 +28,7 @@ import { fetchMe } from "@/lib/client/api";
 import type { Order, User } from "@/lib/types/app";
 
 const MENU_GRID = [
-  { icon: Headphones, label: "1:1 상담 내역", href: "/my/consultations" },
+  { icon: Headphones, label: "1:1 사주상담 내역", href: "/my/consultations" },
   { icon: ClipboardList, label: "이벤트 신청", href: "/my/inquiries" },
   { icon: Star, label: "후기 작성", href: "/my/reviews/write" },
   { icon: Heart, label: "찜한 상품", href: "/my/wishlist" },

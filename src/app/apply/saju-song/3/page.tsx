@@ -58,7 +58,7 @@ const OPTIONS = [
 ];
 
 export default function ApplyStep5Page() {
-  const [selected, setSelected] = useState<string[]>(["ai-mv"]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
 
   const persist = (ids: string[], style: string) => {

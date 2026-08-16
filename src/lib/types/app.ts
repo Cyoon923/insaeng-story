@@ -91,11 +91,23 @@ export interface NotificationSettings {
   notice: boolean;
 }
 
+export interface Review {
+  id: string;
+  userId: string;
+  name: string;
+  title: string;
+  rating: number;
+  text: string;
+  createdAt: string;
+  visible: boolean;
+}
+
 export interface AppData {
   users: User[];
   orders: Order[];
   consultations: Consultation[];
   inquiries: Inquiry[];
+  reviews: Review[];
   wishlists: Record<string, string[]>;
   coupons: Record<string, Coupon[]>;
   notifications: Record<string, AppNotification[]>;

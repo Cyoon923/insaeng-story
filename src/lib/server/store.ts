@@ -11,6 +11,7 @@ const EMPTY: AppData = {
   orders: [],
   consultations: [],
   inquiries: [],
+  reviews: [],
   wishlists: {},
   coupons: {},
   notifications: {},
@@ -54,6 +55,7 @@ async function clearTestDataOnce(data: AppData): Promise<AppData> {
   data.orders = [];
   data.consultations = [];
   data.inquiries = [];
+  data.reviews = [];
   data.wishlists = {};
   data.coupons = {};
   data.notifications = {};
