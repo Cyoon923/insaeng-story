@@ -345,7 +345,7 @@ export default function AdminPage() {
 
   return (
     <MobileShell>
-      <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 px-4 py-4 backdrop-blur-sm">
+      <header className="border-b border-[#ebe3d8] bg-[#fffdf9] px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
@@ -359,27 +359,7 @@ export default function AdminPage() {
             로그아웃
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {TABS.map((item) => {
-            const active = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
-                  active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                }`}
-              >
-                {item.id === "schedule" || item.id === "coupons" ? item.label : `${item.label} ${counts[item.id as Exclude<TabId, "schedule">] ?? ""}`}
-              </button>
-            );
-          })}
-        </div>
-      </header>
-
-      <div className="space-y-3 px-4 py-5">
-        <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <article className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
           {adminPromo ? (
             <>
@@ -418,7 +398,26 @@ export default function AdminPage() {
             {promoPercent}% 코드 만들기
           </button>
         </article>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {TABS.map((item) => {
+            const active = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
+                  active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                }`}
+              >
+                {item.id === "schedule" || item.id === "coupons" ? item.label : `${item.label} ${counts[item.id as Exclude<TabId, "schedule">] ?? ""}`}
+              </button>
+            );
+          })}
+        </div>
+      </header>
 
+      <div className="space-y-3 px-4 py-5">
         {tab === "users"
           ? users.map((user) => (
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
