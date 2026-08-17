@@ -173,7 +173,7 @@ export default function ConsultationPage() {
       <section className="px-4 pb-6">
         <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담에서 보는 그래프</h3>
         <p className="mt-2 break-keep text-[14px] leading-relaxed text-[#8b6f5c]">
-          12개 항목을 개별 그래프와 누적 그래프로 살펴보며 방향을 정리합니다.
+          10개 항목을 개별 그래프와 누적 그래프로 살펴보며 방향을 정리합니다.
         </p>
         <div className="mt-4 space-y-4">
           <div>
