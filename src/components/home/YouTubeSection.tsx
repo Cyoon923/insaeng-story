@@ -3,11 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useRef } from "react";
-import { YOUTUBE_VIDEOS, YOUTUBE_CHANNEL_URL } from "@/lib/constants/youtube";
+import { useEffect, useRef, useState } from "react";
+import { YOUTUBE_VIDEOS, YOUTUBE_CHANNEL_URL, type YouTubeVideo } from "@/lib/constants/youtube";
 
 export function YouTubeSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [videos, setVideos] = useState<YouTubeVideo[]>(YOUTUBE_VIDEOS);
+
+  useEffect(() => {
+    fetch("/api/youtube", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { videos?: YouTubeVideo[] }) => {
+        if (data.videos?.length) setVideos(data.videos);
+      })
+      .catch(() => {});
+  }, []);
 
   const scroll = (dir: "left" | "right") => {
     scrollRef.current?.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
@@ -56,7 +66,7 @@ export function YouTubeSection() {
         </button>
 
         <div ref={scrollRef} className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
-          {YOUTUBE_VIDEOS.map((video) => (
+          {videos.map((video) => (
             <a
               key={video.id}
               href={`https://www.youtube.com/watch?v=${video.id}`}

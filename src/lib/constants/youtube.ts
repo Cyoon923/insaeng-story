@@ -8,8 +8,9 @@ export interface YouTubeVideo {
 
 export const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@Asha-Music-8";
 export const YOUTUBE_CHANNEL_NAME = "인생곡 창작소";
+export const YOUTUBE_CHANNEL_ID = "UCW8jY3jbMjoxcFDpeShDM2w";
 
-const VIDEO_ITEMS = [
+export const VIDEO_ITEMS = [
   { id: "BN8ynUPhwrE", title: "보고싶다 울엄마" },
   { id: "gAzYto-9RaM", title: "부처님의 자비" },
   { id: "GOmwOHmZ-4w", title: "포니 네가 있으면 좋아" },
@@ -40,10 +41,16 @@ const VIDEO_ITEMS = [
   { id: "lRItuLpuOrU", title: "오늘의 나는 어제와 달라" },
 ] as const;
 
-export const YOUTUBE_VIDEOS: YouTubeVideo[] = VIDEO_ITEMS.map((video) => ({
-  id: video.id,
-  title: video.title,
-  duration: "",
-  views: "인생곡 창작소",
-  thumbnail: `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
-}));
+export function toYouTubeVideo(id: string, title: string): YouTubeVideo {
+  return {
+    id,
+    title,
+    duration: "",
+    views: YOUTUBE_CHANNEL_NAME,
+    thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+  };
+}
+
+export const YOUTUBE_VIDEOS: YouTubeVideo[] = VIDEO_ITEMS.map((video) =>
+  toYouTubeVideo(video.id, video.title),
+);

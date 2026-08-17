@@ -2,9 +2,12 @@ import Image from "next/image";
 import { Play } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { YOUTUBE_CHANNEL_URL, YOUTUBE_VIDEOS } from "@/lib/constants/youtube";
+import { YOUTUBE_CHANNEL_URL } from "@/lib/constants/youtube";
+import { loadChannelVideos } from "@/lib/server/youtubeFeed";
 
-export default function CasesPage() {
+export default async function CasesPage() {
+  const videos = await loadChannelVideos();
+
   return (
     <MobileShell>
       <AppHeader variant="page" title="유튜브" backHref="/" />
@@ -25,7 +28,7 @@ export default function CasesPage() {
       </section>
 
       <div className="grid grid-cols-2 gap-3 px-4 pb-8">
-        {YOUTUBE_VIDEOS.map((video) => (
+        {videos.map((video) => (
           <a
             key={video.id}
             href={`https://www.youtube.com/watch?v=${video.id}`}
