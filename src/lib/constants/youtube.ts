@@ -10,8 +10,8 @@ export const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/@Asha-Music-8";
 export const YOUTUBE_CHANNEL_NAME = "인생곡 창작소";
 
 const VIDEO_ITEMS = [
+  { id: "BN8ynUPhwrE", title: "보고싶다 울엄마" },
   { id: "gAzYto-9RaM", title: "부처님의 자비" },
-  { id: "2ckhgD0XP-A", title: "보고싶다 울엄마" },
   { id: "GOmwOHmZ-4w", title: "포니 네가 있으면 좋아" },
   { id: "Q_DzSJQU6KA", title: "살아낸 하루" },
   { id: "4paL0lkU6Lo", title: "내 속도로" },
