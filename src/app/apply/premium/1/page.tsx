@@ -17,6 +17,7 @@ export default function PremiumStep1Page() {
       steps={STORY_STEPS}
       backHref="/products/premium"
       nextHref="/apply/premium/2"
+      requireContactFlow="premium"
       heroText={"당신의 인생을 깊이 이해하고,\n하나뿐인 인생곡으로 남겨드립니다"}
     >
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 기본정보</h2>

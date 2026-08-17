@@ -165,6 +165,7 @@ function ConsultationStep2Content() {
       steps={CONSULT_STEPS}
       prevHref="/apply/consultation/1"
       nextHref="/apply/consultation/3"
+      requireContactFlow="consultation"
       heroText={"상담에 필요한 정보를\n입력해 주세요"}
     >
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">2. 상담 정보 입력</h2>

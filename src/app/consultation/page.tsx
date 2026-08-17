@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { CONSULT_REVIEWS } from "@/lib/constants/reviews";
+import { CONSULT_REVIEWS, displayReviewsForProduct } from "@/lib/constants/reviews";
 
 const RECOMMENDS = [
   {
@@ -71,6 +72,17 @@ const FAQS = [
 ];
 
 export default function ConsultationPage() {
+  const [reviews, setReviews] = useState(CONSULT_REVIEWS);
+
+  useEffect(() => {
+    fetch("/api/app", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { reviews?: { id: string; name: string; rating: number; text: string; kind?: string; title?: string }[] }) => {
+        setReviews(displayReviewsForProduct("consultation", data.reviews ?? []));
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <MobileShell>
       <AppHeader
@@ -252,7 +264,7 @@ export default function ConsultationPage() {
         <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담 후기</h3>
         <p className="mt-1 text-[13px] text-[#8b6f5c]">유비 선생과 상담하신 분의 이야기입니다.</p>
         <div className="mt-3 space-y-3">
-          {CONSULT_REVIEWS.map((review) => (
+          {reviews.map((review) => (
             <div key={review.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[15px] font-bold text-[#3d2b1f]">{review.name}</p>

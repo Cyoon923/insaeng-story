@@ -26,7 +26,7 @@ export default function ApplyStep1Page() {
   };
 
   return (
-    <ApplyLayout step={1} nextHref="/apply/story-song/2">
+    <ApplyLayout step={1} nextHref="/apply/story-song/2" requireContactFlow="story">
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 기본정보</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
         신청에 필요한 기본 정보를 입력해 주세요.

@@ -21,6 +21,7 @@ export default function SajuStep1Page() {
       steps={SAJU_STEPS}
       backHref="/products/saju-song"
       nextHref="/apply/saju-song/2"
+      requireContactFlow="saju-song"
       heroText={"상담 없이 사주 정보로\n하나뿐인 인생곡을 만듭니다"}
     >
       <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 사주 정보를 입력해주세요</h2>

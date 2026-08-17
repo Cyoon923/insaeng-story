@@ -15,7 +15,7 @@ const EASY_LINKS = [
   { href: "/products", label: "인생곡 만들기" },
   { href: "/consultation", label: "사주상담 받기" },
   { href: "/events", label: "이벤트 보기" },
-  { href: "/cases", label: "완성된 노래 보기" },
+  { href: "/cases", label: "유튜브 보기" },
   { href: "/my", label: "내 신청 확인" },
 ] as const;
 

@@ -268,5 +268,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, consultation: item });
   }
 
+  if (action === "toggleReviewVisible") {
+    const id = String(body.id ?? "");
+    const visible = Boolean(body.visible);
+    if (!id) {
+      return NextResponse.json({ error: "후기를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const review = (data.reviews ?? []).find((item) => item.id === id);
+    if (!review) {
+      return NextResponse.json({ error: "후기를 찾을 수 없습니다." }, { status: 404 });
+    }
+    review.visible = visible;
+    await writeData(data);
+    return NextResponse.json({ ok: true, review });
+  }
+
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
 }

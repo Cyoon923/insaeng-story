@@ -1,10 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronRight, MessageCircle, Music, Clapperboard, Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/Button";
 import { formatPriceFrom } from "@/lib/constants/products";
-import { reviewsForProduct } from "@/lib/constants/reviews";
+import { displayReviewsForProduct, reviewsForProduct } from "@/lib/constants/reviews";
 
 export interface ProductFeature {
   icon: React.ReactNode;
@@ -82,7 +85,16 @@ function DetailProcessFlow({ steps }: { steps: ProcessStep[] }) {
 }
 
 export function ProductDetailPage({ config }: ProductDetailPageProps) {
-  const reviews = reviewsForProduct(config.slug);
+  const [reviews, setReviews] = useState(() => reviewsForProduct(config.slug));
+
+  useEffect(() => {
+    fetch("/api/app", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { reviews?: { id: string; name: string; rating: number; text: string; kind?: string; title?: string }[] }) => {
+        setReviews(displayReviewsForProduct(config.slug, data.reviews ?? []));
+      })
+      .catch(() => {});
+  }, [config.slug]);
 
   return (
     <MobileShell>

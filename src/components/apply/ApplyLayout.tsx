@@ -16,6 +16,7 @@ interface ApplyLayoutProps {
   steps?: { num: number; label: string }[];
   heroText?: string;
   heroImage?: string;
+  requireContactFlow?: string;
 }
 
 export function ApplyLayout({
@@ -31,6 +32,7 @@ export function ApplyLayout({
   steps = STORY_STEPS,
   heroText = "당신의 이야기가\n세상에 단 하나뿐인 노래가 됩니다",
   heroImage,
+  requireContactFlow,
 }: ApplyLayoutProps) {
   const isConsultation = basePath.startsWith("/apply/consultation");
   const heroSrc =
@@ -62,7 +64,12 @@ export function ApplyLayout({
       <ApplyStepper currentStep={step} basePath={basePath} steps={steps} />
       <div className="px-4 py-5">{children}</div>
       {!hideNav && nextHref && (
-        <ApplyNavButtons prevHref={prevHref} nextHref={nextHref} nextLabel={nextLabel} />
+        <ApplyNavButtons
+          prevHref={prevHref}
+          nextHref={nextHref}
+          nextLabel={nextLabel}
+          requireContactFlow={requireContactFlow}
+        />
       )}
     </MobileShell>
   );

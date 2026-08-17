@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getDraft } from "@/lib/client/api";
 
 export const STORY_STEPS = [
   { num: 1, label: "기본정보" },
@@ -80,15 +82,38 @@ export function ApplyStepper({
   );
 }
 
+function contactMissingMessage(flow: string) {
+  const draft = getDraft(flow);
+  if (!draft.name?.trim()) return "이름을 적어 주세요.";
+  const phone = (draft.phone ?? "").replace(/\D/g, "");
+  if (phone.length < 10) return "연락처를 적어 주세요.";
+  return "";
+}
+
 export function ApplyNavButtons({
   prevHref,
   nextHref,
   nextLabel = "다음 단계로 >",
+  requireContactFlow,
 }: {
   prevHref?: string;
   nextHref: string;
   nextLabel?: string;
+  requireContactFlow?: string;
 }) {
+  const router = useRouter();
+
+  const goNext = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!requireContactFlow) return;
+    event.preventDefault();
+    const message = contactMissingMessage(requireContactFlow);
+    if (message) {
+      window.alert(message);
+      return;
+    }
+    router.push(nextHref);
+  };
+
   return (
     <div className="flex gap-3 px-4 py-4">
       {prevHref ? (
@@ -103,6 +128,7 @@ export function ApplyNavButtons({
       )}
       <Link
         href={nextHref}
+        onClick={goNext}
         className="flex flex-[2] items-center justify-center rounded-full bg-brown py-3.5 text-sm font-semibold text-white"
       >
         {nextLabel}

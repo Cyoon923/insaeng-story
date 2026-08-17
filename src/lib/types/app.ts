@@ -100,6 +100,7 @@ export interface Review {
   text: string;
   createdAt: string;
   visible: boolean;
+  kind?: "story" | "premium" | "saju-song" | "consultation";
 }
 
 export interface AppData {

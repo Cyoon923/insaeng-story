@@ -113,15 +113,29 @@ function welcomeCoupon(): Coupon {
   };
 }
 
+function publicReviews(data: AppData) {
+  return (data.reviews ?? [])
+    .filter((item) => item.visible)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      rating: item.rating,
+      text: item.text,
+      kind: item.kind,
+      title: item.title,
+    }));
+}
+
 export async function GET() {
   const userId = await getUserId();
   const data = await readData();
+  const reviews = publicReviews(data);
   if (!userId) {
-    return NextResponse.json({ user: null });
+    return NextResponse.json({ user: null, reviews });
   }
   const user = data.users.find((item) => item.id === userId) ?? null;
   if (!user) {
-    return NextResponse.json({ user: null });
+    return NextResponse.json({ user: null, reviews });
   }
   return NextResponse.json({
     user,
@@ -136,6 +150,7 @@ export async function GET() {
       consult: true,
       notice: false,
     },
+    reviews,
   });
 }
 
@@ -427,6 +442,13 @@ export async function POST(request: Request) {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "별점을 선택해 주세요." }, { status: 400 });
     }
+    let kind: Review["kind"];
+    if (targetKey.startsWith("order:")) {
+      const order = data.orders.find((item) => item.id === targetKey.slice(6));
+      kind = order?.product;
+    } else if (targetKey.startsWith("consult:")) {
+      kind = "consultation";
+    }
     const review: Review = {
       id: nowId(),
       userId,
@@ -436,6 +458,7 @@ export async function POST(request: Request) {
       text,
       createdAt: new Date().toISOString(),
       visible: false,
+      kind,
     };
     data.reviews = [review, ...(data.reviews ?? [])];
     await writeData(data);

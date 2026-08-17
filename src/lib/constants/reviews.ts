@@ -78,5 +78,33 @@ export const CONSULT_REVIEWS: Review[] = [
 ];
 
 export function reviewsForProduct(slug: string): Review[] {
+  if (slug === "consultation") return CONSULT_REVIEWS;
   return SONG_REVIEWS.filter((item) => item.kind === slug);
+}
+
+export function reviewKindFromSaved(title: string, kind?: string): ReviewKind {
+  if (kind === "story" || kind === "premium" || kind === "saju-song" || kind === "consultation") {
+    return kind;
+  }
+  if (title.includes("프리미엄")) return "premium";
+  if (title.includes("사주 인생곡")) return "saju-song";
+  if (title.includes("사주상담")) return "consultation";
+  return "story";
+}
+
+export function displayReviewsForProduct(
+  slug: string,
+  published: { id: string; name: string; rating: number; text: string; kind?: string; title?: string }[],
+): Review[] {
+  const matched = published.filter((item) => reviewKindFromSaved(item.title ?? "", item.kind) === slug);
+  if (matched.length > 0) {
+    return matched.map((item) => ({
+      id: item.id,
+      kind: slug as ReviewKind,
+      name: item.name,
+      rating: item.rating,
+      text: item.text,
+    }));
+  }
+  return reviewsForProduct(slug);
 }

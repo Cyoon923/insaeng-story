@@ -404,6 +404,18 @@ export default function AdminPage() {
     setConsultations((list) => list.map((item) => (item.id === next.id ? next : item)));
   }
 
+  async function handleToggleReviewVisible(id: string, visible: boolean) {
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggleReviewVisible", id, visible }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const next = data.review as ReviewItem;
+    setReviews((list) => list.map((item) => (item.id === next.id ? { ...item, visible: next.visible } : item)));
+  }
+
   const userMap = new Map(users.map((user) => [user.id, user]));
 
   if (loading) {
@@ -909,6 +921,17 @@ export default function AdminPage() {
                   <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#8b6f5c]">{item.text}</p>
                 ) : null}
                 <p className="mt-2 text-[13px] text-[#8b6f5c]">{formatDate(item.createdAt)}</p>
+                <button
+                  type="button"
+                  onClick={() => handleToggleReviewVisible(item.id, !item.visible)}
+                  className={`mt-3 min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
+                    item.visible
+                      ? "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                      : "bg-[#5c3d2e] text-white"
+                  }`}
+                >
+                  {item.visible ? "대기로 바꾸기" : "상품에 공개"}
+                </button>
               </article>
             ))
           : null}
