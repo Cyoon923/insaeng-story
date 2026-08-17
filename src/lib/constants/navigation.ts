@@ -4,7 +4,7 @@ export const BOTTOM_NAV = [
   { id: "home" as const, label: "홈", href: "/", icon: "home" },
   { id: "products" as const, label: "인생곡", href: "/products", icon: "music" },
   { id: "consultation" as const, label: "사주상담", href: "/consultation", icon: "message" },
-  { id: "cases" as const, label: "사례", href: "/cases", icon: "play" },
+  { id: "cases" as const, label: "유튜브", href: "/cases", icon: "play" },
   { id: "my" as const, label: "MY", href: "/my", icon: "user" },
 ] as const;
 

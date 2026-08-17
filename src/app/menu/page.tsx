@@ -10,7 +10,7 @@ const GROUPS = [
       { label: "홈", href: "/" },
       { label: "인생곡", href: "/products" },
       { label: "사주상담", href: "/consultation" },
-      { label: "사례", href: "/cases" },
+      { label: "유튜브", href: "/cases" },
       { label: "MY", href: "/my" },
     ],
   },

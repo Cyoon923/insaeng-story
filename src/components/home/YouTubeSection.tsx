@@ -90,7 +90,7 @@ export function YouTubeSection() {
         href="/cases"
         className="mt-3.5 flex w-full items-center justify-center gap-1 rounded-xl border border-[#d4c8ba] bg-white py-3 text-[13px] font-medium text-[#5c3d2e]"
       >
-        제작 사례 더 보기 <ChevronRight className="h-4 w-4" />
+        유튜브 더 보기 <ChevronRight className="h-4 w-4" />
       </Link>
     </section>
   );
