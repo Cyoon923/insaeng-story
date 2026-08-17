@@ -68,6 +68,13 @@ const PROCESS = [
   { num: "04", label: "완성·전달", icon: Music },
 ];
 
+const SAJU_PROCESS = [
+  { num: "01", label: "사주 정보", icon: ClipboardList },
+  { num: "02", label: "이야기·취향", icon: Pencil },
+  { num: "03", label: "작사·작곡", icon: Music },
+  { num: "04", label: "완성·전달", icon: Music },
+];
+
 const EASY_MODE_KEY = "insaeng-easy-mode";
 
 const EASY_ITEMS = [
@@ -112,6 +119,7 @@ export default function ProductsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [easyMode, setEasyMode] = useState(false);
   const items = tab === "all" ? ITEMS : ITEMS.filter((item) => item.id === tab);
+  const processSteps = tab === "saju-song" ? SAJU_PROCESS : PROCESS;
 
   useEffect(() => {
     setEasyMode(localStorage.getItem(EASY_MODE_KEY) === "on");
@@ -208,12 +216,16 @@ export default function ProductsPage() {
       </div>
 
       <section className="px-4 pb-6">
-        <h3 className="text-[17px] font-bold text-[#3d2b1f]">인생곡 제작 과정</h3>
+        <h3 className="text-[17px] font-bold text-[#3d2b1f]">
+          {tab === "saju-song" ? "사주 인생곡 제작 과정" : "인생곡 제작 과정"}
+        </h3>
         <p className="mt-1 text-[13px] text-[#8b6f5c]">
-          당신의 이야기가 노래가 되는 과정입니다. 기본 가사 수정 1회가 포함됩니다.
+          {tab === "saju-song"
+            ? "상담은 하지 않습니다. 사주 정보와 이야기로 노래를 만듭니다."
+            : "당신의 이야기가 노래가 되는 과정입니다. 기본 가사 수정 1회가 포함됩니다."}
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          {PROCESS.map((step) => (
+          {processSteps.map((step) => (
             <ProcessStep key={step.num} step={step} />
           ))}
         </div>

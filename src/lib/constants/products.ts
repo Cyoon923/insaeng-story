@@ -51,7 +51,7 @@ export const LIFE_SONG_PRODUCTS: LifeSongProduct[] = [
     title: "사주 인생곡",
     shortTitle: "사주 인생곡",
     badge: "상담 없음",
-    description: "사주 정보만 입력하면, 사주 흐름에 맞는 인생곡을 제작합니다.",
+    description: "상담 없이 사주 정보와 이야기로 인생곡을 제작합니다.",
     priceFrom: 199000,
     href: "/products/saju-song",
     applyHref: "/apply/saju-song/1",
