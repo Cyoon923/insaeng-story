@@ -167,7 +167,7 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-4">
+      <div className="flex flex-wrap gap-2 px-4 py-4">
         {TABS.map((item) => {
           const active = tab === item.id;
           return (
@@ -175,7 +175,7 @@ export default function ProductsPage() {
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`h-10 shrink-0 rounded-full px-4 text-[13px] font-semibold ${
+              className={`h-10 min-w-[30%] flex-1 rounded-full px-2 text-[13px] font-semibold ${
                 active
                   ? "bg-[#5c3d2e] text-white"
                   : "border border-[#d4c8ba] bg-[#faf6f1] text-[#5c3d2e]"
