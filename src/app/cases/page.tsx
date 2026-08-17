@@ -7,7 +7,7 @@ import { YOUTUBE_CHANNEL_URL, YOUTUBE_VIDEOS } from "@/lib/constants/youtube";
 export default function CasesPage() {
   return (
     <MobileShell>
-      <AppHeader variant="home" title="인생스토리" />
+      <AppHeader variant="page" title="유튜브" backHref="/" />
 
       <section className="px-4 py-5">
         <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">유튜브</h2>
