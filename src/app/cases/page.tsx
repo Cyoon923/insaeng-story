@@ -18,6 +18,7 @@ const TABS = [
 type CategoryId = (typeof TABS)[number]["id"];
 
 const VIDEOS: { id: string; title: string; category: Exclude<CategoryId, "all"> }[] = [
+  { id: "2ckhgD0XP-A", title: "보고싶다 울엄마", category: "parents" },
   { id: "GOmwOHmZ-4w", title: "포니 네가 있으면 좋아", category: "pet" },
   { id: "Q_DzSJQU6KA", title: "살아낸 하루", category: "self" },
   { id: "4paL0lkU6Lo", title: "내 속도로", category: "self" },
