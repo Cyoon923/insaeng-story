@@ -45,7 +45,7 @@ export async function loadChannelVideos(): Promise<YouTubeVideo[]> {
     const live = parseFeed(await response.text());
     if (live.length === 0) return YOUTUBE_VIDEOS;
 
-    const knownTitles = new Map(VIDEO_ITEMS.map((item) => [item.id, item.title]));
+    const knownTitles = new Map<string, string>(VIDEO_ITEMS.map((item) => [item.id, item.title]));
     const seen = new Set<string>();
     const merged: YouTubeVideo[] = [];
 
