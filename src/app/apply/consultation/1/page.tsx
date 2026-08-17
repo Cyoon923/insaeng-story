@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CONSULT_STEPS } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
-import { DEFAULT_TEACHER, TEACHERS } from "@/lib/server/consultationSlots";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -18,6 +17,8 @@ const PURPOSES = [
   "직업 · 사업 고민",
   "기타 인생 고민",
 ];
+
+const TEACHER = "유비 선생";
 
 function parseConsultDate(value: string) {
   const match = value.match(/^(\d+)월 (\d+)일\((.+)\)$/);
@@ -62,21 +63,18 @@ export default function ConsultationStep1Page() {
   const [dates, setDates] = useState<string[]>([]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [teacher, setTeacher] = useState(DEFAULT_TEACHER);
   const [slots, setSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
   const [purposes, setPurposes] = useState<string[]>(["직업 · 사업 고민"]);
   const [report, setReport] = useState(false);
   const [extraPerson, setExtraPerson] = useState(false);
 
   const persist = (next: {
-    teacher?: string;
     date?: string;
     time?: string;
     purposes?: string[];
     report?: boolean;
     extraPerson?: boolean;
   }) => {
-    const nextTeacher = next.teacher ?? teacher;
     const nextDate = next.date ?? date;
     const nextTime = next.time ?? time;
     const nextPurposes = next.purposes ?? purposes;
@@ -90,7 +88,7 @@ export default function ConsultationStep1Page() {
       .join(" / ");
     if (!nextDate || !nextTime) return;
     saveDraft("consultation", {
-      teacher: nextTeacher,
+      teacher: TEACHER,
       datetime: `${nextDate} ${nextTime}`,
       purpose: nextPurposes.join(" / "),
       option: options || "없음",
@@ -106,8 +104,6 @@ export default function ConsultationStep1Page() {
         const nextDates = (data.dates ?? []) as string[];
         setDates(nextDates);
         const draft = getDraft("consultation");
-        const savedTeacher = TEACHERS.find((item) => item === draft.teacher);
-        if (savedTeacher) setTeacher(savedTeacher);
         const initialDate =
           nextDates.find((item) => draft.datetime?.startsWith(item)) ?? nextDates[0] ?? "";
         setDate(initialDate);
@@ -116,7 +112,7 @@ export default function ConsultationStep1Page() {
 
   useEffect(() => {
     if (!date) return;
-    fetch(`/api/consultation/availability?date=${encodeURIComponent(date)}&teacher=${encodeURIComponent(teacher)}`, {
+    fetch(`/api/consultation/availability?date=${encodeURIComponent(date)}&teacher=${encodeURIComponent(TEACHER)}`, {
       cache: "no-store",
     })
       .then((res) => res.json())
@@ -134,7 +130,7 @@ export default function ConsultationStep1Page() {
           persist({ date, time: nextTime });
         }
       });
-  }, [date, teacher]);
+  }, [date]);
 
   useEffect(() => {
     const draft = getDraft("consultation");
@@ -167,27 +163,8 @@ export default function ConsultationStep1Page() {
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[16px] font-bold text-[#3d2b1f]">선생님</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {TEACHERS.map((item) => {
-            const active = teacher === item;
-            return (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setTeacher(item);
-                  persist({ teacher: item });
-                }}
-                className={`min-h-14 rounded-xl px-3 py-3 text-[16px] font-bold ${
-                  active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-[#faf6f1] text-[#3d2b1f]"
-                }`}
-              >
-                {item}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[13px] text-[#8b6f5c]">인생스토리 전담 선생</p>
+        <p className="mt-2 text-[15px] font-semibold text-[#5c3d2e]">{TEACHER}</p>
+        <p className="mt-1 text-[13px] text-[#8b6f5c]">인생스토리 전담 선생 · 5.0 (후기 128개)</p>
       </section>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">

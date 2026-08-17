@@ -7,9 +7,7 @@ function formatConsultTime(hour: number): string {
 }
 
 export const CONSULT_TIMES = Array.from({ length: 9 }, (_, index) => formatConsultTime(10 + index));
-export const TEACHERS = ["유비 선생", "해자 선생"] as const;
-export type TeacherName = (typeof TEACHERS)[number];
-export const DEFAULT_TEACHER: TeacherName = TEACHERS[0];
+export const DEFAULT_TEACHER = "유비 선생";
 
 export type SlotStatus = "available" | "booked" | "blocked";
 
