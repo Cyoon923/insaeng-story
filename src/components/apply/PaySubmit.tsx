@@ -31,15 +31,21 @@ export function PaySubmit({
   const [referralCode, setReferralCode] = useState("");
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponId, setCouponId] = useState("");
+  const [points, setPoints] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
   const couponProduct: CouponProduct = kind === "consultation" ? "consultation" : (product ?? "story");
   const usableCoupons = coupons.filter((item) => item.product === couponProduct && !item.usedAt);
   const usingCoupon = Boolean(couponId);
   const normalizedCode = referralCode.trim().toUpperCase();
   const previewDiscount = !usingCoupon && normalizedCode.startsWith("IS") ? 10000 : 0;
+  const afterDiscount = usingCoupon ? 0 : Math.max(0, amount - previewDiscount);
+  const pointsToUse = !usingCoupon && usePoints ? Math.min(points, afterDiscount) : 0;
+  const payAmount = Math.max(0, afterDiscount - pointsToUse);
 
   useEffect(() => {
     fetchMe().then((data) => {
       setCoupons((data.coupons ?? []) as Coupon[]);
+      setPoints(Number(data.user?.points ?? 0) || 0);
     });
   }, []);
 
@@ -56,6 +62,7 @@ export function PaySubmit({
         ...draft,
         referralCode: usingCoupon ? "" : referralCode.trim().toUpperCase(),
         couponId,
+        usePoints: !usingCoupon && usePoints ? "1" : "",
       };
       await postApp({ action: "ensureUser", phone: draft.phone, name: draft.name ?? "" });
       if (kind === "order") {
@@ -103,7 +110,10 @@ export function PaySubmit({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setCouponId(active ? "" : item.id)}
+                  onClick={() => {
+                    setCouponId(active ? "" : item.id);
+                    if (!active) setUsePoints(false);
+                  }}
                   className={`w-full rounded-xl px-4 py-3 text-left ${
                     active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
                   }`}
@@ -140,7 +150,7 @@ export function PaySubmit({
               {previewDiscount ? (
                 <>
                   <br />
-                  결제 금액 {formatPrice(Math.max(0, amount - previewDiscount))}
+                  결제 금액 {formatPrice(afterDiscount)}
                 </>
               ) : null}
             </p>
@@ -151,6 +161,31 @@ export function PaySubmit({
           무료 쿠폰이 적용되어 결제 금액은 0원입니다.
         </p>
       )}
+
+      {!usingCoupon && points > 0 ? (
+        <div className="mt-6">
+          <p className="text-[16px] font-bold text-[#3d2b1f]">적립금</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">
+            보유 {formatPrice(points)} · 누르면 결제 금액에서 깎입니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => setUsePoints((current) => !current)}
+            className={`mt-2 w-full rounded-xl px-4 py-3 text-left ${
+              usePoints ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+            }`}
+          >
+            <p className="text-[15px] font-semibold">
+              {usePoints ? `${formatPrice(pointsToUse)} 사용` : "적립금 쓰기"}
+            </p>
+            <p className={`mt-1 text-[13px] ${usePoints ? "text-white/80" : "text-[#8b6f5c]"}`}>
+              {usePoints
+                ? `결제 금액 ${formatPrice(payAmount)}`
+                : "결제 금액에서 적립금만큼 깎습니다"}
+            </p>
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="mt-3 text-center text-[14px] text-red-600">{error}</p> : null}
       <button
         type="button"
@@ -162,6 +197,8 @@ export function PaySubmit({
           ? "처리 중..."
           : usingCoupon
             ? "무료로 신청하기"
+            : payAmount === 0 && pointsToUse > 0
+              ? "적립금으로 신청하기"
             : payment === "무통장 입금"
               ? "신청하고 입금 안내받기"
               : label}
@@ -169,6 +206,8 @@ export function PaySubmit({
       <p className="mt-2 text-center text-[13px] leading-relaxed text-[#8b6f5c]">
         {usingCoupon
           ? "쿠폰으로 신청만 접수됩니다. 결제는 하지 않습니다."
+          : payAmount === 0 && pointsToUse > 0
+            ? "적립금으로 신청만 접수됩니다. 결제는 하지 않습니다."
           : payment === "무통장 입금"
             ? "신청을 받아 둔 뒤, 입금 계좌를 카카오톡 또는 전화로 알려 드립니다."
             : "카드·간편결제는 결제사 등록 후 바로 결제됩니다. 지금은 신청만 접수됩니다."}

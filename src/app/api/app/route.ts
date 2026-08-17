@@ -87,6 +87,33 @@ function applyFreeCoupon(
   };
 }
 
+function applyPoints(
+  user: User,
+  details: Record<string, string>,
+  amount: number,
+): { amount: number; details: Record<string, string> } {
+  if (amount <= 0 || details.usePoints !== "1") return { amount, details };
+  const available = Math.max(0, Math.floor(user.points ?? 0));
+  const used = Math.min(available, amount);
+  if (used <= 0) return { amount, details };
+  user.points = available - used;
+  return {
+    amount: amount - used,
+    details: {
+      ...details,
+      usePoints: "1",
+      pointsUsed: String(used),
+    },
+  };
+}
+
+function settledPayment(amount: number, details: Record<string, string>, fallback: string) {
+  if (amount > 0) return fallback;
+  if (details.couponFree === "1") return "무료 쿠폰";
+  if (details.pointsUsed) return "적립금";
+  return fallback;
+}
+
 function emptyUser(phone = "", name = "", email = ""): User {
   return {
     id: nowId(),
@@ -297,15 +324,16 @@ export async function POST(request: Request) {
     if (referred.error) {
       return NextResponse.json({ error: referred.error }, { status: 400 });
     }
+    const pointed = applyPoints(user, referred.details, referred.amount);
     const order: Order = {
       id: nowId(),
       userId,
       product,
       title: String(body.title ?? "인생곡"),
       status: "신청접수",
-      amount: referred.amount,
-      payment: referred.amount === 0 ? "무료 쿠폰" : String(body.payment ?? ""),
-      details: referred.details,
+      amount: pointed.amount,
+      payment: settledPayment(pointed.amount, pointed.details, String(body.payment ?? "")),
+      details: pointed.details,
       createdAt: new Date().toISOString(),
     };
     data.orders.unshift(order);
@@ -357,6 +385,7 @@ export async function POST(request: Request) {
     if (referred.error) {
       return NextResponse.json({ error: referred.error }, { status: 400 });
     }
+    const pointed = applyPoints(user, referred.details, referred.amount);
 
     const item: Consultation = {
       id: nowId(),
@@ -367,8 +396,8 @@ export async function POST(request: Request) {
       method: String(body.method ?? "카카오톡 상담"),
       option: String(body.option ?? "없음"),
       status: "상담 신청",
-      amount: referred.amount,
-      details: referred.details,
+      amount: pointed.amount,
+      details: pointed.details,
       createdAt: new Date().toISOString(),
     };
     data.consultations.unshift(item);
