@@ -138,33 +138,59 @@ export default function ConsultationPage() {
 
       <section className="px-4 py-6">
         <h3 className="text-[17px] font-bold text-[#3d2b1f]">상담 선생님 소개</h3>
-        <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <div className="flex items-start gap-3">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
-              <Image
-                src="/images/photo-yubi-teacher.png"
-                alt="유비 선생"
-                fill
-                className="object-cover object-top"
-                sizes="64px"
-              />
+        <div className="mt-3 space-y-3">
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+            <div className="flex items-start gap-3">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
+                <Image
+                  src="/images/photo-yubi-teacher.png"
+                  alt="유비 선생"
+                  fill
+                  className="object-cover object-top"
+                  sizes="64px"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[16px] font-bold text-[#3d2b1f]">유비 선생</p>
+                  <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
+                    인생스토리 전담 선생
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
+                  ))}
+                  <span className="text-[12px] text-[#8b6f5c]">5.0 (후기 128개)</span>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+                  사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[16px] font-bold text-[#3d2b1f]">유비 선생</p>
-                <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
-                  인생스토리 전담 선생
-                </span>
+          </div>
+          <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+            <div className="flex items-start gap-3">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
+                <Image
+                  src="/images/photo-haeja-teacher.png"
+                  alt="해자 선생"
+                  fill
+                  className="object-cover object-top"
+                  sizes="64px"
+                />
               </div>
-              <div className="mt-1 flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
-                ))}
-                <span className="text-[12px] text-[#8b6f5c]">5.0 (후기 128개)</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[16px] font-bold text-[#3d2b1f]">해자 선생</p>
+                  <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
+                    인생스토리 전담 선생
+                  </span>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+                  사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
+                </p>
               </div>
-              <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
-                사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
-              </p>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ import type {
   OrderStatus,
   User,
 } from "@/lib/types/app";
+import { DEFAULT_TEACHER, TEACHERS } from "@/lib/server/consultationSlots";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -178,7 +179,7 @@ export default function AdminPage() {
   const [scheduleDates, setScheduleDates] = useState<string[]>([]);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
-  const [teacher, setTeacher] = useState("유비 선생");
+  const [teacher, setTeacher] = useState(DEFAULT_TEACHER);
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
   const [promoPercent, setPromoPercent] = useState(20);
   const [promoCopied, setPromoCopied] = useState(false);
@@ -212,7 +213,6 @@ export default function AdminPage() {
     const nextDates = (data.dates ?? []) as string[];
     setScheduleDates(nextDates);
     setScheduleDate((current) => current || nextDates[0] || "");
-    setTeacher(String(data.teacher ?? "유비 선생"));
     setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
     setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
     setAuthed(true);
@@ -985,6 +985,23 @@ export default function AdminPage() {
             <p className="mt-1 text-[13px] text-[#8b6f5c]">
               예약된 시간은 자동으로 막힙니다. 선생님 개인 일정은 아래에서 막거나 열 수 있습니다.
             </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {TEACHERS.map((item) => {
+                const active = teacher === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setTeacher(item)}
+                    className={`min-h-12 rounded-xl px-3 text-[15px] font-bold ${
+                      active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
             <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
               <p className="text-center text-[17px] font-bold text-[#3d2b1f]">
                 {parseConsultDate(scheduleDate)?.month ?? parseConsultDate(scheduleDates[0] ?? "")?.month ?? ""}월
