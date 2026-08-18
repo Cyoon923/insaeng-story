@@ -5,6 +5,8 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { YOUTUBE_CHANNEL_URL } from "@/lib/constants/youtube";
 import { loadChannelVideos } from "@/lib/server/youtubeFeed";
 
+export const revalidate = 600;
+
 export default async function CasesPage() {
   const videos = await loadChannelVideos();
 

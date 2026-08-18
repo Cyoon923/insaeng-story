@@ -11,6 +11,7 @@ export const YOUTUBE_CHANNEL_NAME = "인생곡 창작소";
 export const YOUTUBE_CHANNEL_ID = "UCW8jY3jbMjoxcFDpeShDM2w";
 
 export const VIDEO_ITEMS = [
+  { id: "22DiIK4wcoo", title: "난 아직 끝이 아냐" },
   { id: "BN8ynUPhwrE", title: "보고싶다 울엄마" },
   { id: "gAzYto-9RaM", title: "부처님의 자비" },
   { id: "GOmwOHmZ-4w", title: "포니 네가 있으면 좋아" },
