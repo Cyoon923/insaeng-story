@@ -75,7 +75,7 @@ async function loadFromChannelPage(): Promise<{ id: string; title: string }[]> {
 }
 
 async function fillMissingTitles(items: { id: string; title: string }[]) {
-  const known = new Set(VIDEO_ITEMS.map((item) => item.id));
+  const known = new Set<string>(VIDEO_ITEMS.map((item) => item.id));
   const missing = items.filter((item) => !known.has(item.id) && item.title === item.id).slice(0, 8);
   await Promise.all(
     missing.map(async (item) => {
