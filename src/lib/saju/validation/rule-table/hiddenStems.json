@@ -1,0 +1,101 @@
+{
+  "table": "hidden-stems",
+  "sourceRule": "12지지 지장간. 순서와 여기/중기/정기 role. 자·묘·유는 정기만, 오·해는 중기+정기, 나머지는 여기+중기+정기.",
+  "note": "expected는 확정 규칙표다. 엔진 출력에서 복사하지 않았다. 辰未戌丑을 대표 土 하나로 접지하지 않는다.",
+  "cases": [
+    {
+      "id": "hidden-zi",
+      "branch": "子",
+      "parts": [{ "stem": "癸", "role": "정기" }]
+    },
+    {
+      "id": "hidden-chou",
+      "branch": "丑",
+      "parts": [
+        { "stem": "癸", "role": "여기" },
+        { "stem": "辛", "role": "중기" },
+        { "stem": "己", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-yin",
+      "branch": "寅",
+      "parts": [
+        { "stem": "戊", "role": "여기" },
+        { "stem": "丙", "role": "중기" },
+        { "stem": "甲", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-mao",
+      "branch": "卯",
+      "parts": [{ "stem": "乙", "role": "정기" }]
+    },
+    {
+      "id": "hidden-chen",
+      "branch": "辰",
+      "parts": [
+        { "stem": "乙", "role": "여기" },
+        { "stem": "癸", "role": "중기" },
+        { "stem": "戊", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-si",
+      "branch": "巳",
+      "parts": [
+        { "stem": "戊", "role": "여기" },
+        { "stem": "庚", "role": "중기" },
+        { "stem": "丙", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-wu",
+      "branch": "午",
+      "parts": [
+        { "stem": "己", "role": "중기" },
+        { "stem": "丁", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-wei",
+      "branch": "未",
+      "parts": [
+        { "stem": "丁", "role": "여기" },
+        { "stem": "乙", "role": "중기" },
+        { "stem": "己", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-shen",
+      "branch": "申",
+      "parts": [
+        { "stem": "戊", "role": "여기" },
+        { "stem": "壬", "role": "중기" },
+        { "stem": "庚", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-you",
+      "branch": "酉",
+      "parts": [{ "stem": "辛", "role": "정기" }]
+    },
+    {
+      "id": "hidden-xu",
+      "branch": "戌",
+      "parts": [
+        { "stem": "辛", "role": "여기" },
+        { "stem": "丁", "role": "중기" },
+        { "stem": "戊", "role": "정기" }
+      ]
+    },
+    {
+      "id": "hidden-hai",
+      "branch": "亥",
+      "parts": [
+        { "stem": "甲", "role": "중기" },
+        { "stem": "壬", "role": "정기" }
+      ]
+    }
+  ]
+}

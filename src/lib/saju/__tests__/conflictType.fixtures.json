@@ -1,0 +1,89 @@
+{
+  "typeB": {
+    "possible": false,
+    "reason": "현재 월령 왕 지지의 지장간에는 해당 오행이 항상 들어 있고, 통근은 동오행 hit이므로 월지가 왕이면 월지에서 root가 생긴다."
+  },
+  "typeC": [
+    {
+      "id": "c1-gap-sa-jeonggi-support",
+      "name": "甲寅 / 庚申 / 甲子 / unknown",
+      "note": "木 사. 년지 寅 甲 정기 통근. 년간 甲 비견 rooted-visible.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "dayStem": "甲",
+        "monthBranch": "申",
+        "phase": "사",
+        "hasRoot": true,
+        "clearRootRoles": ["정기"],
+        "visibleSupportShiShen": ["비견"],
+        "visibleSupportPresence": ["rooted-visible"]
+      }
+    },
+    {
+      "id": "c2-gi-sa-jeonggi-support",
+      "name": "丙辰 / 甲寅 / 己丑 / unknown",
+      "note": "土 사. 년지 辰 戊 정기·일지 丑 己 정기. 년간 丙 정인 rooted-visible.",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "辰" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "己", "branch": "丑" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "dayStem": "己",
+        "monthBranch": "寅",
+        "phase": "사",
+        "hasRoot": true,
+        "clearRootRoles": ["정기"],
+        "visibleSupportShiShen": ["정인"],
+        "visibleSupportPresence": ["rooted-visible"]
+      }
+    }
+  ],
+  "typeI": [
+    {
+      "id": "i1-gap-uv-fire-month-sin",
+      "name": "丙子 / 丁酉 / 甲子 / unknown",
+      "note": "천간 丙·丁 식상은 unrooted-visible. 월지 酉 辛 정기는 정관 pressure. 천간에 辛 없음.",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "子" },
+        "month": { "stem": "丁", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "dayStem": "甲",
+        "monthBranch": "酉",
+        "visiblePressureHasUnrooted": true,
+        "monthHiddenPressureRoles": ["정기"],
+        "monthHiddenPressureShiShen": ["정관"],
+        "monthXinExactStemVisible": false
+      }
+    },
+    {
+      "id": "i2-gi-uv-metal-month-hae",
+      "name": "庚寅 / 乙亥 / 己卯 / unknown",
+      "note": "천간 庚 상관은 unrooted-visible. 월지 亥 甲 중기 정관·壬 정기 정재는 pressure. 천간에 甲·壬 없음.",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "寅" },
+        "month": { "stem": "乙", "branch": "亥" },
+        "day": { "stem": "己", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "dayStem": "己",
+        "monthBranch": "亥",
+        "visiblePressureHasUnrooted": true,
+        "monthHiddenPressureRoles": ["중기", "정기"],
+        "monthHiddenPressureShiShen": ["정관", "정재"],
+        "monthJiaExactStemVisible": false,
+        "monthRenExactStemVisible": false
+      }
+    }
+  ]
+}

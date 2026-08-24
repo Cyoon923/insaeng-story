@@ -1,0 +1,67 @@
+{
+  "table": "hour-unknown",
+  "sourceRule": "hour unknown이면 통근 hour hit 없음, presence hour 없음, exactStemVisibleAt hour 없음, branchRelation hour 없음. 시주 후보를 자동 선택하지 않는다.",
+  "note": "expected는 시간 미상 정책이다. 엔진 출력에서 복사하지 않았다. 절입 시각 검증이 아니다.",
+  "cases": [
+    {
+      "id": "hour-omit-roots-presence-branch",
+      "kind": "synthetic-omit-hour",
+      "dayStem": "甲",
+      "element": "木",
+      "inspectHiddenStem": "甲",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "hour": "unknown",
+        "hourCertainty": "unknown",
+        "rootHourHits": 0,
+        "presenceHasHour": false,
+        "exactStemVisibleAtHasHour": false,
+        "branchRelationHasHour": false,
+        "woodPresence": "unrooted-visible"
+      }
+    },
+    {
+      "id": "hour-known-would-root-wood",
+      "kind": "synthetic-known-hour-contrast",
+      "dayStem": "甲",
+      "element": "木",
+      "inspectHiddenStem": "甲",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": { "stem": "甲", "branch": "寅" }
+      },
+      "expected": {
+        "hourKnown": true,
+        "rootHourHits": 1,
+        "presenceHasHour": true,
+        "exactStemVisibleAtHasHour": true,
+        "branchRelationHasHour": true,
+        "woodPresence": "rooted-visible"
+      }
+    },
+    {
+      "id": "hour-build-unknown-no-auto-select",
+      "kind": "build-four-pillars-unknown",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": "unknown"
+      },
+      "expected": {
+        "hour": "unknown",
+        "hourCertainty": "unknown",
+        "hourCandidatesAutoSelected": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "table": "heavenly-stems",
+  "sourceRule": "천간 → 오행. 甲乙木 丙丁火 戊己土 庚辛金 壬癸水.",
+  "note": "expected는 확정 규칙표다. 엔진 출력에서 복사하지 않았다.",
+  "cases": [
+    { "id": "stem-jia", "stem": "甲", "element": "木" },
+    { "id": "stem-yi", "stem": "乙", "element": "木" },
+    { "id": "stem-bing", "stem": "丙", "element": "火" },
+    { "id": "stem-ding", "stem": "丁", "element": "火" },
+    { "id": "stem-wu", "stem": "戊", "element": "土" },
+    { "id": "stem-ji", "stem": "己", "element": "土" },
+    { "id": "stem-geng", "stem": "庚", "element": "金" },
+    { "id": "stem-xin", "stem": "辛", "element": "金" },
+    { "id": "stem-ren", "stem": "壬", "element": "水" },
+    { "id": "stem-gui", "stem": "癸", "element": "水" }
+  ]
+}

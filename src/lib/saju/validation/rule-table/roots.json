@@ -1,0 +1,261 @@
+{
+  "table": "roots",
+  "sourceRule": "통근은 같은 글자가 아니라 지장간의 같은 오행 hit다. 같은 천간=비견, 같은 오행·다른 천간=겁재. 여기/중기/정기 모두 hit. hour unknown이면 hour hit 없음.",
+  "note": "expected는 확정 통근 정의다. analyzeStemRoots() 결과를 복사하지 않았다.",
+  "cases": [
+    {
+      "id": "root-jia-yin-principal",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "寅" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-jia-mao-jie-principal",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "卯", "hiddenStem": "乙", "role": "정기", "polarity": "겁재" }
+      ]
+    },
+    {
+      "id": "root-jia-hai-middle",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "亥" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "亥", "hiddenStem": "甲", "role": "중기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-jia-chen-residual",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "辰" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "辰", "hiddenStem": "乙", "role": "여기", "polarity": "겁재" }
+      ]
+    },
+    {
+      "id": "root-jia-you-no-hit",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expectedHits": []
+    },
+    {
+      "id": "root-yi-yin-jie-principal",
+      "dayStem": "乙",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "乙", "branch": "寅" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "겁재" }
+      ]
+    },
+    {
+      "id": "root-bing-si-principal",
+      "dayStem": "丙",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "丙", "branch": "巳" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "巳", "hiddenStem": "丙", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-bing-wu-jie-principal",
+      "dayStem": "丙",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "丙", "branch": "午" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "午", "hiddenStem": "丁", "role": "정기", "polarity": "겁재" }
+      ]
+    },
+    {
+      "id": "root-ding-wu-principal",
+      "dayStem": "丁",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "丁", "branch": "午" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "午", "hiddenStem": "丁", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-wu-chen-principal",
+      "dayStem": "戊",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "戊", "branch": "辰" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "辰", "hiddenStem": "戊", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-wu-wei-jie-principal",
+      "dayStem": "戊",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "戊", "branch": "未" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "未", "hiddenStem": "己", "role": "정기", "polarity": "겁재" }
+      ]
+    },
+    {
+      "id": "root-ji-chou-principal",
+      "dayStem": "己",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "己", "branch": "丑" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "丑", "hiddenStem": "己", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-geng-shen-principal",
+      "dayStem": "庚",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "庚", "branch": "申" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "申", "hiddenStem": "庚", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-xin-you-principal",
+      "dayStem": "辛",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "辛", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "酉", "hiddenStem": "辛", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-ren-hai-principal",
+      "dayStem": "壬",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "壬", "branch": "亥" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "亥", "hiddenStem": "壬", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-gui-zi-principal",
+      "dayStem": "癸",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "癸", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "子", "hiddenStem": "癸", "role": "정기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-geng-mao-no-hit",
+      "dayStem": "庚",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "庚", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expectedHits": []
+    },
+    {
+      "id": "root-ren-you-no-hit",
+      "dayStem": "壬",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "壬", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expectedHits": []
+    },
+    {
+      "id": "root-si-also-geng-metal-middle",
+      "dayStem": "庚",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "庚", "branch": "巳" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "巳", "hiddenStem": "庚", "role": "중기", "polarity": "비견" }
+      ]
+    },
+    {
+      "id": "root-xu-xin-residual",
+      "dayStem": "辛",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "辛", "branch": "戌" },
+        "hour": "unknown"
+      },
+      "expectedHits": [
+        { "slot": "day", "branch": "戌", "hiddenStem": "辛", "role": "여기", "polarity": "비견" }
+      ]
+    }
+  ]
+}

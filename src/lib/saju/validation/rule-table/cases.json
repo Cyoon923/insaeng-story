@@ -1,0 +1,54 @@
+{
+  "set": "rule-table",
+  "validationKind": "rule-table",
+  "description": "오행·지장간·십신·왕상휴수사·통근·presence·exactStemVisible. 규칙표와 직접 비교. 설계용 16/C/I fixture를 여기로 옮기지 않는다. 엔진 결과를 expected에 복사하지 않는다. 본문의 cases 배열은 쓰지 않고 tableFiles의 독립 expected를 쓴다.",
+  "sourceType": "rule-table",
+  "expertReviewRequired": false,
+  "doNotReuseDesignFixtures": [
+    "src/lib/saju/__tests__/axisReview.fixtures.json",
+    "src/lib/saju/__tests__/conflictType.fixtures.json",
+    "src/lib/saju/__tests__/shiShen.fixtures.json"
+  ],
+  "tableFiles": [
+    "heavenlyStems.json",
+    "earthlyBranches.json",
+    "hiddenStems.json",
+    "shiShen.json",
+    "seasonPhases.json",
+    "roots.json",
+    "presence.json",
+    "exactStemVisible.json",
+    "chenWeiXuChou.json",
+    "hourUnknown.json"
+  ],
+  "compare": "src/lib/saju/validation/rule-table/compare.ts",
+  "caseTemplate": {
+    "id": "rule-000",
+    "status": "unreviewed",
+    "topic": "stem-element | branch-element | hidden-stems | shi-shen | season-phase | root | presence | exactStemVisible",
+    "pillars": {
+      "year": { "stem": null, "branch": null },
+      "month": { "stem": null, "branch": null },
+      "day": { "stem": null, "branch": null },
+      "hour": "unknown"
+    },
+    "sourceReference": {
+      "table": null,
+      "literature": null
+    },
+    "tableExpected": null,
+    "notes": "",
+    "personName": null
+  },
+  "plannedTopics": [
+    "천간 오행",
+    "지지 오행",
+    "지장간",
+    "십신",
+    "왕상휴수사",
+    "통근",
+    "presence",
+    "exactStemVisible"
+  ],
+  "cases": []
+}

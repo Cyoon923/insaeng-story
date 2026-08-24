@@ -1,0 +1,387 @@
+{
+  "samples": [
+    {
+      "id": "s1-gimo-bingja-muo",
+      "name": "己卯 丙子 戊午 戊午",
+      "note": "2000-01-01 12:00과 같은 네 기둥. 자월 토일간.",
+      "pillars": {
+        "year": { "stem": "己", "branch": "卯" },
+        "month": { "stem": "丙", "branch": "子" },
+        "day": { "stem": "戊", "branch": "午" },
+        "hour": { "stem": "戊", "branch": "午" }
+      },
+      "expected": {
+        "season": { "monthBranch": "子", "season": "겨울", "element": "土", "phase": "수" },
+        "dayStemRoots": [
+          { "slot": "day", "branch": "午", "hiddenStem": "己", "role": "중기", "polarity": "겁재" },
+          { "slot": "hour", "branch": "午", "hiddenStem": "己", "role": "중기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["day", "hour"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["year", "day", "hour"], "rootedSlots": ["day", "hour"], "monthOutletSlots": [] },
+          "金": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s2-gap-in-unknown-hour",
+      "name": "甲寅 甲寅 甲子 시주미상",
+      "note": "인월 갑목, 시간 없음.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "寅", "season": "봄", "element": "木", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "year", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "비견" },
+          { "slot": "month", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year", "month", "day"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["year", "month", "day"] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "金": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s3-gap-yu-unrooted",
+      "name": "甲酉 庚酉 甲酉 시주미상",
+      "note": "천간에 목, 지지는 유만. 월간 경은 유 정기 신과 글자가 다름.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "酉", "season": "가을", "element": "木", "phase": "사" },
+        "dayStemRoots": [],
+        "presence": {
+          "木": { "presence": "unrooted-visible", "visibleSlots": ["year", "day"], "rootedSlots": [], "monthOutletSlots": [] },
+          "火": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "土": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["year", "month", "day"], "monthOutletSlots": [] },
+          "水": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s4-month-outlet-gap",
+      "name": "庚申 甲寅 乙卯 丙午",
+      "note": "월지 인 정기 갑이 월간에 그대로 있음.",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "乙", "branch": "卯" },
+        "hour": { "stem": "丙", "branch": "午" }
+      },
+      "expected": {
+        "season": { "monthBranch": "寅", "season": "봄", "element": "木", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "겁재" },
+          { "slot": "day", "branch": "卯", "hiddenStem": "乙", "role": "정기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["month", "day"], "monthOutletSlots": ["month"] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["hour"], "rootedSlots": ["month", "hour"], "monthOutletSlots": ["hour"] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month", "hour"], "monthOutletSlots": [] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s5-byeong-hae-unknown",
+      "name": "壬寅 己亥 丙子 시주미상",
+      "note": "해월 병화. 시주 없음.",
+      "pillars": {
+        "year": { "stem": "壬", "branch": "寅" },
+        "month": { "stem": "己", "branch": "亥" },
+        "day": { "stem": "丙", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "亥", "season": "겨울", "element": "火", "phase": "사" },
+        "dayStemRoots": [
+          { "slot": "year", "branch": "寅", "hiddenStem": "丙", "role": "중기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["day"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "金": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["month", "day"], "monthOutletSlots": ["year"] }
+        }
+      }
+    },
+    {
+      "id": "s6-gyeong-yu",
+      "name": "戊辰 辛酉 庚申 壬午",
+      "note": "유월 경금. 월간 신이 유 정기와 같은 글자.",
+      "pillars": {
+        "year": { "stem": "戊", "branch": "辰" },
+        "month": { "stem": "辛", "branch": "酉" },
+        "day": { "stem": "庚", "branch": "申" },
+        "hour": { "stem": "壬", "branch": "午" }
+      },
+      "expected": {
+        "season": { "monthBranch": "酉", "season": "가을", "element": "金", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "酉", "hiddenStem": "辛", "role": "정기", "polarity": "겁재" },
+          { "slot": "day", "branch": "申", "hiddenStem": "庚", "role": "정기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["hour"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "day", "hour"], "monthOutletSlots": [] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["month", "day"], "monthOutletSlots": ["month"] },
+          "水": { "presence": "rooted-visible", "visibleSlots": ["hour"], "rootedSlots": ["year", "day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s7-gap-jin-yogi",
+      "name": "庚申 戊辰 甲子 시주미상",
+      "note": "진월 갑목. 월령 수. 진 여기 을로만 목 통근.",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "戊", "branch": "辰" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "辰", "season": "환절", "element": "木", "phase": "수" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "辰", "hiddenStem": "乙", "role": "여기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["day"], "rootedSlots": ["month"], "monthOutletSlots": [] },
+          "火": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["month"] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month", "day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s8-sin-mi-sang",
+      "name": "庚子 己未 辛卯 시주미상",
+      "note": "미월 신금. 월령 상. 미·자·묘에 금 지장간 없음.",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "子" },
+        "month": { "stem": "己", "branch": "未" },
+        "day": { "stem": "辛", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "未", "season": "환절", "element": "金", "phase": "상" },
+        "dayStemRoots": [],
+        "presence": {
+          "木": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month", "day"], "monthOutletSlots": [] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["month"], "monthOutletSlots": ["month"] },
+          "金": { "presence": "unrooted-visible", "visibleSlots": ["year", "day"], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s9-gap-sul-mugun",
+      "name": "丙午 戊戌 甲申 시주미상",
+      "note": "술월 갑목. 월령 수인데 술에 목 지장간 없음.",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "午" },
+        "month": { "stem": "戊", "branch": "戌" },
+        "day": { "stem": "甲", "branch": "申" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "戌", "season": "환절", "element": "木", "phase": "수" },
+        "dayStemRoots": [],
+        "presence": {
+          "木": { "presence": "unrooted-visible", "visibleSlots": ["day"], "rootedSlots": [], "monthOutletSlots": [] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["year", "month", "day"], "monthOutletSlots": ["month"] },
+          "金": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month", "day"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s10-byeong-chuk-hyu",
+      "name": "丙巳 己丑 丙子 시주미상",
+      "note": "축월 병화. 월령 휴. 사 정기 병.",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "巳" },
+        "month": { "stem": "己", "branch": "丑" },
+        "day": { "stem": "丙", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "丑", "season": "환절", "element": "火", "phase": "휴" },
+        "dayStemRoots": [
+          { "slot": "year", "branch": "巳", "hiddenStem": "丙", "role": "정기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["year", "day"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["month"] },
+          "金": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month", "day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s11-jeong-in-sang-junggi",
+      "name": "甲寅 丙寅 丁酉 시주미상",
+      "note": "인월 정화. 월령 상. 인 중기 병만.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "丙", "branch": "寅" },
+        "day": { "stem": "丁", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "寅", "season": "봄", "element": "火", "phase": "상" },
+        "dayStemRoots": [
+          { "slot": "year", "branch": "寅", "hiddenStem": "丙", "role": "중기", "polarity": "겁재" },
+          { "slot": "month", "branch": "寅", "hiddenStem": "丙", "role": "중기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["year"] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["month"] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "金": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["day"], "monthOutletSlots": [] },
+          "水": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s12-mu-jin-wang-multi",
+      "name": "甲寅 戊辰 戊午 시주미상",
+      "note": "진월 무토. 월령 왕. 인여기·진정기·오중기에 동시 통근.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "戊", "branch": "辰" },
+        "day": { "stem": "戊", "branch": "午" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "辰", "season": "환절", "element": "土", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "year", "branch": "寅", "hiddenStem": "戊", "role": "여기", "polarity": "비견" },
+          { "slot": "month", "branch": "辰", "hiddenStem": "戊", "role": "정기", "polarity": "비견" },
+          { "slot": "day", "branch": "午", "hiddenStem": "己", "role": "중기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "day"], "monthOutletSlots": [] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["year", "month", "day"], "monthOutletSlots": ["month", "day"] },
+          "金": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s13-eul-in-jeonggi-geop",
+      "name": "庚申 甲寅 乙酉 시주미상",
+      "note": "인월 을목. 정기 갑만. 같은 목 다른 음양.",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "申" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "乙", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "寅", "season": "봄", "element": "木", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "寅", "hiddenStem": "甲", "role": "정기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["month"], "monthOutletSlots": ["month"] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month"], "monthOutletSlots": [] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month"], "monthOutletSlots": [] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "day"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s14-jeong-o-wang-jeonggi",
+      "name": "甲辰 丙午 丁酉 庚申",
+      "note": "오월 정화. 월령 왕. 오 정기 정.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "丙", "branch": "午" },
+        "day": { "stem": "丁", "branch": "酉" },
+        "hour": { "stem": "庚", "branch": "申" }
+      },
+      "expected": {
+        "season": { "monthBranch": "午", "season": "여름", "element": "火", "phase": "왕" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "午", "hiddenStem": "丁", "role": "정기", "polarity": "비견" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": ["month"], "monthOutletSlots": ["day"] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "month", "hour"], "monthOutletSlots": [] },
+          "金": { "presence": "rooted-visible", "visibleSlots": ["hour"], "rootedSlots": ["day", "hour"], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year", "hour"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s15-gyeong-hae-hyu",
+      "name": "甲寅 辛亥 庚子 시주미상",
+      "note": "해월 경금. 월령 휴. 인·해·자에 금 지장간 없음.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "辛", "branch": "亥" },
+        "day": { "stem": "庚", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "亥", "season": "겨울", "element": "金", "phase": "휴" },
+        "dayStemRoots": [],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["year", "month"], "monthOutletSlots": ["year"] },
+          "火": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "土": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] },
+          "金": { "presence": "unrooted-visible", "visibleSlots": ["month", "day"], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["month", "day"], "monthOutletSlots": [] }
+        }
+      }
+    },
+    {
+      "id": "s16-gi-in-sa-yogi",
+      "name": "甲子 丙寅 己卯 시주미상",
+      "note": "인월 기토. 월령 사인데 인 여기 무로 토 통근.",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "丙", "branch": "寅" },
+        "day": { "stem": "己", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "season": { "monthBranch": "寅", "season": "봄", "element": "土", "phase": "사" },
+        "dayStemRoots": [
+          { "slot": "month", "branch": "寅", "hiddenStem": "戊", "role": "여기", "polarity": "겁재" }
+        ],
+        "presence": {
+          "木": { "presence": "rooted-visible", "visibleSlots": ["year"], "rootedSlots": ["month", "day"], "monthOutletSlots": ["year"] },
+          "火": { "presence": "rooted-visible", "visibleSlots": ["month"], "rootedSlots": ["month"], "monthOutletSlots": ["month"] },
+          "土": { "presence": "rooted-visible", "visibleSlots": ["day"], "rootedSlots": ["month"], "monthOutletSlots": [] },
+          "金": { "presence": "absent", "visibleSlots": [], "rootedSlots": [], "monthOutletSlots": [] },
+          "水": { "presence": "hidden-only", "visibleSlots": [], "rootedSlots": ["year"], "monthOutletSlots": [] }
+        }
+      }
+    }
+  ]
+}

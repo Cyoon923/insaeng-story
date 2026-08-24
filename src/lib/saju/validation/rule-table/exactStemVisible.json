@@ -1,0 +1,87 @@
+{
+  "table": "exact-stem-visible",
+  "sourceRule": "exactStemVisible는 지장간과 같은 천간 글자가 확정 기둥 천간에 보이는지다. elementPresence(같은 오행)와 분리한다. 같은 오행 ≠ 같은 글자.",
+  "note": "expected는 확정 정의다. collectStrengthEvidence() 결과를 복사하지 않았다.",
+  "cases": [
+    {
+      "id": "exact-you-xin-not-visible",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "inspect": { "slot": "month", "hiddenStem": "辛" },
+      "expected": {
+        "element": "金",
+        "elementPresence": "rooted-visible",
+        "exactStemVisible": false,
+        "exactStemVisibleAt": []
+      }
+    },
+    {
+      "id": "exact-year-you-xin-not-visible",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "inspect": { "slot": "year", "hiddenStem": "辛" },
+      "expected": {
+        "element": "金",
+        "elementPresence": "rooted-visible",
+        "exactStemVisible": false,
+        "exactStemVisibleAt": []
+      }
+    },
+    {
+      "id": "exact-hour-shen-geng-visible",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "丙", "branch": "午" },
+        "day": { "stem": "丁", "branch": "酉" },
+        "hour": { "stem": "庚", "branch": "申" }
+      },
+      "inspect": { "slot": "hour", "hiddenStem": "庚" },
+      "expected": {
+        "element": "金",
+        "elementPresence": "rooted-visible",
+        "exactStemVisible": true,
+        "exactStemVisibleAt": ["hour"]
+      }
+    },
+    {
+      "id": "exact-day-you-xin-false-while-geng-visible",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "丙", "branch": "午" },
+        "day": { "stem": "丁", "branch": "酉" },
+        "hour": { "stem": "庚", "branch": "申" }
+      },
+      "inspect": { "slot": "day", "hiddenStem": "辛" },
+      "expected": {
+        "element": "金",
+        "elementPresence": "rooted-visible",
+        "exactStemVisible": false,
+        "exactStemVisibleAt": []
+      }
+    },
+    {
+      "id": "exact-month-wu-ding-at-day",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "丙", "branch": "午" },
+        "day": { "stem": "丁", "branch": "酉" },
+        "hour": { "stem": "庚", "branch": "申" }
+      },
+      "inspect": { "slot": "month", "hiddenStem": "丁" },
+      "expected": {
+        "element": "火",
+        "elementPresence": "rooted-visible",
+        "exactStemVisible": true,
+        "exactStemVisibleAt": ["day"]
+      }
+    }
+  ]
+}

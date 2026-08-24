@@ -1,0 +1,2524 @@
+{
+  "set": "calculation",
+  "validationKind": "astronomical-calendar",
+  "description": "절기·음양력·원국·날짜 경계. expected는 공식/신뢰 자료. 엔진 출력을 복사하지 않음. 야자시 한 정책을 정답으로 선언하지 않음.",
+  "sourceType": "external-calendar",
+  "expertReviewRequired": false,
+  "cases": [
+    {
+      "id": "calc-jie-2020-입춘-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 18,
+          "minute": 2
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "hour": 18,
+        "minute": 3
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "己",
+          "branch": "亥"
+        },
+        "monthPillar": {
+          "stem": "丁",
+          "branch": "丑"
+        },
+        "appliedJie": "소한"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입춘-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 18,
+          "minute": 3
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "hour": 18,
+        "minute": 3
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "戊",
+          "branch": "寅"
+        },
+        "appliedJie": "입춘"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입춘-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 18,
+          "minute": 4
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 2,
+        "day": 4,
+        "hour": 18,
+        "minute": 3
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "戊",
+          "branch": "寅"
+        },
+        "appliedJie": "입춘"
+      }
+    },
+    {
+      "id": "calc-jie-2020-경칩-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 11,
+          "minute": 56
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "hour": 11,
+        "minute": 57
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "戊",
+          "branch": "寅"
+        },
+        "appliedJie": "입춘"
+      }
+    },
+    {
+      "id": "calc-jie-2020-경칩-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 11,
+          "minute": 57
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "hour": 11,
+        "minute": 57
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "appliedJie": "경칩"
+      }
+    },
+    {
+      "id": "calc-jie-2020-경칩-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 11,
+          "minute": 58
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 3,
+        "day": 5,
+        "hour": 11,
+        "minute": 57
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "appliedJie": "경칩"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입하-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 9,
+          "minute": 50
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "hour": 9,
+        "minute": 51
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "庚",
+          "branch": "辰"
+        },
+        "appliedJie": "청명"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입하-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 9,
+          "minute": 51
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "hour": 9,
+        "minute": 51
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "辛",
+          "branch": "巳"
+        },
+        "appliedJie": "입하"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입하-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 9,
+          "minute": 52
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 5,
+        "day": 5,
+        "hour": 9,
+        "minute": 51
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "辛",
+          "branch": "巳"
+        },
+        "appliedJie": "입하"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입추-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 10,
+          "minute": 5
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "hour": 10,
+        "minute": 6
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "癸",
+          "branch": "未"
+        },
+        "appliedJie": "소서"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입추-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 10,
+          "minute": 6
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "hour": 10,
+        "minute": 6
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "appliedJie": "입추"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입추-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 10,
+          "minute": 7
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 8,
+        "day": 7,
+        "hour": 10,
+        "minute": 6
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "appliedJie": "입추"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입동-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 13
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "hour": 8,
+        "minute": 14
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "丙",
+          "branch": "戌"
+        },
+        "appliedJie": "한로"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입동-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 14
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "hour": 8,
+        "minute": 14
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "丁",
+          "branch": "亥"
+        },
+        "appliedJie": "입동"
+      }
+    },
+    {
+      "id": "calc-jie-2020-입동-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 15
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 11,
+        "day": 7,
+        "hour": 8,
+        "minute": 14
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "丁",
+          "branch": "亥"
+        },
+        "appliedJie": "입동"
+      }
+    },
+    {
+      "id": "calc-jie-2020-대설-1분전",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 1,
+          "minute": 8
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "hour": 1,
+        "minute": 9
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "丁",
+          "branch": "亥"
+        },
+        "appliedJie": "입동"
+      }
+    },
+    {
+      "id": "calc-jie-2020-대설-절입",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 1,
+          "minute": 9
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "hour": 1,
+        "minute": 9
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "戊",
+          "branch": "子"
+        },
+        "appliedJie": "대설"
+      }
+    },
+    {
+      "id": "calc-jie-2020-대설-1분후",
+      "status": "unreviewed",
+      "group": "jie-boundary",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 1,
+          "minute": 10
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항/역서 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/almanac",
+        "note": "한국표준시 절입 시각. 엔진 solarTermInstant을 expected에 복사하지 않음. 년주·월주는 세차(경자/기해)+오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2020,
+        "month": 12,
+        "day": 7,
+        "hour": 1,
+        "minute": 9
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "戊",
+          "branch": "子"
+        },
+        "appliedJie": "대설"
+      }
+    },
+    {
+      "id": "calc-lichun-2024-1분전",
+      "status": "unreviewed",
+      "group": "lichun",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 17,
+          "minute": 26
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2024 달력자료 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/calendarData",
+        "note": "2024년 달력자료 입춘 2월 4일 17시 27분. 엔진 시각 비복사. 갑진/계묘 + 오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "hour": 17,
+        "minute": 27
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "癸",
+          "branch": "卯"
+        },
+        "monthPillar": {
+          "stem": "乙",
+          "branch": "丑"
+        },
+        "appliedJie": "소한"
+      }
+    },
+    {
+      "id": "calc-lichun-2024-절입",
+      "status": "unreviewed",
+      "group": "lichun",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 17,
+          "minute": 27
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2024 달력자료 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/calendarData",
+        "note": "2024년 달력자료 입춘 2월 4일 17시 27분. 엔진 시각 비복사. 갑진/계묘 + 오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "hour": 17,
+        "minute": 27
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "monthPillar": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "appliedJie": "입춘"
+      }
+    },
+    {
+      "id": "calc-lichun-2024-1분후",
+      "status": "unreviewed",
+      "group": "lichun",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 17,
+          "minute": 28
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2024 달력자료 24절기",
+        "url": "https://astro.kasi.re.kr/life/post/calendarData",
+        "note": "2024년 달력자료 입춘 2월 4일 17시 27분. 엔진 시각 비복사. 갑진/계묘 + 오기월법."
+      },
+      "officialTermInstant": {
+        "year": 2024,
+        "month": 2,
+        "day": 4,
+        "hour": 17,
+        "minute": 27
+      },
+      "expected": {
+        "yearPillar": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "monthPillar": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "appliedJie": "입춘"
+      }
+    },
+    {
+      "id": "calc-lichun-1984-before-noon",
+      "status": "unreviewed",
+      "group": "lichun",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 2,
+        "day": 3,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/역서 범위",
+        "documentId": null,
+        "note": "1984 입춘은 2월 4~5일 범위. 2월 3일 정오는 절입 전. 원문 시각은 미확인이라 절입 시각 expected 없음."
+      },
+      "officialTermInstant": null,
+      "expected": {
+        "yearPillar": {
+          "stem": "癸",
+          "branch": "亥"
+        },
+        "monthPillar": {
+          "stem": "乙",
+          "branch": "丑"
+        }
+      }
+    },
+    {
+      "id": "calc-lichun-1984-after-noon",
+      "status": "unreviewed",
+      "group": "lichun",
+      "topic": "solar-term",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 2,
+        "day": 6,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/역서 범위",
+        "documentId": null,
+        "note": "1984 입춘은 2월 4~5일 범위. 2월 6일 정오는 절입 후. 원문 시각은 미확인이라 절입 시각 expected 없음."
+      },
+      "officialTermInstant": null,
+      "expected": {
+        "yearPillar": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "monthPillar": {
+          "stem": "丙",
+          "branch": "寅"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2000-01-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000 월력요항 1월 1일 일진 무오",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2000-02-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 2,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000 월력요항 2월 1일 일진 기축",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "己",
+          "branch": "丑"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2000-03-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 3,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000 월력요항 3월 1일 일진 무오",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2000-12-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 12,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000 월력요항 12월 1일 일진 계사",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "癸",
+          "branch": "巳"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2021-02-12",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2021,
+        "month": 2,
+        "day": 12,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 달력자료 2021 설날 일진 신묘",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "辛",
+          "branch": "卯"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2022-02-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2022,
+        "month": 2,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 달력자료 2022 설날 일진 을유",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "乙",
+          "branch": "酉"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2023-01-22",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2023,
+        "month": 1,
+        "day": 22,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 달력자료 2023 음력 1/1 일진 경진",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "庚",
+          "branch": "辰"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2024-02-10",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 2,
+        "day": 10,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2024 달력자료 음력 1/1 일진 갑진",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "甲",
+          "branch": "辰"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2024-12-31",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 12,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2024 달력자료 음력 12/1 일진 기사",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "己",
+          "branch": "巳"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2025-01-29",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2025,
+        "month": 1,
+        "day": 29,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 달력자료 2025 설날 일진 무술",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "戊",
+          "branch": "戌"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2028-01-27",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2028,
+        "month": 1,
+        "day": 27,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2028 달력자료 음력 1/1 일진 신해",
+        "note": "원문 일진."
+      },
+      "directOfficial": true,
+      "expected": {
+        "dayPillar": {
+          "stem": "辛",
+          "branch": "亥"
+        }
+      }
+    },
+    {
+      "id": "calc-day-1900-01-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 1900,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "甲",
+          "branch": "戌"
+        }
+      }
+    },
+    {
+      "id": "calc-day-1945-08-15",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 1945,
+        "month": 8,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "丙",
+          "branch": "辰"
+        }
+      }
+    },
+    {
+      "id": "calc-day-1960-04-19",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 1960,
+        "month": 4,
+        "day": 19,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "丁",
+          "branch": "丑"
+        }
+      }
+    },
+    {
+      "id": "calc-day-1984-02-02",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 2,
+        "day": 2,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수. 설날 양력은 별도 음력 case.",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "丙",
+          "branch": "寅"
+        }
+      }
+    },
+    {
+      "id": "calc-day-1988-09-17",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 1988,
+        "month": 9,
+        "day": 17,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "乙",
+          "branch": "亥"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2020-01-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "癸",
+          "branch": "卯"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2024-01-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "甲",
+          "branch": "子"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2099-12-31",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2099,
+        "month": 12,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "壬",
+          "branch": "寅"
+        }
+      }
+    },
+    {
+      "id": "calc-day-2100-01-01",
+      "status": "unreviewed",
+      "group": "day-pillar",
+      "topic": "day-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2100,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "KASI 2000-01-01 戊午 + 그레고리 일수",
+        "note": "원문 직접값이 아니라 2000-01-01 戊午 + 일수."
+      },
+      "directOfficial": false,
+      "expected": {
+        "dayPillar": {
+          "stem": "癸",
+          "branch": "卯"
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-1984-0101",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "lunar-solar",
+      "input": {
+        "calendar": "lunar",
+        "year": 1984,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/대한민국 공휴일",
+        "documentId": "1984 설날",
+        "note": "1984년 설날 양력 2월 2일."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 1984,
+          "month": 2,
+          "day": 2
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2020-0101",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "lunar-solar",
+      "input": {
+        "calendar": "lunar",
+        "year": 2020,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 설날",
+        "note": "2020년 설날 양력 1월 25일."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 2020,
+          "month": 1,
+          "day": 25
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2020-0401",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "lunar-solar",
+      "input": {
+        "calendar": "lunar",
+        "year": 2020,
+        "month": 4,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항 윤4월",
+        "note": "2020 평4월 1일 = 양력 4월 23일. 엔진 표 비복사."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 2020,
+          "month": 4,
+          "day": 23
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2020-leap0401",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "leap-month",
+      "input": {
+        "calendar": "lunar",
+        "year": 2020,
+        "month": 4,
+        "day": 1,
+        "isLeapMonth": true,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2020 월력요항 윤4월",
+        "note": "2020 윤4월 1일 = 양력 5월 23일."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 2020,
+          "month": 5,
+          "day": 23
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2023-0101",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "lunar-solar",
+      "input": {
+        "calendar": "lunar",
+        "year": 2023,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2023 달력자료 음력 1/1",
+        "url": "https://astro.kasi.re.kr/life/post/calendarData",
+        "note": "음력 1월 1일 = 양력 2023-01-22."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 2023,
+          "month": 1,
+          "day": 22
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2100-0101",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "lunar-solar",
+      "input": {
+        "calendar": "lunar",
+        "year": 2100,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "HKO",
+        "documentId": "T2100c.txt",
+        "url": "https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2100c.txt",
+        "note": "KASI 2100 월력요항 원문을 이번 단계에서 확인하지 못해 홍콩천문대 음양력 대조표를 사용. 2100-02-09 正月."
+      },
+      "expected": {
+        "solarDate": {
+          "year": 2100,
+          "month": 2,
+          "day": 9
+        }
+      }
+    },
+    {
+      "id": "calc-lunar-2024-leap4-reject",
+      "status": "unreviewed",
+      "group": "lunar",
+      "topic": "leap-month",
+      "input": {
+        "calendar": "lunar",
+        "year": 2024,
+        "month": 4,
+        "day": 1,
+        "isLeapMonth": true,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI",
+        "documentId": "2024 달력자료 음력",
+        "note": "2024년 음력 표에 윤달이 없음. 윤4월 입력 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "윤달"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-gregorian-allow-2024-1-31",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 1,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하는 양력 날짜. 원국 expected 없음."
+      },
+      "expected": {
+        "accepted": true,
+        "solarDate": {
+          "year": 2024,
+          "month": 1,
+          "day": 31
+        }
+      }
+    },
+    {
+      "id": "calc-gregorian-allow-2024-2-29",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 2,
+        "day": 29,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하는 양력 날짜. 원국 expected 없음."
+      },
+      "expected": {
+        "accepted": true,
+        "solarDate": {
+          "year": 2024,
+          "month": 2,
+          "day": 29
+        }
+      }
+    },
+    {
+      "id": "calc-gregorian-allow-2024-3-31",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 3,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하는 양력 날짜. 원국 expected 없음."
+      },
+      "expected": {
+        "accepted": true,
+        "solarDate": {
+          "year": 2024,
+          "month": 3,
+          "day": 31
+        }
+      }
+    },
+    {
+      "id": "calc-gregorian-allow-2024-12-31",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 12,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하는 양력 날짜. 원국 expected 없음."
+      },
+      "expected": {
+        "accepted": true,
+        "solarDate": {
+          "year": 2024,
+          "month": 12,
+          "day": 31
+        }
+      }
+    },
+    {
+      "id": "calc-gregorian-allow-2100-12-31",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2100,
+        "month": 12,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하는 양력 날짜. 원국 expected 없음."
+      },
+      "expected": {
+        "accepted": true,
+        "solarDate": {
+          "year": 2100,
+          "month": 12,
+          "day": 31
+        }
+      }
+    },
+    {
+      "id": "calc-gregorian-reject-2023-02-29",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2023,
+        "month": 2,
+        "day": 29,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하지 않는 양력 날짜 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "없는 양력 날짜"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-gregorian-reject-2100-02-29",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2100,
+        "month": 2,
+        "day": 29,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하지 않는 양력 날짜 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "없는 양력 날짜"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-gregorian-reject-2024-04-31",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 4,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하지 않는 양력 날짜 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "없는 양력 날짜"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-gregorian-reject-month-0",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 0,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하지 않는 양력 날짜 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "월은 1–12"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-gregorian-reject-month-13",
+      "status": "unreviewed",
+      "group": "gregorian",
+      "topic": "day-boundary",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 13,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 8,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "Gregorian",
+        "documentId": "ISO 8601 / 그레고리력",
+        "note": "존재하지 않는 양력 날짜 거부."
+      },
+      "expectRejection": {
+        "messageIncludes": "월은 1–12"
+      },
+      "expected": {
+        "accepted": false
+      }
+    },
+    {
+      "id": "calc-hour-2259",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 22,
+          "minute": 59
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "癸",
+              "branch": "亥"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "癸",
+              "branch": "亥"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-2300",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 23,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "己",
+              "branch": "未"
+            },
+            "hourPillar": {
+              "stem": "甲",
+              "branch": "子"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-2330",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 23,
+          "minute": 30
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "己",
+              "branch": "未"
+            },
+            "hourPillar": {
+              "stem": "甲",
+              "branch": "子"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-2359",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 23,
+          "minute": 59
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "己",
+              "branch": "未"
+            },
+            "hourPillar": {
+              "stem": "甲",
+              "branch": "子"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-0000",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 0,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-0059",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 0,
+          "minute": 59
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "壬",
+              "branch": "子"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-hour-0100",
+      "status": "unreviewed",
+      "group": "hour-boundary",
+      "topic": "hour-pillar",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 1,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI + 오자시법",
+        "documentId": "2000-01-01 戊午 / 오기월법이 아닌 오자시법 표",
+        "note": "정책 A/B 결과 비교. 어느 쪽이 명리 정답인지 선언하지 않음. 일주 기준은 KASI 무오, 시주는 오자시법."
+      },
+      "expected": {
+        "policyOutcomes": {
+          "night_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "癸",
+              "branch": "丑"
+            }
+          },
+          "early_ja": {
+            "dayPillar": {
+              "stem": "戊",
+              "branch": "午"
+            },
+            "hourPillar": {
+              "stem": "癸",
+              "branch": "丑"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calc-dst-1948",
+      "status": "unreviewed",
+      "group": "dst",
+      "topic": "dst",
+      "input": {
+        "calendar": "solar",
+        "year": 1948,
+        "month": 6,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/한국 서머타임 연혁",
+        "documentId": "1948 DST year",
+        "note": "벽시계 보정 expected 없음. 현재 엔진 warning만 확인."
+      },
+      "historicalTimeWarningExpected": true,
+      "expected": {}
+    },
+    {
+      "id": "calc-dst-1955",
+      "status": "unreviewed",
+      "group": "dst",
+      "topic": "dst",
+      "input": {
+        "calendar": "solar",
+        "year": 1955,
+        "month": 6,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/한국 서머타임 연혁",
+        "documentId": "1955 DST year",
+        "note": "벽시계 보정 expected 없음. 현재 엔진 warning만 확인."
+      },
+      "historicalTimeWarningExpected": true,
+      "expected": {}
+    },
+    {
+      "id": "calc-dst-1960",
+      "status": "unreviewed",
+      "group": "dst",
+      "topic": "dst",
+      "input": {
+        "calendar": "solar",
+        "year": 1960,
+        "month": 4,
+        "day": 19,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/한국 서머타임 연혁",
+        "documentId": "1960 DST year",
+        "note": "벽시계 보정 expected 없음. 현재 엔진 warning만 확인."
+      },
+      "historicalTimeWarningExpected": true,
+      "expected": {}
+    },
+    {
+      "id": "calc-dst-1987",
+      "status": "unreviewed",
+      "group": "dst",
+      "topic": "dst",
+      "input": {
+        "calendar": "solar",
+        "year": 1987,
+        "month": 6,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/한국 서머타임 연혁",
+        "documentId": "1987 DST year",
+        "note": "벽시계 보정 expected 없음. 현재 엔진 warning만 확인."
+      },
+      "historicalTimeWarningExpected": true,
+      "expected": {}
+    },
+    {
+      "id": "calc-dst-1988",
+      "status": "unreviewed",
+      "group": "dst",
+      "topic": "dst",
+      "input": {
+        "calendar": "solar",
+        "year": 1988,
+        "month": 9,
+        "day": 17,
+        "isLeapMonth": false,
+        "time": {
+          "hour": 12,
+          "minute": 0
+        },
+        "timezone": "Asia/Seoul"
+      },
+      "sourceReference": {
+        "publisher": "KASI/한국 서머타임 연혁",
+        "documentId": "1988 DST year",
+        "note": "벽시계 보정 expected 없음. 현재 엔진 warning만 확인."
+      },
+      "historicalTimeWarningExpected": true,
+      "expected": {}
+    }
+  ]
+}

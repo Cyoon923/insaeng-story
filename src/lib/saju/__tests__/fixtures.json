@@ -1,0 +1,64 @@
+{
+  "charts": [
+    {
+      "name": "1984 after lichun, yin month",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 3,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 }
+      },
+      "expected": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "丙", "branch": "寅" }
+      }
+    },
+    {
+      "name": "1990 before lichun, chou month",
+      "input": {
+        "calendar": "solar",
+        "year": 1990,
+        "month": 1,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 }
+      },
+      "expected": {
+        "year": { "stem": "己", "branch": "巳" },
+        "month": { "stem": "丁", "branch": "丑" }
+      }
+    },
+    {
+      "name": "1990 after lichun, yin month",
+      "input": {
+        "calendar": "solar",
+        "year": 1990,
+        "month": 2,
+        "day": 10,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 }
+      },
+      "expected": {
+        "year": { "stem": "庚", "branch": "午" },
+        "month": { "stem": "戊", "branch": "寅" }
+      }
+    },
+    {
+      "name": "2000-01-01 wu-wu day",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 }
+      },
+      "expected": {
+        "day": { "stem": "戊", "branch": "午" },
+        "hour": { "stem": "戊", "branch": "午" }
+      }
+    }
+  ]
+}

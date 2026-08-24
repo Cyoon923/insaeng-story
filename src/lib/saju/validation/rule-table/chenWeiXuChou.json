@@ -1,0 +1,137 @@
+{
+  "table": "chen-wei-xu-chou",
+  "sourceRule": "辰未戌丑을 대표 土 하나로 접지하지 않는다. 지장간이 각각 다르고, 일간이 바뀌면 십신도 각각 달라진다.",
+  "note": "expected는 확정 지장간표+십신표다. 엔진 출력에서 복사하지 않았다.",
+  "hiddenStems": [
+    {
+      "branch": "辰",
+      "parts": [
+        { "stem": "乙", "role": "여기" },
+        { "stem": "癸", "role": "중기" },
+        { "stem": "戊", "role": "정기" }
+      ]
+    },
+    {
+      "branch": "未",
+      "parts": [
+        { "stem": "丁", "role": "여기" },
+        { "stem": "乙", "role": "중기" },
+        { "stem": "己", "role": "정기" }
+      ]
+    },
+    {
+      "branch": "戌",
+      "parts": [
+        { "stem": "辛", "role": "여기" },
+        { "stem": "丁", "role": "중기" },
+        { "stem": "戊", "role": "정기" }
+      ]
+    },
+    {
+      "branch": "丑",
+      "parts": [
+        { "stem": "癸", "role": "여기" },
+        { "stem": "辛", "role": "중기" },
+        { "stem": "己", "role": "정기" }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "earth-storage-jia",
+      "dayStem": "甲",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "甲", "branch": "未" },
+        "day": { "stem": "甲", "branch": "戌" },
+        "hour": { "stem": "甲", "branch": "丑" }
+      },
+      "expectedByBranch": {
+        "辰": [
+          { "hiddenStem": "乙", "hiddenRole": "여기", "shiShen": "겁재" },
+          { "hiddenStem": "癸", "hiddenRole": "중기", "shiShen": "정인" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "편재" }
+        ],
+        "未": [
+          { "hiddenStem": "丁", "hiddenRole": "여기", "shiShen": "상관" },
+          { "hiddenStem": "乙", "hiddenRole": "중기", "shiShen": "겁재" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "정재" }
+        ],
+        "戌": [
+          { "hiddenStem": "辛", "hiddenRole": "여기", "shiShen": "정관" },
+          { "hiddenStem": "丁", "hiddenRole": "중기", "shiShen": "상관" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "편재" }
+        ],
+        "丑": [
+          { "hiddenStem": "癸", "hiddenRole": "여기", "shiShen": "정인" },
+          { "hiddenStem": "辛", "hiddenRole": "중기", "shiShen": "정관" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "정재" }
+        ]
+      }
+    },
+    {
+      "id": "earth-storage-bing",
+      "dayStem": "丙",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "辰" },
+        "month": { "stem": "丙", "branch": "未" },
+        "day": { "stem": "丙", "branch": "戌" },
+        "hour": { "stem": "丙", "branch": "丑" }
+      },
+      "expectedByBranch": {
+        "辰": [
+          { "hiddenStem": "乙", "hiddenRole": "여기", "shiShen": "정인" },
+          { "hiddenStem": "癸", "hiddenRole": "중기", "shiShen": "정관" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "식신" }
+        ],
+        "未": [
+          { "hiddenStem": "丁", "hiddenRole": "여기", "shiShen": "겁재" },
+          { "hiddenStem": "乙", "hiddenRole": "중기", "shiShen": "정인" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "상관" }
+        ],
+        "戌": [
+          { "hiddenStem": "辛", "hiddenRole": "여기", "shiShen": "정재" },
+          { "hiddenStem": "丁", "hiddenRole": "중기", "shiShen": "겁재" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "식신" }
+        ],
+        "丑": [
+          { "hiddenStem": "癸", "hiddenRole": "여기", "shiShen": "정관" },
+          { "hiddenStem": "辛", "hiddenRole": "중기", "shiShen": "정재" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "상관" }
+        ]
+      }
+    },
+    {
+      "id": "earth-storage-ji",
+      "dayStem": "己",
+      "pillars": {
+        "year": { "stem": "己", "branch": "辰" },
+        "month": { "stem": "己", "branch": "未" },
+        "day": { "stem": "己", "branch": "戌" },
+        "hour": { "stem": "己", "branch": "丑" }
+      },
+      "expectedByBranch": {
+        "辰": [
+          { "hiddenStem": "乙", "hiddenRole": "여기", "shiShen": "편관" },
+          { "hiddenStem": "癸", "hiddenRole": "중기", "shiShen": "편재" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "겁재" }
+        ],
+        "未": [
+          { "hiddenStem": "丁", "hiddenRole": "여기", "shiShen": "편인" },
+          { "hiddenStem": "乙", "hiddenRole": "중기", "shiShen": "편관" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "비견" }
+        ],
+        "戌": [
+          { "hiddenStem": "辛", "hiddenRole": "여기", "shiShen": "식신" },
+          { "hiddenStem": "丁", "hiddenRole": "중기", "shiShen": "편인" },
+          { "hiddenStem": "戊", "hiddenRole": "정기", "shiShen": "겁재" }
+        ],
+        "丑": [
+          { "hiddenStem": "癸", "hiddenRole": "여기", "shiShen": "편재" },
+          { "hiddenStem": "辛", "hiddenRole": "중기", "shiShen": "식신" },
+          { "hiddenStem": "己", "hiddenRole": "정기", "shiShen": "비견" }
+        ]
+      }
+    }
+  ]
+}

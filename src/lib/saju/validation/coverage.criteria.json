@@ -1,0 +1,101 @@
+{
+  "description": "Phase 1 커버리지 목표. 판단 규칙이 아니며 정확도 점수가 아니다. 할당을 채우려고 명식을 조작하지 않는다. 실제 분포가 다르면 그대로 기록한다.",
+  "phase": 1,
+  "interpretiveTargetSize": 30,
+  "laterPhases": {
+    "phase2Cumulative": 80,
+    "phase3CumulativeMin": 150,
+    "phase3CumulativeMax": 200,
+    "stopIfRepeatedErrorPattern": true
+  },
+  "hourCertainty": {
+    "confirmed": 20,
+    "unknown": 10
+  },
+  "strengthDirection": {
+    "leaning-strong": { "target": 6, "minimum": 5 },
+    "leaning-weak": { "target": 6, "minimum": 5 },
+    "mixed": { "target": 12, "minimum": 5 },
+    "unresolved": { "target": 6, "minimum": 5 }
+  },
+  "seasonPhase": {
+    "왕": { "minimum": 4 },
+    "상": { "minimum": 4 },
+    "휴": { "minimum": 4 },
+    "수": { "minimum": 4 },
+    "사": { "minimum": 4 },
+    "notes": "辰未戌丑만으로 한 phase가 과대표집되지 않게 한다."
+  },
+  "rootQuality": {
+    "clear": { "target": 8 },
+    "present": { "target": 6 },
+    "shallow": { "target": 6 },
+    "absent": { "target": 8 },
+    "reinforceIfAnyCountAtMost": 2
+  },
+  "mixedPattern": {
+    "targetPerPattern": 2,
+    "patterns": [
+      "strong-base-with-pressure",
+      "weak-season-with-support",
+      "weak-season-root-under-pressure",
+      "shallow-root-under-pressure",
+      "help-season-absent-root",
+      "neutral-season-conflict",
+      "other-mixed"
+    ],
+    "ifNotFound": "not-observed",
+    "doNotForceInventCharts": true
+  },
+  "climate": {
+    "temperature": ["cold", "balanced", "warm"],
+    "moisture": ["dry", "balanced", "moist"],
+    "includeCombinations": [
+      "cold+moist",
+      "balanced+moist",
+      "warm+dry",
+      "balanced+dry",
+      "balanced+balanced"
+    ],
+    "doNotForce": ["warm+moist"]
+  },
+  "needRelation": {
+    "no-candidates": 5,
+    "strength-only": 3,
+    "climate-only": 3,
+    "partial-overlap": 3,
+    "disjoint": 3,
+    "optionalIfRare": ["exact-overlap"],
+    "doNotForce": ["suppressedShared"]
+  },
+  "dayStem": {
+    "includeAll": ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"],
+    "idealMinimumEach": 2,
+    "avoidOverconcentration": true
+  },
+  "monthBranchEarth": {
+    "priority": "month-branch-not-year-only",
+    "辰": { "minimum": 3, "note": "습토" },
+    "未": { "minimum": 3, "note": "조열토" },
+    "戌": { "minimum": 3, "note": "조토" },
+    "丑": { "minimum": 3, "note": "한습토" }
+  },
+  "checklistFields": [
+    "dayStem",
+    "seasonPhase",
+    "rootQuality",
+    "strengthDirection",
+    "mixedPattern",
+    "temperature",
+    "moisture",
+    "needRelation",
+    "hourCertainty",
+    "monthBranchEarth"
+  ],
+  "notIncluded": [
+    "accuracyPercent",
+    "neededElement",
+    "needScore",
+    "engineCopiedExpected"
+  ]
+}

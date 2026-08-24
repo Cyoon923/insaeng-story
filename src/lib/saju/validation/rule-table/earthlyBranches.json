@@ -1,0 +1,19 @@
+{
+  "table": "earthly-branches",
+  "sourceRule": "지지 → 오행. 寅卯木 巳午火 辰戌丑未土 申酉金 亥子水.",
+  "note": "expected는 확정 규칙표다. 엔진 출력에서 복사하지 않았다.",
+  "cases": [
+    { "id": "branch-zi", "branch": "子", "element": "水" },
+    { "id": "branch-chou", "branch": "丑", "element": "土" },
+    { "id": "branch-yin", "branch": "寅", "element": "木" },
+    { "id": "branch-mao", "branch": "卯", "element": "木" },
+    { "id": "branch-chen", "branch": "辰", "element": "土" },
+    { "id": "branch-si", "branch": "巳", "element": "火" },
+    { "id": "branch-wu", "branch": "午", "element": "火" },
+    { "id": "branch-wei", "branch": "未", "element": "土" },
+    { "id": "branch-shen", "branch": "申", "element": "金" },
+    { "id": "branch-you", "branch": "酉", "element": "金" },
+    { "id": "branch-xu", "branch": "戌", "element": "土" },
+    { "id": "branch-hai", "branch": "亥", "element": "水" }
+  ]
+}

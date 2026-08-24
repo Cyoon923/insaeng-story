@@ -1,0 +1,42 @@
+{
+  "set": "interpretive",
+  "file": "./interpretive/cases.json",
+  "validationKind": "interpretive",
+  "description": "Interpretive Blind Set 템플릿. 실제 목록은 interpretive/cases.json과 같다. 규칙 설계용 16/C/I와 분리. expertReview는 비워 두고 엔진 기대값을 복사하지 않는다. 이름·상담 내용 금지.",
+  "sourceType": "expert-blind",
+  "caseTemplate": {
+    "id": "interpretive-000",
+    "status": "unreviewed",
+    "input": {
+      "calendar": "solar",
+      "year": null,
+      "month": null,
+      "day": null,
+      "isLeapMonth": false,
+      "time": "unknown",
+      "timezone": "Asia/Seoul",
+      "dayBoundary": "night_ja"
+    },
+    "sourceType": "expert-blind",
+    "sourceReference": "expert-review-001",
+    "expectedFourPillars": null,
+    "expertReview": {
+      "reviewerId": null,
+      "reviewDate": null,
+      "fourPillarsConfirmed": null,
+      "dayMaster": null,
+      "monthCommand": null,
+      "rootAssessment": null,
+      "strengthAssessment": null,
+      "climateAssessment": null,
+      "candidateElements": [],
+      "cannotDetermine": false,
+      "reasons": [],
+      "comments": "",
+      "reviewConfidence": null
+    },
+    "notes": "",
+    "personName": null
+  },
+  "cases": []
+}

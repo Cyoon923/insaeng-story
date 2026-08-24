@@ -1,0 +1,327 @@
+{
+  "table": "presence",
+  "sourceRule": "오행 presence 4종. rooted-visible=천간에 보이고 지장간에 같은 오행. unrooted-visible=천간에만. hidden-only=지장간에만. absent=둘 다 없음. 시간 미상이면 hour 슬롯 제외.",
+  "note": "expected는 확정 presence 정의다. analyzeElementPresence() 결과를 복사하지 않았다. Strength/Climate/Need를 기대값에 넣지 않았다.",
+  "cases": [
+    {
+      "id": "pres-wood-rooted-visible",
+      "element": "木",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "rooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year", "day"],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-wood-unrooted-visible",
+      "element": "木",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "unrooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year", "day"],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-wood-hidden-only",
+      "element": "木",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "寅" },
+        "month": { "stem": "庚", "branch": "申" },
+        "day": { "stem": "庚", "branch": "申" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "hidden-only",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-wood-absent",
+      "element": "木",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "酉" },
+        "month": { "stem": "庚", "branch": "酉" },
+        "day": { "stem": "庚", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "absent",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-fire-rooted-visible",
+      "element": "火",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "午" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "rooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-fire-unrooted-visible",
+      "element": "火",
+      "pillars": {
+        "year": { "stem": "丙", "branch": "子" },
+        "month": { "stem": "甲", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "亥" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "unrooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-fire-hidden-only",
+      "element": "火",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "午" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "hidden-only",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-fire-absent",
+      "element": "火",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "酉" },
+        "day": { "stem": "甲", "branch": "亥" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "absent",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-earth-rooted-visible",
+      "element": "土",
+      "pillars": {
+        "year": { "stem": "戊", "branch": "辰" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "rooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-earth-unrooted-visible",
+      "element": "土",
+      "pillars": {
+        "year": { "stem": "戊", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "unrooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-earth-hidden-only",
+      "element": "土",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "辰" },
+        "month": { "stem": "甲", "branch": "子" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "hidden-only",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-earth-absent",
+      "element": "土",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "酉" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "absent",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-metal-rooted-visible",
+      "element": "金",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "酉" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "rooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-metal-unrooted-visible",
+      "element": "金",
+      "pillars": {
+        "year": { "stem": "庚", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "unrooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-metal-hidden-only",
+      "element": "金",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "酉" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "hidden-only",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-metal-absent",
+      "element": "金",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "子" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "absent",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-water-rooted-visible",
+      "element": "水",
+      "pillars": {
+        "year": { "stem": "壬", "branch": "子" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "甲", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "rooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-water-unrooted-visible",
+      "element": "水",
+      "pillars": {
+        "year": { "stem": "壬", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "午" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "unrooted-visible",
+        "hourUnknown": true,
+        "visibleSlots": ["year"],
+        "rootedSlots": []
+      }
+    },
+    {
+      "id": "pres-water-hidden-only",
+      "element": "水",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "子" },
+        "month": { "stem": "甲", "branch": "寅" },
+        "day": { "stem": "甲", "branch": "卯" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "hidden-only",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": ["year"]
+      }
+    },
+    {
+      "id": "pres-water-absent",
+      "element": "水",
+      "pillars": {
+        "year": { "stem": "甲", "branch": "寅" },
+        "month": { "stem": "甲", "branch": "卯" },
+        "day": { "stem": "甲", "branch": "午" },
+        "hour": "unknown"
+      },
+      "expected": {
+        "presence": "absent",
+        "hourUnknown": true,
+        "visibleSlots": [],
+        "rootedSlots": []
+      }
+    }
+  ]
+}

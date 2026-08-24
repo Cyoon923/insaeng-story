@@ -1,0 +1,1498 @@
+{
+  "description": "Current-engine Strength traces. Results were not rewritten. mixedPattern does not change direction.",
+  "generatedBy": "buildCaseTrace.collectStrengthCaseTraces + buildStrengthSummary",
+  "counts": {
+    "total": 25,
+    "mixed": 14,
+    "unresolved": 5,
+    "leaningStrong": 2,
+    "leaningWeak": 4
+  },
+  "cases": [
+    {
+      "caseId": "s1-gimo-bingja-muo",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-008",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-present",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061b",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "weak-season-with-support",
+      "mixedConflictLevel": "seasonal-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "complete",
+      "resolution": "mixed",
+      "seasonalPhase": "수",
+      "rootQuality": "present"
+    },
+    {
+      "caseId": "s2-gap-in-unknown-hour",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-strong",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-050",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s3-gap-yu-unrooted",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-weak",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-032",
+        "STR-041",
+        "STR-042",
+        "STR-043",
+        "STR-045",
+        "STR-051",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "사",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "s4-month-outlet-gap",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "乙",
+          "branch": "卯"
+        },
+        "hour": {
+          "stem": "丙",
+          "branch": "午"
+        }
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-008",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061a",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "strong-base-with-pressure",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "complete",
+      "resolution": "mixed",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s5-byeong-hae-unknown",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "壬",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-present",
+        "STR-031",
+        "STR-033",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061c",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "weak-season-root-under-pressure",
+      "mixedConflictLevel": "seasonal-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "사",
+      "rootQuality": "present"
+    },
+    {
+      "caseId": "s6-gyeong-yu",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "hour": {
+          "stem": "壬",
+          "branch": "午"
+        }
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-008",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061a",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "strong-base-with-pressure",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "complete",
+      "resolution": "mixed",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s7-gap-jin-yogi",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-shallow",
+        "STR-031",
+        "STR-033",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061d",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "shallow-root-under-pressure",
+      "mixedConflictLevel": "root-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "수",
+      "rootQuality": "shallow"
+    },
+    {
+      "caseId": "s8-sin-mi-sang",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-026",
+        "STR-032",
+        "STR-040",
+        "STR-042",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061e",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "help-season-absent-root",
+      "mixedConflictLevel": "root-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "상",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "s9-gap-sul-mugun",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "戌"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-weak",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-032",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-051",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "수",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "s10-byeong-chuk-hyu",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "巳"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "丑"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-027",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061f",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "neutral-season-conflict",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "휴",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s11-jeong-in-sang-junggi",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": null,
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-026",
+        "STR-030-present",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-056",
+        "STR-064",
+        "STR-064a",
+        "STR-064d",
+        "STR-066",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [
+        "seasonal-phase-insufficient",
+        "insufficient-visible-direction",
+        "hour-unknown-sensitive"
+      ],
+      "unresolvedReasons": [
+        "hidden support와 hidden pressure가 동시에 존재",
+        "계절이 상이므로 방향을 닫지 않음",
+        "시간 미상이며 방향 Evidence가 약함"
+      ],
+      "certainty": "partial",
+      "resolution": "unresolved",
+      "seasonalPhase": "상",
+      "rootQuality": "present"
+    },
+    {
+      "caseId": "s12-mu-jin-wang-multi",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061a",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "strong-base-with-pressure",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s13-eul-in-jeonggi-geop",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "乙",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061a",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "strong-base-with-pressure",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s14-jeong-o-wang-jeonggi",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": {
+          "stem": "庚",
+          "branch": "申"
+        }
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-008",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061a",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "strong-base-with-pressure",
+      "mixedConflictLevel": "visible-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "complete",
+      "resolution": "mixed",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "s15-gyeong-hae-hyu",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": null,
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-027",
+        "STR-032",
+        "STR-041",
+        "STR-042",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-056",
+        "STR-064",
+        "STR-064a",
+        "STR-064b",
+        "STR-064d",
+        "STR-066",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [
+        "seasonal-phase-insufficient",
+        "only-unrooted-visible-evidence",
+        "insufficient-visible-direction",
+        "hour-unknown-sensitive"
+      ],
+      "unresolvedReasons": [
+        "hidden support와 hidden pressure가 동시에 존재",
+        "계절이 휴이므로 방향을 닫지 않음",
+        "시간 미상이며 방향 Evidence가 약함"
+      ],
+      "certainty": "partial",
+      "resolution": "unresolved",
+      "seasonalPhase": "휴",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "s16-gi-in-sa-yogi",
+      "group": "axis-review-16",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-shallow",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061d",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "shallow-root-under-pressure",
+      "mixedConflictLevel": "multi-axis",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "사",
+      "rootQuality": "shallow"
+    },
+    {
+      "caseId": "c1-gap-sa-jeonggi-support",
+      "group": "type-c",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061b",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "weak-season-with-support",
+      "mixedConflictLevel": "multi-axis",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "사",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "c2-gi-sa-jeonggi-support",
+      "group": "type-c",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "己",
+          "branch": "丑"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061b",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "weak-season-with-support",
+      "mixedConflictLevel": "multi-axis",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "사",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "i1-gap-uv-fire-month-sin",
+      "group": "type-i",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": null,
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-032",
+        "STR-042",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-056",
+        "STR-064",
+        "STR-064b",
+        "STR-064c",
+        "STR-064d",
+        "STR-066",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [
+        "only-unrooted-visible-evidence",
+        "insufficient-visible-direction",
+        "hidden-relations-conflict",
+        "hour-unknown-sensitive"
+      ],
+      "unresolvedReasons": [
+        "visible pressure가 모두 unrooted-visible",
+        "hidden support와 hidden pressure가 동시에 존재",
+        "시간 미상이며 방향 Evidence가 약함"
+      ],
+      "certainty": "partial",
+      "resolution": "unresolved",
+      "seasonalPhase": "사",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "i2-gi-uv-metal-month-hae",
+      "group": "type-i",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "乙",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "mixed",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-030-shallow",
+        "STR-031",
+        "STR-033",
+        "STR-041",
+        "STR-042",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-055",
+        "STR-060",
+        "STR-061d",
+        "STR-062",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": "shallow-root-under-pressure",
+      "mixedConflictLevel": "root-visible",
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "mixed",
+      "seasonalPhase": "수",
+      "rootQuality": "shallow"
+    },
+    {
+      "caseId": "case-leaning-strong-gap-in",
+      "group": "leaning-strong",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-strong",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-022",
+        "STR-023",
+        "STR-030-clear",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-050",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "왕",
+      "rootQuality": "clear"
+    },
+    {
+      "caseId": "case-leaning-weak-gap-yu",
+      "group": "leaning-weak",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-weak",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-032",
+        "STR-041",
+        "STR-042",
+        "STR-043",
+        "STR-045",
+        "STR-051",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "사",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "case-unresolved-sang",
+      "group": "unresolved",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": null,
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-026",
+        "STR-030-present",
+        "STR-031",
+        "STR-033",
+        "STR-040",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-056",
+        "STR-064",
+        "STR-064a",
+        "STR-064d",
+        "STR-066",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [
+        "seasonal-phase-insufficient",
+        "insufficient-visible-direction",
+        "hour-unknown-sensitive"
+      ],
+      "unresolvedReasons": [
+        "hidden support와 hidden pressure가 동시에 존재",
+        "계절이 상이므로 방향을 닫지 않음",
+        "시간 미상이며 방향 Evidence가 약함"
+      ],
+      "certainty": "partial",
+      "resolution": "unresolved",
+      "seasonalPhase": "상",
+      "rootQuality": "present"
+    },
+    {
+      "caseId": "case-unresolved-hyu",
+      "group": "unresolved",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": null,
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-027",
+        "STR-032",
+        "STR-041",
+        "STR-042",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-056",
+        "STR-064",
+        "STR-064a",
+        "STR-064b",
+        "STR-064d",
+        "STR-066",
+        "STR-067",
+        "STR-068",
+        "STR-071"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [
+        "seasonal-phase-insufficient",
+        "only-unrooted-visible-evidence",
+        "insufficient-visible-direction",
+        "hour-unknown-sensitive"
+      ],
+      "unresolvedReasons": [
+        "hidden support와 hidden pressure가 동시에 존재",
+        "계절이 휴이므로 방향을 닫지 않음",
+        "시간 미상이며 방향 Evidence가 약함"
+      ],
+      "certainty": "partial",
+      "resolution": "unresolved",
+      "seasonalPhase": "휴",
+      "rootQuality": "absent"
+    },
+    {
+      "caseId": "need-leaning-weak-gap-sul",
+      "group": "leaning-weak",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "戌"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "hour": "unknown"
+      },
+      "directionCandidate": "leaning-weak",
+      "triggeredRules": [
+        "STR-001",
+        "STR-002",
+        "STR-003",
+        "STR-004",
+        "STR-005",
+        "STR-006",
+        "STR-007",
+        "STR-010",
+        "STR-011",
+        "STR-012",
+        "STR-020",
+        "STR-021",
+        "STR-024",
+        "STR-025",
+        "STR-032",
+        "STR-041",
+        "STR-043",
+        "STR-044",
+        "STR-045",
+        "STR-051",
+        "STR-067",
+        "STR-068",
+        "STR-070"
+      ],
+      "mixedPattern": null,
+      "mixedConflictLevel": null,
+      "unresolvedStrengthReasons": [],
+      "unresolvedReasons": [],
+      "certainty": "partial",
+      "resolution": "clear-direction",
+      "seasonalPhase": "수",
+      "rootQuality": "absent"
+    }
+  ]
+}

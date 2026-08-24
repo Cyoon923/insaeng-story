@@ -1,0 +1,104 @@
+{
+  "set": "interpretive",
+  "validationKind": "interpretive",
+  "phase": 1,
+  "description": "규칙 설계에 쓰지 않은 명식. 전문가에게 엔진 결과를 먼저 보여주지 않는다. expertReview는 비워 두고 엔진 값을 복사하지 않는다. 이름·상담 내용을 넣지 않는다.",
+  "sourceType": "expert-blind",
+  "expertReviewRequired": true,
+  "doNotReuseDesignFixtures": [
+    "src/lib/saju/__tests__/axisReview.fixtures.json",
+    "src/lib/saju/__tests__/conflictType.fixtures.json"
+  ],
+  "expertPacket": {
+    "give": [
+      "생년월일",
+      "출생시간 또는 시간 미상",
+      "양력/음력",
+      "필요 시 KST·진태양시 미반영 안내",
+      "또는 이미 확정된 Four Pillars"
+    ],
+    "doNotGive": [
+      "StrengthSummary",
+      "AdjustedClimate",
+      "NeedCandidate",
+      "NeedResolution",
+      "mixed / leaning-weak 등 엔진 용어"
+    ],
+    "expertWritesInOwnLanguage": [
+      "원국 확인",
+      "월령",
+      "통근",
+      "일간 세력 방향",
+      "한난조습",
+      "필요한 오행 후보",
+      "판단 보류 여부",
+      "근거"
+    ]
+  },
+  "caseTemplate": {
+    "id": "interpretive-000",
+    "status": "unreviewed",
+    "input": {
+      "calendar": "solar",
+      "year": null,
+      "month": null,
+      "day": null,
+      "isLeapMonth": false,
+      "time": "unknown",
+      "timezone": "Asia/Seoul",
+      "dayBoundary": "night_ja"
+    },
+    "sourceType": "expert-blind",
+    "sourceReference": "expert-review-001",
+    "expectedFourPillars": null,
+    "expertReview": {
+      "reviewerId": null,
+      "reviewDate": null,
+      "fourPillarsConfirmed": null,
+      "dayMaster": null,
+      "monthCommand": null,
+      "rootAssessment": null,
+      "strengthAssessment": null,
+      "climateAssessment": null,
+      "candidateElements": [],
+      "cannotDetermine": false,
+      "reasons": [],
+      "comments": "",
+      "reviewConfidence": null
+    },
+    "notes": "",
+    "personName": null
+  },
+  "comparisonTemplate": {
+    "caseId": "interpretive-000",
+    "layers": [
+      "four-pillars",
+      "month-command",
+      "root",
+      "strength-direction",
+      "strength-mixed-or-ambiguous",
+      "climate-temperature",
+      "climate-moisture",
+      "need-candidates",
+      "decision-blocked"
+    ],
+    "matchStatus": [
+      "match",
+      "partial-match",
+      "difference",
+      "expert-unresolved",
+      "engine-unresolved",
+      "not-comparable"
+    ],
+    "items": [],
+    "notes": ["전문가 판정 전에는 비교하지 않음. 엔진 결과를 expertReview에 복사하지 않음."]
+  },
+  "caseStatus": [
+    "unreviewed",
+    "engine-run",
+    "expert-reviewed",
+    "compared",
+    "regression"
+  ],
+  "cases": []
+}

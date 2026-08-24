@@ -1,0 +1,84 @@
+{
+  "file": "pilot-comparison-template",
+  "description": "Pilot 5건 layer 비교 템플릿. 전문가 답 전에는 items를 채우지 않는다. 엔진 결과를 expert 칸에 복사하지 않는다. 점수/%를 두지 않는다.",
+  "layers": [
+    "four-pillars",
+    "month-command",
+    "root",
+    "strength-direction",
+    "climate-temperature",
+    "climate-moisture",
+    "need-candidates",
+    "decision-blocked"
+  ],
+  "matchStatus": [
+    "match",
+    "partial-match",
+    "difference",
+    "expert-unresolved",
+    "engine-unresolved",
+    "not-comparable"
+  ],
+  "needComparisonRules": [
+    "전문가가 고른 오행이 엔진 후보 안에 있는지를 먼저 본다",
+    "엔진 추가 후보는 별도 메모로 남긴다",
+    "decisionBlocked와 cannotDetermine를 따로 비교한다",
+    "Needed Element 정답률을 만들지 않는다"
+  ],
+  "expressionVersusJudgment": {
+    "partialMatchExample": {
+      "engine": "mixed",
+      "expertRaw": "신약 쪽이지만 강한 인성이 있어 단정 어려움",
+      "mappingNotes": "weak tendency + ambiguity",
+      "statusToConsider": "partial-match"
+    },
+    "differenceExample": {
+      "engine": "leaning-strong",
+      "expertRaw": "명확한 신약",
+      "status": "difference"
+    }
+  },
+  "template": {
+    "caseId": "pilot-000",
+    "engine": {
+      "relationPattern": null,
+      "strengthDirection": null,
+      "climateTemperature": null,
+      "climateMoisture": null,
+      "decisionBlockedBy": []
+    },
+    "expert": {
+      "reviewerId": null,
+      "reviewDate": null,
+      "fourPillarsConfirmed": null,
+      "dayMaster": null,
+      "monthCommand": null,
+      "rootAssessment": null,
+      "strengthAssessment": null,
+      "climateAssessment": null,
+      "candidateElements": [],
+      "cannotDetermine": false,
+      "reasons": [],
+      "comments": "",
+      "reviewConfidence": null
+    },
+    "items": [
+      { "layer": "four-pillars", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "month-command", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "root", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "strength-direction", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "climate-temperature", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "climate-moisture", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "need-candidates", "status": "not-comparable", "engine": "", "expert": "" },
+      { "layer": "decision-blocked", "status": "not-comparable", "engine": "", "expert": "" }
+    ],
+    "matches": [],
+    "differences": [],
+    "unresolved": [],
+    "notes": [
+      "전문가 판정 전에는 비교하지 않음. 엔진 결과를 expertReview에 복사하지 않음.",
+      "표현 차이와 판단 차이를 구분한다.",
+      "Need는 최종 한 오행 정답률로 비교하지 않는다."
+    ]
+  }
+}
