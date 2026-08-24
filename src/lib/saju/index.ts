@@ -8,6 +8,7 @@ export { collectStrengthEvidence, hiddenStemSourceKey } from "@/lib/saju/element
 export { buildStrengthSummary } from "@/lib/saju/elements/strengthSummary";
 export { collectClimateEvidence } from "@/lib/saju/elements/climate";
 export { buildAdjustedClimateSummary } from "@/lib/saju/elements/adjustedClimate";
+export { buildNeedCandidateSet, suppressedForLeaningStrong } from "@/lib/saju/elements/needCandidates";
 export { baseClimateOf } from "@/lib/saju/data/baseClimate";
 export { shiShenOf } from "@/lib/saju/data/shiShen";
 export { pillarLabel } from "@/lib/saju/constants/ganzhi";
@@ -30,6 +31,13 @@ export type {
   ClimateFactorRole,
   ClimateMoisture,
   ClimateTemperature,
+  ClimateNeedStatus,
+  NeedCandidate,
+  NeedCandidateSet,
+  NeedCandidateStatus,
+  NeedDirection,
+  NeedSource,
+  StrengthNeedStatus,
   AdjustedClimateSummary,
   AdjustedMoistureAxis,
   AdjustedTemperatureAxis,
