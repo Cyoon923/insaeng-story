@@ -91,7 +91,7 @@ describe("NeedResolution CASE", () => {
     forbidden(resolution);
   });
 
-  it("CASE 3 甲寅 甲寅 甲子 unknown — strength-only, moist policy complete", () => {
+  it("CASE 3 甲寅 甲寅 甲子 unknown — no-candidates, Strength gated", () => {
     const resolution = buildNeedResolution(
       chart({
         year: { stem: "甲", branch: "寅" },
@@ -100,12 +100,13 @@ describe("NeedResolution CASE", () => {
         hour: "unknown",
       }),
     );
-    expect(resolution.relationPattern).toBe("strength-only");
-    expect(resolution.status).toBe("single-axis");
-    expect(resolution.singleAxisElements.map((item) => item.element)).toEqual(["火", "土", "金"]);
+    expect(resolution.relationPattern).toBe("no-candidates");
+    expect(resolution.status).toBe("indeterminate");
+    expect(resolution.singleAxisElements).toEqual([]);
     expect(resolution.supportedElements).toEqual([]);
     expect(resolution.policyGaps).toEqual([]);
-    expect(resolution.decisionBlockedBy).toEqual(["no-active-climate-need", "strength-three-way-unranked"]);
+    expect(resolution.strengthAxisStatus).toBe("unresolved");
+    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved", "no-active-climate-need"]);
     forbidden(resolution);
   });
 
@@ -128,7 +129,7 @@ describe("NeedResolution CASE", () => {
     forbidden(resolution);
   });
 
-  it("CASE 5 甲酉 庚酉 甲酉 unknown — partial-overlap, Water supported, Wood deferred", () => {
+  it("CASE 5 甲酉 庚酉 甲酉 unknown — climate-only, Strength gated", () => {
     const resolution = buildNeedResolution(
       chart({
         year: { stem: "甲", branch: "酉" },
@@ -137,27 +138,20 @@ describe("NeedResolution CASE", () => {
         hour: "unknown",
       }),
     );
-    expect(resolution.relationPattern).toBe("partial-overlap");
-    expect(resolution.status).toBe("convergent");
-    expect(resolution.supportedElements.map((item) => item.element)).toEqual(["水"]);
-    expect(resolution.supportedElements[0]?.supports.map((item) => [item.source, item.reasons])).toEqual([
-      ["strength", ["strengthen-day-master-resource"]],
-      ["climate", ["climate-moisture-dry"]],
-    ]);
-    expect(resolution.strengthOnlyElements.map((item) => item.element)).toEqual(["木"]);
-    expect(resolution.deferredElements.map((item) => item.element)).toEqual(["木"]);
-    expect(resolution.singleAxisElements).toEqual([]);
-    expect(resolution.decisionBlockedBy).toEqual(["deferred-strength-only-element"]);
+    expect(resolution.relationPattern).toBe("climate-only");
+    expect(resolution.status).toBe("single-axis");
+    expect(resolution.supportedElements).toEqual([]);
+    expect(resolution.singleAxisElements.map((item) => item.element)).toEqual(["水"]);
+    expect(resolution.strengthOnlyElements).toEqual([]);
+    expect(resolution.deferredElements).toEqual([]);
+    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
     expect(resolution.elementStates).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ element: "木", existingPresence: "unrooted-visible" }),
-        expect.objectContaining({ element: "水", existingPresence: "absent" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ element: "水", existingPresence: "absent" })]),
     );
     forbidden(resolution);
   });
 
-  it("CASE 6 庚申 己丑 乙丑 unknown — disjoint competing, moist policy complete", () => {
+  it("CASE 6 庚申 己丑 乙丑 unknown — climate-only, Strength gated", () => {
     const resolution = buildNeedResolution(
       chart({
         year: { stem: "庚", branch: "申" },
@@ -166,13 +160,13 @@ describe("NeedResolution CASE", () => {
         hour: "unknown",
       }),
     );
-    expect(resolution.relationPattern).toBe("disjoint");
-    expect(resolution.status).toBe("competing");
+    expect(resolution.relationPattern).toBe("climate-only");
+    expect(resolution.status).toBe("single-axis");
     expect(resolution.supportedElements).toEqual([]);
-    expect(resolution.competingElementsByAxis.strength.map((item) => item.element)).toEqual(["木", "水"]);
-    expect(resolution.competingElementsByAxis.climate.map((item) => item.element)).toEqual(["火"]);
+    expect(resolution.competingElementsByAxis).toEqual({ strength: [], climate: [] });
+    expect(resolution.singleAxisElements.map((item) => item.element)).toEqual(["火"]);
     expect(resolution.policyGaps).toEqual([]);
-    expect(resolution.decisionBlockedBy).toEqual(["competing-axes"]);
+    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
     forbidden(resolution);
   });
 
@@ -237,19 +231,19 @@ describe("NeedResolution regression", () => {
       decisionBlockedBy: ["strength-axis-unresolved", "climate-axis-unresolved"],
     },
     {
-      name: "甲寅 甲寅 甲子 — strength-only moist gap",
+      name: "甲寅 甲寅 甲子 — hour-unknown leaning-strong gated",
       pillars: {
         year: { stem: "甲", branch: "寅" },
         month: { stem: "甲", branch: "寅" },
         day: { stem: "甲", branch: "子" },
         hour: "unknown",
       },
-      relationPattern: "strength-only",
-      status: "single-axis",
-      strengthAxisStatus: "ready",
+      relationPattern: "no-candidates",
+      status: "indeterminate",
+      strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["no-active-climate-need", "strength-three-way-unranked"],
+      decisionBlockedBy: ["strength-axis-unresolved", "no-active-climate-need"],
     },
     {
       name: "庚子 己未 辛卯 — climate-only",
@@ -267,49 +261,49 @@ describe("NeedResolution regression", () => {
       decisionBlockedBy: ["strength-axis-unresolved"],
     },
     {
-      name: "甲酉 庚酉 甲酉 — partial-overlap",
+      name: "甲酉 庚酉 甲酉 — climate-only Strength gated",
       pillars: {
         year: { stem: "甲", branch: "酉" },
         month: { stem: "庚", branch: "酉" },
         day: { stem: "甲", branch: "酉" },
         hour: "unknown",
       },
-      relationPattern: "partial-overlap",
-      status: "convergent",
-      strengthAxisStatus: "ready",
+      relationPattern: "climate-only",
+      status: "single-axis",
+      strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["deferred-strength-only-element"],
+      decisionBlockedBy: ["strength-axis-unresolved"],
     },
     {
-      name: "丙午 戊戌 甲申 — partial-overlap unknown hour",
+      name: "丙午 戊戌 甲申 — climate-only Strength gated",
       pillars: {
         year: { stem: "丙", branch: "午" },
         month: { stem: "戊", branch: "戌" },
         day: { stem: "甲", branch: "申" },
         hour: "unknown",
       },
-      relationPattern: "partial-overlap",
-      status: "convergent",
-      strengthAxisStatus: "ready",
+      relationPattern: "climate-only",
+      status: "single-axis",
+      strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["deferred-strength-only-element"],
+      decisionBlockedBy: ["strength-axis-unresolved"],
     },
     {
-      name: "庚申 己丑 乙丑 — disjoint",
+      name: "庚申 己丑 乙丑 — climate-only Strength gated",
       pillars: {
         year: { stem: "庚", branch: "申" },
         month: { stem: "己", branch: "丑" },
         day: { stem: "乙", branch: "丑" },
         hour: "unknown",
       },
-      relationPattern: "disjoint",
-      status: "competing",
-      strengthAxisStatus: "ready",
+      relationPattern: "climate-only",
+      status: "single-axis",
+      strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["competing-axes"],
+      decisionBlockedBy: ["strength-axis-unresolved"],
     },
     {
       name: "甲辰 丙午 丁酉 庚申 — climate-only confirmed hour",
@@ -402,19 +396,19 @@ describe("NeedResolution regression", () => {
       decisionBlockedBy: ["strength-axis-unresolved", "no-active-climate-need"],
     },
     {
-      name: "庚申 辛酉 丁酉 — disjoint Fire/Wood vs Water",
+      name: "庚申 辛酉 丁酉 — climate-only Strength gated",
       pillars: {
         year: { stem: "庚", branch: "申" },
         month: { stem: "辛", branch: "酉" },
         day: { stem: "丁", branch: "酉" },
         hour: "unknown",
       },
-      relationPattern: "disjoint",
-      status: "competing",
-      strengthAxisStatus: "ready",
+      relationPattern: "climate-only",
+      status: "single-axis",
+      strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["competing-axes"],
+      decisionBlockedBy: ["strength-axis-unresolved"],
     },
   ];
 

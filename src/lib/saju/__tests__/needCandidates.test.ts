@@ -48,33 +48,26 @@ describe("NeedCandidateSet CASE", () => {
     forbidden(set);
   });
 
-  it("CASE 2 甲寅 甲寅 甲子 unknown — leaning-strong 木, no Climate candidates", () => {
+  it("CASE 2 甲寅 甲寅 甲子 unknown — leaning-strong 木, Strength only, Need gated", () => {
     const pillars = chart({
       year: { stem: "甲", branch: "寅" },
       month: { stem: "甲", branch: "寅" },
       day: { stem: "甲", branch: "子" },
       hour: "unknown",
     });
+    const strength = buildStrengthSummary(pillars);
     const set = buildNeedCandidateSet(pillars);
-    expect(buildStrengthSummary(pillars).directionCandidate).toBe("leaning-strong");
-    expect(set.strengthNeedStatus).toBe("ready");
-    expect(set.strengthNeedCandidates.map((item) => [item.element, item.direction, item.reasons[0], item.status])).toEqual([
-      ["火", "output", "drain-day-master-output", "candidate"],
-      ["土", "wealth", "use-day-master-wealth", "candidate"],
-      ["金", "official", "control-day-master-official", "candidate"],
-    ]);
-    expect(set.strengthNeedCandidates.map((item) => item.existingPresence)).toEqual([
-      analyzeElementPresence(pillars, "火").presence,
-      analyzeElementPresence(pillars, "土").presence,
-      analyzeElementPresence(pillars, "金").presence,
-    ]);
+    expect(strength.directionCandidate).toBe("leaning-strong");
+    expect(strength.directionSensitivity).toBe("hour-unknown-provisional");
+    expect(strength.certainty).toBe("partial");
+    expect(set.strengthNeedStatus).toBe("unresolved");
+    expect(set.strengthNeedCandidates).toEqual([]);
     expect(set.climateNeedCandidates).toEqual([]);
     expect(set.climateNeedStatus).toBe("ready");
-    expect(set.strengthNeedCandidates[0]?.certainty).toBe("partial");
     forbidden(set);
   });
 
-  it("CASE 3 甲酉 庚酉 甲酉 unknown — Strength 木/水 and Climate 水 stay separate", () => {
+  it("CASE 3 甲酉 庚酉 甲酉 unknown — Strength gated, Climate 水 only", () => {
     const set = buildNeedCandidateSet(
       chart({
         year: { stem: "甲", branch: "酉" },
@@ -83,23 +76,8 @@ describe("NeedCandidateSet CASE", () => {
         hour: "unknown",
       }),
     );
-    expect(set.strengthNeedStatus).toBe("ready");
-    expect(set.strengthNeedCandidates).toEqual([
-      expect.objectContaining({
-        element: "木",
-        source: "strength",
-        direction: "peer",
-        reasons: ["strengthen-day-master-peer"],
-        status: "candidate",
-      }),
-      expect.objectContaining({
-        element: "水",
-        source: "strength",
-        direction: "resource",
-        reasons: ["strengthen-day-master-resource"],
-        status: "candidate",
-      }),
-    ]);
+    expect(set.strengthNeedStatus).toBe("unresolved");
+    expect(set.strengthNeedCandidates).toEqual([]);
     expect(set.climateNeedCandidates).toEqual([
       expect.objectContaining({
         element: "水",
@@ -109,8 +87,6 @@ describe("NeedCandidateSet CASE", () => {
         status: "candidate",
       }),
     ]);
-    expect(set.strengthNeedCandidates.filter((item) => item.element === "水")).toHaveLength(1);
-    expect(set.climateNeedCandidates.filter((item) => item.element === "水")).toHaveLength(1);
     forbidden(set);
   });
 
@@ -136,24 +112,22 @@ describe("NeedCandidateSet CASE", () => {
     forbidden(set);
   });
 
-  it("CASE 5 丙午 戊戌 甲申 unknown — leaning-weak 木, Climate 水 separate", () => {
-    const set = buildNeedCandidateSet(
-      chart({
-        year: { stem: "丙", branch: "午" },
-        month: { stem: "戊", branch: "戌" },
-        day: { stem: "甲", branch: "申" },
-        hour: "unknown",
-      }),
-    );
-    expect(set.strengthNeedCandidates.map((item) => [item.element, item.direction])).toEqual([
-      ["木", "peer"],
-      ["水", "resource"],
-    ]);
+  it("CASE 5 丙午 戊戌 甲申 unknown — leaning-weak Strength gated, Climate 水 only", () => {
+    const pillars = chart({
+      year: { stem: "丙", branch: "午" },
+      month: { stem: "戊", branch: "戌" },
+      day: { stem: "甲", branch: "申" },
+      hour: "unknown",
+    });
+    const strength = buildStrengthSummary(pillars);
+    const set = buildNeedCandidateSet(pillars);
+    expect(strength.directionCandidate).toBe("leaning-weak");
+    expect(strength.directionSensitivity).toBe("hour-unknown-provisional");
+    expect(set.strengthNeedStatus).toBe("unresolved");
+    expect(set.strengthNeedCandidates).toEqual([]);
     expect(set.climateNeedCandidates).toEqual([
       expect.objectContaining({ element: "水", source: "climate", reasons: ["climate-moisture-dry"] }),
     ]);
-    expect(set.strengthNeedCandidates.some((item) => item.element === "水" && item.source === "strength")).toBe(true);
-    expect(set.climateNeedCandidates.some((item) => item.element === "水" && item.source === "climate")).toBe(true);
     forbidden(set);
   });
 
@@ -180,35 +154,113 @@ describe("NeedCandidateSet CASE", () => {
   });
 });
 
-describe("NeedCandidateSet suppression", () => {
-  it("does not suppress leaning-weak peer/resource even when rooted-visible", () => {
-    const set = buildNeedCandidateSet(
-      chart({
-        year: { stem: "甲", branch: "酉" },
-        month: { stem: "庚", branch: "酉" },
-        day: { stem: "甲", branch: "酉" },
-        hour: "unknown",
-      }),
-    );
-    expect(set.strengthNeedCandidates.every((item) => item.status === "candidate")).toBe(true);
-    expect(set.strengthNeedCandidates.every((item) => !item.reasons.includes("already-established-relation"))).toBe(true);
-  });
-
-  it("keeps hidden-only 상 output as candidate on a leaning-strong chart", () => {
+describe("NeedCandidateSet CL-NEED-HOUR gate", () => {
+  it("A. hour unknown + leaning-strong — Strength 유지, Need gated", () => {
     const pillars = chart({
       year: { stem: "甲", branch: "寅" },
       month: { stem: "甲", branch: "寅" },
       day: { stem: "甲", branch: "子" },
       hour: "unknown",
     });
+    const strength = buildStrengthSummary(pillars);
     const set = buildNeedCandidateSet(pillars);
-    const output = set.strengthNeedCandidates.find((item) => item.direction === "output");
-    expect(seasonPhaseOf("火", "寅")).toBe("상");
-    expect(output?.existingPresence).toBe("hidden-only");
-    expect(output?.status).toBe("candidate");
+    expect(strength.directionCandidate).toBe("leaning-strong");
+    expect(strength.certainty).toBe("partial");
+    expect(strength.directionSensitivity).toBe("hour-unknown-provisional");
+    expect(strength.resolution).toBe("clear-direction");
+    expect(set.strengthNeedStatus).toBe("unresolved");
+    expect(set.strengthNeedCandidates).toEqual([]);
   });
 
-  it("fixture 丙寅 甲寅 甲子 — 식상 火만 already-established-relation, 재/관은 그대로", () => {
+  it("B. hour unknown + leaning-weak — Strength 유지, Need gated", () => {
+    const pillars = chart({
+      year: { stem: "丙", branch: "午" },
+      month: { stem: "戊", branch: "戌" },
+      day: { stem: "甲", branch: "申" },
+      hour: "unknown",
+    });
+    const strength = buildStrengthSummary(pillars);
+    const set = buildNeedCandidateSet(pillars);
+    expect(strength.directionCandidate).toBe("leaning-weak");
+    expect(strength.certainty).toBe("partial");
+    expect(strength.directionSensitivity).toBe("hour-unknown-provisional");
+    expect(strength.resolution).toBe("clear-direction");
+    expect(set.strengthNeedStatus).toBe("unresolved");
+    expect(set.strengthNeedCandidates).toEqual([]);
+  });
+
+  it("C. hour confirmed + leaning-strong — 기존 Need ready 유지", () => {
+    const pillars = chart({
+      year: { stem: "甲", branch: "寅" },
+      month: { stem: "甲", branch: "寅" },
+      day: { stem: "甲", branch: "子" },
+      hour: { stem: "甲", branch: "子" },
+    });
+    const strength = buildStrengthSummary(pillars);
+    const set = buildNeedCandidateSet(pillars);
+    expect(strength.directionCandidate).toBe("leaning-strong");
+    expect(strength.directionSensitivity).toBeNull();
+    expect(strength.certainty).toBe("complete");
+    expect(set.strengthNeedStatus).toBe("ready");
+    expect(set.strengthNeedCandidates.map((item) => item.element)).toEqual(["火", "土", "金"]);
+  });
+
+  it("C. hour confirmed + leaning-weak — 기존 Need ready 유지", () => {
+    const pillars = chart({
+      year: { stem: "丙", branch: "午" },
+      month: { stem: "戊", branch: "戌" },
+      day: { stem: "甲", branch: "申" },
+      hour: { stem: "甲", branch: "子" },
+    });
+    const strength = buildStrengthSummary(pillars);
+    const set = buildNeedCandidateSet(pillars);
+    expect(strength.directionCandidate).toBe("leaning-weak");
+    expect(strength.directionSensitivity).toBeNull();
+    expect(set.strengthNeedStatus).toBe("ready");
+    expect(set.strengthNeedCandidates.map((item) => item.element)).toEqual(["木", "水"]);
+  });
+
+  it("D. mixed / unresolved — 기존 Need unresolved 유지", () => {
+    const mixed = buildNeedCandidateSet(
+      chart({
+        year: { stem: "己", branch: "卯" },
+        month: { stem: "丙", branch: "子" },
+        day: { stem: "戊", branch: "午" },
+        hour: { stem: "戊", branch: "午" },
+      }),
+    );
+    expect(mixed.strengthNeedStatus).toBe("unresolved");
+    expect(mixed.strengthNeedCandidates).toEqual([]);
+
+    const unresolved = buildNeedCandidateSet(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "辛", branch: "亥" },
+        day: { stem: "庚", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(unresolved.strengthNeedStatus).toBe("unresolved");
+    expect(unresolved.strengthNeedCandidates).toEqual([]);
+  });
+});
+
+describe("NeedCandidateSet suppression", () => {
+  it("does not suppress leaning-weak peer/resource when confirmed hour exposes Need", () => {
+    const set = buildNeedCandidateSet(
+      chart({
+        year: { stem: "甲", branch: "酉" },
+        month: { stem: "庚", branch: "酉" },
+        day: { stem: "甲", branch: "酉" },
+        hour: { stem: "癸", branch: "酉" },
+      }),
+    );
+    expect(set.strengthNeedStatus).toBe("ready");
+    expect(set.strengthNeedCandidates.every((item) => item.status === "candidate")).toBe(true);
+    expect(set.strengthNeedCandidates.every((item) => !item.reasons.includes("already-established-relation"))).toBe(true);
+  });
+
+  it("collectLeaningStrongNeedCandidates still suppresses rooted-visible 상 output", () => {
     const pillars = chart(suppressionFixture.pillars);
     const candidates = collectLeaningStrongNeedCandidates(pillars, "partial");
     const output = candidates.find((item) => item.direction === "output");

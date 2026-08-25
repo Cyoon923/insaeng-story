@@ -52,6 +52,10 @@ function makeCandidate(input: {
   };
 }
 
+function isStrengthNeedGated(strength: ReturnType<typeof buildStrengthSummary>): boolean {
+  return strength.directionSensitivity === "hour-unknown-provisional";
+}
+
 function strengthRelationCandidate(input: {
   pillars: FourPillars;
   element: Element;
@@ -132,35 +136,37 @@ export function buildNeedCandidateSet(pillars: FourPillars): NeedCandidateSet {
   let strengthNeedCandidates: NeedCandidate[] = [];
   let strengthNeedStatus: NeedCandidateSet["strengthNeedStatus"] = "unresolved";
 
-  if (strength.directionCandidate === "leaning-weak") {
-    strengthNeedStatus = "ready";
-    strengthNeedCandidates = [
-      strengthRelationCandidate({
-        pillars,
-        element: dayElement,
-        direction: "peer",
-        reason: "strengthen-day-master-peer",
-        relation: "peer",
-        dayElement,
-        directionCandidate: "leaning-weak",
-        certainty: strength.certainty,
-        suppressible: false,
-      }),
-      strengthRelationCandidate({
-        pillars,
-        element: RESOURCE[dayElement],
-        direction: "resource",
-        reason: "strengthen-day-master-resource",
-        relation: "resource",
-        dayElement,
-        directionCandidate: "leaning-weak",
-        certainty: strength.certainty,
-        suppressible: false,
-      }),
-    ];
-  } else if (strength.directionCandidate === "leaning-strong") {
-    strengthNeedStatus = "ready";
-    strengthNeedCandidates = collectLeaningStrongNeedCandidates(pillars, strength.certainty);
+  if (!isStrengthNeedGated(strength)) {
+    if (strength.directionCandidate === "leaning-weak") {
+      strengthNeedStatus = "ready";
+      strengthNeedCandidates = [
+        strengthRelationCandidate({
+          pillars,
+          element: dayElement,
+          direction: "peer",
+          reason: "strengthen-day-master-peer",
+          relation: "peer",
+          dayElement,
+          directionCandidate: "leaning-weak",
+          certainty: strength.certainty,
+          suppressible: false,
+        }),
+        strengthRelationCandidate({
+          pillars,
+          element: RESOURCE[dayElement],
+          direction: "resource",
+          reason: "strengthen-day-master-resource",
+          relation: "resource",
+          dayElement,
+          directionCandidate: "leaning-weak",
+          certainty: strength.certainty,
+          suppressible: false,
+        }),
+      ];
+    } else if (strength.directionCandidate === "leaning-strong") {
+      strengthNeedStatus = "ready";
+      strengthNeedCandidates = collectLeaningStrongNeedCandidates(pillars, strength.certainty);
+    }
   }
 
   const climateNeedCandidates: NeedCandidate[] = [];

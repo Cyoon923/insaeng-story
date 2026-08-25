@@ -32,6 +32,18 @@ function isActive(candidate: NeedCandidate): boolean {
   return candidate.status === "candidate";
 }
 
+function effectiveNeedSetForStrengthGate(
+  needSet: NeedCandidateSet,
+  strength: StrengthSummary,
+): NeedCandidateSet {
+  if (strength.directionSensitivity !== "hour-unknown-provisional") return needSet;
+  return {
+    ...needSet,
+    strengthNeedCandidates: [],
+    strengthNeedStatus: "unresolved",
+  };
+}
+
 function uniqueElements(candidates: NeedCandidate[]): Set<Element> {
   return new Set(candidates.map((item) => item.element));
 }
@@ -141,8 +153,9 @@ export function resolveNeedCandidates(
   strength: StrengthSummary,
   climate: AdjustedClimateSummary,
 ): NeedResolution {
-  const originalStrengthCandidates = [...needSet.strengthNeedCandidates];
-  const originalClimateCandidates = [...needSet.climateNeedCandidates];
+  const gatedNeedSet = effectiveNeedSetForStrengthGate(needSet, strength);
+  const originalStrengthCandidates = [...gatedNeedSet.strengthNeedCandidates];
+  const originalClimateCandidates = [...gatedNeedSet.climateNeedCandidates];
 
   const strengthActive = originalStrengthCandidates.filter(isActive);
   const strengthSuppressed = originalStrengthCandidates.filter((item) => item.status === "suppressed");
@@ -184,7 +197,7 @@ export function resolveNeedCandidates(
   const policyGaps = policyGapsOf();
   const decisionBlockedBy = decisionBlockedByOf({
     relationPattern,
-    needSet,
+    needSet: gatedNeedSet,
     climateActive,
     strengthActive,
     strengthOnly: strengthOnlyElements,
@@ -214,15 +227,15 @@ export function resolveNeedCandidates(
     suppressedSharedElements,
     counterSignals: [
       ...counterSignalsOf(suppressedSharedCandidates),
-      ...needSet.climateCounterSignals.map((signal) => ({
+      ...gatedNeedSet.climateCounterSignals.map((signal) => ({
         element: signal.element,
         source: "climate" as const,
         reason: signal.reason,
       })),
     ],
     elementStates,
-    strengthAxisStatus: needSet.strengthNeedStatus,
-    climateAxisStatus: needSet.climateNeedStatus,
+    strengthAxisStatus: gatedNeedSet.strengthNeedStatus,
+    climateAxisStatus: gatedNeedSet.climateNeedStatus,
     certainty: {
       strength: strength.certainty,
       climate: climate.certainty,
