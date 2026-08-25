@@ -1,0 +1,107 @@
+{
+  "set": "wave3-needresolution-closure",
+  "schemaVersion": "w3-res-closure-v1",
+  "status": "wave3-needresolution-closure-complete",
+  "wave3Decision": "CLOSE",
+  "wave3DecisionMeaning": "Semantic/product meaning boundary fixed for RES-012..015; not VERIFIED; not mingli truth; internal enums unchanged; UX not implemented",
+  "basis": [
+    "../wave3-needresolution-prep/wave3-resolution-policy-audit.md",
+    "../wave3-needresolution-prep/wave3-resolution-policy-audit.json",
+    "src/lib/saju/elements/needResolution.ts",
+    "../../need-resolution-audit/need-resolution-freeze-boundary.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "enumUnchanged": true,
+    "noVerifiedPromotion": true,
+    "noExpertSurvey": true,
+    "noLiteratureRevalidation": true,
+    "noUxImplementation": true,
+    "noNeed015Resolution": true,
+    "noScoresOrWeights": true,
+    "noWave1OrWave2Rework": true
+  },
+  "common": {
+    "kind": "product-semantic-policy",
+    "addsMingliJudgment": false,
+    "lookup": "STATUS_BY_PATTERN",
+    "internalEnumsKept": ["indeterminate", "single-axis", "convergent", "competing"]
+  },
+  "rules": [
+    {
+      "ruleId": "RES-012",
+      "statusEnum": "indeterminate",
+      "relationPattern": "no-candidates",
+      "means": "현재 활성 Need 후보로 Strength/Climate 관계를 결정할 수 없음",
+      "doesNotMean": ["필요한 오행이 없음", "결론 불필요", "필요 없음 확정"],
+      "closureStatus": "SEMANTIC-BOUNDARY-CLOSED"
+    },
+    {
+      "ruleId": "RES-013",
+      "statusEnum": "single-axis",
+      "relationPattern": ["strength-only", "climate-only"],
+      "means": "현재 한 축에서만 유효(active) 후보가 존재",
+      "doesNotMean": ["그 축이 최종적으로 더 중요함", "그 축이 승리함", "provisional winner"],
+      "closureStatus": "SEMANTIC-BOUNDARY-CLOSED"
+    },
+    {
+      "ruleId": "RES-014",
+      "statusEnum": "convergent",
+      "relationPattern": ["exact-overlap", "partial-overlap"],
+      "means": "현재 Strength/Climate 후보 집합에 overlap이 존재",
+      "doesNotMean": ["용신 확정", "정답 확정", "두 이론의 완전한 일치", "winner"],
+      "closureStatus": "SEMANTIC-BOUNDARY-CLOSED"
+    },
+    {
+      "ruleId": "RES-015",
+      "statusEnum": "competing",
+      "relationPattern": "disjoint",
+      "means": "현재 두 축 후보 집합에 overlap이 없음",
+      "doesNotMean": ["나쁜 사주", "분석 실패", "엔진 오류"],
+      "closureStatus": "SEMANTIC-BOUNDARY-CLOSED"
+    }
+  ],
+  "propagationBoundary": {
+    "NEED-015": {
+      "upstreamStatus": "POLICY-UNRESOLVED",
+      "resolutionMustNotClaimSolved": true,
+      "mechanicalNote": "suppressed excluded from active may change pattern; not policy adoption"
+    },
+    "NEED-022": {
+      "upstreamStatus": "BOUNDARY-INHERITED",
+      "preserves": ["CLI-019-CONTESTED", "CLI-037-CONTESTED", "G6-moisture-boundary"],
+      "downstreamStatusMustNotPromoteToVerified": true
+    },
+    "general": "upstream unresolved/contested/POLICY-UNRESOLVED must not be promoted to definitive mingli truth by RES status"
+  },
+  "pipeline": {
+    "wave1StrengthClimateBoundary": "CLOSE",
+    "wave2NeedCandidateBoundary": "CLOSE",
+    "wave3NeedResolutionSemanticBoundary": "CLOSE",
+    "verifiedAnyWave": false
+  },
+  "nextFirstIncompleteStep": {
+    "id": "OPEN-BACKLOG",
+    "perPriorityAuditSection": "I / K.5",
+    "firstChain": ["CLI-049", "NEED-027", "RES-028"],
+    "note": "Not a new Wave. Separate tracks: Wave1 POLICY-UNRESOLVED (28), NEED-015, RES UX speakable implementation",
+    "notWave3Scope": true
+  },
+  "closure": {
+    "canCloseWave3": true,
+    "decision": "CLOSE",
+    "notVerified": true,
+    "notMingliFinal": true
+  },
+  "reportAnswers": {
+    "wave3ClosureStatus": "CLOSE (semantic/product boundary only)",
+    "meaningBoundaries": {
+      "RES-012": "관계를 결정할 수 없음 / ≠ 필요 오행 없음",
+      "RES-013": "한 축만 유효 후보 / ≠ 축 승리",
+      "RES-014": "후보 overlap 존재 / ≠ 용신·정답·완전 일치",
+      "RES-015": "축 간 overlap 없음 / ≠ 나쁜 사주·실패·오류"
+    },
+    "remainingPropagation": ["NEED-015-POLICY-UNRESOLVED", "NEED-022-CONTESTED-inherited"],
+    "nextFirstIncomplete": "OPEN backlog (CLI-049 ↔ NEED-027 ↔ RES-028)"
+  }
+}

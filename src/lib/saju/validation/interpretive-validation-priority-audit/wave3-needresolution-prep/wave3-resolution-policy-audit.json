@@ -1,0 +1,131 @@
+{
+  "set": "wave3-resolution-policy-audit",
+  "schemaVersion": "w3-res-policy-v1",
+  "status": "prep-audit-complete-no-wave3-closure",
+  "basis": [
+    "interpretive-validation-priority-audit.md",
+    "../need-resolution-audit/need-resolution-freeze-boundary.md",
+    "../need-resolution-audit/resolution-rule-inventory.json",
+    "src/lib/saju/elements/needResolution.ts",
+    "../wave2-needcandidate-results/wave2-needcandidate-closure.md"
+  ],
+  "constraints": {
+    "noEngineChange": true,
+    "noVerifiedPromotion": true,
+    "noNewMingliRules": true,
+    "noScoresOrWeights": true,
+    "noNeed015Resolution": true,
+    "noWave1OrWave2Revalidation": true,
+    "noExpertSurvey": true,
+    "noNewLiteratureValidation": true
+  },
+  "commonCharacter": {
+    "kind": "product-semantic-policy",
+    "addsMingliJudgment": false,
+    "isSetToLabelLookup": true,
+    "lookup": "STATUS_BY_PATTERN",
+    "inputs": "active NeedCandidate element sets only",
+    "noWinnerNeededElementScore": true
+  },
+  "rules": [
+    {
+      "ruleId": "RES-012",
+      "name": "no-candidates → indeterminate",
+      "policyCharacter": "product-semantic-label",
+      "codeCondition": "strengthActive.size===0 && climateActive.size===0 → relationPattern=no-candidates",
+      "outputStatus": "indeterminate",
+      "relationPattern": "no-candidates",
+      "upstreamNeed": ["NEED-012", "NEED-013", "NEED-024", "NEED-038", "CL-NEED-HOUR-empty-both"],
+      "addsMingliJudgment": false,
+      "isSimpleStatusLabel": true,
+      "misreadRisk": "indeterminate read as no needed element",
+      "meaningBoundary": "indeterminate ≠ 필요한 오행이 없음",
+      "internalEnum": "keep",
+      "uxNameOrCopy": "change-required",
+      "policyUndecidedMingli": false
+    },
+    {
+      "ruleId": "RES-013",
+      "name": "only → single-axis",
+      "policyCharacter": "product-semantic-label",
+      "codeCondition": "strength-only | climate-only → status=single-axis",
+      "outputStatus": "single-axis",
+      "relationPattern": ["strength-only", "climate-only"],
+      "upstreamNeed": ["NEED-010", "NEED-011", "NEED-020", "NEED-021", "NEED-022"],
+      "addsMingliJudgment": false,
+      "isSimpleStatusLabel": true,
+      "misreadRisk": "single-axis read as that axis won / final",
+      "meaningBoundary": "single-axis ≠ 해당 축이 최종 승자",
+      "internalEnum": "keep",
+      "uxNameOrCopy": "change-required",
+      "policyUndecidedMingli": false
+    },
+    {
+      "ruleId": "RES-014",
+      "name": "overlap → convergent",
+      "policyCharacter": "product-semantic-label",
+      "codeCondition": "exact-overlap | partial-overlap → status=convergent",
+      "outputStatus": "convergent",
+      "relationPattern": ["exact-overlap", "partial-overlap"],
+      "upstreamNeed": ["NEED-010", "NEED-011", "NEED-020", "NEED-021", "NEED-022", "NEED-035"],
+      "addsMingliJudgment": false,
+      "isSimpleStatusLabel": true,
+      "misreadRisk": "convergent read as yongsin / theory agreement / winner",
+      "meaningBoundary": "convergent ≠ 용신 확정 / 두 이론의 정답 일치",
+      "internalEnum": "keep",
+      "uxNameOrCopy": "change-required-highest",
+      "policyUndecidedMingli": false
+    },
+    {
+      "ruleId": "RES-015",
+      "name": "disjoint → competing",
+      "policyCharacter": "product-semantic-label",
+      "codeCondition": "disjoint → status=competing",
+      "outputStatus": "competing",
+      "relationPattern": "disjoint",
+      "upstreamNeed": ["NEED-036", "NEED-010", "NEED-011", "NEED-020", "NEED-021", "NEED-022"],
+      "addsMingliJudgment": false,
+      "isSimpleStatusLabel": true,
+      "misreadRisk": "competing read as bad chart / engine error",
+      "meaningBoundary": "competing ≠ 나쁜 사주 / 엔진 오류",
+      "internalEnum": "keep",
+      "uxNameOrCopy": "change-required",
+      "policyUndecidedMingli": false
+    }
+  ],
+  "wave2Propagation": {
+    "NEED-015": {
+      "status": "POLICY-UNRESOLVED",
+      "effectOnRes": "suppressed candidates excluded from active sets; may change relationPattern/status; RES does not validate suppression; RES inherits unresolved input policy",
+      "resolvesNeed015": false
+    },
+    "NEED-022": {
+      "status": "BOUNDARY-INHERITED",
+      "inherits": ["CLI-019-CONTESTED", "CLI-037-CONTESTED", "G6-moisture-boundary"],
+      "effectOnRes": "dry→水 climate candidate can feed climate-only / overlap / competing; RES status trust ceiling = contested climate input; RES does not promote moisture policy"
+    }
+  },
+  "counts": {
+    "mingliValidationRequired": 0,
+    "productSemanticLabels": 4,
+    "internalEnumsKeep": 4,
+    "uxRenameOrCopyChangeRequired": 4
+  },
+  "wave3CloseWithoutExperts": {
+    "possible": true,
+    "condition": "Document product/semantic meaning boundaries and UX forbid-translations; optional speakable rename; no mingli survey",
+    "notRequired": ["expertSurvey", "literatureValidation", "engineEnumRename"]
+  },
+  "reportAnswers": {
+    "policyCharacter": {
+      "RES-012": "product-semantic-label",
+      "RES-013": "product-semantic-label",
+      "RES-014": "product-semantic-label",
+      "RES-015": "product-semantic-label"
+    },
+    "keepInternalNames": ["indeterminate", "single-axis", "convergent", "competing"],
+    "uxNameOrCopyChangeNeeded": ["RES-012", "RES-013", "RES-014", "RES-015"],
+    "mingliValidationRuleCount": 0,
+    "canCloseWave3WithoutExperts": true
+  }
+}

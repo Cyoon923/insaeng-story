@@ -1,0 +1,103 @@
+{
+  "set": "wave2-needcandidate-closure",
+  "schemaVersion": "w2-need-closure-v1",
+  "status": "wave2-needcandidate-closure-complete",
+  "wave2Decision": "CLOSE",
+  "wave2DecisionMeaning": "NeedCandidate validation boundary fixed for all 7 interpretive rules; not VERIFIED; not engine finalization; NEED-015 remains POLICY-UNRESOLVED",
+  "basis": [
+    "interpretive-validation-priority-audit.md",
+    "../wave2-needcandidate-prep/wave2-evidence-reuse-audit.md",
+    "../wave2-needcandidate-prep/wave2-evidence-reuse-audit.json",
+    "../wave1-literature-validation/batch-1/wave1-batch-1-evidence-hardening.md",
+    "../wave1-literature-validation/batch-6/g6-closure.md",
+    "../wave1-literature-validation/batch-6/wave1-batch-6-literature-validation.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "noVerifiedPromotion": true,
+    "noFreezeStatusChange": true,
+    "noRuleIdMerge": true,
+    "noScoresOrThresholds": true,
+    "noRevalidationOfNeed010011020021": true,
+    "noNewExpertSurveyExecuted": true,
+    "noWave3": true
+  },
+  "rules": [
+    {
+      "ruleId": "NEED-009",
+      "status": "LOOKUP-CLOSED",
+      "notVerified": true,
+      "notYongsin": true,
+      "separatedFrom": ["STR-010", "STR-011"],
+      "literatureReuse": ["E-YH-02-生我印", "E-SM-01-生我我生我尅尅我"],
+      "codeMapsMatchShengke": true,
+      "additionalSurvey": false
+    },
+    {
+      "ruleId": "NEED-010",
+      "status": "REUSED-A",
+      "sameJudgmentAs": "STR-070",
+      "revalidatedThisWave": false
+    },
+    {
+      "ruleId": "NEED-011",
+      "status": "REUSED-A",
+      "sameJudgmentAs": "STR-070",
+      "revalidatedThisWave": false
+    },
+    {
+      "ruleId": "NEED-015",
+      "status": "POLICY-UNRESOLVED",
+      "wave1DirectEvidenceFound": false,
+      "wave1SearchNotes": [
+        "G1 macro weaken for 식재관 is Strength direction, not Need suppression",
+        "G2 wangxiang vs final strength flip is not Need candidate gate",
+        "P1-E3 A-8 식상得氣用 leans against automatic suppression but is not a Need-015 answer",
+        "STR-026 adjacent and not closed in G2"
+      ],
+      "newExpertItemExecuted": false,
+      "productPathNote": "unreachable on mixed via NEED-018; code may still suppress when collectLeaningStrongNeedCandidates is called",
+      "additionalSurveyNow": false
+    },
+    {
+      "ruleId": "NEED-020",
+      "status": "REUSED-A",
+      "sameJudgmentAs": "CLI-041",
+      "revalidatedThisWave": false
+    },
+    {
+      "ruleId": "NEED-021",
+      "status": "REUSED-A",
+      "sameJudgmentAs": "CLI-042",
+      "revalidatedThisWave": false
+    },
+    {
+      "ruleId": "NEED-022",
+      "status": "BOUNDARY-INHERITED",
+      "sameJudgmentAs": "CLI-043",
+      "inherits": {
+        "CLI-019": "CONTESTED",
+        "CLI-037": "CONTESTED",
+        "g6Speakable": ["S3-earth-on-moisture", "S4-hannan-josup-not-same-function"]
+      },
+      "newRuleFinalized": false,
+      "notVerified": true,
+      "distinctFrom": "NEED-021",
+      "additionalSurvey": false
+    }
+  ],
+  "closure": {
+    "canCloseWave2NeedCandidate": true,
+    "decision": "CLOSE",
+    "notVerified": true,
+    "policyUnresolvedNeedRules": ["NEED-015"],
+    "additionalExpertQuestionRequiredNow": false
+  },
+  "reportAnswers": {
+    "NEED-009": "LOOKUP-CLOSED (shengke map matches Wave1 literature naming; not VERIFIED; not STR-010/011)",
+    "NEED-015": "POLICY-UNRESOLVED (no direct Wave1 evidence; no new survey)",
+    "NEED-022": "BOUNDARY-INHERITED from G6 contested moisture / CLI-043",
+    "wave2Closeable": true,
+    "expertQuestionReallyNeededNow": false
+  }
+}

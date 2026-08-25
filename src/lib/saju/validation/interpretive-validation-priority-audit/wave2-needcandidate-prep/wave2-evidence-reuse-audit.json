@@ -1,0 +1,163 @@
+{
+  "set": "wave2-needcandidate-evidence-reuse-audit",
+  "schemaVersion": "w2-need-reuse-v1",
+  "status": "audit-complete-no-wave2-start",
+  "basis": "interpretive-validation-priority-audit.md",
+  "constraints": {
+    "noNewExpertSurvey": true,
+    "noEngineChange": true,
+    "noVerifiedPromotion": true,
+    "noRuleIdMerge": true,
+    "noScoresOrThresholds": true,
+    "noWave2ValidationRun": true,
+    "noWave3": true
+  },
+  "sameJudgmentUnmerged": [
+    {
+      "needRuleIds": ["NEED-010", "NEED-011"],
+      "pairedRuleId": "STR-070",
+      "proposition": "leaning-strong → output/wealth/official; leaning-weak → peer/resource"
+    },
+    {
+      "needRuleIds": ["NEED-020"],
+      "pairedRuleId": "CLI-041",
+      "proposition": "resolved cold → 火"
+    },
+    {
+      "needRuleIds": ["NEED-021"],
+      "pairedRuleId": "CLI-042",
+      "proposition": "resolved warm → 水"
+    },
+    {
+      "needRuleIds": ["NEED-022"],
+      "pairedRuleId": "CLI-043",
+      "proposition": "resolved dry → 水"
+    }
+  ],
+  "relatedNotSame": [
+    {
+      "needRuleId": "NEED-009",
+      "related": ["STR-010", "STR-011"],
+      "note": "G1 bundles shiShen as strength sides; NEED-009 is day-element shengke map"
+    }
+  ],
+  "wave1IdExclusionNote": "RN-W1-001: STR-070 and CLI-041/042/043 were not given Wave 1 literature-batch IDs. Reuse is G1/G6 speakable of the same propositions, not VERIFIED promotion of those IDs.",
+  "policyPremise": {
+    "cluster": "CL-NEED-HOUR",
+    "commit": "c96b6ecf6bf0399d3edac241611733d0cb595005",
+    "effect": "hour-unknown + leaning-* keeps Strength provisional; Strength Need gated/unresolved"
+  },
+  "counts": {
+    "rulesAudited": 7,
+    "classA": 4,
+    "classB": 2,
+    "classC": 1,
+    "additionalValidationRuleCount": 3
+  },
+  "expertSurvey": {
+    "fullWave2BlindRoundRequired": false,
+    "reallyRequired": false,
+    "onlyIfClosingNeed015": "optional minimal single item on RV+wang/xiang suppression; not run in this audit"
+  },
+  "rules": [
+    {
+      "ruleId": "NEED-009",
+      "name": "십신 오행 맵",
+      "reuseClass": "B",
+      "auditMethod": "LITERATURE",
+      "upstream": ["STR-003"],
+      "wave1SameOrSimilar": "Not the same judgment as STR-010/011. Related only.",
+      "literatureReuse": ["STR-003-FACT"],
+      "expertReuse": [],
+      "additionalValidationNeeded": true,
+      "remainingExactly": "Desk literature check of 生我/我生/我克/克我 map vs code RESOURCE/OUTPUT/WEALTH/OFFICIAL. Not yongsin. Not expert survey.",
+      "expertSurveyNeeded": false
+    },
+    {
+      "ruleId": "NEED-010",
+      "name": "leaning-strong → 식상/재/관",
+      "reuseClass": "A",
+      "auditMethod": "BOTH",
+      "sameJudgmentAs": "STR-070",
+      "upstream": ["STR-050", "STR-070", "NEED-009", "STR-010", "STR-011", "CL-NEED-HOUR"],
+      "wave1SameOrSimilar": "G1 speakable: 식상·재·관 weaken-direction. Same 억부 mapping as STR-070 strong branch. STR-050 gate not VERIFIED (upstream, not remap).",
+      "literatureReuse": ["G1-STR-010-PARTIALLY-SUPPORTED", "G1-STR-011-CONTESTED"],
+      "expertReuse": ["G1-phase1-speakable-output-wealth-officer-macro-weaken"],
+      "additionalValidationNeeded": false,
+      "remainingExactly": null,
+      "expertSurveyNeeded": false
+    },
+    {
+      "ruleId": "NEED-011",
+      "name": "leaning-weak → 비겁/인성",
+      "reuseClass": "A",
+      "auditMethod": "BOTH",
+      "sameJudgmentAs": "STR-070",
+      "upstream": ["STR-051", "STR-070", "NEED-009", "STR-010", "CL-NEED-HOUR"],
+      "wave1SameOrSimilar": "G1 speakable: 비겁·인성 strengthen-direction. Same as STR-070 weak branch.",
+      "literatureReuse": ["G1-STR-010-PARTIALLY-SUPPORTED"],
+      "expertReuse": ["G1-phase1-speakable-peer-resource-strengthen"],
+      "additionalValidationNeeded": false,
+      "remainingExactly": null,
+      "expertSurveyNeeded": false
+    },
+    {
+      "ruleId": "NEED-015",
+      "name": "RV+왕/상 already-established-relation",
+      "reuseClass": "C",
+      "auditMethod": "EXPERT",
+      "wave1DirectlyValidated": false,
+      "upstream": ["NEED-010", "STR-026", "STR-004", "STR-021"],
+      "wave1SameOrSimilar": "Not directly validated. G2 STR-026/027 adjacent and not closed (ENG-5, NV-G2-6). 상=help-only ≠ Need suppression.",
+      "literatureReuse": [],
+      "expertReuse": [],
+      "additionalValidationNeeded": true,
+      "remainingExactly": "Whether leaning-strong Need element that is rooted-visible and month-phase 왕 or 상 should be suppressed as already-established-relation. Unreachable on mixed (NEED-018). Do not expand to leaning-weak or 휴/수/사. Do not re-run G2.",
+      "expertSurveyNeeded": "only-if-closing-this-rule-minimal-item",
+      "productPathNote": "buildNeedCandidateSet does not reach NEED-015 when Strength is mixed"
+    },
+    {
+      "ruleId": "NEED-020",
+      "name": "resolved cold → 火",
+      "reuseClass": "A",
+      "auditMethod": "BOTH",
+      "sameJudgmentAs": "CLI-041",
+      "upstream": ["CLI-041", "CLI-018", "CLI-032", "CLI-002"],
+      "wave1SameOrSimilar": "G6 S1 寒에 火. Same judgment as CLI-041. CLI-041 ID excluded from Wave 1 batches.",
+      "literatureReuse": ["G6-CLI-018-PARTIALLY-SUPPORTED"],
+      "expertReuse": ["G6-S1-cold-fire-warm-water", "G4-S3-temp-vs-moisture"],
+      "additionalValidationNeeded": false,
+      "remainingExactly": null,
+      "expertSurveyNeeded": false
+    },
+    {
+      "ruleId": "NEED-021",
+      "name": "resolved warm → 水",
+      "reuseClass": "A",
+      "auditMethod": "BOTH",
+      "sameJudgmentAs": "CLI-042",
+      "upstream": ["CLI-042", "CLI-018", "CLI-032"],
+      "wave1SameOrSimilar": "G6 S1 熱에 水. Same judgment as CLI-042.",
+      "literatureReuse": ["G6-CLI-018-PARTIALLY-SUPPORTED"],
+      "expertReuse": ["G6-S1-cold-fire-warm-water"],
+      "additionalValidationNeeded": false,
+      "remainingExactly": null,
+      "expertSurveyNeeded": false
+    },
+    {
+      "ruleId": "NEED-022",
+      "name": "resolved dry → 水",
+      "reuseClass": "B",
+      "auditMethod": "BOTH",
+      "sameJudgmentAs": "CLI-043",
+      "distinctFrom": "NEED-021",
+      "upstream": ["CLI-043", "CLI-019", "CLI-037"],
+      "wave1SameOrSimilar": "Same judgment as CLI-043 (燥→水 mit). G6 S1 is temperature-only; CLI-019/037 CONTESTED; S3 earth-on-moisture. Weaker reuse than NEED-020/021.",
+      "literatureReuse": ["G6-CLI-019-CONTESTED", "G6-CLI-037-CONTESTED"],
+      "expertReuse": ["G6-S3-earth-moisture", "G6-S4-temp-moisture-not-same-function"],
+      "additionalValidationNeeded": true,
+      "remainingExactly": "Desk note: 燥喜水 is CLI-043 alias on G6 contested moisture path; not the same axis as NEED-021. No G6 re-batch. No expert blind. Do not decide C10/C11.",
+      "expertSurveyNeeded": false
+    }
+  ]
+}
