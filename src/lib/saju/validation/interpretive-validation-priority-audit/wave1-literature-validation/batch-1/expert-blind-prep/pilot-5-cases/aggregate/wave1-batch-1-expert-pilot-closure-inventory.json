@@ -1,0 +1,92 @@
+{
+  "set": "wave1-batch-1-expert-pilot-closure",
+  "status": "pilot-closure-evaluation-complete",
+  "schemaVersion": "w1b1-expert-pilot-closure-v1",
+  "sourceAggregate": "wave1-batch-1-expert-pilot-aggregate.md",
+  "sourceInventory": "wave1-batch-1-expert-pilot-aggregate-inventory.json",
+  "engineUnchanged": true,
+  "str010NotVerified": true,
+  "str011NotVerified": true,
+  "literatureVerdictUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "majorityTreatedAsTruth": false,
+  "scoresOrWeightsOrThresholdsAdded": false,
+  "pilotFittedRulesCreated": false,
+  "expertAnswersGenerated": 0,
+  "wave2Started": false,
+  "pilotClosure": {
+    "canClosePilot": true,
+    "recommended": true,
+    "reason": "Blind protocol and direction-screening observations completed for E1–E4; rule closure was never Pilot scope"
+  },
+  "phase1Expansion": {
+    "recommendEnter": true,
+    "wave2": false,
+    "purpose": "Boundary and mechanism expert validation for STR-010/011 after Pilot direction screen"
+  },
+  "directionConvergenceConfirmed": {
+    "peerResourceStrengthen": "4/4",
+    "outputWealthOfficialWeakenMacro": "4/4",
+    "monthRootPositionOverCount": "4/4",
+    "case01Weak": "4/4",
+    "case02Strong": "4/4",
+    "case03Weak": "4/4",
+    "case05WeakWithUncertainty": "4/4"
+  },
+  "case04": {
+    "requiresFurtherValidation": true,
+    "nature": "open-disagreement-on-final-strength-label",
+    "sharedStructureAcknowledged": true,
+    "majorityNotTruth": true,
+    "doNotFitEngineRuleToThisCase": true
+  },
+  "case05": {
+    "isTestDesignFailure": false,
+    "isNormalConditionalJudgment": true,
+    "hourUnknownWasIntentionalPilotSlot": true,
+    "allFourMarkedUncertainty": true,
+    "phase1NeedsClearerUncertaintyProtocolQuestions": true
+  },
+  "phase1CoreQuestions": [
+    "crossed-support-pressure-boundary-like-case-04",
+    "wealth-weaken-mechanism-consume-vs-break-print-vs-lumped-drain",
+    "direction-group-vs-equal-weight-for-final-grade",
+    "zheng-pian-primary-direction-vs-intensity",
+    "hour-unknown-baseline-plus-range-vs-defer",
+    "keep-literature-and-expert-layers-separate"
+  ],
+  "recommendedScope": {
+    "additionalExperts": { "min": 4, "max": 8, "note": "Target total roughly 8–12; not a fixed quota; map disagreement not force consensus" },
+    "additionalCases": {
+      "min": 6,
+      "max": 10,
+      "priorityTypes": [
+        "case04-like-crossed-resource-vs-season-wealth",
+        "wealth-with-and-without-print-break-context",
+        "zheng-pian-contrast",
+        "hour-unknown-and-optional-night-day-boundary"
+      ],
+      "forbid": [
+        "select-by-engine-leaning",
+        "fabricate-to-fit-desired-answer",
+        "write-rules-from-pilot-five-only"
+      ]
+    }
+  },
+  "unresolved": [
+    { "id": "W1B1-EP-U1", "status": "resolved" },
+    { "id": "W1B1-EP-U2", "status": "open-phase1", "topic": "case-04-disagreement" },
+    { "id": "W1B1-EP-U3", "status": "open-phase1-protocol", "topic": "case-05-hour-uncertainty-normal-conditional" },
+    { "id": "W1B1-EP-U4", "status": "open-phase1", "topic": "wealth-mechanism" },
+    { "id": "W1B1-EP-U5", "status": "open-phase1", "topic": "equal-weight-e1-unclear" },
+    { "id": "W1B1-EP-U6", "status": "open-phase1", "topic": "zheng-pian" },
+    { "id": "W1B1-EP-U7", "status": "keep-separate", "topic": "literature-vs-expert-layers" },
+    { "id": "W1B1-EP-CLOSE-01", "status": "pilot-closable-rules-not-closed" },
+    { "id": "W1B1-EP-CLOSE-02", "status": "phase1-recommended-wave2-blocked" }
+  ],
+  "literatureLayerReminder": {
+    "STR-010": "PARTIALLY-SUPPORTED",
+    "STR-011": "CONTESTED"
+  },
+  "closureDocument": "wave1-batch-1-expert-pilot-closure.md"
+}

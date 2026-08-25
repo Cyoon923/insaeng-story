@@ -1,0 +1,1356 @@
+{
+  "description": "Current-engine NeedResolution traces. Results were not rewritten. Audit documents do not change Resolution judgment. Freeze Boundary is not this stage.",
+  "generatedBy": "buildResolutionCaseTrace.collectResolutionCaseTraces + buildNeedResolution / resolveNeedCandidates",
+  "engineUnchanged": true,
+  "freezeBoundaryNotThisStage": true,
+  "counts": {
+    "total": 11,
+    "existingChart": 9,
+    "injectedNeedSet": 2,
+    "noCandidates": 3,
+    "strengthOnly": 1,
+    "climateOnly": 4,
+    "partialOverlap": 1,
+    "exactOverlap": 1,
+    "disjoint": 1,
+    "policyGapsAlwaysEmpty": true,
+    "noWinnerFields": true
+  },
+  "cases": [
+    {
+      "caseId": "res-case-1-no-candidates",
+      "group": "needResolution-test",
+      "covers": [
+        "no-candidates",
+        "hour-confirmed"
+      ],
+      "note": "己卯 丙子 戊午 戊午. no-candidates. Strength unresolved, Climate ready empty.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "relationPattern": "no-candidates",
+      "status": "indeterminate",
+      "supportedElements": [],
+      "singleAxisElements": [],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "complete",
+        "climate": "complete"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved",
+        "no-active-climate-need"
+      ],
+      "counterSignals": [],
+      "elementStates": [],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 0
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-006",
+        "RES-012",
+        "RES-016",
+        "RES-020",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-034",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047"
+      ],
+      "notes": "己卯 丙子 戊午 戊午. no-candidates. Strength unresolved, Climate ready empty."
+    },
+    {
+      "caseId": "res-case-2-both-unresolved",
+      "group": "needResolution-test",
+      "covers": [
+        "no-candidates",
+        "both-unresolved",
+        "hour-unknown"
+      ],
+      "note": "壬寅 己亥 丙子 unknown. 양쪽 unresolved + no-candidates.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "壬",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "relationPattern": "no-candidates",
+      "status": "indeterminate",
+      "supportedElements": [],
+      "singleAxisElements": [],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "unresolved"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved",
+        "climate-axis-unresolved"
+      ],
+      "counterSignals": [],
+      "elementStates": [],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 0
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-006",
+        "RES-012",
+        "RES-016",
+        "RES-020",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-033",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "壬寅 己亥 丙子 unknown. 양쪽 unresolved + no-candidates."
+    },
+    {
+      "caseId": "res-case-3-strength-only",
+      "group": "needResolution-test",
+      "covers": [
+        "strength-only",
+        "hour-unknown"
+      ],
+      "note": "甲寅 甲寅 甲子 unknown. strength-only 火土金. three-way unranked.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [
+        {
+          "element": "火",
+          "source": "strength",
+          "direction": "output",
+          "reasons": [
+            "drain-day-master-output"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "土",
+          "source": "strength",
+          "direction": "wealth",
+          "reasons": [
+            "use-day-master-wealth"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "金",
+          "source": "strength",
+          "direction": "official",
+          "reasons": [
+            "control-day-master-official"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "climateCandidates": [],
+      "relationPattern": "strength-only",
+      "status": "single-axis",
+      "supportedElements": [],
+      "singleAxisElements": [
+        {
+          "element": "火",
+          "source": "strength",
+          "direction": "output",
+          "reasons": [
+            "drain-day-master-output"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "土",
+          "source": "strength",
+          "direction": "wealth",
+          "reasons": [
+            "use-day-master-wealth"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "金",
+          "source": "strength",
+          "direction": "official",
+          "reasons": [
+            "control-day-master-official"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "ready",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "no-active-climate-need",
+        "strength-three-way-unranked"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "火",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "土",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "金",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 3,
+        "climate": 0
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-007",
+        "RES-013",
+        "RES-016",
+        "RES-020",
+        "RES-023",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-034",
+        "RES-037",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "甲寅 甲寅 甲子 unknown. strength-only 火土金. three-way unranked."
+    },
+    {
+      "caseId": "res-case-4-climate-only",
+      "group": "needResolution-test",
+      "covers": [
+        "climate-only",
+        "strength-unresolved-plus-climate",
+        "hour-unknown"
+      ],
+      "note": "庚子 己未 辛卯 unknown. climate-only 水. Strength unresolved.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "relationPattern": "climate-only",
+      "status": "single-axis",
+      "supportedElements": [],
+      "singleAxisElements": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "水",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-008",
+        "RES-013",
+        "RES-016",
+        "RES-020",
+        "RES-023",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "庚子 己未 辛卯 unknown. climate-only 水. Strength unresolved."
+    },
+    {
+      "caseId": "res-case-5-partial-overlap",
+      "group": "needResolution-test",
+      "covers": [
+        "partial-overlap",
+        "hour-unknown"
+      ],
+      "note": "甲酉 庚酉 甲酉 unknown. supported 水, deferred 木.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [
+        {
+          "element": "木",
+          "source": "strength",
+          "direction": "peer",
+          "reasons": [
+            "strengthen-day-master-peer"
+          ],
+          "status": "candidate",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true
+        },
+        {
+          "element": "水",
+          "source": "strength",
+          "direction": "resource",
+          "reasons": [
+            "strengthen-day-master-resource"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "relationPattern": "partial-overlap",
+      "status": "convergent",
+      "supportedElements": [
+        {
+          "element": "水",
+          "supportSources": [
+            "strength",
+            "climate"
+          ],
+          "supportReasons": [
+            [
+              "strengthen-day-master-resource"
+            ],
+            [
+              "climate-moisture-dry"
+            ]
+          ]
+        }
+      ],
+      "singleAxisElements": [],
+      "deferredElements": [
+        {
+          "element": "木",
+          "source": "strength",
+          "direction": "peer",
+          "reasons": [
+            "strengthen-day-master-peer"
+          ],
+          "status": "candidate",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true
+        }
+      ],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "ready",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "deferred-strength-only-element"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "木",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true
+        },
+        {
+          "element": "水",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 2,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-010",
+        "RES-014",
+        "RES-016",
+        "RES-017",
+        "RES-018",
+        "RES-019",
+        "RES-021",
+        "RES-022",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-035",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "甲酉 庚酉 甲酉 unknown. supported 水, deferred 木."
+    },
+    {
+      "caseId": "res-case-6-disjoint",
+      "group": "needResolution-test",
+      "covers": [
+        "disjoint",
+        "hour-unknown"
+      ],
+      "note": "庚申 己丑 乙丑 unknown. Strength 木水 vs Climate 火.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "丑"
+        },
+        "day": {
+          "stem": "乙",
+          "branch": "丑"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [
+        {
+          "element": "木",
+          "source": "strength",
+          "direction": "peer",
+          "reasons": [
+            "strengthen-day-master-peer"
+          ],
+          "status": "candidate",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true
+        },
+        {
+          "element": "水",
+          "source": "strength",
+          "direction": "resource",
+          "reasons": [
+            "strengthen-day-master-resource"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "relationPattern": "disjoint",
+      "status": "competing",
+      "supportedElements": [],
+      "singleAxisElements": [],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [
+          {
+            "element": "木",
+            "source": "strength",
+            "direction": "peer",
+            "reasons": [
+              "strengthen-day-master-peer"
+            ],
+            "status": "candidate",
+            "existingPresence": "unrooted-visible",
+            "alreadyPresent": true
+          },
+          {
+            "element": "水",
+            "source": "strength",
+            "direction": "resource",
+            "reasons": [
+              "strengthen-day-master-resource"
+            ],
+            "status": "candidate",
+            "existingPresence": "hidden-only",
+            "alreadyPresent": true
+          }
+        ],
+        "climate": [
+          {
+            "element": "火",
+            "source": "climate",
+            "direction": "climate",
+            "reasons": [
+              "climate-temperature-cold"
+            ],
+            "status": "candidate",
+            "existingPresence": "absent",
+            "alreadyPresent": false
+          }
+        ]
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "ready",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "competing-axes"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "木",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true
+        },
+        {
+          "element": "水",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        },
+        {
+          "element": "火",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 2,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-011",
+        "RES-015",
+        "RES-016",
+        "RES-020",
+        "RES-024",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-036",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "庚申 己丑 乙丑 unknown. Strength 木水 vs Climate 火."
+    },
+    {
+      "caseId": "res-case-7-hour-confirmed-climate-only",
+      "group": "needResolution-test",
+      "covers": [
+        "climate-only",
+        "hour-confirmed",
+        "strength-unresolved-plus-climate"
+      ],
+      "note": "甲辰 丙午 丁酉 庚申. hour confirmed. climate-only still blocked.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": {
+          "stem": "庚",
+          "branch": "申"
+        }
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "relationPattern": "climate-only",
+      "status": "single-axis",
+      "supportedElements": [],
+      "singleAxisElements": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "complete",
+        "climate": "complete"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "水",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-008",
+        "RES-013",
+        "RES-016",
+        "RES-020",
+        "RES-023",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047"
+      ],
+      "notes": "甲辰 丙午 丁酉 庚申. hour confirmed. climate-only still blocked."
+    },
+    {
+      "caseId": "res-case-8-strength-unresolved-climate-cold",
+      "group": "needResolution-regression",
+      "covers": [
+        "climate-only",
+        "strength-unresolved-plus-climate",
+        "hour-unknown"
+      ],
+      "note": "甲寅 辛亥 庚子 unknown. Strength null + Climate 火.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "relationPattern": "climate-only",
+      "status": "single-axis",
+      "supportedElements": [],
+      "singleAxisElements": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved"
+      ],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "火",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-008",
+        "RES-013",
+        "RES-016",
+        "RES-020",
+        "RES-023",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "甲寅 辛亥 庚子 unknown. Strength null + Climate 火."
+    },
+    {
+      "caseId": "res-case-9-climate-axis-unresolved",
+      "group": "needResolution-regression",
+      "covers": [
+        "climate-axis-unresolved",
+        "no-candidates",
+        "hour-confirmed"
+      ],
+      "note": "戊辰 辛酉 庚申 壬午. Climate axis-unresolved. hour confirmed.",
+      "source": "existing-chart",
+      "pillars": {
+        "year": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "hour": {
+          "stem": "壬",
+          "branch": "午"
+        }
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "relationPattern": "no-candidates",
+      "status": "indeterminate",
+      "supportedElements": [],
+      "singleAxisElements": [],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "unresolved",
+        "climate": "axis-unresolved"
+      },
+      "certainty": {
+        "strength": "complete",
+        "climate": "complete"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [
+        "strength-axis-unresolved",
+        "climate-axis-unresolved"
+      ],
+      "counterSignals": [],
+      "elementStates": [],
+      "originalCandidateCounts": {
+        "strength": 0,
+        "climate": 0
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-006",
+        "RES-012",
+        "RES-016",
+        "RES-020",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-032",
+        "RES-033",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047"
+      ],
+      "notes": "戊辰 辛酉 庚申 壬午. Climate axis-unresolved. hour confirmed."
+    },
+    {
+      "caseId": "res-case-10-exact-overlap-injected",
+      "group": "needResolution-injected",
+      "covers": [
+        "exact-overlap"
+      ],
+      "note": "주입 단위 테스트. 기존 만세력 fixture 없음. exact-overlap 水. winner 없음.",
+      "source": "injected-needSet",
+      "strengthCandidates": [
+        {
+          "element": "水",
+          "source": "strength",
+          "direction": "resource",
+          "reasons": [
+            "strengthen-day-master-resource"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "relationPattern": "exact-overlap",
+      "status": "convergent",
+      "supportedElements": [
+        {
+          "element": "水",
+          "supportSources": [
+            "strength",
+            "climate"
+          ],
+          "supportReasons": [
+            [
+              "strengthen-day-master-resource"
+            ],
+            [
+              "climate-moisture-dry"
+            ]
+          ]
+        }
+      ],
+      "singleAxisElements": [],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [],
+      "axisStatus": {
+        "strength": "ready",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [],
+      "counterSignals": [],
+      "elementStates": [
+        {
+          "element": "水",
+          "existingPresence": "absent",
+          "alreadyPresent": false
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 1,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-009",
+        "RES-014",
+        "RES-016",
+        "RES-017",
+        "RES-018",
+        "RES-019",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048"
+      ],
+      "notes": "주입 단위 테스트. 기존 만세력 fixture 없음. exact-overlap 水. winner 없음."
+    },
+    {
+      "caseId": "res-case-11-suppressed-shared-injected",
+      "group": "needResolution-injected",
+      "covers": [
+        "suppressedShared"
+      ],
+      "note": "주입 단위 테스트. 기존 만세력 fixture 없음. Strength suppressed 火 ∩ Climate 火.",
+      "source": "injected-needSet",
+      "strengthCandidates": [
+        {
+          "element": "火",
+          "source": "strength",
+          "direction": "output",
+          "reasons": [
+            "drain-day-master-output",
+            "already-established-relation"
+          ],
+          "status": "suppressed",
+          "existingPresence": "rooted-visible",
+          "alreadyPresent": true
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "rooted-visible",
+          "alreadyPresent": true
+        }
+      ],
+      "relationPattern": "climate-only",
+      "status": "single-axis",
+      "supportedElements": [],
+      "singleAxisElements": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "rooted-visible",
+          "alreadyPresent": true
+        }
+      ],
+      "deferredElements": [],
+      "competingElementsByAxis": {
+        "strength": [],
+        "climate": []
+      },
+      "suppressedSharedElements": [
+        "火"
+      ],
+      "axisStatus": {
+        "strength": "ready",
+        "climate": "ready"
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "policyGaps": [],
+      "decisionBlockedBy": [],
+      "counterSignals": [
+        {
+          "element": "火",
+          "source": "strength",
+          "reason": "already-established-relation"
+        }
+      ],
+      "elementStates": [
+        {
+          "element": "火",
+          "existingPresence": "rooted-visible",
+          "alreadyPresent": true
+        }
+      ],
+      "originalCandidateCounts": {
+        "strength": 1,
+        "climate": 1
+      },
+      "triggeredRules": [
+        "RES-001",
+        "RES-002",
+        "RES-003",
+        "RES-004",
+        "RES-005",
+        "RES-008",
+        "RES-013",
+        "RES-016",
+        "RES-020",
+        "RES-023",
+        "RES-025",
+        "RES-026",
+        "RES-027",
+        "RES-028",
+        "RES-029",
+        "RES-030",
+        "RES-031",
+        "RES-038",
+        "RES-039",
+        "RES-040",
+        "RES-041",
+        "RES-042",
+        "RES-043",
+        "RES-044",
+        "RES-045",
+        "RES-046",
+        "RES-047",
+        "RES-048",
+        "RES-049"
+      ],
+      "notes": "주입 단위 테스트. 기존 만세력 fixture 없음. Strength suppressed 火 ∩ Climate 火."
+    }
+  ]
+}

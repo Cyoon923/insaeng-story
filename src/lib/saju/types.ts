@@ -163,6 +163,29 @@ export type ShiShen = (typeof SHI_SHEN)[number];
 export type SupportShiShen = "비견" | "겁재" | "편인" | "정인";
 export type PressureShiShen = "식신" | "상관" | "편재" | "정재" | "편관" | "정관";
 
+/** Diagnostic only: support-side source group (no weight / no decideDirection input). */
+export type SupportSourceKind = "peer" | "resource";
+/** Diagnostic only: pressure-side source group (no weight / no decideDirection input). */
+export type PressureSourceKind = "output" | "wealth" | "officer";
+
+/** Presence flags per source kind — observation meta, not a score. */
+export type StrengthSourcePresence = {
+  rootedVisible: boolean;
+  unrootedVisible: boolean;
+};
+
+/**
+ * Preserves peer/resource and output/wealth/officer distinctions inside support/pressure.
+ * Must not feed decideDirection; equal-weight assumptions stay explicit and unused here.
+ */
+export type StrengthSourceBreakdown = {
+  peer: StrengthSourcePresence;
+  resource: StrengthSourcePresence;
+  output: StrengthSourcePresence;
+  wealth: StrengthSourcePresence;
+  officer: StrengthSourcePresence;
+};
+
 export type StrengthStemSlot = "year" | "month" | "hour";
 
 export type StrengthRelationItem = {
@@ -227,7 +250,24 @@ export type StrengthEvidence = {
 export type StrengthCertainty = "complete" | "partial";
 export type StrengthResolution = "clear-direction" | "mixed" | "unresolved";
 export type StrengthDirectionCandidate = "leaning-strong" | "mixed" | "leaning-weak" | null;
+/** Diagnostic only: leaning direction under hour-unknown remains provisional (not fed to decideDirection/Need). */
+export type StrengthDirectionSensitivity = "hour-unknown-provisional" | null;
 export type RootQuality = "clear" | "present" | "shallow" | "absent";
+export type MixedStrengthPattern =
+  | "strong-base-with-pressure"
+  | "weak-season-with-support"
+  | "weak-season-root-under-pressure"
+  | "shallow-root-under-pressure"
+  | "help-season-absent-root"
+  | "neutral-season-conflict"
+  | "other-mixed";
+export type MixedConflictLevel = "visible-visible" | "seasonal-visible" | "root-visible" | "multi-axis";
+export type UnresolvedStrengthReason =
+  | "seasonal-phase-insufficient"
+  | "only-unrooted-visible-evidence"
+  | "hidden-relations-conflict"
+  | "insufficient-visible-direction"
+  | "hour-unknown-sensitive";
 export type StrengthSideKind = "seasonal" | "root" | "visible-support" | "visible-pressure";
 export type StrengthSideQuality =
   | SeasonPhase
@@ -262,14 +302,24 @@ export type StrengthSummary = {
   certainty: StrengthCertainty;
   resolution: StrengthResolution;
   directionCandidate: StrengthDirectionCandidate;
+  /**
+   * Diagnostic: hour unknown + leaning-* means direction may change if hour is known.
+   * Not used by decideDirection, resolution, certainty, or Need.
+   */
+  directionSensitivity: StrengthDirectionSensitivity;
   seasonalPhase: SeasonPhase;
   rootQuality: RootQuality;
   strongSideEvidence: StrengthSideEvidenceItem[];
   weakSideEvidence: StrengthSideEvidenceItem[];
   hiddenSupportNotes: HiddenRelationNote[];
   hiddenPressureNotes: HiddenRelationNote[];
+  /** Diagnostic source-type presence inside support/pressure; not used by decideDirection. */
+  sourceBreakdown: StrengthSourceBreakdown;
   conflicts: string[];
   unresolvedReasons: string[];
+  mixedPattern: MixedStrengthPattern | null;
+  mixedConflictLevel: MixedConflictLevel | null;
+  unresolvedStrengthReasons: UnresolvedStrengthReason[];
   omittedSlots: PillarSlot[];
 };
 
@@ -352,9 +402,85 @@ export type NeedCandidate = {
   evidenceRefs: string[];
 };
 
+export type ClimateCounterSignal = {
+  element: Element;
+  reason: string;
+  evidenceRefs: string[];
+};
+
 export type NeedCandidateSet = {
   strengthNeedCandidates: NeedCandidate[];
   climateNeedCandidates: NeedCandidate[];
+  climateCounterSignals: ClimateCounterSignal[];
   strengthNeedStatus: StrengthNeedStatus;
   climateNeedStatus: ClimateNeedStatus;
+};
+
+export type NeedRelationPattern =
+  | "no-candidates"
+  | "strength-only"
+  | "climate-only"
+  | "exact-overlap"
+  | "partial-overlap"
+  | "disjoint";
+
+export type NeedResolutionStatus = "convergent" | "single-axis" | "competing" | "indeterminate";
+
+export type NeedPolicyGap = "mixed-strength-resolution" | "unresolved-strength-direction";
+
+export type NeedDecisionBlocker =
+  | "strength-axis-unresolved"
+  | "climate-axis-unresolved"
+  | "no-active-climate-need"
+  | "deferred-strength-only-element"
+  | "competing-axes"
+  | "strength-three-way-unranked";
+
+export type NeedSupportedElement = {
+  element: Element;
+  supports: NeedCandidate[];
+};
+
+export type NeedCompetingElementsByAxis = {
+  strength: NeedCandidate[];
+  climate: NeedCandidate[];
+};
+
+export type NeedCounterSignal = {
+  element: Element;
+  source: NeedSource;
+  reason: string;
+};
+
+export type NeedElementState = {
+  element: Element;
+  existingPresence: ElementPresenceKind;
+  alreadyPresent: boolean;
+};
+
+export type NeedResolutionCertainty = {
+  strength: StrengthCertainty;
+  climate: ClimateCertainty;
+};
+
+export type NeedResolution = {
+  status: NeedResolutionStatus;
+  relationPattern: NeedRelationPattern;
+  supportedElements: NeedSupportedElement[];
+  singleAxisElements: NeedCandidate[];
+  strengthOnlyElements: NeedCandidate[];
+  climateOnlyElements: NeedCandidate[];
+  competingElementsByAxis: NeedCompetingElementsByAxis;
+  deferredElements: NeedCandidate[];
+  suppressedSharedElements: Element[];
+  counterSignals: NeedCounterSignal[];
+  elementStates: NeedElementState[];
+  strengthAxisStatus: StrengthNeedStatus;
+  climateAxisStatus: ClimateNeedStatus;
+  certainty: NeedResolutionCertainty;
+  policyGaps: NeedPolicyGap[];
+  decisionBlockedBy: NeedDecisionBlocker[];
+  reasons: string[];
+  originalStrengthCandidates: NeedCandidate[];
+  originalClimateCandidates: NeedCandidate[];
 };

@@ -1,0 +1,291 @@
+{
+  "set": "wave1-literature-final-audit",
+  "status": "literature-final-audit-complete",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "freezeStatusUnchanged": true,
+  "priorBatchVerdictsUnchanged": true,
+  "expertAnswersGenerated": 0,
+  "wave2Started": false,
+  "note": "Rollup audit of Wave 1 BOTH literature batches 1–6 only. No engine/rule/freeze changes. No expert answers. No Wave 2.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-validation.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-inventory.json",
+    "wave1-literature-validation/batch-1/wave1-batch-1-evidence-hardening-inventory.json",
+    "wave1-literature-validation/batch-2/wave1-batch-2-literature-inventory.json",
+    "wave1-literature-validation/batch-3/wave1-batch-3-literature-inventory.json",
+    "wave1-literature-validation/batch-4/wave1-batch-4-literature-inventory.json",
+    "wave1-literature-validation/batch-5/wave1-batch-5-literature-inventory.json",
+    "wave1-literature-validation/batch-6/wave1-batch-6-literature-inventory.json"
+  ],
+  "coverage": {
+    "wave1BothExpected": 19,
+    "wave1BothJudged": 19,
+    "missingRuleIds": [],
+    "extraRuleIds": [],
+    "groups": [
+      {
+        "groupId": "W1-G1-SHISHEN-SIDE",
+        "batch": 1,
+        "ruleIds": ["STR-010", "STR-011"]
+      },
+      {
+        "groupId": "W1-G2-SEASON-PHASE",
+        "batch": 2,
+        "ruleIds": ["STR-022", "STR-024"]
+      },
+      {
+        "groupId": "W1-G3-ROOT-DEPTH",
+        "batch": 3,
+        "ruleIds": ["STR-030-clear", "STR-030-present", "STR-030-shallow"]
+      },
+      {
+        "groupId": "W1-G4-MONTH-CLIMATE",
+        "batch": 4,
+        "ruleIds": [
+          "CLI-002",
+          "CLI-003a",
+          "CLI-003b",
+          "CLI-003c",
+          "CLI-003d",
+          "CLI-004"
+        ]
+      },
+      {
+        "groupId": "W1-G5-BRANCH-FIRE-WATER",
+        "batch": 5,
+        "ruleIds": ["CLI-011", "CLI-012"]
+      },
+      {
+        "groupId": "W1-G6-CLIMATE-ADJUST",
+        "batch": 6,
+        "ruleIds": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"]
+      }
+    ]
+  },
+  "counts": {
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 9,
+    "CONTESTED": 10,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0,
+    "expertStillRequired": 19
+  },
+  "auditChecks": {
+    "mdInventoryVerdictMatch": true,
+    "preservedAcrossBatchesConsistent": true,
+    "noSupportedPromotion": true,
+    "contestedNotConfusedWithInsufficientEvidence": true,
+    "literatureSeparatedFromExpert": true,
+    "noNewDependenciesInvented": true,
+    "upstreamUncertaintyNotOverclaimedDownstream": true,
+    "notes": [
+      "CLI-002 CONTESTED blocks G6 SUPPORTED; CLI-018 PARTIALLY-SUPPORTED is direction-only, not table closure",
+      "Batch 1 uses verdicts[].literatureEvidenceVerdict; batches 2–6 use rules[].literatureVerdict — values agree"
+    ]
+  },
+  "rules": [
+    {
+      "ruleId": "STR-010",
+      "batch": 1,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-011",
+      "batch": 1,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-022",
+      "batch": 2,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-024",
+      "batch": 2,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-030-clear",
+      "batch": 3,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-030-present",
+      "batch": 3,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-030-shallow",
+      "batch": 3,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-002",
+      "batch": 4,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-003a",
+      "batch": 4,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-003b",
+      "batch": 4,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-003c",
+      "batch": 4,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-003d",
+      "batch": 4,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-004",
+      "batch": 4,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-011",
+      "batch": 5,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-012",
+      "batch": 5,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-018",
+      "batch": 6,
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-019",
+      "batch": 6,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-036",
+      "batch": 6,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "CLI-037",
+      "batch": 6,
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true
+    }
+  ],
+  "unresolved": {
+    "batch1": [
+      "W1B1-U1 세력 분류와 용신/격국 분류가 같은 십신 라벨에서 수렴하지 않음",
+      "W1B1-U2 편인=生氣 vs 倒食 해식과 엔진 support의 양립 여부 미결",
+      "W1B1-U3 인쇄본 페이지·교감 미실시",
+      "W1B1-U4 A1 본문 미열람"
+    ],
+    "batch2": [
+      "W1B2-U1-season-phase-table-values-are-STR-004-FACT",
+      "W1B2-U2-STR-026-027-pair-not-in-batch-2",
+      "W1B2-U3-ditian-sui-yueling-parenthetical-collation",
+      "W1B2-U4-expert-weighting-of-seasonal-side-evidence"
+    ],
+    "batch3": [
+      "W1B3-U1-STR-005-hit-table-not-reclosed",
+      "W1B3-U2-three-depth-axes-unreconciled",
+      "W1B3-U3-zhongqi-yuqi-collation",
+      "W1B3-U4-STR-031-033-shallow-downstream",
+      "W1B3-U5-month-command-vs-all-slot-quality"
+    ],
+    "batch4": [
+      "W1B4-U1-CLI-001-FACT-is-not-CLI-002-value-validation",
+      "W1B4-U2-yuanzhu-yinyang-branch-vs-season-cluster",
+      "W1B4-U3-qiongtong-day-master-dependence-not-mapped-to-engine",
+      "W1B4-U4-moisture-balanced-dead-branch-not-filled-from-literature",
+      "W1B4-U5-G6-CLI-018-019-not-judged"
+    ],
+    "batch5": [
+      "W1B5-U1-benqi-list-is-not-tiaohou-collection-table",
+      "W1B5-U2-sanhe-changsheng-vs-benqi-branch-factor",
+      "W1B5-U3-hidden-stem-fire-water-weight-is-CLI-024-expert",
+      "W1B5-U4-CLI-014-month-skip-unjudged",
+      "W1B5-U5-quality-and-G6-unjudged"
+    ],
+    "batch6": [
+      "W1B6-U1-CLI-002-contested-adjustment-target",
+      "W1B6-U2-quality-gate-is-expert",
+      "W1B6-U3-CLI-032-CLI-054-not-judged",
+      "W1B6-U4-earth-as-moisture-factor-vs-CLI-013",
+      "W1B6-U5-daymaster-month-tiaohou-not-mapped"
+    ],
+    "supersededByLaterBatch": [
+      {
+        "id": "W1B4-U5-G6-CLI-018-019-not-judged",
+        "supersededBy": "batch-6",
+        "note": "G6 literature judged; issue text remains in batch-4 inventory historically"
+      }
+    ],
+    "partiallyOpenAfterBatch6": [
+      {
+        "id": "W1B5-U5-quality-and-G6-unjudged",
+        "note": "G6 literature done; CLI-021+ quality remains EXPERT-unjudged"
+      }
+    ]
+  },
+  "dependencySummary": {
+    "g4UpstreamOfG6": true,
+    "cli002Contested": true,
+    "g6NotSupportedBecauseOfCli002": true,
+    "g5NotOfficialUpstreamOfG6": true,
+    "newDependenciesInventedInWave1Literature": false
+  },
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false
+}

@@ -1,0 +1,1245 @@
+{
+  "set": "climate-rule-inventory",
+  "status": "structure-audited + conservative-policy-boundary-fixed + interpretive-layer-awaiting-validation",
+  "notFullyValidated": true,
+  "engineUnchanged": true,
+  "note": "원재료와 조후 해석을 분리한다. BASE_CLIMATE 표가 코드에 있다는 사실과 그 표가 명리적으로 검증됐다는 것을 구분한다. NeedCandidate 생성은 FACT가 아니다. climate-moisture-already-moist는 현재 코드에 없다.",
+  "forbiddenInClimateJudgment": [
+    "score",
+    "weight",
+    "rank",
+    "priority",
+    "winner",
+    "neededElement",
+    "finalElement",
+    "yongsin",
+    "heesin"
+  ],
+  "baseClimateTableInCode": {
+    "寅": {
+      "temperature": "balanced",
+      "moisture": "moist"
+    },
+    "卯": {
+      "temperature": "balanced",
+      "moisture": "moist"
+    },
+    "辰": {
+      "temperature": "balanced",
+      "moisture": "moist"
+    },
+    "巳": {
+      "temperature": "warm",
+      "moisture": "dry"
+    },
+    "午": {
+      "temperature": "warm",
+      "moisture": "dry"
+    },
+    "未": {
+      "temperature": "warm",
+      "moisture": "dry"
+    },
+    "申": {
+      "temperature": "balanced",
+      "moisture": "dry"
+    },
+    "酉": {
+      "temperature": "balanced",
+      "moisture": "dry"
+    },
+    "戌": {
+      "temperature": "balanced",
+      "moisture": "dry"
+    },
+    "亥": {
+      "temperature": "cold",
+      "moisture": "moist"
+    },
+    "子": {
+      "temperature": "cold",
+      "moisture": "moist"
+    },
+    "丑": {
+      "temperature": "cold",
+      "moisture": "moist"
+    }
+  },
+  "rules": [
+    {
+      "ruleId": "CLI-001",
+      "layer": "input",
+      "condition": "pillars.month.branch",
+      "output": "ClimateEvidence.monthBranch",
+      "evidenceUsed": [
+        "month pillar branch"
+      ],
+      "evidenceIgnored": [
+        "baseClimate 값의 명리 검증"
+      ],
+      "rationaleInCurrentEngine": "월지 글자를 그대로 복사",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence.test.ts"
+      ],
+      "notes": "월지 값 자체는 사실. 그 월지의 조후 분류는 CLI-002.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-002",
+      "layer": "lookup-baseClimate",
+      "condition": "monthBranch → BASE_CLIMATE[branch]",
+      "output": "BaseClimate { temperature, moisture }",
+      "evidenceUsed": [
+        "src/lib/saju/data/baseClimate.ts"
+      ],
+      "evidenceIgnored": [
+        "문헌·전문가 검증",
+        "대운/세운"
+      ],
+      "rationaleInCurrentEngine": "12월지 고정 표. 코드에 존재함 ≠ 명리 검증됨",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "engine-code-table-unverified",
+      "affectedFixtures": [
+        "climateEvidence.test.ts baseClimate"
+      ],
+      "notes": "HIGH-RISK. 표 lookup이라는 구현 형태만 FACT에 가깝고, 값 자체는 해석.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-003a",
+      "layer": "lookup-baseClimate",
+      "condition": "寅卯辰",
+      "output": "balanced + moist",
+      "evidenceUsed": [
+        "BASE_CLIMATE"
+      ],
+      "evidenceIgnored": [
+        "寅을 한난의 시작으로 보는 학파",
+        "辰을 별도 습토로 세분"
+      ],
+      "rationaleInCurrentEngine": "봄 클러스터. 辰을 寅卯와 같게 둠",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "cli-case-7-jin-month",
+        "cli-case-10-balanced-moist-in"
+      ],
+      "notes": "寅 balanced는 한난 중립. 전통 조후에서 인월을 한으로 보는 경우와 충돌 가능.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-003b",
+      "layer": "lookup-baseClimate",
+      "condition": "巳午未",
+      "output": "warm + dry",
+      "evidenceUsed": [
+        "BASE_CLIMATE"
+      ],
+      "evidenceIgnored": [
+        "未를 조토로 세분하는 별도 규칙"
+      ],
+      "rationaleInCurrentEngine": "여름 클러스터. 未=巳午와 동일",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "cli-case-4-gyeongja-gimi",
+        "s8-sin-mi-sang"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-003c",
+      "layer": "lookup-baseClimate",
+      "condition": "申酉戌",
+      "output": "balanced + dry",
+      "evidenceUsed": [
+        "BASE_CLIMATE"
+      ],
+      "evidenceIgnored": [
+        "戌을 조토로 세분하는 별도 규칙"
+      ],
+      "rationaleInCurrentEngine": "가을 클러스터. 戌=申酉와 동일",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "cli-case-5-gapyu-empty",
+        "cli-case-8-sul-month"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-003d",
+      "layer": "lookup-baseClimate",
+      "condition": "亥子丑",
+      "output": "cold + moist",
+      "evidenceUsed": [
+        "BASE_CLIMATE"
+      ],
+      "evidenceIgnored": [
+        "丑을 습토로 세분하는 별도 규칙"
+      ],
+      "rationaleInCurrentEngine": "겨울 클러스터. 丑=亥子와 동일",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "cli-case-1-gimo-bingja-muo",
+        "cli-case-6-chuk-cold-moist",
+        "s10-byeong-chuk-hyu"
+      ],
+      "notes": "현재 표에 warm+moist 조합은 없음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-004",
+      "layer": "lookup-baseClimate",
+      "condition": "辰未戌丑을 네 개의 고유 Climate로 두지 않음",
+      "output": "계절 클러스터 값만 사용",
+      "evidenceUsed": [
+        "BASE_CLIMATE"
+      ],
+      "evidenceIgnored": [
+        "earthContext",
+        "습토/조토 전용 factor"
+      ],
+      "rationaleInCurrentEngine": "토월도 인접 계절 조후를 공유",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "s7",
+        "s8",
+        "s9",
+        "s10"
+      ],
+      "notes": "새 earthContext는 만들지 않음. lookup 구조이지 토 전용 해석 모듈이 아님.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-009",
+      "layer": "collection",
+      "condition": "stem ∈ {丙, 丁}",
+      "output": "ClimateElement 火",
+      "evidenceUsed": [
+        "FIRE_STEMS"
+      ],
+      "evidenceIgnored": [
+        "戊己토",
+        "寅중 丙을 천간으로 쓰지 않으면 월지 火 아님"
+      ],
+      "rationaleInCurrentEngine": "천간 火만 Climate stem",
+      "validationClass": "FOUNDATIONAL",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 1–2"
+      ],
+      "notes": "丙丁=火는 기본 오행 lookup. Climate factor로 쓰는 범위는 CLI-013과 결합.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-010",
+      "layer": "collection",
+      "condition": "stem ∈ {壬, 癸}",
+      "output": "ClimateElement 水",
+      "evidenceUsed": [
+        "WATER_STEMS"
+      ],
+      "evidenceIgnored": [
+        "申중 壬을 월지 중복에서 제외하는 규칙"
+      ],
+      "rationaleInCurrentEngine": "천간 水만 Climate stem",
+      "validationClass": "FOUNDATIONAL",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 3"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-011",
+      "layer": "collection",
+      "condition": "branch ∈ {巳, 午}",
+      "output": "ClimateElement 火 (layer=branch)",
+      "evidenceUsed": [
+        "FIRE_BRANCHES"
+      ],
+      "evidenceIgnored": [
+        "寅=木지, 寅중丙은 hiddenStem으로만 가능"
+      ],
+      "rationaleInCurrentEngine": "대표 화지 巳午만 branch 火",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "climateEvidence CASE 1 day/hour 午"
+      ],
+      "notes": "지장간 丙/丁은 CLI-012-hidden. branch 火는 巳午만.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-012",
+      "layer": "collection",
+      "condition": "branch ∈ {亥, 子}",
+      "output": "ClimateElement 水 (layer=branch)",
+      "evidenceUsed": [
+        "WATER_BRANCHES"
+      ],
+      "evidenceIgnored": [
+        "辰중 癸를 branch 水로 치지 않음"
+      ],
+      "rationaleInCurrentEngine": "대표 수지 亥子만 branch 水",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "climateEvidence CASE 3 day 子",
+        "CASE 4 year 子"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-013",
+      "layer": "collection",
+      "condition": "木金土 stem/branch",
+      "output": "ClimateFactor 생성 안 함",
+      "evidenceUsed": [
+        "climateElementOfStem/Branch null"
+      ],
+      "evidenceIgnored": [
+        "토를 조후 factor로 쓰는 학파"
+      ],
+      "rationaleInCurrentEngine": "Climate factor는 火/水만",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 5 甲酉"
+      ],
+      "notes": "Earth Need/factor 없음. 확정 정책.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-014",
+      "layer": "collection",
+      "condition": "slot===month && layer!==stem",
+      "output": "월지 본기·월지 지장간 factor 생략, 월간만 유지",
+      "evidenceUsed": [
+        "collectClimateEvidence skip"
+      ],
+      "evidenceIgnored": [
+        "월지 火/水를 quality에 직접 넣음"
+      ],
+      "rationaleInCurrentEngine": "월지 조후는 baseClimate로 이미 반영. 이중 계산 방지",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 1, 2, 3"
+      ],
+      "notes": "월지 午/子는 factor가 아니지만 analyzeElementPresence에는 남음. quality substantial 경로와 겹칠 수 있음(CLI-022).",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-015",
+      "layer": "hour",
+      "condition": "pillars.hour==='unknown'",
+      "output": "hour materials 없음, omittedSlots=['hour'], includedSlots=년월일",
+      "evidenceUsed": [
+        "collectElementMaterials",
+        "collectClimateEvidence"
+      ],
+      "evidenceIgnored": [
+        "후보 시주",
+        "정오",
+        "12시 평균"
+      ],
+      "rationaleInCurrentEngine": "시간 미상은 생략. 가짜 시주 없음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 3–5"
+      ],
+      "notes": "Strength STR-007과 같은 보수 정책.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-016",
+      "layer": "hour",
+      "condition": "hour unknown",
+      "output": "시주 후보/평균 Climate 없음",
+      "evidenceUsed": [
+        "hour==='unknown' 분기만"
+      ],
+      "evidenceIgnored": [
+        "listHourCandidates"
+      ],
+      "rationaleInCurrentEngine": "코드에 후보 시주 Climate 경로 없음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 3–5"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-017",
+      "layer": "collection",
+      "condition": "각 Fire/Water factor.presence",
+      "output": "analyzeElementPresence(pillars, 火|水).presence를 모든 해당 factor에 복사",
+      "evidenceUsed": [
+        "analyzeElementPresence"
+      ],
+      "evidenceIgnored": [
+        "slot-local presence"
+      ],
+      "rationaleInCurrentEngine": "오행 단위 presence. factor마다 다시 세지 않음",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "climateEvidence CASE 1 presence rooted-visible"
+      ],
+      "notes": "표시 중복은 허용. quality는 이 presence를 boolean으로 재사용(CLI-022).",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-018",
+      "layer": "role",
+      "condition": "base temperature cold/warm/balanced × 火/水",
+      "output": "temperatureRole mitigation|reinforcement|contextual",
+      "evidenceUsed": [
+        "temperatureRole()"
+      ],
+      "evidenceIgnored": [
+        "adjusted 값",
+        "Need"
+      ],
+      "rationaleInCurrentEngine": "cold: 火 mit / 水 reinf. warm: 火 reinf / 水 mit. balanced: contextual",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "climateEvidence CASE 1 vs CASE 2"
+      ],
+      "notes": "한난을 火水로 조절한다는 조후 방향 자체.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-019",
+      "layer": "role",
+      "condition": "base moisture dry/moist/balanced × 火/水",
+      "output": "moistureRole mitigation|reinforcement|contextual",
+      "evidenceUsed": [
+        "moistureRole()"
+      ],
+      "evidenceIgnored": [
+        "temperatureRole 결과"
+      ],
+      "rationaleInCurrentEngine": "dry: 水 mit / 火 reinf. moist: 火 mit / 水 reinf. balanced: contextual",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "climateEvidence CASE 1 火 moistureRole=mitigation"
+      ],
+      "notes": "temperatureRole과 별도 함수. 같은 火가 한난·조습에서 동시에 mit가 될 수 있음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-020",
+      "layer": "quality",
+      "condition": "해당 오행 factor 0개",
+      "output": "absent",
+      "evidenceUsed": [
+        "qualityOf items.length===0"
+      ],
+      "evidenceIgnored": [
+        "월지 본기 火/水 (CLI-014로 빠진 것)"
+      ],
+      "rationaleInCurrentEngine": "수집된 factor가 없으면 absent",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 5"
+      ],
+      "notes": "월지 子의 水는 factor가 아니므로 子월 Water absent가 가능(CASE 1).",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-021",
+      "layer": "quality",
+      "condition": "visible 丙丁/壬癸 stem AND factors 안에 巳午/亥子 branch",
+      "output": "clear",
+      "evidenceUsed": [
+        "stem layer + representative branch layer"
+      ],
+      "evidenceIgnored": [
+        "factor 개수",
+        "정/편 가중"
+      ],
+      "rationaleInCurrentEngine": "천간 + 대표지지가 동시에 보여야 clear",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "adjustedClimate CASE 1 Fire clear"
+      ],
+      "notes": "quality 산정. 효과를 얼마나 주는지는 CLI-032.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-022",
+      "layer": "quality",
+      "condition": "visible stem AND (hiddenStem factor OR presence∈{rooted-visible, hidden-only})",
+      "output": "substantial",
+      "evidenceUsed": [
+        "stem",
+        "hiddenStem",
+        "element presence"
+      ],
+      "evidenceIgnored": [
+        "score"
+      ],
+      "rationaleInCurrentEngine": "투출은 있으나 대표지지 조합이 아니면 substantial",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "adjustedClimate CASE 2 Fire substantial",
+        "CASE 3 Fire substantial"
+      ],
+      "notes": "월지 통근이 presence에 남아 CLI-014 skip과 결합되면 substantial이 될 수 있음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-023",
+      "layer": "quality",
+      "condition": "visible stem only",
+      "output": "shallow",
+      "evidenceUsed": [
+        "stem layer"
+      ],
+      "evidenceIgnored": [
+        "hidden/root/branch"
+      ],
+      "rationaleInCurrentEngine": "나천간",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [],
+      "notes": "현재 필수 회귀 CASE에는 shallow 전용 명식이 없음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-024",
+      "layer": "quality",
+      "condition": "hiddenStem factor 있고 visible stem 없음",
+      "output": "hidden",
+      "evidenceUsed": [
+        "hiddenStem layer"
+      ],
+      "evidenceIgnored": [
+        "Earth hidden"
+      ],
+      "rationaleInCurrentEngine": "지장간 火/水",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "adjustedClimate CASE 2/4 Water hidden"
+      ],
+      "notes": "hidden은 weak quality(CLI-033). 한 단계도 이동하지 않음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-025",
+      "layer": "quality",
+      "condition": "대표 또는 기타 branch 火/水, stem 없음, hiddenRoot 없음",
+      "output": "branch-only",
+      "evidenceUsed": [
+        "branch layer"
+      ],
+      "evidenceIgnored": [
+        "월지 branch (skip)"
+      ],
+      "rationaleInCurrentEngine": "지지 火/水만",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "adjustedClimate CASE 4 allows hidden|branch-only"
+      ],
+      "notes": "weak quality.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-026",
+      "layer": "quality",
+      "condition": "위 조건 미해당 but items.length>0",
+      "output": "hidden (fallback)",
+      "evidenceUsed": [
+        "qualityOf last return"
+      ],
+      "evidenceIgnored": [],
+      "rationaleInCurrentEngine": "잔여 버킷",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [],
+      "notes": "현재 수집 규칙상 도달이 드묾.",
+      "freezeStatus": "OPEN"
+    },
+    {
+      "ruleId": "CLI-027",
+      "layer": "adjust",
+      "condition": "buildAdjustedClimateSummary",
+      "output": "baseClimate는 evidence.baseClimate 복사, mutation 없음",
+      "evidenceUsed": [
+        "AdjustedClimateSummary.baseClimate"
+      ],
+      "evidenceIgnored": [
+        "adjusted 값을 base에 덮어쓰기"
+      ],
+      "rationaleInCurrentEngine": "원월지 조후와 보정 결과를 분리",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 1 base stays cold+moist"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-028",
+      "layer": "adjust-temperature",
+      "condition": "baseTemperature==='balanced'",
+      "output": "temperature resolved balanced. Fire/Water로 이동하지 않음",
+      "evidenceUsed": [
+        "base temperature only"
+      ],
+      "evidenceIgnored": [
+        "fireQuality로 warm/cold 생성"
+      ],
+      "rationaleInCurrentEngine": "중립 한난은 보정하지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate balanced temperature + Fire"
+      ],
+      "notes": "balanced → balanced만. 반대 극단 없음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-029",
+      "layer": "conflict",
+      "condition": "base T balanced AND fireQuality·waterQuality 둘 다 clear|substantial",
+      "output": "conflicts += both-fire-and-water-clear-or-substantial. value는 그대로 balanced",
+      "evidenceUsed": [
+        "isStrong fire/water"
+      ],
+      "evidenceIgnored": [
+        "score",
+        "unresolved로 전환"
+      ],
+      "rationaleInCurrentEngine": "노트만. 축을 닫지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [],
+      "notes": "conflict ≠ null value. rank 아님.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-030",
+      "layer": "adjust-polar",
+      "condition": "mitigation quality strong AND reinforcement quality strong",
+      "output": "status unresolved, value null, reason/conflict substantial-mitigation-and-reinforcement",
+      "evidenceUsed": [
+        "clear|substantial both sides"
+      ],
+      "evidenceIgnored": [
+        "어느 쪽이 더 강한지"
+      ],
+      "rationaleInCurrentEngine": "양쪽이 강하면 보정하지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 3"
+      ],
+      "notes": "점수 비교 없음. 한 축만 해당해도 그 축 value=null.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-031",
+      "layer": "adjust-polar",
+      "condition": "mitigation quality === substantial (reinforcement는 strong이 아님)",
+      "output": "unresolved, value null, substantial-fire|water-mitigation-needs-review",
+      "evidenceUsed": [
+        "substantial mit"
+      ],
+      "evidenceIgnored": [
+        "한 단계 이동"
+      ],
+      "rationaleInCurrentEngine": "substantial 완화는 과잉 판단 방지로 미결",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [],
+      "notes": "CASE 2 Fire substantial은 reinforcement라서 warm/dry가 유지됨. mitigation substantial일 때만 이 규칙.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-032",
+      "layer": "adjust-polar",
+      "condition": "mitigation quality === clear",
+      "output": "resolved value=balanced. 반대 극단으로 넘기지 않음",
+      "evidenceUsed": [
+        "clear mit"
+      ],
+      "evidenceIgnored": [
+        "clear를 warm/cold로 뒤집기"
+      ],
+      "rationaleInCurrentEngine": "한 단계만. cold→balanced, warm→balanced, moist→balanced, dry→balanced",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 1",
+        "극단 Fire/Water tests"
+      ],
+      "notes": "HIGH-RISK 해석과 결합: clear의 효과 크기를 한 단계로 고정한 정책.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-033",
+      "layer": "adjust-polar",
+      "condition": "mitigation quality ∈ {absent, hidden, shallow, branch-only}",
+      "output": "resolved, value=base 유지",
+      "evidenceUsed": [
+        "isWeakQuality"
+      ],
+      "evidenceIgnored": [
+        "hidden을 일부 완화로 쓰기"
+      ],
+      "rationaleInCurrentEngine": "약한 완화는 월지 조후를 바꾸지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 2, 4, 5"
+      ],
+      "notes": "reinforcement만 강하고 mit가 weak면 base 유지. reinforcement는 단독으로 극단을 더 밀지 않음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-034",
+      "layer": "adjust-polar",
+      "condition": "reinforcement quality",
+      "output": "단독으로는 축 값을 더 극단으로 이동시키지 않음. strong mit와 함께면 CLI-030",
+      "evidenceUsed": [
+        "adjustPolar reinforcementQuality"
+      ],
+      "evidenceIgnored": [
+        "가중치"
+      ],
+      "rationaleInCurrentEngine": "가세는 차단 조건이지 가산점이 아님",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 2 Fire substantial reinforcement"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-035",
+      "layer": "adjust-moisture",
+      "condition": "baseMoisture==='balanced'",
+      "output": "moisture resolved balanced",
+      "evidenceUsed": [
+        "base moisture"
+      ],
+      "evidenceIgnored": [
+        "Fire/Water"
+      ],
+      "rationaleInCurrentEngine": "온도 balanced와 대칭",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [],
+      "notes": "현재 BASE_CLIMATE에 moisture balanced 월지가 없어 이 분기는 표 기준으로 사실상 dead.",
+      "freezeStatus": "OPEN"
+    },
+    {
+      "ruleId": "CLI-036",
+      "layer": "adjust-moisture",
+      "condition": "base moist → adjustPolar(mit=Fire, reinf=Water)",
+      "output": "moist | balanced | unresolved",
+      "evidenceUsed": [
+        "fireQuality",
+        "waterQuality",
+        "same adjustPolar as cold"
+      ],
+      "evidenceIgnored": [
+        "Earth"
+      ],
+      "rationaleInCurrentEngine": "습은 火로 완화, 水로 가세",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "CASE 1 moist→balanced via Fire clear"
+      ],
+      "notes": "한난 보정과 같은 함수. Fire가 습을 얼마나 말리는지는 CLI-032 정책에 묶임.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-037",
+      "layer": "adjust-moisture",
+      "condition": "base dry → adjustPolar(mit=Water, reinf=Fire)",
+      "output": "dry | balanced | unresolved",
+      "evidenceUsed": [
+        "waterQuality",
+        "fireQuality"
+      ],
+      "evidenceIgnored": [
+        "Earth"
+      ],
+      "rationaleInCurrentEngine": "조는 水로 완화, 火로 가세",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "CASE 2 dry 유지",
+        "午월+亥子 Water clear → dry balanced"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-038",
+      "layer": "adjust",
+      "condition": "temperature와 moisture를 각각 adjustPolar",
+      "output": "두 축 독립 resolved/unresolved",
+      "evidenceUsed": [
+        "base T, base M, fireQuality, waterQuality"
+      ],
+      "evidenceIgnored": [
+        "한 축 결과를 다른 축 입력으로 재주입"
+      ],
+      "rationaleInCurrentEngine": "축 분리. 같은 quality를 두 번 쓸 수 있음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate independent T/M test"
+      ],
+      "notes": "점수 중복은 아님. 한 火 clear가 T와 M을 둘 다 balanced로 옮길 수 있음(CLI-054).",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-039",
+      "layer": "certainty",
+      "condition": "hourUnknown AND (fire or water quality substantial)",
+      "output": "unresolvedReasons += hour-unknown-may-change-climate-factors. 축 status는 바꾸지 않음",
+      "evidenceUsed": [
+        "hourUnknown",
+        "isSubstantial"
+      ],
+      "evidenceIgnored": [
+        "partial → 자동 unresolved"
+      ],
+      "rationaleInCurrentEngine": "경고 노트. 보정 확정을 취소하지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 3"
+      ],
+      "notes": "partial이어도 resolved 가능(CASE 4, 5).",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-040",
+      "layer": "certainty",
+      "condition": "hourUnknown ? partial : complete",
+      "output": "ClimateCertainty",
+      "evidenceUsed": [
+        "evidence.hourUnknown"
+      ],
+      "evidenceIgnored": [
+        "quality",
+        "Need"
+      ],
+      "rationaleInCurrentEngine": "입력 완전성. 방향이 아님",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "all adjustedClimate cases"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-041",
+      "layer": "need",
+      "condition": "adjusted temperature resolved cold",
+      "output": "火 Climate Need, reason climate-temperature-cold",
+      "evidenceUsed": [
+        "AdjustedClimateSummary.temperature"
+      ],
+      "evidenceIgnored": [
+        "baseClimate.temperature",
+        "raw counts"
+      ],
+      "rationaleInCurrentEngine": "한 축 상태에 오행 후보를 붙임",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "needCandidates CASE 6",
+        "cli-case-6-chuk-cold-moist"
+      ],
+      "notes": "상태 판정(CLI-032/033)과 분리. FACT 아님.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-042",
+      "layer": "need",
+      "condition": "adjusted temperature resolved warm",
+      "output": "水 Climate Need, reason climate-temperature-warm",
+      "evidenceUsed": [
+        "temperature.value"
+      ],
+      "evidenceIgnored": [
+        "baseClimate"
+      ],
+      "rationaleInCurrentEngine": "난 → 水",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "needCandidates CASE 4",
+        "cli-case-2"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-043",
+      "layer": "need",
+      "condition": "adjusted moisture resolved dry",
+      "output": "水 Climate Need, reason climate-moisture-dry",
+      "evidenceUsed": [
+        "moisture.value"
+      ],
+      "evidenceIgnored": [
+        "moist에서 水"
+      ],
+      "rationaleInCurrentEngine": "조 → 水",
+      "validationClass": "INTERPRETIVE",
+      "sourceStatus": "needs-expert-review",
+      "affectedFixtures": [
+        "needCandidates CASE 3–5"
+      ],
+      "notes": "",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-044",
+      "layer": "need",
+      "condition": "moisture moist 또는 moist 이유로 후보 생성 안 함",
+      "output": "climate-moisture-moist 없음. 土/火를 moisture로 새로 만들지 않음",
+      "evidenceUsed": [
+        "addClimate 호출 목록에 moist 없음"
+      ],
+      "evidenceIgnored": [
+        "문헌의 습토 용신"
+      ],
+      "rationaleInCurrentEngine": "이미 닫은 moist Need 정책",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "needCandidates CASE 6",
+        "cli-case-7",
+        "cli-case-10"
+      ],
+      "notes": "cold+moist에서 火는 temperature cold로만. balanced+moist는 후보 없음+ready. 재설계하지 않음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-045",
+      "layer": "need",
+      "condition": "temperature balanced 또는 moisture balanced",
+      "output": "그 축에서는 Climate Need 없음. 후보 공백 ≠ unresolved",
+      "evidenceUsed": [
+        "addClimate 조건"
+      ],
+      "evidenceIgnored": [
+        "baseClimate"
+      ],
+      "rationaleInCurrentEngine": "중립 축은 후보를 열지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "needCandidates CASE 1"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-046",
+      "layer": "need",
+      "condition": "축 unresolved",
+      "output": "그 축에서 후보 없음. climateNeedStatus unresolved 또는 axis-unresolved",
+      "evidenceUsed": [
+        "temperature/moisture.status"
+      ],
+      "evidenceIgnored": [
+        "baseClimate로 후보 생성"
+      ],
+      "rationaleInCurrentEngine": "미결 축은 Need를 억지로 열지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "cli-case-3"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-047",
+      "layer": "need",
+      "condition": "같은 Climate 오행이 여러 reason",
+      "output": "한 행으로 합치고 reasons[]에 추가",
+      "evidenceUsed": [
+        "climateByElement Map"
+      ],
+      "evidenceIgnored": [
+        "reason 개수=점수"
+      ],
+      "rationaleInCurrentEngine": "중복 행 방지. 점수 아님",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "needCandidates CASE 4 warm+dry Water"
+      ],
+      "notes": "reason 2개여도 우선순위 없음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-048",
+      "layer": "need",
+      "condition": "always",
+      "output": "Earth Climate Need 없음",
+      "evidenceUsed": [
+        "addClimate 火/水 only"
+      ],
+      "evidenceIgnored": [
+        "토 조후 용신"
+      ],
+      "rationaleInCurrentEngine": "확정 정책",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "all needCandidates"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-049",
+      "layer": "counterSignal",
+      "condition": "buildNeedCandidateSet return",
+      "output": "climateCounterSignals: [] 항상",
+      "evidenceUsed": [
+        "needCandidates.ts literal []"
+      ],
+      "evidenceIgnored": [
+        "climate-moisture-already-moist"
+      ],
+      "rationaleInCurrentEngine": "타입과 NeedResolution 전달 슬롯만 있음. 생성 로직 없음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "not-implemented",
+      "affectedFixtures": [
+        "needCandidates forbidden climateCounterSignals=[]"
+      ],
+      "notes": "설계안의 warm+moist counterSignal은 현재 코드에 없음. 후보 삭제도 없음. score/priority 아님. 빈 배열 전달만.",
+      "freezeStatus": "OPEN"
+    },
+    {
+      "ruleId": "CLI-050",
+      "layer": "need-status",
+      "condition": "T/M unresolved 개수",
+      "output": "both unresolved → unresolved; 하나만 → axis-unresolved; 둘 다 resolved → ready",
+      "evidenceUsed": [
+        "climateStatus()"
+      ],
+      "evidenceIgnored": [
+        "후보 유무로 unresolved를 만들지 않음"
+      ],
+      "rationaleInCurrentEngine": "balanced라 후보가 없어도 ready",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "needCandidates CASE 1 ready empty",
+        "cli-case-3 unresolved"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-051",
+      "layer": "need",
+      "condition": "Climate Need 입력",
+      "output": "AdjustedClimateSummary만 사용. baseClimate로 후보 생성 안 함",
+      "evidenceUsed": [
+        "buildAdjustedClimateSummary"
+      ],
+      "evidenceIgnored": [
+        "ClimateEvidence.baseClimate"
+      ],
+      "rationaleInCurrentEngine": "보정 후 상태만 Need에 연결",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 1 base cold but Need 없음 because adjusted balanced"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-052",
+      "layer": "need",
+      "condition": "reasons.length",
+      "output": "병합 기록만. 비교/가중 없음",
+      "evidenceUsed": [
+        "reasons array"
+      ],
+      "evidenceIgnored": [
+        "count as score"
+      ],
+      "rationaleInCurrentEngine": "개수는 점수가 아님",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 4 reasons 2"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-053",
+      "layer": "quality",
+      "condition": "qualityOf",
+      "output": "boolean existence. factor 개수로 단계를 늘리지 않음",
+      "evidenceUsed": [
+        "some()"
+      ],
+      "evidenceIgnored": [
+        "火 factor 5개 vs 1개"
+      ],
+      "rationaleInCurrentEngine": "중복 표시는 되나 효과는 quality 라벨 1회",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 1 여러 火 factor → clear 한 번"
+      ],
+      "notes": "같은 火가 stem/hidden/branch로 여러 factor가 되어도 adjustPolar는 fireQuality 한 값만 봄.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "CLI-054",
+      "layer": "adjust",
+      "condition": "cold+moist 또는 warm+dry",
+      "output": "같은 fireQuality/waterQuality가 T축과 M축에 각각 1회 적용",
+      "evidenceUsed": [
+        "two adjustPolar calls"
+      ],
+      "evidenceIgnored": [
+        "가산"
+      ],
+      "rationaleInCurrentEngine": "축 독립. 이중 점수 아님. 이중 효과는 있음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "CASE 1 Fire clear → T balanced AND M balanced"
+      ],
+      "notes": "중복 가산 점수는 없음. 다만 한 clear 火가 한난과 조습을 동시에 한 단계씩 옮김. 보고 대상.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "CLI-055",
+      "layer": "report",
+      "condition": "mitigationFactors / reinforcementFactors",
+      "output": "role 필터 목록. adjustPolar 입력이 아님",
+      "evidenceUsed": [
+        "temperatureRole or moistureRole"
+      ],
+      "evidenceIgnored": [
+        "목록 길이로 재보정"
+      ],
+      "rationaleInCurrentEngine": "진단 나열",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate CASE 2"
+      ],
+      "notes": "한 factor가 T mit이면서 M mit이면 양쪽 배열에 들어갈 수 있음. 효과 재실행 아님.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-056",
+      "layer": "judgment-forbidden",
+      "condition": "Climate 경로",
+      "output": "score/weight/rank/priority/winner/neededElement/finalElement/yongsin/heesin 없음",
+      "evidenceUsed": [
+        "types AdjustedClimateSummary, NeedCandidate, climate.ts, adjustedClimate.ts"
+      ],
+      "evidenceIgnored": [],
+      "rationaleInCurrentEngine": "비점수 엔진",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "adjustedClimate forbidden()",
+        "needCandidates forbidden()"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-057",
+      "layer": "need-resolution-passthrough",
+      "condition": "needSet.climateCounterSignals.map",
+      "output": "NeedResolution.counterSignals에 climate source로 복사",
+      "evidenceUsed": [
+        "needResolution.ts"
+      ],
+      "evidenceIgnored": [
+        "생성 규칙"
+      ],
+      "rationaleInCurrentEngine": "전달만. 현재 입력이 항상 []",
+      "validationClass": "FACT",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "needResolution.test.ts climateCounterSignals: []"
+      ],
+      "notes": "Strength suppressed counterSignal과 다른 슬롯. 후보는 지우지 않음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "CLI-058",
+      "layer": "need",
+      "condition": "Climate Need status",
+      "output": "항상 candidate. Climate 경로에 suppressed 없음",
+      "evidenceUsed": [
+        "makeCandidate status: candidate"
+      ],
+      "evidenceIgnored": [
+        "already-established-relation"
+      ],
+      "rationaleInCurrentEngine": "Climate는 Strength leaning-strong suppression을 쓰지 않음",
+      "validationClass": "ENGINE-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": [
+        "all climate Need rows"
+      ],
+      "notes": "counterSignal ≠ suppressed.",
+      "freezeStatus": "FROZEN-POLICY"
+    }
+  ],
+  "freezeStates": [
+    "VERIFIED-FACT",
+    "FROZEN-POLICY",
+    "REQUIRES-INTERPRETIVE-VALIDATION",
+    "OPEN"
+  ],
+  "freezeCounts": {
+    "total": 57,
+    "VERIFIED-FACT": 9,
+    "REQUIRES-INTERPRETIVE-VALIDATION": 21,
+    "FROZEN-POLICY": 24,
+    "OPEN": 3
+  }
+}

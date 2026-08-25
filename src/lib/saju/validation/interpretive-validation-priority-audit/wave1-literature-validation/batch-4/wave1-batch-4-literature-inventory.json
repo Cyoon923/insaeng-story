@@ -1,0 +1,430 @@
+{
+  "set": "wave1-actual-literature-validation-batch-4",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "batch1Preserved": true,
+  "batch2Preserved": true,
+  "batch3Preserved": true,
+  "note": "Batch 4 = W1-G4-MONTH-CLIMATE (CLI-002, CLI-003a, CLI-003b, CLI-003c, CLI-003d, CLI-004) only. Grouping unchanged. Prior batches and Pilot 5 untouched. freezeStatus/method/VERIFIED-FACT unchanged. BASE_CLIMATE table not modified. G5/G6 not judged.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-validation.md",
+    "wave1-literature-validation/batch-2/wave1-batch-2-literature-validation.md",
+    "wave1-literature-validation/batch-3/wave1-batch-3-literature-validation.md",
+    "interpretive-validation-priority-audit.md",
+    "interpretive-rule-inventory.json",
+    "src/lib/saju/validation/climate-audit/climate-rule-inventory.json",
+    "src/lib/saju/data/baseClimate.ts"
+  ],
+  "dependencyRecheck": {
+    "groupId": "W1-G4-MONTH-CLIMATE",
+    "dependsOn": ["CLI-001"],
+    "cli001FreezeStatus": "VERIFIED-FACT",
+    "g4IsClimateAxisUpstream": true,
+    "g6DependsOnG4Cli002": true,
+    "g6Upstream": ["CLI-002"],
+    "newDependenciesInvented": false,
+    "existingDependenciesModified": false,
+    "proceedAsBatch4": true,
+    "distinction": "CLI-001 = month branch copy FACT. CLI-002~004 = interpretive baseClimate values/clusters. G6 (CLI-018/019/036/037) remains dependent on CLI-002 and is not judged this batch."
+  },
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch4Rules": 6,
+    "literaturesConsulted": 7,
+    "originalTextEvidenceUnits": 6,
+    "commentaryEvidenceUnits": 3,
+    "modernInterpretationEvidenceUnits": 0,
+    "independentCrossChecks": 2,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 2,
+    "CONTESTED": 4,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "engineDefinitionFromRepo": {
+    "file": "src/lib/saju/data/baseClimate.ts",
+    "table": {
+      "寅卯辰": { "temperature": "balanced", "moisture": "moist" },
+      "巳午未": { "temperature": "warm", "moisture": "dry" },
+      "申酉戌": { "temperature": "balanced", "moisture": "dry" },
+      "亥子丑": { "temperature": "cold", "moisture": "moist" }
+    },
+    "noWarmMoistMonth": true,
+    "noMoistureBalancedMonth": true,
+    "lookupIndependentOfDayMaster": true
+  },
+  "batch4Selection": {
+    "groupId": "W1-G4-MONTH-CLIMATE",
+    "ruleIds": [
+      "CLI-002",
+      "CLI-003a",
+      "CLI-003b",
+      "CLI-003c",
+      "CLI-003d",
+      "CLI-004"
+    ],
+    "notJudgedThisBatch": [
+      "CLI-011",
+      "CLI-012",
+      "CLI-018",
+      "CLI-019",
+      "CLI-036",
+      "CLI-037"
+    ]
+  },
+  "validationQuestionsSeparated": {
+    "A_month_as_climate_start": "Month/月令 is an attested climate starting point, but not a closed month-only table.",
+    "B_cold_warm_from_month": "寒暖/寒熱 seasonal language exists; engine warm/cold/balanced triad is a later encoding.",
+    "C_dry_moist_from_month": "燥濕 language exists as a separate axis; month-only dry/moist lookup is not a classical table.",
+    "D_twelve_month_engine_mapping": "No classical table matching the engine 12×(T,M) cells was found.",
+    "E_balanced_as_classical_label": "Not found as a month-state name. 中和/不可過 is a goal, not 寅/申 labels.",
+    "F_temperature_plus_moisture_pair_per_month": "Two conceptual axes are attested (天道寒暖 / 地道燥濕). Fixed dual labels per month independent of 日干 are not attested as a table."
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "work": "滴天髓",
+      "authorTradition": "京圖/劉基-lineage",
+      "access": "https://zh.wikisource.org/wiki/滴天髓/16",
+      "locus": "寒暖論 / 燥濕 verse",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S2",
+      "work": "滴天髓",
+      "authorTradition": "原註 prose in same chapter",
+      "access": "https://zh.wikisource.org/wiki/滴天髓/16",
+      "locus": "陰支為寒，陽支為暖，金水為寒，木火為暖",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S3",
+      "work": "滴天髓闡微",
+      "author": "任鐵樵",
+      "locus": "寒暖 commentary rejecting fixed NW=寒 / SE=暖",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S4",
+      "work": "三命通會",
+      "author": "萬民英",
+      "locus": "卷二 論五行旺相休囚死 — 夏月大旱 / 冬月大寒 (旺衰 chapter; climate language mixed)",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S5",
+      "work": "子平真詮",
+      "author": "沈孝瞻",
+      "locus": "論用神配氣候得失 — 月令用神 + 調候為急; not a 12-month BASE_CLIMATE table",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S6",
+      "work": "子平真詮評注",
+      "author": "徐樂吾",
+      "locus": "later 調候/用神 explanation of winter cold and summer dryness",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S7",
+      "work": "窮通寶鑑",
+      "authorTradition": "攔江網 / 余春台-lineage (later 調候 system; not back-projected to early 子平)",
+      "access": "https://zh.wikisource.org/wiki/窮通寶鑑",
+      "locus": [
+        "北方陰極而生寒 / 南方陽極而生熱 / 西方陰止以收而生燥",
+        "初春猶有餘寒 / 春末陽壯水渴",
+        "辰戌丑未 惟未土為極旺",
+        "六月三伏生寒"
+      ],
+      "layer": "ORIGINAL-TEXT",
+      "note": "ORIGINAL-TEXT of this later work. Day-master × month, not month-only labels.",
+      "pageConfirmed": false
+    }
+  ],
+  "evidenceUnits": [
+    {
+      "id": "E-S1-verse-han-nuan-zao-shi",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["B-supporting-concept", "C-supporting-concept", "F-two-axes-concept", "D-not-a-lookup-table", "E-zhonghe-goal-not-balanced-label"]
+    },
+    {
+      "id": "E-S4-seasonal-weather-in-wangshuai-chapter",
+      "sourceId": "S4",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["B-seasonal-cold-heat-language", "C-drought-scorch-language", "context-mixing-wangshuai-vs-climate"]
+    },
+    {
+      "id": "E-S5-yueling-plus-tiaohou-not-table",
+      "sourceId": "S5",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["A-month-as-start-supporting", "D-not-engine-table", "context-mixing-yongshen-geju"]
+    },
+    {
+      "id": "E-S7-spring-wood-yin-chen-differ",
+      "sourceId": "S7",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["CLI-003a-conflicting", "寅-conflicting-with-balanced", "辰-not-same-as-yin-mao"]
+    },
+    {
+      "id": "E-S7-siji-tu-wei-extreme",
+      "sourceId": "S7",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["CLI-004-conflicting", "未-not-same-as-si-wu"]
+    },
+    {
+      "id": "E-S7-direction-han-re-zao",
+      "sourceId": "S7",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["B-supporting-later-system", "C-supporting-later-system", "not-12-cell-engine-table"]
+    },
+    {
+      "id": "E-S2-yin-yang-branch-han-nuan",
+      "sourceId": "S2",
+      "layer": "COMMENTARY",
+      "relation": ["CLI-002-conflicting-axis", "not-season-cluster"]
+    },
+    {
+      "id": "E-S3-ren-rejects-fixed-direction",
+      "sourceId": "S3",
+      "layer": "COMMENTARY",
+      "relation": ["whole-chart-not-month-only-table"]
+    },
+    {
+      "id": "E-S6-xu-tiaohou-yongshen",
+      "sourceId": "S6",
+      "layer": "COMMENTARY",
+      "relation": ["later-systematization", "not-back-projected-to-shen-as-12-table"]
+    }
+  ],
+  "independentCrossChecks": [
+    {
+      "id": "X1",
+      "items": ["S1 Wikisource verse", "S2 same-page 原註 prose distinguished from verse"]
+    },
+    {
+      "id": "X2",
+      "items": ["S7 Wikisource 窮通 month/day-master climate language", "S5 沈 調候為急 without 12-cell table"]
+    }
+  ],
+  "contextMixingFound": true,
+  "contextMixingNotes": [
+    "調候 vs 旺衰: 三命通會 summer drought / winter freeze sits in 旺相休囚死 chapter",
+    "夏火旺 ≠ 巳午未 = warm/dry",
+    "冬水旺 ≠ 亥子丑 = cold",
+    "沈 月令用神/格局 ≠ engine BASE_CLIMATE lookup",
+    "十二長生/四庫/墓庫 ≠ moisture/temperature labels",
+    "徐 COMMENTARY not back-projected onto 沈 as author of a 12-month table"
+  ],
+  "schoolEraDifferenceFound": true,
+  "schoolEraNotes": [
+    "early: 滴天髓 verse names 寒暖 and 燥濕 as axes, not a month grid",
+    "原註: yin/yang branch and 金水/木火 cold-warm — different axis from season clusters",
+    "Ming 通會: seasonal weather inside 旺衰 discussion",
+    "Qing 沈: 月令 + 調候為急 inside 用神, not BASE_CLIMATE cells",
+    "later: 徐 commentary; 窮通 日干×月令 調候 — not universalized as early 子平"
+  ],
+  "monthByMonthVsEngine": {
+    "寅": "conflicting (餘寒 vs balanced)",
+    "卯": "partially aligned (spring moisture/growth; temperature cluster weak)",
+    "辰": "contested (季土/陽壯水渴 ≠ 寅卯)",
+    "巳": "partially aligned (warm/dry seasonal language)",
+    "午": "partially aligned (熱/燥) with 原註 午月 exception layer",
+    "未": "contested (火炎土燥 AND 三伏生寒 vs 巳午 same cell)",
+    "申": "not directly supported (balanced label)",
+    "酉": "partially aligned (肅殺/燥)",
+    "戌": "contested (季土 ≠ 申酉)",
+    "亥": "partially aligned (cold/moist winter language)",
+    "子": "partially aligned with 原註 一陽 exception layer",
+    "丑": "contested (四庫 vs 亥子 same cell)"
+  },
+  "chenWeiXuChou": {
+    "engineRule": "CLI-004 shares adjacent-season cluster values",
+    "literature": "沈 雜氣土; 窮通 四土 differentiated, 未極旺 火炎土燥",
+    "comparison": "contested / not the same as moisture-temperature labels"
+  },
+  "engineMappingComparisonAfterEvidence": {
+    "寅卯辰_balanced_moist": "寅 conflicting; 卯 partial; 辰 contested",
+    "巳午未_warm_dry": "巳午 partially aligned; 未 contested",
+    "申酉戌_balanced_dry": "酉 partial; 申/戌 not directly supported or contested",
+    "亥子丑_cold_moist": "亥子 partially aligned; 丑 contested",
+    "dualAxisLookupStructure": "axes conceptually partially aligned; table form not directly supported",
+    "balancedLabel": "not directly supported"
+  },
+  "downstreamImpactFromExistingAuditOnly": {
+    "chain": "G4 (CLI-002~004) → CLI-018/019 → adjusted climate → CLI-041~043 → NEED-020~022 → NeedResolution",
+    "cli003aImpacts": ["CLI-018", "CLI-019", "NEED-023"],
+    "cli003bImpacts": ["CLI-018", "CLI-019", "NEED-021", "NEED-022"],
+    "cli003cImpacts": ["CLI-019", "NEED-022"],
+    "cli003dImpacts": ["CLI-018", "CLI-019", "NEED-020"],
+    "cli004Impacts": ["CLI-018", "CLI-019"],
+    "g6NotJudged": true,
+    "newDependenciesInvented": false
+  },
+  "rules": [
+    {
+      "ruleId": "CLI-002",
+      "name": "12월지 BASE_CLIMATE 값",
+      "method": "BOTH",
+      "engineSummary": "monthBranch → BASE_CLIMATE[branch] {temperature, moisture}",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "月令 is a climate/use starting point (沈 論命惟以月令用神為主，然亦須配氣候)",
+        "寒暖 and 燥濕 exist as named axes (滴天髓 verse)",
+        "later 調候 systems index by 月令"
+      ],
+      "limitingEvidence": [
+        "verse is not a 12-cell table",
+        "中和/不可過 is a goal, not month labels",
+        "later systems require 日干 and whole chart"
+      ],
+      "conflictingEvidence": [
+        "原註 yin/yang branch 寒暖 ≠ season clusters",
+        "窮通 is 日干×月, not month-only T+M lookup"
+      ]
+    },
+    {
+      "ruleId": "CLI-003a",
+      "name": "寅卯辰 = balanced+moist",
+      "method": "BOTH",
+      "engineSummary": "spring cluster; 辰 shares 寅卯 values; 寅=balanced",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "spring moisture/既濟 language in later 調候 (窮通 水火相濟)"
+      ],
+      "limitingEvidence": [
+        "寅卯辰 are not collapsed to one climate cell in consulted sources"
+      ],
+      "conflictingEvidence": [
+        "寅 初春餘寒 vs engine balanced",
+        "辰 季土 / 陽壯水渴 ≠ 寅卯"
+      ]
+    },
+    {
+      "ruleId": "CLI-003b",
+      "name": "巳午未 = warm+dry",
+      "method": "BOTH",
+      "engineSummary": "summer cluster; 未=巳午",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "夏旱 / 金石流水土焦 / 金燥土焦 / 巳午 炎熱 language"
+      ],
+      "limitingEvidence": [
+        "火旺 ≠ chart is warm/dry as a Climate verdict",
+        "summer cluster ≠ all three months identical"
+      ],
+      "conflictingEvidence": [
+        "未 三伏生寒 and 未土極旺 火炎土燥 vs identical 巳午 cell"
+      ]
+    },
+    {
+      "ruleId": "CLI-003c",
+      "name": "申酉戌 = balanced+dry",
+      "method": "BOTH",
+      "engineSummary": "autumn cluster; 戌=申酉; temperature balanced",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "秋 肅殺 / 西方生燥; 酉 dryness-adjacent language"
+      ],
+      "limitingEvidence": [
+        "no month-state named balanced",
+        "申 often still carries remaining fire / 初秋"
+      ],
+      "conflictingEvidence": [
+        "戌 季土 ≠ 申酉"
+      ]
+    },
+    {
+      "ruleId": "CLI-003d",
+      "name": "亥子丑 = cold+moist",
+      "method": "BOTH",
+      "engineSummary": "winter cluster; 丑=亥子",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "冬月大寒 / 天寒氣凍 / 北方生寒"
+      ],
+      "limitingEvidence": [
+        "原註 子月 一陽 exception",
+        "丑 is 四庫/季土"
+      ],
+      "conflictingEvidence": [
+        "丑 identical to 亥子 as a Climate cell"
+      ]
+    },
+    {
+      "ruleId": "CLI-004",
+      "name": "토월을 인접 계절과 같게",
+      "method": "BOTH",
+      "engineSummary": "辰未戌丑 are not unique climates; share adjacent season cluster",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "calendar membership of 辰 in spring, 未 in summer, etc. exists as 月令 season belonging"
+      ],
+      "limitingEvidence": [
+        "season membership ≠ identical temperature+moisture values"
+      ],
+      "conflictingEvidence": [
+        "窮通 四土 differentiation; 未極旺 火炎土燥; 沈 雜氣土"
+      ]
+    }
+  ],
+  "preservedFromPriorBatches": {
+    "STR-010": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-011": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-022": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-024": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-clear": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-present": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-shallow": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "expertBlindPrepUnchanged": true,
+    "pilot5CasesUnchanged": true,
+    "expertAnswersGenerated": 0
+  },
+  "unresolved": [
+    "W1B4-U1-CLI-001-FACT-is-not-CLI-002-value-validation",
+    "W1B4-U2-yuanzhu-yinyang-branch-vs-season-cluster",
+    "W1B4-U3-qiongtong-day-master-dependence-not-mapped-to-engine",
+    "W1B4-U4-moisture-balanced-dead-branch-not-filled-from-literature",
+    "W1B4-U5-G6-CLI-018-019-not-judged"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "batch5Started": false
+}

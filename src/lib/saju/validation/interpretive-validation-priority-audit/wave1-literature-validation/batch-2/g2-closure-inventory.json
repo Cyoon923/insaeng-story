@@ -1,0 +1,105 @@
+{
+  "set": "wave1-batch-2-g2-season-phase-closure",
+  "status": "g2-closure-complete",
+  "schemaVersion": "w1b2-g2-closure-v1",
+  "groupId": "W1-G2-SEASON-PHASE",
+  "targetRules": ["STR-022", "STR-024"],
+  "g2Decision": "CLOSE",
+  "g2DecisionMeaning": "Validation boundary fixed (speakable vs not-validated); not rule finalization or VERIFIED",
+  "source": [
+    "wave1-batch-2-literature-validation.md",
+    "expert-results/g2-method-comparison.md",
+    "expert-results/g2-expert-comparison.md",
+    "expert-results/g2-phase-c-case-comparison.md",
+    "expert-results/raw/G2-E1-raw.md",
+    "expert-results/raw/G2-E2-raw.md",
+    "expert-results/raw/G2-E3-raw.md",
+    "expert-results/raw/G2-E4-raw.md",
+    "expert-results/expert-response-status.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "str022NotVerified": true,
+    "str024NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "case06FinalLabelFixed": false,
+    "e3PhaseCBackfilled": false,
+    "g3OrLaterStarted": false,
+    "existingComparisonFilesRewritten": false
+  },
+  "literatureLayerUnchanged": {
+    "STR-022": "PARTIALLY-SUPPORTED",
+    "STR-024": "PARTIALLY-SUPPORTED",
+    "evidenceConfidence": "MEDIUM"
+  },
+  "collectionStatus": {
+    "phaseAB": { "E1": true, "E2": true, "E3": true, "E4": true },
+    "phaseC": { "E1": true, "E2": true, "E3": false, "E4": true },
+    "e3PhaseC": "structural-missing-no-further-collection"
+  },
+  "expertSupportedObservations4of4": [
+    "month-command-starting-axis-not-sole-final",
+    "deuksi-not-automatic-strong",
+    "hyu-not-equal-su-sa",
+    "sillryeong-plus-strong-root-can-flip-to-strong",
+    "deukryeong-plus-strong-drain-can-flip-to-weak",
+    "season-phase-not-equal-final-strength",
+    "hechung-can-affect-month-root-efficacy",
+    "mechanical-score-alone-rejected-or-guarded"
+  ],
+  "literatureAndExpertAlignedScope": [
+    "wang-as-seasonal-strong-axis",
+    "wang-alone-not-final-strong",
+    "su-sa-as-seasonal-weak-direction",
+    "hyu-distinct-from-su-sa",
+    "seasonal-not-equal-final-body-strength"
+  ],
+  "expertOnlyObservations": [
+    "flip-asymmetry-e2",
+    "dual-seasonal-vs-final-variables-e2",
+    "root-heguk-final-priority-e1",
+    "deukryeong-fail-blocks-strong-gate-e3",
+    "root-practically-max-weight-e4",
+    "phase-c-wangxiang-label-disagreement",
+    "phase-c-case3-case4-flip-narrative-e1-e2-e4"
+  ],
+  "openDisagreement": [
+    "OD-1-conflict-final-priority",
+    "OD-2-output-wealth-official-attenuation-rank",
+    "OD-3-root-vs-month-max-weight-wording",
+    "OD-PC-season-phase-labels"
+  ],
+  "case06": {
+    "status": "unresolved",
+    "finalDirectionAgreement": false,
+    "majorityAsTruthForbidden": true
+  },
+  "engineTensionObservationsOnly": [
+    "STR-022-list-not-leaning-aligned",
+    "STR-024-hyu-excluded-aligned-direction",
+    "su-sa-equal-weakSide-unvalidated",
+    "substantial-boolean-vs-conflict-priority-open",
+    "STR-026-027-adjacent-not-closed-in-G2",
+    "no-score-model-aligned-with-score-guard"
+  ],
+  "notValidatedPolicies": [
+    "single-numeric-month-root-weight-table",
+    "wangxiang-to-final-strength-score-map",
+    "single-conflict-resolution-formula",
+    "fixed-output-wealth-official-rank-scores",
+    "su-equals-sa-weak-side-weight",
+    "STR-026-027-closed-in-G2",
+    "case06-final-label",
+    "four-expert-phase-c-consensus",
+    "STR-022-024-VERIFIED"
+  ],
+  "closure": {
+    "canCloseG2": true,
+    "recommended": true,
+    "decision": "CLOSE"
+  }
+}

@@ -1,0 +1,365 @@
+{
+  "set": "wave1-actual-literature-validation-batch-6",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "batch1Preserved": true,
+  "batch2Preserved": true,
+  "batch3Preserved": true,
+  "batch4Preserved": true,
+  "batch5Preserved": true,
+  "note": "Batch 6 = W1-G6-CLIMATE-ADJUST (CLI-018, CLI-019, CLI-036, CLI-037) only. CLI-002 remains CONTESTED from Batch 4; G6 not promoted to SUPPORTED. Prior batches and Pilot 5 untouched. freezeStatus/method/VERIFIED-FACT unchanged. adjustPolar not modified. Wave 2 not started.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-4/wave1-batch-4-literature-validation.md",
+    "wave1-literature-validation/batch-5/wave1-batch-5-literature-validation.md",
+    "interpretive-validation-priority-audit.md",
+    "interpretive-rule-inventory.json",
+    "src/lib/saju/validation/climate-audit/climate-rule-inventory.json",
+    "src/lib/saju/elements/climate.ts",
+    "src/lib/saju/elements/adjustedClimate.ts"
+  ],
+  "dependencyRecheck": {
+    "groupId": "W1-G6-CLIMATE-ADJUST",
+    "dependsOn": ["CLI-002"],
+    "cli002LiteratureVerdictFromBatch4": "CONTESTED",
+    "cli002EvidenceConfidence": "MEDIUM",
+    "g6DependsOnG4": true,
+    "g5NotOfficialUpstream": true,
+    "newDependenciesInvented": false,
+    "existingDependenciesModified": false,
+    "proceedAsBatch6": true,
+    "cli002ContestedImpact": "Adjustment runs on top of an unclosed month-climate table. G6 cannot be SUPPORTED. Direction principles may still be judged separately from the 12-cell labels.",
+    "distinction": "CLI-018/019 = 火/水 role directions on base T/M. CLI-036/037 = apply the same adjustPolar used for cold/warm onto moist/dry. CLI-032 magnitude and CLI-054 dual-axis application not judged."
+  },
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch6Rules": 4,
+    "literaturesConsulted": 7,
+    "originalTextEvidenceUnits": 5,
+    "commentaryEvidenceUnits": 3,
+    "modernInterpretationEvidenceUnits": 0,
+    "independentCrossChecks": 2,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 1,
+    "CONTESTED": 3,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "engineDefinitionFromRepo": {
+    "temperatureRole": {
+      "cold": { "fire": "mitigation", "water": "reinforcement" },
+      "warm": { "fire": "reinforcement", "water": "mitigation" },
+      "balanced": "contextual-no-polar-adjust"
+    },
+    "moistureRole": {
+      "dry": { "water": "mitigation", "fire": "reinforcement" },
+      "moist": { "fire": "mitigation", "water": "reinforcement" },
+      "balanced": "contextual-no-polar-adjust"
+    },
+    "adjustPolar": {
+      "bothStrong": "unresolved",
+      "substantialMitigation": "unresolved",
+      "clearMitigation": "resolved balanced",
+      "weakMitigation": "keep base"
+    },
+    "sameFunctionForTemperatureAndMoisture": true,
+    "independentOfDayMaster": true,
+    "presenceIsNotAdjustment": "hidden/shallow/branch-only keep base"
+  },
+  "batch6Selection": {
+    "groupId": "W1-G6-CLIMATE-ADJUST",
+    "ruleIds": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+    "notJudgedThisBatch": ["CLI-032", "CLI-038", "CLI-041", "CLI-042", "CLI-043", "CLI-054"]
+  },
+  "validationQuestionsSeparated": {
+    "A_fire_water_adjust_temperature": "寒→火 / 熱→水 is a later 調候 direction, not an engine polar overlay table.",
+    "B_fire_water_adjust_moisture": "燥潤/火燥 imagery exists; 任 uses 濕土燥土 more than fire/water-only roles.",
+    "C_presence_vs_regulation": "Engine weak qualities do not move the axis. Literature 調候 cares 透/通根/得氣, not the engine grade names.",
+    "D_month_daymaster_hidden_stem": "窮通/沈 vary by 日干×月令. Engine G6 does not.",
+    "E_same_function_T_and_M": "滴天髓 splits 天道寒暖 / 地道燥濕. No original-text identity of one adjustPolar.",
+    "F_clear_to_balanced_one_step": "Engine abstraction. Not found as a classical step.",
+    "G_cli002_contested": "Blocks SUPPORTED for the implemented G6 pipeline."
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "work": "滴天髓",
+      "authorTradition": "京圖/劉基-lineage",
+      "access": "https://zh.wikisource.org/wiki/滴天髓/16",
+      "locus": "寒暖論 / 燥濕 verse — two axes, not one function",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S2",
+      "work": "滴天髓",
+      "authorTradition": "原註",
+      "locus": "得氣之寒遇暖而發; 過濕滯 過燥烈; 寒土愈濕 暖土愈燥",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S3",
+      "work": "滴天髓闡微",
+      "author": "任鐵樵",
+      "locus": "夏木 壬癸+丑辰濕土; 冬金 丙丁; 未戌燥土助火",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S4",
+      "work": "子平真詮",
+      "author": "沈孝瞻",
+      "locus": "論用神配氣候得失 — 月令用神配氣候; 調候為急; 冬木逢火",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S5",
+      "work": "子平真詮評注",
+      "author": "徐樂吾",
+      "locus": "later 用神 explanation of winter cold / summer dryness",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S6",
+      "work": "窮通寶鑑",
+      "authorTradition": "攔江網 / 余春台-lineage",
+      "access": "https://zh.wikisource.org/wiki/窮通寶鑑",
+      "locus": "初春餘寒用火; 春末水渴; 日干×月令 丙癸",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S7",
+      "work": "三命通會",
+      "author": "萬民英",
+      "locus": "旺相休囚死 seasonal drought/cold — 旺衰 chapter, not adjustPolar",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    }
+  ],
+  "evidenceUnits": [
+    {
+      "id": "E-S1-two-axes-not-one-function",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["E-against-same-function", "A-axes-named", "B-axes-named"]
+    },
+    {
+      "id": "E-S4-tiaohou-with-yongshen-not-polar-overlay",
+      "sourceId": "S4",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["A-winter-wood-fire-direction", "D-daymaster-month", "context-yongshen-not-climate-fact"]
+    },
+    {
+      "id": "E-S6-yuhan-vs-engine-balanced",
+      "sourceId": "S6",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["A-cold-wants-fire", "D-month-subdivision", "G-cli002-target-mismatch"]
+    },
+    {
+      "id": "E-S6-daymaster-matrix",
+      "sourceId": "S6",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["D-not-engine-independent-of-daymaster"]
+    },
+    {
+      "id": "E-S7-wangshuai-not-adjustment",
+      "sourceId": "S7",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["context-mixing-wangshuai"]
+    },
+    {
+      "id": "E-S2-han-nuan-and-earth-moisture",
+      "sourceId": "S2",
+      "layer": "COMMENTARY",
+      "relation": ["A-meet-warm", "B-earth-in-moisture", "E-not-fire-water-only"]
+    },
+    {
+      "id": "E-S3-stems-and-wet-dry-earth",
+      "sourceId": "S3",
+      "layer": "COMMENTARY",
+      "relation": ["A-bing-ding-ren-gui", "B-shitu-zaotu", "CLI-019-conflicting", "CLI-036-conflicting"]
+    },
+    {
+      "id": "E-S5-xu-not-back-projected",
+      "sourceId": "S5",
+      "layer": "COMMENTARY",
+      "relation": ["later-yongshen-commentary"]
+    }
+  ],
+  "independentCrossChecks": [
+    {
+      "id": "X1",
+      "items": ["S1 Wikisource verse two axes", "S2 same-page 原註 寒土暖土"]
+    },
+    {
+      "id": "X2",
+      "items": ["S6 Wikisource 日干×月令", "S4 沈 調候為急 without polar overlay"]
+    }
+  ],
+  "contextMixingFound": true,
+  "contextMixingNotes": [
+    "旺衰 夏旱冬寒 ≠ adjustPolar",
+    "沈 調候為急 is 用神配氣候, not BASE_CLIMATE overlay",
+    "傷官要濕/要燥 is 格局, not moisture-axis fact",
+    "徐 commentary not back-projected onto 沈 as a 12-cell adjuster"
+  ],
+  "schoolEraDifferenceFound": true,
+  "schoolEraNotes": [
+    "verse: two axes, no procedure",
+    "原註: meet warm/cold; moisture tied to 寒土暖土",
+    "沈: 月令用神 + 調候為急",
+    "任: stem 火水 + wet/dry earth, not one function",
+    "窮通: 日干×月令 matrix"
+  ],
+  "cli002ContestedPropagation": {
+    "cli002VerdictUnchanged": "CONTESTED",
+    "effectOnG6": "Implemented pipeline cannot be SUPPORTED; 寅 balanced vs 餘寒用火 is a concrete target mismatch",
+    "didNotRelitigateBatch4": true
+  },
+  "downstreamImpactFromExistingAuditOnly": {
+    "cli018Impacts": ["CLI-032", "CLI-041", "CLI-042", "NEED-020", "NEED-021"],
+    "cli019Impacts": ["CLI-036", "CLI-037", "CLI-043", "NEED-022"],
+    "cli036Impacts": ["CLI-032", "CLI-054"],
+    "cli037Impacts": ["CLI-032", "CLI-043", "NEED-022"],
+    "needAndResolutionNotDesigned": true,
+    "newDependenciesInvented": false
+  },
+  "rules": [
+    {
+      "ruleId": "CLI-018",
+      "name": "한난에서 火/水 mit·reinf",
+      "method": "BOTH",
+      "engineSummary": "cold: 火 mit / 水 reinf; warm: reverse; balanced: contextual (no polar move)",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "得氣之寒遇暖而發",
+        "沈 冬木逢火 調候",
+        "窮通 初春餘寒用火"
+      ],
+      "limitingEvidence": [
+        "조후는 일간×월령",
+        "엔진 balanced 월은 polar 미적용",
+        "clear → 한 칸 balanced는 엔진 추상화",
+        "CLI-002 CONTESTED 적용 대상"
+      ],
+      "conflictingEvidence": [
+        "原註 음양지지 한난 (다른 축, Batch 4)",
+        "用神 權變 ≠ 전간 火 quality overlay"
+      ]
+    },
+    {
+      "ruleId": "CLI-019",
+      "name": "조습에서 火/水 mit·reinf",
+      "method": "BOTH",
+      "engineSummary": "dry: 水 mit / 火 reinf; moist: 火 mit / 水 reinf",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "地道燥濕 축 존재",
+        "過燥烈 過濕滯",
+        "水潤火烈 이미지"
+      ],
+      "limitingEvidence": [
+        "傷官要濕/燥는 格局 층",
+        "任 조습 주재료는 濕土燥土"
+      ],
+      "conflictingEvidence": [
+        "CLI-013 土 제외 vs 丑辰濕土 未戌燥土",
+        "운문 이축 vs 한난과 대칭 火水 역할표"
+      ]
+    },
+    {
+      "ruleId": "CLI-036",
+      "name": "습을 火로 완화 (cold와 동일 함수)",
+      "method": "BOTH",
+      "engineSummary": "base moist → adjustPolar(mit=Fire, reinf=Water)",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "火燥 이미지",
+        "未戌燥土 助火 (土 층, 동일 함수 아님)"
+      ],
+      "limitingEvidence": [
+        "任은 습을 濕土/壬癸로 다룸",
+        "한난 火 완화과 동일 함수라는 원문 없음"
+      ],
+      "conflictingEvidence": [
+        "天道寒暖 ≠ 地道燥濕 한 절차",
+        "CLI-002 moist 클러스터 CONTESTED"
+      ]
+    },
+    {
+      "ruleId": "CLI-037",
+      "name": "조를 水로 완화 (warm과 동일 함수)",
+      "method": "BOTH",
+      "engineSummary": "base dry → adjustPolar(mit=Water, reinf=Fire)",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "燥則宜潤 방향",
+        "夏木 壬癸",
+        "窮通 水渴"
+      ],
+      "limitingEvidence": [
+        "난을 水로 식힘과 조를 水로 윤택함을 동일 함수로 묶는 원문 없음"
+      ],
+      "conflictingEvidence": [
+        "조습 土 층",
+        "CLI-002 dry 클러스터 CONTESTED"
+      ]
+    }
+  ],
+  "preservedFromPriorBatches": {
+    "STR-010": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-011": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-022": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-024": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-clear": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-present": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-shallow": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-002": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003a": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003b": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003c": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003d": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-004": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-011": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-012": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "expertBlindPrepUnchanged": true,
+    "pilot5CasesUnchanged": true,
+    "expertAnswersGenerated": 0
+  },
+  "unresolved": [
+    "W1B6-U1-CLI-002-contested-adjustment-target",
+    "W1B6-U2-quality-gate-is-expert",
+    "W1B6-U3-CLI-032-CLI-054-not-judged",
+    "W1B6-U4-earth-as-moisture-factor-vs-CLI-013",
+    "W1B6-U5-daymaster-month-tiaohou-not-mapped"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "wave2Started": false
+}

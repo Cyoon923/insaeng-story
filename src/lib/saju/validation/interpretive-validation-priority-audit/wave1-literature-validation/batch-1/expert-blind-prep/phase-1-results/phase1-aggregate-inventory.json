@@ -1,0 +1,175 @@
+{
+  "set": "wave1-batch-1-phase1-aggregate",
+  "status": "phase1-aggregate-complete",
+  "schemaVersion": "w1b1-phase1-aggregate-v1",
+  "sources": {
+    "pilotAggregate": "pilot-5-cases/aggregate/wave1-batch-1-expert-pilot-aggregate.md",
+    "pilotClosure": "pilot-5-cases/aggregate/wave1-batch-1-expert-pilot-closure.md",
+    "phase1CaseComparison": "phase1-case-comparison.md",
+    "phase1MethodComparison": "phase1-method-comparison.md",
+    "phase1CaseDesign": "phase-1-case-design/wave1-batch-1-phase1-case-design.md",
+    "raw": [
+      "raw/P1-E1-raw.md",
+      "raw/P1-E2-raw.md",
+      "raw/P1-E3-raw.md",
+      "raw/P1-E4-raw.md"
+    ]
+  },
+  "constraints": {
+    "engineUnchanged": true,
+    "str010NotVerified": true,
+    "str011NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "rawUnmodified": true,
+    "comparisonFilesUnmodified": true,
+    "wave2Started": false
+  },
+  "literatureLayerUnchanged": {
+    "STR-010": "PARTIALLY-SUPPORTED",
+    "STR-011": "CONTESTED"
+  },
+  "repeatedAgreement": {
+    "peerResourceStrengthen": { "pilot": "4/4", "phase1Method": "4/4" },
+    "outputWealthOfficialWeakenMacro": { "pilot": "4/4", "phase1Method": "4/4" },
+    "monthRootPositionImportant": { "pilot": "4/4", "phase1Method": "4/4" },
+    "directionBundleAllowedButNotEqualIntensity": true,
+    "controlDrainWeak": { "pilotCase": "01", "phase1Case": "01", "phase1": "4/4" },
+    "controlSupportStrong": {
+      "pilotCase": "02",
+      "phase1Case": "02",
+      "phase1": "3/3",
+      "excluded": "E3-DQ-1"
+    },
+    "hourUnknownWeakPlusConditional": {
+      "pilotCase": "05",
+      "phase1Case": "08",
+      "phase1": "4/4"
+    },
+    "wealthDirectionWeaken": { "pilot": "4/4", "phase1": "4/4", "mechanismStillOpen": true }
+  },
+  "phase1CaseDirection": {
+    "01": { "tag": "weak", "agreement": "4/4" },
+    "02": { "tag": "strong", "agreement": "3/3", "excludeExpert": "E3", "reason": "DQ-1" },
+    "03": {
+      "tag": "strong-lean",
+      "agreement": "4/4-direction",
+      "e3EvidenceContaminated": true,
+      "reason": "DQ-2"
+    },
+    "04": { "tag": "weak-lean", "agreement": "4/4" },
+    "05": { "tag": "strong-lean", "agreement": "4/4" },
+    "06": { "tag": "open-disagreement", "agreement": null },
+    "07": { "tag": "weak", "agreement": "4/4" },
+    "08": { "tag": "weak-conditional", "agreement": "4/4" }
+  },
+  "case06OpenDisagreement": {
+    "nature": "month-root-quality-vs-drain-count-and-clash",
+    "E1": "neutral-to-weak-strong",
+    "E2": "strong",
+    "E3": "weak",
+    "E4": "weak-to-neutral-weak",
+    "majorityNotTruth": true,
+    "relatedPilotTension": "pilot-case-04-quality-vs-pressure-type-link-only-not-same-chart"
+  },
+  "dataQualityIssues": [
+    {
+      "id": "DQ-1",
+      "severity": "confirmed",
+      "case": "02",
+      "expert": "E3",
+      "issue": "day-master-jia-read-as-geng",
+      "excludeFromAgreement": true
+    },
+    {
+      "id": "DQ-2",
+      "severity": "confirmed",
+      "case": "03",
+      "expert": "E3",
+      "issue": "month-chou-scored-as-yin-deling",
+      "directionRecordable": true,
+      "evidenceContaminated": true
+    },
+    {
+      "id": "DQ-3",
+      "severity": "minor",
+      "case": "02",
+      "expert": "E1",
+      "issue": "chart-day-branch-typo",
+      "judgmentAxisValid": true
+    },
+    {
+      "id": "DQ-4",
+      "severity": "minor",
+      "case": "05",
+      "expert": "E1",
+      "issue": "chart-year-branch-typo",
+      "judgmentAxisMostlyValid": true
+    },
+    {
+      "id": "DQ-5",
+      "severity": "note",
+      "expert": "E3",
+      "issue": "manseryeok-doubt-memo-not-misread",
+      "isMisread": false
+    }
+  ],
+  "methodAgreement4of4": [
+    "peer-strengthen",
+    "resource-strengthen",
+    "output-weaken",
+    "wealth-weaken-direction",
+    "official-weaken",
+    "peer-resource-bundle-allowed",
+    "output-wealth-official-bundle-allowed",
+    "month-important",
+    "root-deji-important",
+    "hour-unknown-conditional"
+  ],
+  "openDisagreement": {
+    "simpleCountEqualWeight": {
+      "status": "open",
+      "E1": "count-below-hechung-huiguk",
+      "E2": "rejects-count-subtraction",
+      "E3": "differential-score-system-personal",
+      "E4": "count-first-then-position"
+    },
+    "mixClimateGeYongIntoStrength": {
+      "status": "open",
+      "E2": "exclude-ge-yong-hui",
+      "E4": "exclude-ge-from-strength",
+      "E3": "includes-climate-and-huiyong-terms-in-axes",
+      "E1": "school-note-only-not-scored-axis"
+    },
+    "wealthMechanism": {
+      "status": "open",
+      "directionAgreed": true,
+      "pilotUnresolvedId": "W1B1-EP-U4"
+    },
+    "case06Direction": { "status": "open" },
+    "monthRootRelativeNumericWeights": { "status": "open-personal-proposals-only" },
+    "hourUnknownProtocolUnification": { "status": "open" }
+  },
+  "zhengPian": {
+    "directionSameIntensityMayDiffer": "partial-to-near-agreement",
+    "pilotGapE2FilledInPhase1": true,
+    "notEqualIntensityClaim": true
+  },
+  "pilotUnresolvedStatus": [
+    { "id": "W1B1-EP-U2", "topic": "pilot-case-04-label", "phase1": "p1-03-direction-agreed-strong; new-open=p1-06" },
+    { "id": "W1B1-EP-U3", "topic": "hour-unknown", "phase1": "repeated-confirmed-p1-08" },
+    { "id": "W1B1-EP-U4", "topic": "wealth-mechanism", "phase1": "direction-repeated-mechanism-open" },
+    { "id": "W1B1-EP-U5", "topic": "equal-weight-count", "phase1": "open-clearer-map" },
+    { "id": "W1B1-EP-U6", "topic": "zheng-pian", "phase1": "partially-filled" },
+    { "id": "W1B1-EP-U7", "topic": "literature-vs-expert-layers", "phase1": "kept-separate" }
+  ],
+  "sections": [
+    "REPEATED AGREEMENT",
+    "NEW PHASE-1 OBSERVATIONS",
+    "OPEN / UNRESOLVED",
+    "DATA-QUALITY ISSUES"
+  ]
+}

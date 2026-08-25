@@ -1,0 +1,1037 @@
+{
+  "set": "wave1-literature-validation-prep",
+  "status": "questions-prepared-not-validated",
+  "engineUnchanged": true,
+  "notValidated": true,
+  "note": "Wave 1 Strength/Climate upstream 규칙의 문헌 검증 준비. 실제 문헌 조사·판정·VERIFIED 변경은 하지 않는다. NeedCandidate/NeedResolution 제외.",
+  "source": [
+    "interpretive-rule-inventory.json",
+    "interpretive-validation-priority-audit.md"
+  ],
+  "counts": {
+    "wave1Total": 38,
+    "strength": 20,
+    "climate": 18,
+    "LITERATURE": 0,
+    "BOTH": 19,
+    "EXPERT": 19,
+    "UNRESOLVED": 0,
+    "validationQuestionsPrepared": 19
+  },
+  "reviewNotes": [
+    {
+      "id": "RN-W1-001",
+      "note": "Wave 1 관측 수: Strength 20 + Climate 18 = 38. Priority Audit의 Strength/Climate interpretive 21+21=42 중 STR-070·CLI-041·042·043은 wave 2로 분류되어 Wave 1에서 제외. 분류를 바꾸지 않음."
+    },
+    {
+      "id": "RN-W1-002",
+      "note": "Wave 1에 LITERATURE-only / UNRESOLVED는 0. LITERATURE-only는 NEED-009(wave 2)뿐. 분류를 바꾸지 않음."
+    },
+    {
+      "id": "RN-W1-003",
+      "note": "STR-026/027은 원 inventory validationClass가 ENGINE-POLICY였으나 freezeStatus는 REQUIRES-INTERPRETIVE-VALIDATION, Priority Audit method는 EXPERT. 이번 단계에서 method를 수정하지 않음. 문헌 질문 대상(LITERATURE/BOTH)에도 넣지 않음."
+    },
+    {
+      "id": "RN-W1-004",
+      "note": "CLI-054는 method=EXPERT이므로 문헌 질문 표를 만들지 않음. BOTH인 CLI-018/019/036/037과 관련만 비고로 유지."
+    },
+    {
+      "id": "RN-W1-005",
+      "note": "문헌 검증 질문은 ‘무엇을 물을지’만 정의. 실제 출처·인용·판정은 다음 단계. AI 일반 지식을 근거로 쓰지 않음."
+    }
+  ],
+  "rules": [
+    {
+      "ruleId": "STR-010",
+      "name": "비겁·인성 = support",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "비견·겁재·편인·정인을 일간 도움(support)으로 묶음",
+      "dependsOn": [
+        "STR-003"
+      ],
+      "dependencyImpact": [
+        "STR-040",
+        "STR-050",
+        "STR-055",
+        "STR-070",
+        "NEED-010",
+        "NEED-011"
+      ],
+      "validationQuestion": "일간 세력 판단에서 비견·겁재·편인·정인을 ‘도움(support)’으로 묶는 것이 문헌에서 어떤 조건·범위로 정의되는가? 정/편을 세력 방향에서 다르게 취급하는 문헌이 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-011",
+      "name": "식상·재·관 = pressure",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "식신·상관·편재·정재·편관·정관을 약화(pressure)로 묶음",
+      "dependsOn": [
+        "STR-003"
+      ],
+      "dependencyImpact": [
+        "STR-041",
+        "STR-051",
+        "STR-055",
+        "STR-070",
+        "NEED-010"
+      ],
+      "validationQuestion": "식신·상관·편재·정재·편관·정관을 ‘약화(pressure/설기·재·관)’로 한 묶음으로 쓰는 것이 문헌에서 어떻게 서술되는가? 식상·재·관을 동일 방향 축으로 묶는 근거와 반례가 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-021",
+      "name": "대상 천간 오행 presence로 RV",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "visible item.presence = 그 천간 오행의 elementPresence",
+      "dependsOn": [
+        "STR-006"
+      ],
+      "dependencyImpact": [
+        "STR-040",
+        "STR-041",
+        "STR-050",
+        "STR-051"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-022",
+      "name": "왕 → strong-side",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "phase===왕이면 strongSideEvidence에 왕 기록",
+      "dependsOn": [
+        "STR-004"
+      ],
+      "dependencyImpact": [
+        "STR-023",
+        "STR-050",
+        "STR-055"
+      ],
+      "validationQuestion": "월령(왕상휴수사)에서 ‘왕’을 일간 세력의 강(strong-side) 근거로 기록하는 조건이 문헌에서 어떻게 정의되는가? 왕이면 곧바로 신강으로 닫는지, 목록/근거로만 남기는지 구분이 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-023",
+      "name": "왕 → substantialStrong",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "phase===왕이면 substantialStrong=true",
+      "dependsOn": [
+        "STR-022"
+      ],
+      "dependencyImpact": [
+        "STR-055",
+        "STR-050"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-024",
+      "name": "수/사 → weak-side",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "phase===수|사면 weakSideEvidence seasonal",
+      "dependsOn": [
+        "STR-004"
+      ],
+      "dependencyImpact": [
+        "STR-025",
+        "STR-051",
+        "STR-055"
+      ],
+      "validationQuestion": "월령이 ‘수’ 또는 ‘사’일 때 이를 일간 세력의 약(weak-side) 근거로 두는 조건이 문헌에서 어떻게 정의되는가? ‘휴’와 ‘수/사’를 약 계절로 구분하는 서술이 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-025",
+      "name": "수/사 → substantialWeak",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "phase===수|사면 substantialWeak=true",
+      "dependsOn": [
+        "STR-024"
+      ],
+      "dependencyImpact": [
+        "STR-051",
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-026",
+      "name": "상 = help only",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "phase===상 → help만. substantialStrong에 상 없음. 방향 미개방",
+      "dependsOn": [
+        "STR-004"
+      ],
+      "dependencyImpact": [
+        "STR-055",
+        "STR-070"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-027",
+      "name": "휴 = 무방향",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "phase===휴 → 어느 side에도 seasonal 없음",
+      "dependsOn": [
+        "STR-004"
+      ],
+      "dependencyImpact": [
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-030-clear",
+      "name": "정기 → rootQuality clear",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "hit.role 정기 있으면 clear",
+      "dependsOn": [
+        "STR-005"
+      ],
+      "dependencyImpact": [
+        "STR-033",
+        "STR-050"
+      ],
+      "validationQuestion": "지장간 통근에서 ‘정기’를 가장 깊은 뿌리(clear)로 보는 정의가 문헌에서 어떻게 서술되는가? 정기 통근이 세력 판단에서 갖는 위치는 무엇인가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-030-present",
+      "name": "중기 → present",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "정기 없고 중기 있으면 present",
+      "dependsOn": [
+        "STR-005"
+      ],
+      "dependencyImpact": [
+        "STR-033",
+        "STR-050"
+      ],
+      "validationQuestion": "정기 없이 ‘중기’만 있을 때 통근 깊이(중간, present)로 다루는 문헌상의 정의와 세력 반영 범위는 무엇인가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-030-shallow",
+      "name": "여기 → shallow",
+      "layer": "Strength",
+      "method": "BOTH",
+      "contentSummary": "여기만 있으면 shallow",
+      "dependsOn": [
+        "STR-005"
+      ],
+      "dependencyImpact": [
+        "STR-033"
+      ],
+      "validationQuestion": "‘여기’만 있는 통근을 얕은 뿌리(shallow)로 두는 문헌 정의가 있는가? 여기 통근을 세력에 어느 정도까지 반영한다고 서술하는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "STR-031",
+      "name": "root 있으면 strong-side",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "rootQuality !== absent → strongSide root",
+      "dependsOn": [
+        "STR-030-clear",
+        "STR-030-present",
+        "STR-030-shallow"
+      ],
+      "dependencyImpact": [
+        "STR-033",
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-032",
+      "name": "무근 → weak-side + substantialWeak",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "rootQuality===absent → weak-side 및 약 실질",
+      "dependsOn": [
+        "STR-030-clear"
+      ],
+      "dependencyImpact": [
+        "STR-051",
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-033",
+      "name": "clear|present|shallow → substantialStrong",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "shallow도 강 실질 OR에 포함",
+      "dependsOn": [
+        "STR-031"
+      ],
+      "dependencyImpact": [
+        "STR-055",
+        "STR-050"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-040",
+      "name": "RV support가 강 방향을 연다",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "year/month/hour RV support → rootedSupport",
+      "dependsOn": [
+        "STR-010",
+        "STR-021"
+      ],
+      "dependencyImpact": [
+        "STR-050",
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-041",
+      "name": "RV pressure가 약 방향을 연다",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "year/month/hour RV pressure → rootedPressure",
+      "dependsOn": [
+        "STR-011",
+        "STR-021"
+      ],
+      "dependencyImpact": [
+        "STR-051",
+        "STR-055"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-050",
+      "name": "leaning-strong 마감식",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "왕 && clear && RV support && !RV pressure → leaning-strong",
+      "dependsOn": [
+        "STR-022",
+        "STR-030-clear",
+        "STR-040"
+      ],
+      "dependencyImpact": [
+        "STR-070",
+        "NEED-010",
+        "NEED-015",
+        "RES-007"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-051",
+      "name": "leaning-weak 마감식",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "(사|수) && absent && RV pressure && !RV support → leaning-weak",
+      "dependsOn": [
+        "STR-025",
+        "STR-032",
+        "STR-041"
+      ],
+      "dependencyImpact": [
+        "STR-070",
+        "NEED-011",
+        "RES-007"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "STR-055",
+      "name": "mixed = 양측 실질",
+      "layer": "Strength",
+      "method": "EXPERT",
+      "contentSummary": "substantialStrong && substantialWeak → mixed",
+      "dependsOn": [
+        "STR-023",
+        "STR-025",
+        "STR-033",
+        "STR-040",
+        "STR-041"
+      ],
+      "dependencyImpact": [
+        "NEED-012",
+        "RES-031"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-002",
+      "name": "12월지 BASE_CLIMATE 값",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "monthBranch → BASE_CLIMATE[branch] temperature/moisture",
+      "dependsOn": [
+        "CLI-001"
+      ],
+      "dependencyImpact": [
+        "CLI-003a",
+        "CLI-003b",
+        "CLI-003c",
+        "CLI-003d",
+        "CLI-004",
+        "CLI-018",
+        "CLI-019",
+        "NEED-020"
+      ],
+      "validationQuestion": "12월지 각각에 한난(寒暖)·조습(燥濕)을 배정하는 조후 표가 문헌에서 어떻게 구성되는가? 본 엔진의 BASE_CLIMATE 값이 특정 학파의 표와 어떤 대응 관계에 있는지 대조할 수 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-003a",
+      "name": "寅卯辰 = balanced+moist",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "봄 클러스터. 寅 balanced, 辰=寅卯와 같음",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-018",
+        "CLI-019",
+        "NEED-023"
+      ],
+      "validationQuestion": "寅·卯·辰을 같은 봄 조후(한난 중립·습)로 묶는 서술이 문헌에 있는가? 특히 寅월을 한(寒)으로 보는 학파와, 辰을 寅卯와 같게 두는 서술이 어떻게 대비되는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교",
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-003b",
+      "name": "巳午未 = warm+dry",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "여름 클러스터. 未=巳午와 동일",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-018",
+        "CLI-019",
+        "NEED-021",
+        "NEED-022"
+      ],
+      "validationQuestion": "巳·午·未를 같은 여름 조후(난·조)로 묶고 未를 巳午와 동일하게 보는 문헌 근거는 무엇인가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-003c",
+      "name": "申酉戌 = balanced+dry",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "가을 클러스터. 戌=申酉와 동일",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-019",
+        "NEED-022"
+      ],
+      "validationQuestion": "申·酉·戌을 같은 가을 조후(한난 중립·조)로 묶고 戌을 申酉와 동일하게 보는 문헌 근거는 무엇인가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-003d",
+      "name": "亥子丑 = cold+moist",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "겨울 클러스터. 丑=亥子와 동일",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-018",
+        "CLI-019",
+        "NEED-020"
+      ],
+      "validationQuestion": "亥·子·丑을 같은 겨울 조후(한·습)로 묶고 丑을 亥子와 동일하게 보는 문헌 근거는 무엇인가? warm+moist 월지 배정이 별도로 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-004",
+      "name": "토월을 인접 계절과 같게",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "辰未戌丑을 고유 Climate로 두지 않음",
+      "dependsOn": [
+        "CLI-002",
+        "CLI-003a",
+        "CLI-003b",
+        "CLI-003c",
+        "CLI-003d"
+      ],
+      "dependencyImpact": [
+        "CLI-018",
+        "CLI-019"
+      ],
+      "validationQuestion": "辰·未·戌·丑 토월을 고유 조후로 두지 않고 인접 계절 조후를 공유한다고 보는 문헌/학파가 있는가? 습토·조토 세분을 요구하는 서술과의 차이는 무엇인가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교",
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-011",
+      "name": "branch 火 = 巳午만",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "寅중丙은 branch 火 아님",
+      "dependsOn": [
+        "CLI-009"
+      ],
+      "dependencyImpact": [
+        "CLI-021",
+        "CLI-025"
+      ],
+      "validationQuestion": "조후에서 ‘지지 火’를 대표지로 볼 때 巳·午만으로 한정하는 문헌 정의가 있는가? 寅 중 丙 등 지장간 火를 지지 火와 어떻게 구분하는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-012",
+      "name": "branch 水 = 亥子만",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "辰중癸는 branch 水 아님",
+      "dependsOn": [
+        "CLI-010"
+      ],
+      "dependencyImpact": [
+        "CLI-021",
+        "CLI-025"
+      ],
+      "validationQuestion": "조후에서 ‘지지 水’를 대표지로 볼 때 亥·子만으로 한정하는 문헌 정의가 있는가? 辰 중 癸 등을 지지 水와 어떻게 구분하는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-018",
+      "name": "한난에서 火/水 mit·reinf",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "cold: 火 mit / 水 reinf. warm: 반대. balanced: contextual",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-032",
+        "CLI-041",
+        "CLI-042",
+        "NEED-020",
+        "NEED-021"
+      ],
+      "validationQuestion": "조후상 한(寒)일 때 火를 완화·水를 가세로, 난(暖)일 때 그 반대로 쓰는 원칙이 문헌에서 어떻게 서술되는가? 한난이 중립일 때 火·水를 어떻게 다루는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-019",
+      "name": "조습에서 火/水 mit·reinf",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "dry: 水 mit / 火 reinf. moist: 火 mit / 水 reinf",
+      "dependsOn": [
+        "CLI-002"
+      ],
+      "dependencyImpact": [
+        "CLI-036",
+        "CLI-037",
+        "CLI-043",
+        "NEED-022"
+      ],
+      "validationQuestion": "조후상 조(燥)일 때 水를 완화·火를 가세로, 습(濕)일 때 그 반대로 쓰는 원칙이 문헌에서 어떻게 서술되는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-021",
+      "name": "quality clear",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "투출 천간 ∧ 대표지지(巳午/亥子)가 factors 안",
+      "dependsOn": [
+        "CLI-011",
+        "CLI-012"
+      ],
+      "dependencyImpact": [
+        "CLI-032",
+        "CLI-054",
+        "NEED-020"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-022",
+      "name": "quality substantial",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "투출 ∧ (hiddenStem 또는 presence RV/hidden-only)",
+      "dependsOn": [
+        "CLI-017"
+      ],
+      "dependencyImpact": [
+        "CLI-031"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-023",
+      "name": "quality shallow",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "투출 천간만",
+      "dependsOn": [],
+      "dependencyImpact": [
+        "CLI-033"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-024",
+      "name": "quality hidden",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "hiddenStem, 투출 없음",
+      "dependsOn": [],
+      "dependencyImpact": [
+        "CLI-033"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-025",
+      "name": "quality branch-only",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "지지 火/水만",
+      "dependsOn": [
+        "CLI-011",
+        "CLI-012"
+      ],
+      "dependencyImpact": [
+        "CLI-033"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    },
+    {
+      "ruleId": "CLI-036",
+      "name": "습을 火로 완화",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "base moist → adjustPolar(mit=Fire, reinf=Water)",
+      "dependsOn": [
+        "CLI-019"
+      ],
+      "dependencyImpact": [
+        "CLI-032",
+        "CLI-054"
+      ],
+      "validationQuestion": "습을 火로 말리고 水로 가습한다고 보는 조후 서술이 문헌에 있는가? 한(寒)을 火로 완화하는 것과 같은 민감도/동일 함수로 취급해도 된다고 보는 근거가 있는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교",
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-037",
+      "name": "조를 水로 완화",
+      "layer": "Climate",
+      "method": "BOTH",
+      "contentSummary": "base dry → adjustPolar(mit=Water, reinf=Fire)",
+      "dependsOn": [
+        "CLI-019"
+      ],
+      "dependencyImpact": [
+        "CLI-032",
+        "CLI-043",
+        "NEED-022"
+      ],
+      "validationQuestion": "조를 水로 윤택하게 하고 火로 가조한다고 보는 조후 서술이 문헌에 있는가? 난(暖)을 水로 완화하는 것과 동일하게 취급해도 되는지 문헌에서 구분하는가?",
+      "evidenceTypesNeeded": [
+        "고전 원문",
+        "현대 명리 이론서",
+        "복수 문헌 비교",
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "독립된 신뢰 가능한 출처가 같은 원칙을 지지하는지 대조한다",
+        "문헌 간 차이가 있으면 학파/계통 차이로 기록하고 단일 정답으로 강제하지 않는다",
+        "문헌만으로 결정할 수 없으면 전문가 블라인드 검증으로 넘긴다",
+        "이번 준비 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": true
+    },
+    {
+      "ruleId": "CLI-054",
+      "name": "동일 quality의 두 축 적용",
+      "layer": "Climate",
+      "method": "EXPERT",
+      "contentSummary": "같은 fire/water quality가 T축과 M축에 각각 1회",
+      "dependsOn": [
+        "CLI-018",
+        "CLI-019",
+        "CLI-021"
+      ],
+      "dependencyImpact": [
+        "NEED-020",
+        "NEED-021",
+        "NEED-022"
+      ],
+      "validationQuestion": null,
+      "evidenceTypesNeeded": [
+        "전문가 판단 병행 필요"
+      ],
+      "validationSuccessCondition": [
+        "문헌 1차 대상이 아님(EXPERT). 전문가 블라인드에서 별도 질의",
+        "이번 단계에서 VERIFIED로 바꾸지 않는다"
+      ],
+      "literatureQuestionPrepared": false
+    }
+  ]
+}

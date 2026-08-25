@@ -1,0 +1,315 @@
+{
+  "set": "wave1-batch-1-phase1-case-design",
+  "status": "phase1-case-design-complete",
+  "schemaVersion": "w1b1-phase1-case-design-v1",
+  "engineUnchanged": true,
+  "expectedStrengthCreated": false,
+  "engineStrengthLookedUp": false,
+  "engineStrengthRecorded": false,
+  "expertAnswersGenerated": 0,
+  "phase1Executed": false,
+  "pilotCasesReused": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "wave2Started": false,
+  "selectionMethod": {
+    "allowed": ["stems", "branches", "monthBranch", "hiddenStems", "shiShenOf-raw", "birth-input", "calendar-kind"],
+    "forbidden": [
+      "strengthStatus",
+      "directionCandidate",
+      "leaning-*",
+      "NeedCandidate",
+      "NeedResolution",
+      "expert-pilot-labels-as-truth",
+      "fabricate-birth-for-desired-strength"
+    ]
+  },
+  "excludedPilot": {
+    "caseIds": [
+      "w1b1-blind-01",
+      "w1b1-blind-02",
+      "w1b1-blind-03",
+      "w1b1-blind-04",
+      "w1b1-blind-05"
+    ],
+    "sourceIds": [
+      "calc-day-2023-01-22",
+      "calc-day-2000-01-01",
+      "calc-day-1960-04-19",
+      "calc-day-1945-08-15",
+      "calc-day-1988-09-17"
+    ]
+  },
+  "selectedCount": 8,
+  "cases": [
+    {
+      "caseId": "w1b1-p1-01",
+      "sourceId": "calc-lichun-1984-after-noon",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 2,
+        "day": 6,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "甲子",
+        "month": "丙寅",
+        "day": "庚午",
+        "hour": "壬午"
+      },
+      "primaryAxis": "control-pressure-clear",
+      "validationPurpose": "Clearer drain/pressure-side visible structure as control for weaken-direction narration",
+      "questionSeparated": "How experts describe output/wealth/official weaken direction on a structurally pressure-heavy chart",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["편재", "편관", "식신"],
+        "visibleSupportCount": 0,
+        "visiblePressureCount": 3
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-02",
+      "sourceId": "calc-day-2024-01-01",
+      "input": {
+        "calendar": "solar",
+        "year": 2024,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "癸卯",
+        "month": "甲子",
+        "day": "甲子",
+        "hour": "庚午"
+      },
+      "primaryAxis": "control-support-leaning",
+      "validationPurpose": "Support-leaning visible structure as control for strengthen-direction narration",
+      "questionSeparated": "How experts describe peer+resource strengthen direction when support stems dominate visibles",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["정인", "비견", "편관"],
+        "visibleSupportCount": 2,
+        "visiblePressureCount": 1,
+        "note": "Pool lacked support>=2 and pressure==0; leaning control substitute"
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-03",
+      "sourceId": "calc-day-1984-02-02",
+      "input": {
+        "calendar": "solar",
+        "year": 1984,
+        "month": 2,
+        "day": 2,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "癸亥",
+        "month": "乙丑",
+        "day": "丙寅",
+        "hour": "甲午"
+      },
+      "primaryAxis": "cross-like-pilot-04",
+      "secondaryAxes": ["zheng-pian-resource"],
+      "validationPurpose": "Resource-heavy visibles with month-branch pressure-side structure (Pilot-04-like cross)",
+      "questionSeparated": "Expert split when stem resources face month drain/pressure materials — observe disagreement without truth label",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["정관", "정인", "편인"],
+        "monthHiddenShiShen": ["정관", "정재", "상관"],
+        "monthSideByMainHidden": "pressure"
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-04",
+      "sourceId": "calc-day-2099-12-31",
+      "input": {
+        "calendar": "solar",
+        "year": 2099,
+        "month": 12,
+        "day": 31,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "己未",
+        "month": "丙子",
+        "day": "壬寅",
+        "hour": "丙午"
+      },
+      "primaryAxis": "wealth-strong-resource-scarce",
+      "validationPurpose": "Visible wealth strong with scarce visible resource",
+      "questionSeparated": "Wealth weaken mechanism when resource is scarce on visibles",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["정관", "편재", "편재"],
+        "visibleWealthCount": 2,
+        "visibleResourceCount": 0
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-05",
+      "sourceId": "calc-lunar-2020-leap0401",
+      "input": {
+        "calendar": "lunar",
+        "year": 2020,
+        "month": 4,
+        "day": 1,
+        "isLeapMonth": true,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "庚子",
+        "month": "辛巳",
+        "day": "丙寅",
+        "hour": "甲午"
+      },
+      "primaryAxis": "wealth-and-resource-together",
+      "secondaryAxes": ["zheng-pian-wealth"],
+      "validationPurpose": "Visible wealth and resource present together",
+      "questionSeparated": "How wealth+resource coexistence is narrated (break-print / offset / grouping) distinct from month-cross case",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["편재", "정재", "편인"],
+        "visibleWealthCount": 2,
+        "visibleResourceCount": 1
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-06",
+      "sourceId": "calc-day-2020-01-01",
+      "input": {
+        "calendar": "solar",
+        "year": 2020,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "己亥",
+        "month": "丙子",
+        "day": "癸卯",
+        "hour": "戊午"
+      },
+      "primaryAxis": "zheng-pian-official",
+      "validationPurpose": "Zheng and pian official both visible for primary-direction vs intensity comparison",
+      "questionSeparated": "Whether zheng/pian change Strength primary direction or only intensity/role",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["편관", "정재", "정관"],
+        "hasZhengAndPianOfficial": true
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-07",
+      "sourceId": "calc-day-2028-01-27",
+      "input": {
+        "calendar": "solar",
+        "year": 2028,
+        "month": 1,
+        "day": 27,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "丁未",
+        "month": "癸丑",
+        "day": "辛亥",
+        "hour": "甲午"
+      },
+      "primaryAxis": "month-vs-visible-projection-conflict",
+      "validationPurpose": "Month-branch hidden materials vs visible stem shiShen pointing different support/pressure sides",
+      "questionSeparated": "Priority among month command / roots / stem projection when sides diverge",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShen": ["편관", "식신", "정재"],
+        "monthHiddenShiShen": ["식신", "비견", "편인"],
+        "monthSideByMainHidden": "support",
+        "visibleSide": "pressure"
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    },
+    {
+      "caseId": "w1b1-p1-08",
+      "sourceId": "calc-day-2022-02-01",
+      "hourPresentation": "unknown-omit",
+      "input": {
+        "calendar": "solar",
+        "year": 2022,
+        "month": 2,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": "unknown",
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "辛丑",
+        "month": "辛丑",
+        "day": "乙酉",
+        "hour": null
+      },
+      "primaryAxis": "hour-unknown-protocol",
+      "validationPurpose": "Single hour-unknown slot for uncertainty protocol (baseline+range vs defer)",
+      "questionSeparated": "How experts mark hour-unknown uncertainty without forcing a final grade",
+      "rawStructuralFeaturesOperatorOnly": {
+        "visibleStemShiShenThreePillars": ["편관", "편관"],
+        "note": "Presentation variant: same birth date as calc-day-2022-02-01 with hour omitted; not a new invented date"
+      },
+      "expectedStrength": null,
+      "engineStrength": null,
+      "expertAnswer": null
+    }
+  ],
+  "axisCoverage": {
+    "controlPressureClear": ["w1b1-p1-01"],
+    "controlSupportLeaning": ["w1b1-p1-02"],
+    "crossLikePilot04": ["w1b1-p1-03"],
+    "wealthStrongResourceScarce": ["w1b1-p1-04"],
+    "wealthAndResourceTogether": ["w1b1-p1-05"],
+    "zhengPian": ["w1b1-p1-06"],
+    "monthVsProjectionConflict": ["w1b1-p1-07"],
+    "hourUnknown": ["w1b1-p1-08"]
+  },
+  "biasControls": [
+    "exclude-pilot-five-dates-and-charts",
+    "no-strength-need-lookup",
+    "no-expert-label-as-selection-truth",
+    "dedupe-identical-pillars-across-sources",
+    "one-primary-axis-per-case",
+    "at-most-one-hour-unknown"
+  ],
+  "unresolved": [
+    "W1B1-P1-CD-U1-no-pure-support-only-control-in-pool",
+    "W1B1-P1-CD-U2-cross04-type-pool-thin",
+    "W1B1-P1-CD-U3-phase1-expert-package-not-built",
+    "W1B1-P1-CD-U4-phase1-not-executed",
+    "W1B1-P1-CD-U5-month-main-qi-wording-for-experts"
+  ],
+  "designDocument": "wave1-batch-1-phase1-case-design.md"
+}

@@ -1,0 +1,13 @@
+{
+  "suppression": {
+    "id": "need-suppression-output-fire",
+    "name": "丙寅 / 甲寅 / 甲子 / unknown",
+    "note": "甲 일간 인월. 년간 丙으로 火가 rooted-visible이고 봄 火는 상. leaning-strong 관계 규칙에서 식상만 suppressed. 전체 StrengthSummary는 년간 丙이 RV pressure라 mixed가 된다.",
+    "pillars": {
+      "year": { "stem": "丙", "branch": "寅" },
+      "month": { "stem": "甲", "branch": "寅" },
+      "day": { "stem": "甲", "branch": "子" },
+      "hour": "unknown"
+    }
+  }
+}

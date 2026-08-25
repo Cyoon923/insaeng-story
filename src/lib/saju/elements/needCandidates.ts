@@ -82,6 +82,48 @@ function strengthRelationCandidate(input: {
   });
 }
 
+export function collectLeaningStrongNeedCandidates(
+  pillars: FourPillars,
+  certainty: NeedCandidate["certainty"],
+): NeedCandidate[] {
+  const dayElement = stemElement(pillars.day.stem);
+  return [
+    strengthRelationCandidate({
+      pillars,
+      element: OUTPUT[dayElement],
+      direction: "output",
+      reason: "drain-day-master-output",
+      relation: "output",
+      dayElement,
+      directionCandidate: "leaning-strong",
+      certainty,
+      suppressible: true,
+    }),
+    strengthRelationCandidate({
+      pillars,
+      element: WEALTH[dayElement],
+      direction: "wealth",
+      reason: "use-day-master-wealth",
+      relation: "wealth",
+      dayElement,
+      directionCandidate: "leaning-strong",
+      certainty,
+      suppressible: true,
+    }),
+    strengthRelationCandidate({
+      pillars,
+      element: OFFICIAL[dayElement],
+      direction: "official",
+      reason: "control-day-master-official",
+      relation: "official",
+      dayElement,
+      directionCandidate: "leaning-strong",
+      certainty,
+      suppressible: true,
+    }),
+  ];
+}
+
 export function buildNeedCandidateSet(pillars: FourPillars): NeedCandidateSet {
   const strength = buildStrengthSummary(pillars);
   const climate = buildAdjustedClimateSummary(pillars);
@@ -118,41 +160,7 @@ export function buildNeedCandidateSet(pillars: FourPillars): NeedCandidateSet {
     ];
   } else if (strength.directionCandidate === "leaning-strong") {
     strengthNeedStatus = "ready";
-    strengthNeedCandidates = [
-      strengthRelationCandidate({
-        pillars,
-        element: OUTPUT[dayElement],
-        direction: "output",
-        reason: "drain-day-master-output",
-        relation: "output",
-        dayElement,
-        directionCandidate: "leaning-strong",
-        certainty: strength.certainty,
-        suppressible: true,
-      }),
-      strengthRelationCandidate({
-        pillars,
-        element: WEALTH[dayElement],
-        direction: "wealth",
-        reason: "use-day-master-wealth",
-        relation: "wealth",
-        dayElement,
-        directionCandidate: "leaning-strong",
-        certainty: strength.certainty,
-        suppressible: true,
-      }),
-      strengthRelationCandidate({
-        pillars,
-        element: OFFICIAL[dayElement],
-        direction: "official",
-        reason: "control-day-master-official",
-        relation: "official",
-        dayElement,
-        directionCandidate: "leaning-strong",
-        certainty: strength.certainty,
-        suppressible: true,
-      }),
-    ];
+    strengthNeedCandidates = collectLeaningStrongNeedCandidates(pillars, strength.certainty);
   }
 
   const climateNeedCandidates: NeedCandidate[] = [];
@@ -193,6 +201,7 @@ export function buildNeedCandidateSet(pillars: FourPillars): NeedCandidateSet {
   return {
     strengthNeedCandidates,
     climateNeedCandidates,
+    climateCounterSignals: [],
     strengthNeedStatus,
     climateNeedStatus: climateStatus(
       climate.temperature.status === "unresolved",

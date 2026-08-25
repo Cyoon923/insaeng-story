@@ -1,0 +1,111 @@
+{
+  "set": "wave1-batch-1-phase1-closure",
+  "status": "phase1-closure-complete",
+  "schemaVersion": "w1b1-phase1-closure-v1",
+  "sourceAggregate": "phase1-aggregate.md",
+  "sourceInventory": "phase1-aggregate-inventory.json",
+  "pilotClosure": "pilot-5-cases/aggregate/wave1-batch-1-expert-pilot-closure.md",
+  "constraints": {
+    "engineUnchanged": true,
+    "str010NotVerified": true,
+    "str011NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "wave2Started": false,
+    "autoRecommendPlusFourExperts": false
+  },
+  "closure": {
+    "canClosePhase1": true,
+    "recommended": true,
+    "meaning": "Validation boundary fixed for speakable vs not-validated; not rule finalization"
+  },
+  "literatureLayerUnchanged": {
+    "STR-010": "PARTIALLY-SUPPORTED",
+    "STR-011": "CONTESTED"
+  },
+  "expertSupportedObservations": [
+    "peer-resource-strengthen-direction",
+    "output-wealth-official-weaken-macro-direction",
+    "month-and-root-important",
+    "direction-bundle-not-equal-to-action-weight",
+    "hour-unknown-weak-plus-conditional-normal"
+  ],
+  "notValidated": [
+    "equal-weights",
+    "simple-count-sum-for-final-grade",
+    "zheng-pian-fixed-intensity-deltas",
+    "wealth-exact-attenuation-mechanism",
+    "month-root-projection-numeric-priority-scale",
+    "hechung-strength-standard-weights",
+    "climate-ge-yong-inclusion-into-strength",
+    "case06-final-correct-label",
+    "pilot04-or-p103-single-cross-label-truth"
+  ],
+  "dataQualityBoundary": {
+    "DQ-1": {
+      "case": "02",
+      "expert": "E3",
+      "excludeFromAgreement": true
+    },
+    "DQ-2": {
+      "case": "03",
+      "expert": "E3",
+      "directionOnly": true,
+      "excludeDelingScoreEvidence": true
+    },
+    "minor": ["DQ-3", "DQ-4"],
+    "note": ["DQ-5"]
+  },
+  "additionalExpertsByUnresolved": {
+    "case06Direction": {
+      "neededForPhase1Closure": false,
+      "optionalLater": "frequency-mapping-separate-scope-only"
+    },
+    "equalWeightSimpleCount": { "neededForPhase1Closure": false },
+    "climateGeYongInStrength": {
+      "neededForPhase1Closure": false,
+      "note": "outside-core-STR-direction-scope"
+    },
+    "wealthMechanismUnification": { "neededForPhase1Closure": false },
+    "monthRootNumericPriority": { "neededForPhase1Closure": false },
+    "hechungStrengthWeights": { "neededForPhase1Closure": false },
+    "hourUnknownProtocolUnification": { "neededForPhase1Closure": false },
+    "zhengPianFixedIntensity": { "neededForPhase1Closure": false },
+    "literatureExpertLayerMerge": { "neededForPhase1Closure": false }
+  },
+  "additionalExpertsOverall": {
+    "requiredNow": false,
+    "autoStartNextRound": false,
+    "whenOptional": [
+      "case06-type-frequency-map-only",
+      "separate-scope-wealth-mechanism-or-climate-mix-audit"
+    ]
+  },
+  "speakableForSTR010011": {
+    "expertLayer": [
+      "peer-resource-strengthen-observed",
+      "output-wealth-official-weaken-macro-observed",
+      "month-root-matter-observed",
+      "bundle-not-equal-weight-observed",
+      "literature-and-expert-layers-remain-separate"
+    ],
+    "notSpeakable": [
+      "verified-or-supported-via-this-closure",
+      "engine-must-use-equal-weights-or-specific-scale",
+      "case06-correct-strength",
+      "must-include-or-exclude-climate-ge-yong",
+      "zheng-pian-fixed-penalty-table",
+      "expert-agreement-promotes-literature"
+    ]
+  },
+  "remainingUnresolvedAsNotValidatedList": [
+    "p1-06-quality-vs-count-tension",
+    "count-equal-weight-engine-policy",
+    "wealth-mechanism-taxonomy",
+    "month-root-projection-hechung-climate-ge-yong-inclusion",
+    "hour-unknown-output-format-choice"
+  ]
+}

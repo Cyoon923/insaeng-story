@@ -1,11 +1,11 @@
 import { ganzhiByIndex } from "@/lib/saju/constants/ganzhi";
 import type { DayBoundary, Pillar, SolarInstant } from "@/lib/saju/types";
 
-const EPOCH = { year: 2000, month: 1, day: 1, ganzhiIndex: 54 };
+export const DAY_PILLAR_EPOCH = { year: 2000, month: 1, day: 1, ganzhiIndex: 54 } as const;
 
-function civilOffset(year: number, month: number, day: number): number {
+export function civilDayOffset(year: number, month: number, day: number): number {
   const utc = Date.UTC(year, month - 1, day);
-  const epoch = Date.UTC(EPOCH.year, EPOCH.month - 1, EPOCH.day);
+  const epoch = Date.UTC(DAY_PILLAR_EPOCH.year, DAY_PILLAR_EPOCH.month - 1, DAY_PILLAR_EPOCH.day);
   return Math.round((utc - epoch) / 86400000);
 }
 
@@ -32,5 +32,5 @@ export function dayPillar(
   timeUnknown = false,
 ): Pillar {
   const date = dayDateForPillar(instant, dayBoundary, timeUnknown);
-  return ganzhiByIndex(EPOCH.ganzhiIndex + civilOffset(date.year, date.month, date.day));
+  return ganzhiByIndex(DAY_PILLAR_EPOCH.ganzhiIndex + civilDayOffset(date.year, date.month, date.day));
 }

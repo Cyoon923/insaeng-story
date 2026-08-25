@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { analyzeElementPresence, buildNeedCandidateSet, buildStrengthSummary, seasonPhaseOf, suppressedForLeaningStrong } from "@/lib/saju";
+import { analyzeElementPresence, buildNeedCandidateSet, buildStrengthSummary, seasonPhaseOf } from "@/lib/saju";
+import { collectLeaningStrongNeedCandidates } from "@/lib/saju/elements/needCandidates";
 import type { FourPillars, HourPillar, Pillar } from "@/lib/saju/types";
 
 function chart(partial: { year: Pillar; month: Pillar; day: Pillar; hour: HourPillar }): FourPillars {
@@ -16,12 +19,17 @@ function forbidden(set: ReturnType<typeof buildNeedCandidateSet>) {
   expect(set).not.toHaveProperty("priority");
   expect(set).not.toHaveProperty("neededElement");
   expect(set).not.toHaveProperty("yongsin");
+  expect(set.climateCounterSignals).toEqual([]);
   for (const candidate of [...set.strengthNeedCandidates, ...set.climateNeedCandidates]) {
     expect(candidate).not.toHaveProperty("score");
     expect(candidate).not.toHaveProperty("rank");
     expect(candidate).not.toHaveProperty("priority");
   }
 }
+
+const suppressionFixture = JSON.parse(
+  readFileSync(path.join(__dirname, "needSuppression.fixtures.json"), "utf8"),
+).suppression as { pillars: { year: Pillar; month: Pillar; day: Pillar; hour: HourPillar } };
 
 describe("NeedCandidateSet CASE", () => {
   it("CASE 1 己卯 丙子 戊午 戊午 — mixed Strength, balanced Climate", () => {
@@ -200,22 +208,26 @@ describe("NeedCandidateSet suppression", () => {
     expect(output?.status).toBe("candidate");
   });
 
-  it("fixture 丙寅 甲寅 甲子 — 火 is rooted-visible and 상, so that output relation is suppressed when the rule applies", () => {
-    const pillars = chart({
-      year: { stem: "丙", branch: "寅" },
-      month: { stem: "甲", branch: "寅" },
-      day: { stem: "甲", branch: "子" },
-      hour: "unknown",
-    });
-    const presence = analyzeElementPresence(pillars, "火").presence;
-    const phase = seasonPhaseOf("火", "寅");
-    const wealthPhase = seasonPhaseOf("土", "寅");
-    const officialPhase = seasonPhaseOf("金", "寅");
+  it("fixture 丙寅 甲寅 甲子 — 식상 火만 already-established-relation, 재/관은 그대로", () => {
+    const pillars = chart(suppressionFixture.pillars);
+    const candidates = collectLeaningStrongNeedCandidates(pillars, "partial");
+    const output = candidates.find((item) => item.direction === "output");
+    const wealth = candidates.find((item) => item.direction === "wealth");
+    const official = candidates.find((item) => item.direction === "official");
 
-    expect(presence).toBe("rooted-visible");
-    expect(phase).toBe("상");
-    expect(suppressedForLeaningStrong(presence, phase)).toBe(true);
-    expect(suppressedForLeaningStrong(analyzeElementPresence(pillars, "土").presence, wealthPhase)).toBe(false);
-    expect(suppressedForLeaningStrong(analyzeElementPresence(pillars, "金").presence, officialPhase)).toBe(false);
+    expect(analyzeElementPresence(pillars, "火").presence).toBe("rooted-visible");
+    expect(seasonPhaseOf("火", "寅")).toBe("상");
+    expect(output).toMatchObject({
+      element: "火",
+      status: "suppressed",
+      reasons: ["drain-day-master-output", "already-established-relation"],
+    });
+    expect(wealth?.status).toBe("candidate");
+    expect(official?.status).toBe("candidate");
+    expect(wealth?.reasons.includes("already-established-relation")).toBe(false);
+    expect(official?.reasons.includes("already-established-relation")).toBe(false);
+
+    expect(buildStrengthSummary(pillars).directionCandidate).toBe("mixed");
+    expect(buildNeedCandidateSet(pillars).strengthNeedCandidates).toEqual([]);
   });
 });

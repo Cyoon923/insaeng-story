@@ -1,0 +1,1399 @@
+{
+  "description": "Current-engine NeedCandidate traces. Results were not rewritten. Audit documents do not change Need judgment. NeedResolution rules are not audited here.",
+  "generatedBy": "buildNeedCaseTrace.collectNeedCaseTraces + buildStrengthSummary + buildAdjustedClimateSummary + buildNeedCandidateSet",
+  "engineUnchanged": true,
+  "needResolutionNotAudited": true,
+  "counts": {
+    "total": 11,
+    "leaningStrong": 1,
+    "leaningWeak": 2,
+    "mixed": 6,
+    "unresolvedNull": 2,
+    "climateNeedEmpty": 4,
+    "strengthNeedEmpty": 8,
+    "bothEmpty": 3,
+    "hourUnknown": 9,
+    "counterSignalsAlwaysEmpty": true
+  },
+  "cases": [
+    {
+      "caseId": "need-case-1-mixed-climate-empty",
+      "group": "needCandidates-test",
+      "covers": [
+        "mixed",
+        "climate-empty",
+        "both-empty",
+        "hour-confirmed"
+      ],
+      "note": "己卯 丙子 戊午 戊午. mixed Strength. adjusted Climate balanced. 후보 둘 다 없음. hour confirmed.",
+      "pillars": {
+        "year": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      },
+      "inputSummary": {
+        "hour": "confirmed",
+        "dayStem": "戊",
+        "monthBranch": "子"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "weak-season-with-support",
+        "unresolvedStrengthReasons": [],
+        "certainty": "complete"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "certainty": "complete",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 0
+      },
+      "certainty": {
+        "strength": "complete",
+        "climate": "complete"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-019",
+        "NEED-024",
+        "NEED-027",
+        "NEED-034",
+        "NEED-037",
+        "NEED-038",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-054"
+      ],
+      "notes": "己卯 丙子 戊午 戊午. mixed Strength. adjusted Climate balanced. 후보 둘 다 없음. hour confirmed."
+    },
+    {
+      "caseId": "need-case-2-leaning-strong-climate-empty",
+      "group": "needCandidates-test",
+      "covers": [
+        "leaning-strong",
+        "climate-empty",
+        "hour-unknown",
+        "partial"
+      ],
+      "note": "甲寅 甲寅 甲子 unknown. leaning-strong 木 → 火/土/金. Climate Need 없음. certainty partial.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "寅"
+      },
+      "strengthState": {
+        "directionCandidate": "leaning-strong",
+        "resolution": "clear-direction",
+        "mixedPattern": null,
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "moist"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [
+        {
+          "element": "火",
+          "source": "strength",
+          "direction": "output",
+          "reasons": [
+            "drain-day-master-output"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=output"
+          ]
+        },
+        {
+          "element": "土",
+          "source": "strength",
+          "direction": "wealth",
+          "reasons": [
+            "use-day-master-wealth"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=wealth"
+          ]
+        },
+        {
+          "element": "金",
+          "source": "strength",
+          "direction": "official",
+          "reasons": [
+            "control-day-master-official"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=official"
+          ]
+        }
+      ],
+      "climateCandidates": [],
+      "candidateOutput": {
+        "strengthNeedStatus": "ready",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 3,
+        "climateCount": 0
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-007",
+        "NEED-008",
+        "NEED-009",
+        "NEED-010",
+        "NEED-019",
+        "NEED-023",
+        "NEED-024",
+        "NEED-027",
+        "NEED-030",
+        "NEED-031",
+        "NEED-032",
+        "NEED-033",
+        "NEED-034",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-043",
+        "NEED-046",
+        "NEED-047",
+        "NEED-048",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "甲寅 甲寅 甲子 unknown. leaning-strong 木 → 火/土/金. Climate Need 없음. certainty partial."
+    },
+    {
+      "caseId": "need-case-3-leaning-weak-climate-dry",
+      "group": "needCandidates-test",
+      "covers": [
+        "leaning-weak",
+        "climate-dry",
+        "same-element-水",
+        "hour-unknown"
+      ],
+      "note": "甲酉 庚酉 甲酉 unknown. Strength 木/水, Climate 水. 같은 水를 두 배열에 별도 유지.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "酉"
+      },
+      "strengthState": {
+        "directionCandidate": "leaning-weak",
+        "resolution": "clear-direction",
+        "mixedPattern": null,
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [
+        {
+          "element": "木",
+          "source": "strength",
+          "direction": "peer",
+          "reasons": [
+            "strengthen-day-master-peer"
+          ],
+          "status": "candidate",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-weak",
+            "dayElement=木",
+            "relation=peer"
+          ]
+        },
+        {
+          "element": "水",
+          "source": "strength",
+          "direction": "resource",
+          "reasons": [
+            "strengthen-day-master-resource"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-weak",
+            "dayElement=木",
+            "relation=resource"
+          ]
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "ready",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 2,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-007",
+        "NEED-008",
+        "NEED-009",
+        "NEED-011",
+        "NEED-017",
+        "NEED-019",
+        "NEED-022",
+        "NEED-024",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-030",
+        "NEED-031",
+        "NEED-032",
+        "NEED-033",
+        "NEED-035",
+        "NEED-036",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-043",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-048",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "甲酉 庚酉 甲酉 unknown. Strength 木/水, Climate 水. 같은 水를 두 배열에 별도 유지."
+    },
+    {
+      "caseId": "need-case-4-mixed-warm-dry-merged-water",
+      "group": "needCandidates-test",
+      "covers": [
+        "mixed",
+        "climate-warm",
+        "climate-dry",
+        "hour-unknown"
+      ],
+      "note": "庚子 己未 辛卯 unknown. mixed. Climate 水 1건에 warm+dry reason 2개.",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "辛",
+        "monthBranch": "未"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "help-season-absent-root",
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "warm"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-019",
+        "NEED-021",
+        "NEED-022",
+        "NEED-026",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-031",
+        "NEED-037",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "庚子 己未 辛卯 unknown. mixed. Climate 水 1건에 warm+dry reason 2개."
+    },
+    {
+      "caseId": "need-case-5-leaning-weak-different-and-same",
+      "group": "needCandidates-test",
+      "covers": [
+        "leaning-weak",
+        "climate-dry",
+        "different-element",
+        "same-element-水",
+        "hour-unknown"
+      ],
+      "note": "丙午 戊戌 甲申 unknown. Strength 木/水, Climate 水. 木은 Strength만, 水는 축마다 별도.",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "戌"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "戌"
+      },
+      "strengthState": {
+        "directionCandidate": "leaning-weak",
+        "resolution": "clear-direction",
+        "mixedPattern": null,
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [
+        {
+          "element": "木",
+          "source": "strength",
+          "direction": "peer",
+          "reasons": [
+            "strengthen-day-master-peer"
+          ],
+          "status": "candidate",
+          "existingPresence": "unrooted-visible",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-weak",
+            "dayElement=木",
+            "relation=peer"
+          ]
+        },
+        {
+          "element": "水",
+          "source": "strength",
+          "direction": "resource",
+          "reasons": [
+            "strengthen-day-master-resource"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-weak",
+            "dayElement=木",
+            "relation=resource"
+          ]
+        }
+      ],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "ready",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 2,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-007",
+        "NEED-008",
+        "NEED-009",
+        "NEED-011",
+        "NEED-017",
+        "NEED-019",
+        "NEED-022",
+        "NEED-024",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-030",
+        "NEED-031",
+        "NEED-032",
+        "NEED-033",
+        "NEED-035",
+        "NEED-036",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-043",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-048",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "丙午 戊戌 甲申 unknown. Strength 木/水, Climate 水. 木은 Strength만, 水는 축마다 별도."
+    },
+    {
+      "caseId": "need-case-6-strength-unresolved-climate-cold",
+      "group": "needCandidates-test",
+      "covers": [
+        "null-unresolved",
+        "climate-cold",
+        "hour-unknown"
+      ],
+      "note": "甲寅 辛亥 庚子 unknown. Strength directionCandidate=null. Climate 火 from cold. moist로 火/土를 추가하지 않음.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "庚",
+        "monthBranch": "亥"
+      },
+      "strengthState": {
+        "directionCandidate": null,
+        "resolution": "unresolved",
+        "mixedPattern": null,
+        "unresolvedStrengthReasons": [
+          "seasonal-phase-insufficient",
+          "only-unrooted-visible-evidence",
+          "insufficient-visible-direction",
+          "hour-unknown-sensitive"
+        ],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "cold"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "moist"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.temperature=cold"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-013",
+        "NEED-019",
+        "NEED-020",
+        "NEED-023",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-031",
+        "NEED-037",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "甲寅 辛亥 庚子 unknown. Strength directionCandidate=null. Climate 火 from cold. moist로 火/土를 추가하지 않음."
+    },
+    {
+      "caseId": "need-case-7-explicit-mixed",
+      "group": "strengthSummary-test",
+      "covers": [
+        "mixed",
+        "hour-unknown"
+      ],
+      "note": "甲寅 庚申 甲子 unknown. Strength CASE 3 mixed. mixedPattern으로 후보를 만들지 않음.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "申"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "weak-season-with-support",
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-019",
+        "NEED-022",
+        "NEED-024",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-031",
+        "NEED-037",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "甲寅 庚申 甲子 unknown. Strength CASE 3 mixed. mixedPattern으로 후보를 만들지 않음."
+    },
+    {
+      "caseId": "need-case-8-strength-null",
+      "group": "strengthSummary-test",
+      "covers": [
+        "null-unresolved",
+        "hour-unknown"
+      ],
+      "note": "丙子 丁酉 甲子 unknown. Strength directionCandidate=null. Strength 후보 [].",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "酉"
+      },
+      "strengthState": {
+        "directionCandidate": null,
+        "resolution": "unresolved",
+        "mixedPattern": null,
+        "unresolvedStrengthReasons": [
+          "only-unrooted-visible-evidence",
+          "insufficient-visible-direction",
+          "hidden-relations-conflict",
+          "hour-unknown-sensitive"
+        ],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-013",
+        "NEED-019",
+        "NEED-022",
+        "NEED-024",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-031",
+        "NEED-037",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-053",
+        "NEED-054"
+      ],
+      "notes": "丙子 丁酉 甲子 unknown. Strength directionCandidate=null. Strength 후보 []."
+    },
+    {
+      "caseId": "need-case-9-mixed-hour-confirmed-climate-water",
+      "group": "strengthSummary-test",
+      "covers": [
+        "mixed",
+        "climate-warm",
+        "climate-dry",
+        "hour-confirmed"
+      ],
+      "note": "甲辰 丙午 丁酉 庚申. Strength mixed + hour confirmed. Climate 水.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": {
+          "stem": "庚",
+          "branch": "申"
+        }
+      },
+      "inputSummary": {
+        "hour": "confirmed",
+        "dayStem": "丁",
+        "monthBranch": "午"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "strong-base-with-pressure",
+        "unresolvedStrengthReasons": [],
+        "certainty": "complete"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "warm"
+        },
+        "moisture": {
+          "status": "resolved",
+          "value": "dry"
+        },
+        "certainty": "complete",
+        "climateNeedStatus": "ready"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "direction": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "complete",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "ready",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 1
+      },
+      "certainty": {
+        "strength": "complete",
+        "climate": "complete"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-019",
+        "NEED-021",
+        "NEED-022",
+        "NEED-026",
+        "NEED-027",
+        "NEED-028",
+        "NEED-029",
+        "NEED-037",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-044",
+        "NEED-045",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-054"
+      ],
+      "notes": "甲辰 丙午 丁酉 庚申. Strength mixed + hour confirmed. Climate 水."
+    },
+    {
+      "caseId": "need-case-10-climate-unresolved",
+      "group": "climate-audit-required",
+      "covers": [
+        "climate-unresolved",
+        "both-empty-or-climate-empty",
+        "hour-unknown"
+      ],
+      "note": "壬寅 己亥 丙子 unknown. Climate T/M unresolved. Climate 후보 없음. climateNeedStatus=unresolved.",
+      "pillars": {
+        "year": {
+          "stem": "壬",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "丙",
+        "monthBranch": "亥"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "weak-season-root-under-pressure",
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "unresolved",
+          "value": null
+        },
+        "moisture": {
+          "status": "unresolved",
+          "value": null
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "unresolved"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "unresolved",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 0
+      },
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-019",
+        "NEED-025",
+        "NEED-027",
+        "NEED-031",
+        "NEED-037",
+        "NEED-038",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-054"
+      ],
+      "notes": "壬寅 己亥 丙子 unknown. Climate T/M unresolved. Climate 후보 없음. climateNeedStatus=unresolved."
+    },
+    {
+      "caseId": "need-case-11-suppression-fixture-mixed-gate",
+      "group": "needSuppression-fixture",
+      "covers": [
+        "mixed",
+        "suppression-independent-call",
+        "hour-unknown"
+      ],
+      "note": "丙寅 甲寅 甲子 unknown. buildNeedCandidateSet는 mixed라 Strength []. collectLeaningStrongNeedCandidates만 호출하면 火 suppressed.",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "inputSummary": {
+        "hour": "unknown",
+        "dayStem": "甲",
+        "monthBranch": "寅"
+      },
+      "strengthState": {
+        "directionCandidate": "mixed",
+        "resolution": "mixed",
+        "mixedPattern": "strong-base-with-pressure",
+        "unresolvedStrengthReasons": [],
+        "certainty": "partial"
+      },
+      "climateState": {
+        "temperature": {
+          "status": "resolved",
+          "value": "balanced"
+        },
+        "moisture": {
+          "status": "unresolved",
+          "value": null
+        },
+        "certainty": "partial",
+        "climateNeedStatus": "axis-unresolved"
+      },
+      "strengthCandidates": [],
+      "climateCandidates": [],
+      "candidateOutput": {
+        "strengthNeedStatus": "unresolved",
+        "climateNeedStatus": "axis-unresolved",
+        "climateCounterSignals": [],
+        "strengthCount": 0,
+        "climateCount": 0
+      },
+      "independentLeaningStrong": [
+        {
+          "element": "火",
+          "source": "strength",
+          "direction": "output",
+          "reasons": [
+            "drain-day-master-output",
+            "already-established-relation"
+          ],
+          "status": "suppressed",
+          "existingPresence": "rooted-visible",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=output"
+          ]
+        },
+        {
+          "element": "土",
+          "source": "strength",
+          "direction": "wealth",
+          "reasons": [
+            "use-day-master-wealth"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "alreadyPresent": true,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=wealth"
+          ]
+        },
+        {
+          "element": "金",
+          "source": "strength",
+          "direction": "official",
+          "reasons": [
+            "control-day-master-official"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "alreadyPresent": false,
+          "certainty": "partial",
+          "evidenceRefs": [
+            "strength.directionCandidate=leaning-strong",
+            "dayElement=木",
+            "relation=official"
+          ]
+        }
+      ],
+      "certainty": {
+        "strength": "partial",
+        "climate": "partial"
+      },
+      "triggeredRules": [
+        "NEED-001",
+        "NEED-002",
+        "NEED-003",
+        "NEED-004",
+        "NEED-005",
+        "NEED-006",
+        "NEED-007",
+        "NEED-008",
+        "NEED-012",
+        "NEED-014",
+        "NEED-015",
+        "NEED-016",
+        "NEED-018",
+        "NEED-019",
+        "NEED-024",
+        "NEED-025",
+        "NEED-027",
+        "NEED-031",
+        "NEED-037",
+        "NEED-038",
+        "NEED-039",
+        "NEED-040",
+        "NEED-041",
+        "NEED-042",
+        "NEED-046",
+        "NEED-047",
+        "NEED-049",
+        "NEED-050",
+        "NEED-051",
+        "NEED-052",
+        "NEED-054"
+      ],
+      "notes": "丙寅 甲寅 甲子 unknown. buildNeedCandidateSet는 mixed라 Strength []. collectLeaningStrongNeedCandidates만 호출하면 火 suppressed."
+    }
+  ]
+}

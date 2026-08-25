@@ -1,0 +1,330 @@
+{
+  "schemaVersion": "w1b1-expert-blind-prep-v1",
+  "questionSetVersion": "w1b1-shiShen-strength-v1",
+  "purpose": "Blind expert validation preparation for STR-010 and STR-011. No expert answers or expecteds in this stage.",
+  "reusesPilot": {
+    "paths": [
+      "src/lib/saju/validation/pilot/expert-review-form.md",
+      "src/lib/saju/validation/pilot/expert-mapping-guide.md",
+      "src/lib/saju/validation/pilot/pilot-comparison-template.json",
+      "src/lib/saju/validation/pilot/cases.json",
+      "src/lib/saju/validation/types.ts"
+    ],
+    "patterns": [
+      "expertRaw-first",
+      "human-mapping-only",
+      "engine-and-literature-masked-from-expert",
+      "no-majority-as-truth",
+      "comparisonMatchStatus-enums"
+    ]
+  },
+  "targetRules": [
+    {
+      "ruleId": "STR-010",
+      "engineMeaning": "비견·겁재·편인·정인 → support",
+      "literatureVerdictMaskedFromExpert": "PARTIALLY-SUPPORTED",
+      "evidenceConfidenceMaskedFromExpert": "MEDIUM",
+      "expertValidationRequired": true
+    },
+    {
+      "ruleId": "STR-011",
+      "engineMeaning": "식신·상관·편재·정재·편관·정관 → pressure",
+      "literatureVerdictMaskedFromExpert": "CONTESTED",
+      "evidenceConfidenceMaskedFromExpert": "MEDIUM",
+      "expertValidationRequired": true
+    }
+  ],
+  "conceptSeparation": {
+    "inScope": ["A-day-master-strength", "B-shiShen-function-needed-for-strength"],
+    "outOfScope": ["C-geju", "D-yongshin-huishin", "needed-element", "needCandidate", "needResolution"]
+  },
+  "blindProtocol": {
+    "maskFromExpert": [
+      "STR-010",
+      "STR-011",
+      "support",
+      "pressure",
+      "leaning-strong",
+      "leaning-weak",
+      "mixed",
+      "StrengthSummary",
+      "NeedCandidate",
+      "NeedResolution",
+      "literatureVerdict",
+      "evidenceConfidence",
+      "supportingEvidence",
+      "conflictingEvidence",
+      "engine-grouping-phrases"
+    ],
+    "allowToExpert": [
+      "open-response-questions",
+      "optional-future-blind-charts-with-caseId-only",
+      "birth-data-when-case-round-runs"
+    ],
+    "procedureOrder": [
+      "phase-A-open-response",
+      "store-raw",
+      "phase-B-human-structured-mapping",
+      "later-comparison-only-after-collection"
+    ],
+    "forbiddenAutoTruthRules": [
+      "majority-vote-is-truth",
+      "longest-career-is-truth",
+      "specific-school-is-truth"
+    ]
+  },
+  "openResponseQuestions": [
+    {
+      "id": "Q-SCOPE-01",
+      "ruleFocus": "scope",
+      "text": "일간의 세력(강·약·혼재·판단 보류 등)을 볼 때, 다른 천간·지지의 십신을 어떻게 반영하십니까? 격국이나 용신 판단과 구분해서 설명해 주세요."
+    },
+    {
+      "id": "Q-011-01",
+      "ruleFocus": "STR-011",
+      "text": "식신·상관이 일간 세력에 어떤 영향을 준다고 보십니까?"
+    },
+    {
+      "id": "Q-011-02",
+      "ruleFocus": "STR-011",
+      "text": "정재·편재가 일간 세력에 어떤 영향을 준다고 보십니까?"
+    },
+    {
+      "id": "Q-011-03",
+      "ruleFocus": "STR-011",
+      "text": "정관·편관이 일간 세력에 어떤 영향을 준다고 보십니까?"
+    },
+    {
+      "id": "Q-011-04",
+      "ruleFocus": "STR-011",
+      "text": "위의 식상·재·관 가운데, 세력 판단에서 같은 방향으로 묶을 수 있는 것이 있습니까? 있다면 어떻게, 없다면 왜 다른지 적어 주세요."
+    },
+    {
+      "id": "Q-011-05",
+      "ruleFocus": "STR-011",
+      "text": "같은 방향으로 묶는다면 어떤 조건에서 가능하다고 보십니까? 조건이 없다면 그렇게 적어 주세요."
+    },
+    {
+      "id": "Q-010-01",
+      "ruleFocus": "STR-010",
+      "text": "비견·겁재가 일간 세력에 어떤 영향을 준다고 보십니까?"
+    },
+    {
+      "id": "Q-010-02",
+      "ruleFocus": "STR-010",
+      "text": "정인·편인이 일간 세력에 어떤 영향을 준다고 보십니까?"
+    },
+    {
+      "id": "Q-010-03",
+      "ruleFocus": "STR-010",
+      "text": "비겁과 인성을 세력 판단에서 같은 방향으로 묶을 수 있습니까? 이유와 예외가 있으면 적어 주세요."
+    },
+    {
+      "id": "Q-010-04",
+      "ruleFocus": "STR-010",
+      "text": "편인을 정인과 세력 방향에서 같게 볼 수 있는 경우와, 다르게 봐야 하는 경우가 있습니까?"
+    },
+    {
+      "id": "Q-010-05",
+      "ruleFocus": "STR-010",
+      "text": "비겁의 도움(幫 등)과 인성의 생(生 등)을 세력의 같은 방향으로 둘 수 있습니까? 같은 방향과 같은 강도는 구분해야 한다고 보십니까?"
+    }
+  ],
+  "openResponseQuestionCount": 11,
+  "structuredResponse": {
+    "topLevelFieldCount": 10,
+    "shiShenEffectEnum": [
+      "strengthens",
+      "weakens",
+      "conditional",
+      "neutral",
+      "not-directly-classifiable",
+      "depends-on-context"
+    ],
+    "shiShenKeys": [
+      "비견",
+      "겁재",
+      "정인",
+      "편인",
+      "식신",
+      "상관",
+      "정재",
+      "편재",
+      "정관",
+      "편관"
+    ],
+    "groupEnum": [
+      "can-group-as-same-side",
+      "can-group-conditionally",
+      "cannot-group",
+      "depends-on-context",
+      "not-comparable"
+    ],
+    "zhengPianEnum": [
+      "always-same",
+      "sometimes-same",
+      "never-same",
+      "depends-on-context",
+      "not-comparable"
+    ],
+    "bangVsShengEnum": [
+      "same-direction",
+      "different-direction",
+      "conditional",
+      "not-comparable"
+    ],
+    "sameIntensityEnum": ["yes", "no", "conditional", "not-comparable"],
+    "topLevelFields": [
+      "shiShenEffects",
+      "groupPeerResource",
+      "groupOutputWealthOfficial",
+      "zhengPianSameForStrength",
+      "bangVsShengSameDirection",
+      "sameDirectionMeansSameIntensity",
+      "answeredForStrengthOnly",
+      "strengthAssessmentRaw",
+      "mappingNotes",
+      "reviewConfidence"
+    ],
+    "mappingRule": "Human maps Phase A raw only. No engine/AI auto-fill. No copy of engine result into expert expected."
+  },
+  "caseDesign": {
+    "abstractQuestionsSufficientAlone": false,
+    "casesRequiredForFullValidation": true,
+    "actualCasesCreatedThisStage": 0,
+    "actualExpertExpectedsThisStage": 0,
+    "categories": [
+      {
+        "id": "C-PEER",
+        "purpose": "비겁 영향이 상대적으로 분리되어 보이기 쉬운 입력"
+      },
+      {
+        "id": "C-RESOURCE",
+        "purpose": "인성 영향이 상대적으로 분리되어 보이기 쉬운 입력"
+      },
+      {
+        "id": "C-OUTPUT",
+        "purpose": "식상 영향이 상대적으로 분리되어 보이기 쉬운 입력"
+      },
+      {
+        "id": "C-WEALTH",
+        "purpose": "재성 영향이 상대적으로 분리되어 보이기 쉬운 입력"
+      },
+      {
+        "id": "C-OFFICIAL",
+        "purpose": "관살 영향이 상대적으로 분리되어 보이기 쉬운 입력"
+      },
+      {
+        "id": "C-ZHENG-PIAN",
+        "purpose": "정/편 대비를 관찰하기 쉬운 입력"
+      }
+    ],
+    "categoryCount": 6,
+    "forbidden": [
+      "select-or-fabricate-charts-from-engine-leaning",
+      "fabricate-charts-to-match-desired-expert-answer",
+      "reuse-design-fixtures-as-blind-cases"
+    ]
+  },
+  "expertProvenanceSchema": {
+    "fields": [
+      {
+        "name": "expertId",
+        "required": true,
+        "note": "Anonymous code"
+      },
+      {
+        "name": "yearsOfPractice",
+        "required": false,
+        "recommended": true
+      },
+      {
+        "name": "primarySchoolOrSystem",
+        "required": false,
+        "recommended": true
+      },
+      {
+        "name": "trainingBackground",
+        "required": false
+      },
+      {
+        "name": "strengthJudgmentFramework",
+        "required": false,
+        "recommended": true
+      },
+      {
+        "name": "responseDate",
+        "required": true
+      },
+      {
+        "name": "questionSetVersion",
+        "required": true
+      },
+      {
+        "name": "caseSetVersion",
+        "required": false,
+        "note": "Only when chart round runs"
+      }
+    ],
+    "fieldNames": [
+      "expertId",
+      "yearsOfPractice",
+      "primarySchoolOrSystem",
+      "trainingBackground",
+      "strengthJudgmentFramework",
+      "responseDate",
+      "questionSetVersion",
+      "caseSetVersion"
+    ],
+    "piiPolicy": "No real name, contact, or counseling content"
+  },
+  "literatureResultMasking": true,
+  "engineResultMasking": true,
+  "expertAnswersCreatedThisStage": 0,
+  "expertExpectedsCreatedThisStage": 0,
+  "laterComparisonPlan": {
+    "executeThisStage": false,
+    "reuseMatchStatus": [
+      "match",
+      "partial-match",
+      "difference",
+      "expert-unresolved",
+      "engine-unresolved",
+      "not-comparable"
+    ],
+    "layers": [
+      "shiShen-strength-effect",
+      "group-peer-resource",
+      "group-output-wealth-official"
+    ],
+    "notes": "Compare literature and expert only after collection. Preserve school differences. No auto-truth."
+  },
+  "leakageRisks": [
+    "Question wording that restates engine grouping as if classical fact",
+    "Including literature verdict or confidence in expert packet",
+    "Showing support/pressure or leaning-* labels before independent judgment",
+    "Human mapper filling Phase B from engine instead of Phase A raw",
+    "Selecting cases by engine outcome distribution"
+  ],
+  "unresolvedItems": [
+    "W1B1-U1-strength-vs-geju-yongshin",
+    "W1B1-U2-pianyin-shengqi-vs-daoshi",
+    "W1B1-U3-bang-zhu-xie-shang",
+    "W1B1-U4-zheng-pian-same-side-evidence",
+    "W1B1-U5-shen-dangzhong-scope",
+    "W1B1-EB-01-abstract-vs-chart-divergence",
+    "W1B1-EB-02-school-term-not-comparable"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "literatureVerdictChanged": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "batch2Started": false,
+  "reviewNotes": [
+    {
+      "id": "RN-EB-001",
+      "text": "Prep brief swapped STR-010/STR-011 topic lists vs engine IDs. Questions are filed under engine definitions; all requested topics are covered."
+    }
+  ]
+}

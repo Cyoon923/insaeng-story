@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "w1b2-expert-blind-g2-response-v1",
+  "questionSetVersion": "w1b2-season-phase-strength-v1",
+  "caseSetVersion": "w1b2-g2-blind7-v1",
+  "note": "Storage schema only. Experts receive expert-blind-package.md — not this full JSON. Do not fill with AI or engine values.",
+  "g2Status": {
+    "packageReadyForDelivery": true,
+    "g2Executed": false,
+    "expertAnswersFilled": false,
+    "expertExpectedsFilled": false,
+    "comparisonExecuted": false,
+    "aggregationStarted": false
+  },
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "preservationRules": {
+    "openResponseTakesPrecedenceOverStructured": true,
+    "doNotOverwriteRawWithMappedEnums": true,
+    "doNotReconcileExpertToEngine": true,
+    "storeSchoolDifferencesAsIs": true,
+    "disagreementStatuses": [
+      "difference",
+      "partial-match",
+      "not-comparable",
+      "expert-unresolved"
+    ]
+  },
+  "expertFacing": {
+    "deliverToExpert": false,
+    "note": "Mirror of fields writable in expert-blind-package.md. Keep null until human expert answers.",
+    "provenance": {
+      "expertId": null,
+      "yearsOfPractice": null,
+      "primarySchoolOrSystem": null,
+      "trainingBackground": null,
+      "strengthJudgmentFramework": null,
+      "responseDate": null,
+      "questionSetVersion": "w1b2-season-phase-strength-v1",
+      "caseSetVersion": "w1b2-g2-blind7-v1"
+    },
+    "phaseA_openResponse": {
+      "A-1": null,
+      "A-2": null,
+      "A-3": null,
+      "A-4": null,
+      "A-5": null,
+      "A-6": null
+    },
+    "phaseB_structuredResponse": {
+      "monthCommandWeightRaw": null,
+      "deuksiImmediateWangRaw": null,
+      "deuksiImmediateStrongRaw": null,
+      "wangUseRaw": null,
+      "sangUseRaw": null,
+      "hyuUseRaw": null,
+      "suUseRaw": null,
+      "saUseRaw": null,
+      "hyuSameAsSuSaRaw": null,
+      "rootCanFlipDespiteSillryeongRaw": null,
+      "seasonPhaseVsFinalStrengthRaw": null,
+      "answeredForStrengthOnlyRaw": null,
+      "limitsAndSchoolDifferenceRaw": null,
+      "phaseAVsPhaseBConflictNote": null
+    },
+    "cases": [
+      {
+        "caseId": "w1b2-sp-01",
+        "presentationOrder": 1,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-02",
+        "presentationOrder": 2,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-03",
+        "presentationOrder": 3,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-04",
+        "presentationOrder": 4,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-05",
+        "presentationOrder": 5,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-06",
+        "presentationOrder": 6,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b2-sp-07",
+        "presentationOrder": 7,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "monthCommandRoleNarrative": null,
+          "rootPartyOtherRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      }
+    ]
+  },
+  "operatorOnlyAfterCollection": {
+    "sourceFixtureMap": {
+      "w1b2-sp-01": "s15-gyeong-hae-hyu",
+      "w1b2-sp-02": "s13-eul-in-jeonggi-geop",
+      "w1b2-sp-03": "s3-gap-yu-unrooted",
+      "w1b2-sp-04": "s1-gimo-bingja-muo",
+      "w1b2-sp-05": "c2-gi-sa-jeonggi-support",
+      "w1b2-sp-06": "s10-byeong-chuk-hyu",
+      "w1b2-sp-07": "s9-gap-sul-mugun"
+    },
+    "doNotSendToExpert": true,
+    "expertExpecteds": null,
+    "engineComparison": null
+  }
+}

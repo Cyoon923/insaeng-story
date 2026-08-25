@@ -1,0 +1,90 @@
+{
+  "set": "wave1-batch-1-post-validation-conflict-closure",
+  "status": "post-validation-conflict-closure-complete",
+  "schemaVersion": "w1b1-post-validation-conflict-closure-v1",
+  "sources": {
+    "ruleAudit": "post-validation-rule-audit.md",
+    "conflict1Design": "conflict-1-side-weight-design.md",
+    "conflict2Audit": "conflict-2-unknown-time-audit.md",
+    "phase1Closure": "phase1-closure.md"
+  },
+  "constraints": {
+    "noNewRulesWeightsThresholds": true,
+    "needPolicyUnchanged": true,
+    "strVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "noFurtherEngineEditsInThisStep": true
+  },
+  "literatureUnchanged": {
+    "STR-010": "PARTIALLY-SUPPORTED",
+    "STR-011": "CONTESTED"
+  },
+  "conflict1": {
+    "title": "side-internal-equal-treatment",
+    "implemented": {
+      "sourceBreakdown": true,
+      "kinds": ["peer", "resource", "output", "wealth", "officer"],
+      "decideDirectionUnchanged": true,
+      "noWeights": true
+    },
+    "informationLossResolved": [
+      {
+        "id": "C1-A",
+        "status": "INFORMATION-LOSS-RESOLVED",
+        "note": "source types preserved on StrengthSummary.sourceBreakdown"
+      }
+    ],
+    "policyUnresolved": [
+      {
+        "id": "C1-C",
+        "status": "POLICY-UNRESOLVED",
+        "note": "actual intensity differentials by source kind"
+      },
+      {
+        "id": "C1-D",
+        "status": "POLICY-UNRESOLVED",
+        "note": "decideDirection still uses equal boolean side contribution; breakdown diagnostic only"
+      }
+    ]
+  },
+  "conflict2": {
+    "title": "hour-unknown-provisional",
+    "implemented": {
+      "directionSensitivity": true,
+      "value": "hour-unknown-provisional",
+      "when": "hourUnknown && (leaning-strong || leaning-weak)",
+      "directionCandidateUnchanged": true,
+      "needUnchanged": true,
+      "str066Unchanged": true
+    },
+    "informationLossResolved": [
+      {
+        "id": "C2-A",
+        "status": "INFORMATION-LOSS-RESOLVED",
+        "note": "provisional hour-unknown leaning marked via directionSensitivity"
+      }
+    ],
+    "policyUnresolved": [
+      {
+        "id": "C2-C",
+        "status": "POLICY-UNRESOLVED",
+        "note": "partial + clear-direction coexistence semantics"
+      },
+      {
+        "id": "C2-D",
+        "status": "POLICY-UNRESOLVED",
+        "note": "whether Need ready remains allowed under partial+provisional"
+      },
+      {
+        "id": "C2-E",
+        "status": "POLICY-UNRESOLVED",
+        "note": "freeze-boundary wording vs STR-050/051 code alignment"
+      }
+    ]
+  },
+  "closure": {
+    "informationLossLayerClosable": true,
+    "policyLayerOpen": true,
+    "verifiedOrFreezePromotion": false
+  }
+}

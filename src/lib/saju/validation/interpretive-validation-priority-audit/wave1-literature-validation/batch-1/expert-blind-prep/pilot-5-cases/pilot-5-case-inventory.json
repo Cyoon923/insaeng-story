@@ -1,0 +1,288 @@
+{
+  "schemaVersion": "w1b1-expert-blind-pilot5-v1",
+  "questionSetVersion": "w1b1-shiShen-strength-v1",
+  "caseSetVersion": "w1b1-blind-pilot5-v1",
+  "purpose": "Pilot 5 blind chart package for STR-010/STR-011 expert validation. No expert answers or expecteds in this stage.",
+  "reusesPilot": {
+    "paths": [
+      "src/lib/saju/validation/pilot/expert-review-form.md",
+      "src/lib/saju/validation/pilot/expert-mapping-guide.md",
+      "src/lib/saju/validation/pilot/pilot-comparison-template.json",
+      "src/lib/saju/validation/pilot/cases.json"
+    ],
+    "note": "Does not overwrite pilot/cases.json empty shells. Uses same raw→mapping→comparison patterns."
+  },
+  "selectionMethod": {
+    "allowed": [
+      "stems",
+      "branches",
+      "monthBranch",
+      "hiddenStems",
+      "shiShenOf-raw-mapping",
+      "birth-input",
+      "calendar-kind"
+    ],
+    "forbidden": [
+      "strengthStatus",
+      "directionCandidate",
+      "leaningStrong",
+      "leaningWeak",
+      "mixedPattern",
+      "NeedCandidate",
+      "NeedResolution",
+      "supportedElements",
+      "climateNeed",
+      "neededElement",
+      "yongsin",
+      "heesin"
+    ]
+  },
+  "candidatesReviewedCount": 35,
+  "selectedCount": 5,
+  "newBirthDatesCreated": 0,
+  "existingFixtureReuseCount": 5,
+  "hourUnknownPresentationVariants": 1,
+  "presentationOrder": [
+    "w1b1-blind-01",
+    "w1b1-blind-02",
+    "w1b1-blind-03",
+    "w1b1-blind-04",
+    "w1b1-blind-05"
+  ],
+  "operatorOnly": {
+    "targetRules": ["STR-010", "STR-011"],
+    "literatureStatusMaskedFromExpertPackage": {
+      "STR-010": { "verdict": "PARTIALLY-SUPPORTED", "confidence": "MEDIUM" },
+      "STR-011": { "verdict": "CONTESTED", "confidence": "MEDIUM" }
+    },
+    "comparisonPrepared": true,
+    "comparisonExecuted": false,
+    "engineResultsStored": false,
+    "expertAnswersStored": false
+  },
+  "cases": [
+    {
+      "caseId": "w1b1-blind-01",
+      "presentationOrder": 1,
+      "selected": true,
+      "sourceId": "calc-day-2023-01-22",
+      "sourcePath": "src/lib/saju/validation/calculation/cases.json",
+      "sourceGroup": "day-pillar",
+      "provenance": "External day-pillar calendar check case. No personal name.",
+      "hourCertainty": "confirmed",
+      "input": {
+        "calendar": "solar",
+        "year": 2023,
+        "month": 1,
+        "day": 22,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "壬寅",
+        "month": "癸丑",
+        "day": "庚辰",
+        "hour": "壬午"
+      },
+      "rawStructuralFeaturesOperatorOnly": {
+        "dayStem": "庚",
+        "monthBranch": "丑",
+        "visibleStemShiShen": ["식신", "상관", "식신"],
+        "categoryHints": ["C-OUTPUT", "C-ZHENG-PIAN"],
+        "helpsObserve": ["STR-011-output", "zheng-pian-output"]
+      },
+      "personName": null,
+      "expertAnswer": null,
+      "expertExpected": null,
+      "comparison": null
+    },
+    {
+      "caseId": "w1b1-blind-02",
+      "presentationOrder": 2,
+      "selected": true,
+      "sourceId": "calc-day-2000-01-01",
+      "sourcePath": "src/lib/saju/validation/calculation/cases.json",
+      "sourceGroup": "day-pillar",
+      "provenance": "KASI/calendar day-pillar anchor 2000-01-01. No personal name.",
+      "hourCertainty": "confirmed",
+      "input": {
+        "calendar": "solar",
+        "year": 2000,
+        "month": 1,
+        "day": 1,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "己卯",
+        "month": "丙子",
+        "day": "戊午",
+        "hour": "戊午"
+      },
+      "rawStructuralFeaturesOperatorOnly": {
+        "dayStem": "戊",
+        "monthBranch": "子",
+        "visibleStemShiShen": ["겁재", "편인", "비견"],
+        "categoryHints": ["C-PEER", "C-RESOURCE", "C-ZHENG-PIAN"],
+        "helpsObserve": ["STR-010-peer", "STR-010-resource", "zheng-pian-peer"]
+      },
+      "personName": null,
+      "expertAnswer": null,
+      "expertExpected": null,
+      "comparison": null
+    },
+    {
+      "caseId": "w1b1-blind-03",
+      "presentationOrder": 3,
+      "selected": true,
+      "sourceId": "calc-day-1960-04-19",
+      "sourcePath": "src/lib/saju/validation/calculation/cases.json",
+      "sourceGroup": "day-pillar",
+      "provenance": "External day-pillar calendar check case. No personal name.",
+      "hourCertainty": "confirmed",
+      "input": {
+        "calendar": "solar",
+        "year": 1960,
+        "month": 4,
+        "day": 19,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "庚子",
+        "month": "庚辰",
+        "day": "丁丑",
+        "hour": "丙午"
+      },
+      "rawStructuralFeaturesOperatorOnly": {
+        "dayStem": "丁",
+        "monthBranch": "辰",
+        "visibleStemShiShen": ["정재", "정재", "겁재"],
+        "categoryHints": ["C-WEALTH", "C-PEER"],
+        "helpsObserve": ["STR-011-wealth", "STR-010-peer-secondary"]
+      },
+      "personName": null,
+      "expertAnswer": null,
+      "expertExpected": null,
+      "comparison": null
+    },
+    {
+      "caseId": "w1b1-blind-04",
+      "presentationOrder": 4,
+      "selected": true,
+      "sourceId": "calc-day-1945-08-15",
+      "sourcePath": "src/lib/saju/validation/calculation/cases.json",
+      "sourceGroup": "day-pillar",
+      "provenance": "Public calendar day-pillar check date only. Not for historical-person interpretation. No personal counseling data.",
+      "hourCertainty": "confirmed",
+      "input": {
+        "calendar": "solar",
+        "year": 1945,
+        "month": 8,
+        "day": 15,
+        "isLeapMonth": false,
+        "time": { "hour": 12, "minute": 0 },
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "乙酉",
+        "month": "甲申",
+        "day": "丙辰",
+        "hour": "甲午"
+      },
+      "rawStructuralFeaturesOperatorOnly": {
+        "dayStem": "丙",
+        "monthBranch": "申",
+        "visibleStemShiShen": ["정인", "편인", "편인"],
+        "categoryHints": ["C-RESOURCE", "C-ZHENG-PIAN"],
+        "helpsObserve": ["STR-010-resource", "zheng-pian-resource"]
+      },
+      "personName": null,
+      "expertAnswer": null,
+      "expertExpected": null,
+      "comparison": null
+    },
+    {
+      "caseId": "w1b1-blind-05",
+      "presentationOrder": 5,
+      "selected": true,
+      "sourceId": "calc-day-1988-09-17",
+      "sourcePath": "src/lib/saju/validation/calculation/cases.json",
+      "sourceGroup": "day-pillar",
+      "provenance": "Same birth date as calc-day-1988-09-17; hour omitted only for Pilot hour-unknown slot. No new birth date invented.",
+      "hourCertainty": "unknown",
+      "hourOmissionNote": "Pilot presentation variant. Original calc case had noon hour; omitted here without consulting engine interpretive outputs.",
+      "input": {
+        "calendar": "solar",
+        "year": 1988,
+        "month": 9,
+        "day": 17,
+        "isLeapMonth": false,
+        "time": "unknown",
+        "timezone": "Asia/Seoul"
+      },
+      "pillarsForExpert": {
+        "year": "戊辰",
+        "month": "辛酉",
+        "day": "乙亥",
+        "hour": null
+      },
+      "rawStructuralFeaturesOperatorOnly": {
+        "dayStem": "乙",
+        "monthBranch": "酉",
+        "visibleStemShiShen": ["정재", "편관"],
+        "categoryHints": ["C-WEALTH", "C-OFFICIAL"],
+        "helpsObserve": ["STR-011-wealth", "STR-011-official", "hour-unknown"]
+      },
+      "personName": null,
+      "expertAnswer": null,
+      "expertExpected": null,
+      "comparison": null
+    }
+  ],
+  "coverageSummaryOperatorOnly": {
+    "str010ObservableCaseIds": ["w1b1-blind-02", "w1b1-blind-03", "w1b1-blind-04"],
+    "str011ObservableCaseIds": ["w1b1-blind-01", "w1b1-blind-03", "w1b1-blind-05"],
+    "zhengPianObservableCaseIds": ["w1b1-blind-01", "w1b1-blind-02", "w1b1-blind-04"],
+    "str010ObservableCount": 3,
+    "str011ObservableCount": 3,
+    "zhengPianObservableCount": 3
+  },
+  "excludedExamples": [
+    {
+      "sourceId": "calc-day-2021-02-12",
+      "selected": false,
+      "reason": "Peer overlap with w1b1-blind-02; wealth better isolated in w1b1-blind-03"
+    },
+    {
+      "sourceId": "calc-day-2024-02-10",
+      "selected": false,
+      "reason": "Mixed peer/output/official on visible stems; weaker isolation"
+    },
+    {
+      "sourceId": "calc-lichun-2024-절입",
+      "selected": false,
+      "reason": "Solar-term boundary specialty; not prioritized for general Pilot"
+    },
+    {
+      "sourceId": "jie-boundary/*",
+      "selected": false,
+      "reason": "Near-duplicate minute pairs; excluded a priori"
+    },
+    {
+      "sourceId": "design-fixtures (axisReview/conflictType/needSuppression/shiShen)",
+      "selected": false,
+      "reason": "pilot doNotReuseDesignFixtures / forbiddenCaseIds"
+    }
+  ],
+  "leakageChecklist": {
+    "expertPackageIncludesEngineResult": false,
+    "expertPackageIncludesLiteratureVerdict": false,
+    "expertPackageIncludesRuleIds": false,
+    "expertPackageIncludesExpecteds": false,
+    "operatorInventorySeparatesRawShiShen": true
+  }
+}

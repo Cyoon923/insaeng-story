@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "w1b1-expert-blind-pilot5-response-v1",
+  "questionSetVersion": "w1b1-shiShen-strength-v1",
+  "caseSetVersion": "w1b1-blind-pilot5-v1",
+  "note": "Storage schema only. Experts receive expert-blind-package.md — not this full JSON. Do not fill with AI or engine values. Human expert writes later; operator maps after collection.",
+  "pilotStatus": {
+    "preflightComplete": true,
+    "readyForExpertDelivery": true,
+    "pilotExecuted": false,
+    "expertAnswersFilled": false,
+    "expertExpectedsFilled": false,
+    "comparisonExecuted": false
+  },
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "preservationRules": {
+    "openResponseTakesPrecedenceOverStructured": true,
+    "doNotOverwriteRawWithMappedEnums": true,
+    "doNotReconcileExpertToEngine": true,
+    "storeSchoolDifferencesAsIs": true,
+    "disagreementStatuses": [
+      "difference",
+      "partial-match",
+      "not-comparable",
+      "expert-unresolved"
+    ],
+    "note": "Phase A / case expertRaw free text is authoritative when it conflicts with Phase B or later mapping. Do not collapse disagreement into a single 'correct' answer."
+  },
+  "expertFacing": {
+    "deliverToExpert": false,
+    "note": "Mirror of fields the expert may write in expert-blind-package.md. Keep null until a human expert answers. Never put engine/literature/expected here.",
+    "provenance": {
+      "expertId": null,
+      "yearsOfPractice": null,
+      "primarySchoolOrSystem": null,
+      "trainingBackground": null,
+      "strengthJudgmentFramework": null,
+      "responseDate": null,
+      "questionSetVersion": "w1b1-shiShen-strength-v1",
+      "caseSetVersion": "w1b1-blind-pilot5-v1"
+    },
+    "phaseA_openResponse": {
+      "A-1": null,
+      "A-2": null,
+      "A-3": null,
+      "A-4": null,
+      "A-5": null,
+      "A-6": null,
+      "A-7": null,
+      "A-8": null,
+      "A-9": null,
+      "A-10": null,
+      "A-11": null
+    },
+    "phaseB_structuredResponse": {
+      "note": "Expert may answer in their own words (Korean free text). Enums below are operator mapping aids only — see operatorOnlyAfterCollection.",
+      "shiShenEffects": [
+        { "shiShen": "비견", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "겁재", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "정인", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "편인", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "식신", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "상관", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "정재", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "편재", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "정관", "effectRaw": null, "conditionNote": null },
+        { "shiShen": "편관", "effectRaw": null, "conditionNote": null }
+      ],
+      "groupPeerResourceRaw": null,
+      "groupOutputWealthOfficialRaw": null,
+      "zhengPianSameForStrengthRaw": null,
+      "bangVsShengSameDirectionRaw": null,
+      "sameDirectionMeansSameIntensityRaw": null,
+      "answeredForStrengthOnlyRaw": null,
+      "phaseAVsPhaseBConflictNote": null
+    },
+    "cases": [
+      {
+        "caseId": "w1b1-blind-01",
+        "presentationOrder": 1,
+        "expertRaw": {
+          "fourPillarsConfirmed": null,
+          "dayMaster": null,
+          "strengthAssessmentRaw": null,
+          "strengthReasonsRaw": null,
+          "notes": null
+        }
+      },
+      {
+        "caseId": "w1b1-blind-02",
+        "presentationOrder": 2,
+        "expertRaw": {
+          "fourPillarsConfirmed": null,
+          "dayMaster": null,
+          "strengthAssessmentRaw": null,
+          "strengthReasonsRaw": null,
+          "notes": null
+        }
+      },
+      {
+        "caseId": "w1b1-blind-03",
+        "presentationOrder": 3,
+        "expertRaw": {
+          "fourPillarsConfirmed": null,
+          "dayMaster": null,
+          "strengthAssessmentRaw": null,
+          "strengthReasonsRaw": null,
+          "notes": null
+        }
+      },
+      {
+        "caseId": "w1b1-blind-04",
+        "presentationOrder": 4,
+        "expertRaw": {
+          "fourPillarsConfirmed": null,
+          "dayMaster": null,
+          "strengthAssessmentRaw": null,
+          "strengthReasonsRaw": null,
+          "notes": null
+        }
+      },
+      {
+        "caseId": "w1b1-blind-05",
+        "presentationOrder": 5,
+        "expertRaw": {
+          "fourPillarsConfirmed": null,
+          "dayMaster": null,
+          "strengthAssessmentRaw": null,
+          "strengthReasonsRaw": null,
+          "hourUnknownImpactRaw": null,
+          "notes": null
+        }
+      }
+    ]
+  },
+  "operatorOnlyAfterCollection": {
+    "deliverToExpert": false,
+    "note": "Never include in expert packet or expert-facing UI. Filled only after blind answers are collected.",
+    "effectEnumReference": [
+      "strengthens",
+      "weakens",
+      "conditional",
+      "neutral",
+      "not-directly-classifiable",
+      "depends-on-context"
+    ],
+    "groupEnumReference": [
+      "can-group-as-same-side",
+      "can-group-conditionally",
+      "cannot-group",
+      "depends-on-context",
+      "not-comparable"
+    ],
+    "phaseB_mappedFromRaw": {
+      "mappedBy": null,
+      "mappingNotes": null,
+      "shiShenEffects": null,
+      "groupPeerResource": null,
+      "groupOutputWealthOfficial": null,
+      "zhengPianSameForStrength": null,
+      "bangVsShengSameDirection": null,
+      "sameDirectionMeansSameIntensity": null,
+      "answeredForStrengthOnly": null,
+      "reviewConfidence": null,
+      "openVsStructuredDisagreementPreserved": null
+    },
+    "cases": [
+      {
+        "caseId": "w1b1-blind-01",
+        "mapping": {
+          "mappedBy": null,
+          "mappingNotes": null,
+          "strength": null,
+          "cannotDetermine": null
+        },
+        "expertExpected": null,
+        "comparison": null
+      },
+      {
+        "caseId": "w1b1-blind-02",
+        "mapping": {
+          "mappedBy": null,
+          "mappingNotes": null,
+          "strength": null,
+          "cannotDetermine": null
+        },
+        "expertExpected": null,
+        "comparison": null
+      },
+      {
+        "caseId": "w1b1-blind-03",
+        "mapping": {
+          "mappedBy": null,
+          "mappingNotes": null,
+          "strength": null,
+          "cannotDetermine": null
+        },
+        "expertExpected": null,
+        "comparison": null
+      },
+      {
+        "caseId": "w1b1-blind-04",
+        "mapping": {
+          "mappedBy": null,
+          "mappingNotes": null,
+          "strength": null,
+          "cannotDetermine": null
+        },
+        "expertExpected": null,
+        "comparison": null
+      },
+      {
+        "caseId": "w1b1-blind-05",
+        "mapping": {
+          "mappedBy": null,
+          "mappingNotes": null,
+          "strength": null,
+          "cannotDetermine": null
+        },
+        "expertExpected": null,
+        "comparison": null
+      }
+    ],
+    "comparisonLink": {
+      "templatePath": "src/lib/saju/validation/pilot/pilot-comparison-template.json",
+      "executeThisStage": false,
+      "engineResultsFilled": false,
+      "expertResultsFilled": false,
+      "matchStatusComputed": false,
+      "agreementRateComputed": false
+    }
+  }
+}

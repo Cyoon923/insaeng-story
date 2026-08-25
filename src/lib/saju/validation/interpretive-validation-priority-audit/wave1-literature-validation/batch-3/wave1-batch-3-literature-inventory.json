@@ -1,0 +1,284 @@
+{
+  "set": "wave1-actual-literature-validation-batch-3",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "batch1Preserved": true,
+  "batch2Preserved": true,
+  "note": "Batch 3 = W1-G3-ROOT-DEPTH (STR-030-clear, STR-030-present, STR-030-shallow) only. Grouping unchanged. Prior batches and Pilot 5 untouched. freezeStatus/method/VERIFIED-FACT unchanged. STR-005 hit existence is not re-closed as interpretive-validated.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-validation.md",
+    "wave1-literature-validation/batch-2/wave1-batch-2-literature-validation.md",
+    "interpretive-validation-priority-audit.md",
+    "src/lib/saju/elements/strengthSummary.ts",
+    "src/lib/saju/elements/roots.ts"
+  ],
+  "dependencyRecheck": {
+    "groupId": "W1-G3-ROOT-DEPTH",
+    "dependsOn": ["STR-005"],
+    "str005FreezeStatus": "VERIFIED-FACT",
+    "dependsOnOtherUnvalidatedBothInterpretive": false,
+    "parallelUpstreamWithG2AfterBatch2": true,
+    "newDependenciesInvented": false,
+    "proceedAsBatch3": true,
+    "distinction": "STR-005 = raw same-element hidden-stem hits. STR-030-* = interpretive depth labels from 정기/중기/여기."
+  },
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch3Rules": 3,
+    "literaturesConsulted": 5,
+    "originalTextEvidenceUnits": 7,
+    "commentaryEvidenceUnits": 1,
+    "modernInterpretationEvidenceUnits": 0,
+    "independentCrossChecks": 2,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 1,
+    "CONTESTED": 2,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "engineDefinitionFromRepo": {
+    "rootQualityOf": [
+      "any 정기 hit → clear",
+      "else any 중기 hit → present",
+      "else any 여기 hit → shallow",
+      "else absent"
+    ],
+    "hitsFrom": "analyzeStemRoots: all confirmed slots, same-element hidden stems, no month-branch extra weight, no 투간 in this label",
+    "notThisBatch": ["STR-031", "STR-032", "STR-033", "STR-050"]
+  },
+  "batch3Selection": {
+    "groupId": "W1-G3-ROOT-DEPTH",
+    "ruleIds": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+    "notJudgedThisBatch": [
+      "CLI-002",
+      "CLI-003a",
+      "CLI-003b",
+      "CLI-003c",
+      "CLI-003d",
+      "CLI-004",
+      "CLI-011",
+      "CLI-012",
+      "CLI-018",
+      "CLI-019",
+      "CLI-036",
+      "CLI-037"
+    ]
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "work": "子平真詮",
+      "author": "沈孝瞻",
+      "access": "https://ctext.org/wiki.pl?chapter=974137&if=gb",
+      "locus": "論十干得時不旺失時不弱",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S2",
+      "work": "淵海子平",
+      "authorTradition": "徐升-lineage",
+      "access": "https://zh.wikisource.org/wiki/淵海子平",
+      "locus": "又地支藏遁歌",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S3",
+      "work": "三命通會",
+      "author": "萬民英",
+      "locus": "論人元司事",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S4",
+      "work": "滴天髓",
+      "authorTradition": "京圖/劉基-lineage",
+      "access": "https://zh.wikisource.org/wiki/滴天髓",
+      "locus": ["壬水 通根透癸", "八格 人元透出"],
+      "layer": "ORIGINAL-TEXT",
+      "note": "格局/기상 층. Not used as direct STR-030 support",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S5",
+      "work": "子平真詮評注",
+      "author": "徐樂吾",
+      "access": "https://ctext.org/wiki.pl?chapter=974137&if=gb",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    }
+  ],
+  "evidenceUnits": [
+    {
+      "id": "E-S1-you-gen-vs-yueling",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["tonggen-existence-supporting", "month-vs-other-branches-limiting"]
+    },
+    {
+      "id": "E-S1-zhong-qing-changsheng-vs-mu-yuqi",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["depth-supporting-different-axis", "STR-030-clear-conflicting", "STR-030-present-conflicting", "STR-030-shallow-conflicting"]
+    },
+    {
+      "id": "E-S1-zang-required-same-element",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-005-aligned-not-closing-STR-005"]
+    },
+    {
+      "id": "E-S1-bijie-vs-tonggen",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["tou-vs-root-separate-supporting"]
+    },
+    {
+      "id": "E-S2-cangdun-ge",
+      "sourceId": "S2",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["hidden-stem-list-not-three-tier-strength"]
+    },
+    {
+      "id": "E-S3-renyuan-sishi-days",
+      "sourceId": "S3",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["depth-exists-different-axis", "STR-030-present-conflicting"]
+    },
+    {
+      "id": "E-S4-tonggen-tou-geju",
+      "sourceId": "S4",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["other-layer-not-direct"]
+    },
+    {
+      "id": "E-S5-xu-commentary",
+      "sourceId": "S5",
+      "layer": "COMMENTARY",
+      "relation": ["not-back-projected-to-shen"]
+    }
+  ],
+  "contextMixingFound": true,
+  "contextMixingNotes": [
+    "十二長生 墓/餘氣 vs 旺相休囚死 vs 엔진 여기/정기 — separated",
+    "人元司事 月令 司令日數 vs all-pillar rootQuality — separated",
+    "滴天髓 通根透出 取格 vs Strength rootQuality — not used as direct evidence",
+    "徐 COMMENTARY not back-projected onto 沈 ORIGINAL-TEXT"
+  ],
+  "answersToValidationQuestions": {
+    "A_tonggen_in_strength": "沈: 四柱有根 supports 旺衰 independently of 月令休囚. Existence supported; 3-tier depth is separate.",
+    "B_same_element_same_root": "No. 沈 distinguishes 根之重/輕. Engine STR-005 treats hits equally; STR-030 then splits by role.",
+    "C_benqi_zhongqi_yuqi_depth": "Hidden-stem plurality is attested. 1:1 mapping to Strength depth grades is not a classical rule.",
+    "D_month_vs_other_branches": "沈 distinguishes 月令得時 vs 年日時通根. Engine STR-030 treats all slots the same.",
+    "E_tou_vs_tonggen": "沈: 比劫 ≠ 通根, 干多不如根重. Engine STR-030 does not use 투간 (separate fields elsewhere).",
+    "F_clear_present_shallow": "Engine abstraction over 정기/중기/여기 lookup. Not a classical triad of those English/code labels."
+  },
+  "rules": [
+    {
+      "ruleId": "STR-030-clear",
+      "name": "정기 → rootQuality clear",
+      "method": "BOTH",
+      "engineSummary": "hit.role 정기 → clear",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "본기/정기가 해당 지지의 주된 藏干이라는 전통",
+        "沈: 祿旺은 根之重 — 일부 정기와 겹침",
+        "通根이 일간 세력에 쓰임"
+      ],
+      "limitingEvidence": [
+        "clear enum은 문헌에 없음",
+        "월지 미가중",
+        "라벨 ≠ leaning-strong (STR-050)"
+      ],
+      "conflictingEvidence": [
+        "辰戌丑未 정기 토 = 墓旺인데 沈은 墓庫를 根之輕, 엔진은 가장 깊은 clear"
+      ]
+    },
+    {
+      "ruleId": "STR-030-present",
+      "name": "중기 → present",
+      "method": "BOTH",
+      "engineSummary": "정기 없고 중기 → present",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "한 지지에 본기 외 藏干이 있다는 원전 목록·人元司事"
+      ],
+      "limitingEvidence": [
+        "중기=중간 통근 강도라는 세력 규칙 미확인",
+        "present는 엔진 추상화"
+      ],
+      "conflictingEvidence": [
+        "寅丙·申壬·亥甲·巳庚 등 중기가 해당 천간 長生이면 沈의 根之重과 충돌",
+        "通會 巳 戊日數 > 庚長生日數인데 엔진은 戊가 더 얕음"
+      ]
+    },
+    {
+      "ruleId": "STR-030-shallow",
+      "name": "여기 → shallow",
+      "method": "BOTH",
+      "engineSummary": "여기만 → shallow",
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "沈: 餘氣는 根之輕 (乙逢辰、丁逢未) — 일부 여기와 겹침"
+      ],
+      "limitingEvidence": [
+        "shallow 라벨은 엔진",
+        "중기/여기 판본 논쟁은 원전 노래로 고정 불가"
+      ],
+      "conflictingEvidence": [
+        "寅戊 엔진 여기 vs 戊長生(寅) 沈 根之重"
+      ]
+    }
+  ],
+  "underlyingRuleDependency": {
+    "STR-002": {
+      "role": "VERIFIED-FACT hidden-stem table (여기/중기/정기 lookup)",
+      "validatedThisBatch": false
+    },
+    "STR-005": {
+      "role": "VERIFIED-FACT same-element root hits",
+      "validatedThisBatch": false,
+      "note": "hit mapping verified ≠ depth interpretation verified"
+    }
+  },
+  "preservedFromPriorBatches": {
+    "STR-010": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-011": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-022": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-024": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "expertBlindPrepUnchanged": true,
+    "pilot5CasesUnchanged": true,
+    "expertAnswersGenerated": 0
+  },
+  "unresolved": [
+    "W1B3-U1-STR-005-hit-table-not-reclosed",
+    "W1B3-U2-three-depth-axes-unreconciled",
+    "W1B3-U3-zhongqi-yuqi-collation",
+    "W1B3-U4-STR-031-033-shallow-downstream",
+    "W1B3-U5-month-command-vs-all-slot-quality"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "batch4Started": false
+}

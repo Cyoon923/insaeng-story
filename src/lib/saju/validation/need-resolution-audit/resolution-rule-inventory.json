@@ -1,0 +1,1126 @@
+{
+  "set": "resolution-rule-inventory",
+  "status": "structure-audited + conservative-policy-boundary-fixed + status-label-awaiting-validation",
+  "notFullyValidated": true,
+  "engineUnchanged": true,
+  "freezeBoundaryNotThisStage": false,
+  "note": "NeedResolution은 후보 관계와 최종 결정 차단을 구조화한다. status/supported는 최종 Needed Element가 아니다. 코드에 있다는 이유만으로 INTERPRETIVE를 검증 완료로 분류하지 않는다.",
+  "forbiddenInNeedResolution": [
+    "score",
+    "weight",
+    "rank",
+    "priority",
+    "winner",
+    "neededElement",
+    "finalElement",
+    "yongsin",
+    "heesin"
+  ],
+  "relationPatterns": [
+    "no-candidates",
+    "strength-only",
+    "climate-only",
+    "exact-overlap",
+    "partial-overlap",
+    "disjoint"
+  ],
+  "statuses": [
+    "indeterminate",
+    "single-axis",
+    "convergent",
+    "competing"
+  ],
+  "blockersInCode": [
+    "strength-axis-unresolved",
+    "climate-axis-unresolved",
+    "no-active-climate-need",
+    "deferred-strength-only-element",
+    "competing-axes",
+    "strength-three-way-unranked"
+  ],
+  "policyGapsEmitted": [],
+  "policyGapsTypeLeftover": [
+    "mixed-strength-resolution",
+    "unresolved-strength-direction"
+  ],
+  "policyGapsAbsent": [
+    "moisture-excess-need-unresolved"
+  ],
+  "ruleTypes": [
+    "FACT",
+    "ENGINE-POLICY",
+    "INTERPRETIVE",
+    "OPEN"
+  ],
+  "counts": {
+    "total": 49,
+    "FACT": 31,
+    "ENGINE-POLICY": 11,
+    "INTERPRETIVE": 4,
+    "OPEN": 3
+  },
+  "rules": [
+    {
+      "ruleId": "RES-001",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "buildNeedResolution",
+      "inputCondition": "pillars",
+      "outputField": "NeedResolution",
+      "outputValue": "buildNeedCandidateSet + buildStrengthSummary + buildAdjustedClimateSummary 후 resolveNeedCandidates",
+      "evidenceUsed": [
+        "pillars"
+      ],
+      "evidenceIgnored": [
+        "NeedResolution 내부에서 후보를 다시 만들지 않음"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-1",
+        "res-case-3"
+      ],
+      "notes": "연결부. NeedCandidate Audit을 반복하지 않음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-002",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "needSet, strength, climate",
+      "outputField": "NeedResolution",
+      "outputValue": "관계 분류 + blocker. winner 없음",
+      "evidenceUsed": [
+        "NeedCandidateSet",
+        "StrengthSummary.certainty",
+        "AdjustedClimateSummary.certainty"
+      ],
+      "evidenceIgnored": [
+        "directionCandidate를 패턴 계산에 재사용하지 않음"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-10-exact-overlap-injected"
+      ],
+      "notes": "주입 경로와 차트 경로 동일 함수.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-003",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "isActive",
+      "inputCondition": "candidate.status",
+      "outputField": "strengthActive / climateActive",
+      "outputValue": "status===candidate 만 active",
+      "evidenceUsed": [
+        "status"
+      ],
+      "evidenceIgnored": [
+        "suppressed reasons"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "suppressed는 패턴 집합에 안 들어감.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-004",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "uniqueElements / setEqual",
+      "inputCondition": "active candidate 배열",
+      "outputField": "element Set",
+      "outputValue": "오행 집합",
+      "evidenceUsed": [
+        "element"
+      ],
+      "evidenceIgnored": [
+        "reason 개수, presence"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "집합 계산. 점수 아님.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-005",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "strengthActiveElements, climateActiveElements",
+      "outputField": "relationPattern",
+      "outputValue": "6종 중 하나",
+      "evidenceUsed": [
+        "active 오행 집합만"
+      ],
+      "evidenceIgnored": [
+        "suppressed",
+        "axis status",
+        "certainty"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "all"
+      ],
+      "notes": "axis unresolved와 독립. suppressed 제외.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-006",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "양쪽 active size===0",
+      "outputField": "relationPattern",
+      "outputValue": "no-candidates",
+      "evidenceUsed": [
+        "empty sets"
+      ],
+      "evidenceIgnored": [
+        "axis ready/unresolved"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-1-no-candidates",
+        "res-case-2-both-unresolved",
+        "res-case-9-climate-axis-unresolved"
+      ],
+      "notes": "빈 집합 사실. 필요한 오행 없음이 아님.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-007",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "strength>0 && climate===0",
+      "outputField": "relationPattern",
+      "outputValue": "strength-only",
+      "evidenceUsed": [
+        "active sets"
+      ],
+      "evidenceIgnored": [
+        "Climate ready empty와 동일 취급"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-3-strength-only"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-008",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "strength===0 && climate>0",
+      "outputField": "relationPattern",
+      "outputValue": "climate-only",
+      "evidenceUsed": [
+        "active sets"
+      ],
+      "evidenceIgnored": [
+        "Strength suppressed 동일 오행은 패턴에 안 넣음"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-4-climate-only",
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "suppressed Strength + Climate 동일 오행도 climate-only.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-009",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "양쪽 비어 있지 않고 setEqual",
+      "outputField": "relationPattern",
+      "outputValue": "exact-overlap",
+      "evidenceUsed": [
+        "active sets"
+      ],
+      "evidenceIgnored": [
+        "reason 차이"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-10-exact-overlap-injected"
+      ],
+      "notes": "기존 만세력 fixture 없음. 주입 테스트만.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-010",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "shared>0 이고 집합이 다름",
+      "outputField": "relationPattern",
+      "outputValue": "partial-overlap",
+      "evidenceUsed": [
+        "active sets"
+      ],
+      "evidenceIgnored": [
+        "어느 축이 더 중요한지"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "Strength 木水 + Climate 水.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-011",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf",
+      "inputCondition": "양쪽>0 이고 shared===0",
+      "outputField": "relationPattern",
+      "outputValue": "disjoint",
+      "evidenceUsed": [
+        "active sets"
+      ],
+      "evidenceIgnored": [
+        "점수 비교"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-6-disjoint"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-012",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "STATUS_BY_PATTERN",
+      "inputCondition": "relationPattern===no-candidates",
+      "outputField": "status",
+      "outputValue": "indeterminate",
+      "evidenceUsed": [
+        "lookup table"
+      ],
+      "evidenceIgnored": [
+        "최종 오행 없음 해석"
+      ],
+      "ruleType": "INTERPRETIVE",
+      "validationStatus": "interpretive-awaiting-validation",
+      "affectedCases": [
+        "res-case-1-no-candidates"
+      ],
+      "notes": "HIGH-RISK. 집합→라벨. indeterminate ≠ 필요한 오행 없음. 코드가 최종 결정을 하지 않음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "RES-013",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "STATUS_BY_PATTERN",
+      "inputCondition": "strength-only | climate-only",
+      "outputField": "status",
+      "outputValue": "single-axis",
+      "evidenceUsed": [
+        "lookup table"
+      ],
+      "evidenceIgnored": [
+        "해당 축 승리 해석"
+      ],
+      "ruleType": "INTERPRETIVE",
+      "validationStatus": "interpretive-awaiting-validation",
+      "affectedCases": [
+        "res-case-3-strength-only",
+        "res-case-4-climate-only"
+      ],
+      "notes": "HIGH-RISK. single-axis ≠ 해당 축 승리. provisional winner 아님.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "RES-014",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "STATUS_BY_PATTERN",
+      "inputCondition": "exact-overlap | partial-overlap",
+      "outputField": "status",
+      "outputValue": "convergent",
+      "evidenceUsed": [
+        "lookup table"
+      ],
+      "evidenceIgnored": [
+        "공통=용신 해석"
+      ],
+      "ruleType": "INTERPRETIVE",
+      "validationStatus": "interpretive-awaiting-validation",
+      "affectedCases": [
+        "res-case-5-partial-overlap",
+        "res-case-10-exact-overlap-injected"
+      ],
+      "notes": "HIGH-RISK. partial-overlap도 convergent. convergent ≠ winner.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "RES-015",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "STATUS_BY_PATTERN",
+      "inputCondition": "disjoint",
+      "outputField": "status",
+      "outputValue": "competing",
+      "evidenceUsed": [
+        "lookup table"
+      ],
+      "evidenceIgnored": [
+        "사주가 나쁘다 해석"
+      ],
+      "ruleType": "INTERPRETIVE",
+      "validationStatus": "interpretive-awaiting-validation",
+      "affectedCases": [
+        "res-case-6-disjoint"
+      ],
+      "notes": "HIGH-RISK. competing ≠ 오류. 우선순위 없음.",
+      "freezeStatus": "REQUIRES-INTERPRETIVE-VALIDATION"
+    },
+    {
+      "ruleId": "RES-016",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "status 부여 후",
+      "outputField": "(없음) winner",
+      "outputValue": "status를 winner/neededElement로 올리지 않음",
+      "evidenceUsed": [
+        "필드 부재",
+        "decisionBlockedBy"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "all"
+      ],
+      "notes": "status는 분류 라벨. 최종 결정이 아님.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-017",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "supportedElementsOf",
+      "inputCondition": "status===convergent",
+      "outputField": "supportedElements",
+      "outputValue": "shared 오행마다 supports[]",
+      "evidenceUsed": [
+        "sharedElements",
+        "strengthActive",
+        "climateActive"
+      ],
+      "evidenceIgnored": [
+        "suppressed"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap",
+        "res-case-10-exact-overlap-injected"
+      ],
+      "notes": "exact/partial에서만 채워짐. 둘 다 active인 공유 오행만.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-018",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "supportedElementsOf",
+      "inputCondition": "shared element",
+      "outputField": "supports",
+      "outputValue": "해당 오행의 Strength+Climate active 원본 후보 보존",
+      "evidenceUsed": [
+        "filter element"
+      ],
+      "evidenceIgnored": [
+        "reason 합치기/삭제"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "source/reasons 유지.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-019",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "supportedElementsOf",
+      "inputCondition": "supportedElements[0]",
+      "outputField": "(없음)",
+      "outputValue": "score/rank/priority/final로 사용하지 않음",
+      "evidenceUsed": [
+        "배열 순서만"
+      ],
+      "evidenceIgnored": [
+        "첫 원소=승자"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-5-partial-overlap",
+        "res-case-10-exact-overlap-injected"
+      ],
+      "notes": "report도 [0]을 winner로 안 읽음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-020",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "status!==convergent",
+      "outputField": "supportedElements",
+      "outputValue": "[]",
+      "evidenceUsed": [
+        "status 가드"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-1-no-candidates",
+        "res-case-3-strength-only",
+        "res-case-6-disjoint"
+      ],
+      "notes": "single-axis/competing/indeterminate는 supported 없음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-021",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "relationPattern===partial-overlap",
+      "outputField": "deferredElements",
+      "outputValue": "strengthOnly + climateOnly",
+      "evidenceUsed": [
+        "strengthOnlyElements",
+        "climateOnlyElements"
+      ],
+      "evidenceIgnored": [
+        "supported"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "예: supported 水, deferred 木.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-022",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "deferredElements",
+      "outputField": "deferredElements",
+      "outputValue": "2순위/보조/희신으로 쓰지 않음",
+      "evidenceUsed": [
+        "배열 보존"
+      ],
+      "evidenceIgnored": [
+        "순위 필드"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "blocker deferred-strength-only-element만 추가.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-023",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "strength-only | climate-only",
+      "outputField": "singleAxisElements",
+      "outputValue": "해당 축 active 전체 복사. 그 외 []",
+      "evidenceUsed": [
+        "strengthActive 또는 climateActive"
+      ],
+      "evidenceIgnored": [
+        "supportedElements"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-3-strength-only",
+        "res-case-4-climate-only"
+      ],
+      "notes": "supported와 분리. provisional winner 아님.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-024",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "status===competing",
+      "outputField": "competingElementsByAxis",
+      "outputValue": "{strength, climate} 축별 배열. 한 배열로 합치지 않음",
+      "evidenceUsed": [
+        "strengthActive",
+        "climateActive"
+      ],
+      "evidenceIgnored": [
+        "동등 점수"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-6-disjoint"
+      ],
+      "notes": "우선순위/score 없음. 비 competing이면 빈 배열.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-025",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "strength suppressed ∩ climate active 오행",
+      "outputField": "suppressedSharedElements",
+      "outputValue": "오행 글자 배열",
+      "evidenceUsed": [
+        "strengthSuppressed",
+        "climateActiveElements"
+      ],
+      "evidenceIgnored": [
+        "activeShared"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "activeShared/supported에 안 들어감. 만세력 fixture 없음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-026",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "climateActive && strengthSuppressed 같은 오행",
+      "outputField": "climateOnlyElements",
+      "outputValue": "그 오행은 climateOnly에서 제외",
+      "evidenceUsed": [
+        "strengthSuppressedElements"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "climate-only 패턴이어도 climateOnlyElements는 []. singleAxis에는 Climate 후보가 남을 수 있음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-027",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "counterSignalsOf",
+      "inputCondition": "suppressedSharedCandidates",
+      "outputField": "counterSignals",
+      "outputValue": "element, source=strength, reason=already-established-relation 또는 reasons[0]",
+      "evidenceUsed": [
+        "suppressed Strength"
+      ],
+      "evidenceIgnored": [
+        "기신/금기 해석"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "Strength suppressed 기반. 금기/기신 아님.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-028",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "needSet.climateCounterSignals",
+      "outputField": "counterSignals",
+      "outputValue": "climate source로 복사. 현재 입력은 항상 []",
+      "evidenceUsed": [
+        "NeedCandidateSet.climateCounterSignals"
+      ],
+      "evidenceIgnored": [
+        "생성 로직(없음)"
+      ],
+      "ruleType": "OPEN",
+      "validationStatus": "not-implemented",
+      "affectedCases": [
+        "all charts"
+      ],
+      "notes": "Climate Audit: climateCounterSignals 항상 []. 모순 없음. 슬롯만 전달.",
+      "freezeStatus": "OPEN"
+    },
+    {
+      "ruleId": "RES-029",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "needSet.strengthNeedStatus / climateNeedStatus",
+      "outputField": "strengthAxisStatus / climateAxisStatus",
+      "outputValue": "복사",
+      "evidenceUsed": [
+        "NeedCandidateSet status"
+      ],
+      "evidenceIgnored": [
+        "relationPattern으로 덮어쓰기"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-1-no-candidates",
+        "res-case-9-climate-axis-unresolved"
+      ],
+      "notes": "strength: ready|unresolved. climate: ready|axis-unresolved|unresolved.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-030",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf vs axis status",
+      "inputCondition": "축 unresolved여도 active 집합이 있으면",
+      "outputField": "relationPattern",
+      "outputValue": "축 status와 독립 계산",
+      "evidenceUsed": [
+        "active sets only"
+      ],
+      "evidenceIgnored": [
+        "axis unresolved → 강제 no-candidates 없음"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-4-climate-only"
+      ],
+      "notes": "Strength unresolved + Climate 후보 = climate-only 가능.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-031",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "decisionBlockedByOf",
+      "inputCondition": "strengthNeedStatus===unresolved",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "strength-axis-unresolved",
+      "evidenceUsed": [
+        "needSet.strengthNeedStatus"
+      ],
+      "evidenceIgnored": [
+        "Climate 후보 유무"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-1-no-candidates",
+        "res-case-4-climate-only"
+      ],
+      "notes": "최종 결정을 막음. 패턴을 바꾸지 않음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-032",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "decisionBlockedByOf",
+      "inputCondition": "climateNeedStatus axis-unresolved|unresolved",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "climate-axis-unresolved",
+      "evidenceUsed": [
+        "needSet.climateNeedStatus"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-2-both-unresolved",
+        "res-case-9-climate-axis-unresolved"
+      ],
+      "notes": "",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-033",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "decisionBlockedByOf",
+      "inputCondition": "climateNeedStatus===ready && climateActive.length===0",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "no-active-climate-need",
+      "evidenceUsed": [
+        "climateNeedStatus",
+        "climateActive"
+      ],
+      "evidenceIgnored": [
+        "moist 정책 재해석"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-1-no-candidates",
+        "res-case-3-strength-only"
+      ],
+      "notes": "Climate 축은 닫혔으나 후보가 없음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-034",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "decisionBlockedByOf",
+      "inputCondition": "partial-overlap && strengthOnly.length>0",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "deferred-strength-only-element",
+      "evidenceUsed": [
+        "relationPattern",
+        "strengthOnly"
+      ],
+      "evidenceIgnored": [
+        "deferred를 버려도 되는지"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "supported가 있어도 최종을 막음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-035",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "decisionBlockedByOf",
+      "inputCondition": "relationPattern===disjoint",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "competing-axes",
+      "evidenceUsed": [
+        "relationPattern"
+      ],
+      "evidenceIgnored": [
+        "어느 축 우선"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-6-disjoint"
+      ],
+      "notes": "해결하지 않고 막음.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-036",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "hasThreeWayUnranked",
+      "inputCondition": "strength-only && output+wealth+official 모두 존재",
+      "outputField": "decisionBlockedBy",
+      "outputValue": "strength-three-way-unranked",
+      "evidenceUsed": [
+        "direction set"
+      ],
+      "evidenceIgnored": [
+        "세 오행 순위"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "res-case-3-strength-only"
+      ],
+      "notes": "식상/재/관 매핑 자체는 NeedCandidate INTERPRETIVE. 여기서는 셋 중 하나를 고르지 않는 정책.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-037",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "policyGapsOf",
+      "inputCondition": "항상",
+      "outputField": "policyGaps",
+      "outputValue": "[]",
+      "evidenceUsed": [
+        "literal return"
+      ],
+      "evidenceIgnored": [
+        "mixed-strength-resolution",
+        "unresolved-strength-direction"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "all"
+      ],
+      "notes": "현재 빈 배열이 정상. gap을 채우지 않음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-038",
+      "sourceFile": "src/lib/saju/types.ts",
+      "sourceFunction": "NeedPolicyGap type",
+      "inputCondition": "타입 유니온",
+      "outputField": "NeedPolicyGap",
+      "outputValue": "mixed-strength-resolution | unresolved-strength-direction 선언만. emit 없음",
+      "evidenceUsed": [
+        "types.ts"
+      ],
+      "evidenceIgnored": [
+        "moisture-excess-need-unresolved (타입에도 없음)"
+      ],
+      "ruleType": "OPEN",
+      "validationStatus": "type-leftover-not-emitted",
+      "affectedCases": [
+        "needResolution.test.ts regression"
+      ],
+      "notes": "과거 문서 값이 타입에 남아 있으나 코드가 넣지 않음. 새 gap을 만들지 않음.",
+      "freezeStatus": "OPEN"
+    },
+    {
+      "ruleId": "RES-039",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "policyGaps / tests",
+      "inputCondition": "문자열 검색",
+      "outputField": "policyGaps",
+      "outputValue": "moisture-excess-need-unresolved 없음",
+      "evidenceUsed": [
+        "코드 부재"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "needResolution.test.ts"
+      ],
+      "notes": "테스트가 이 값이 없음을 고정.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-040",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "strength.certainty / climate.certainty",
+      "outputField": "certainty",
+      "outputValue": "{strength, climate} 별도 복사",
+      "evidenceUsed": [
+        "StrengthSummary.certainty",
+        "AdjustedClimateSummary.certainty"
+      ],
+      "evidenceIgnored": [
+        "needSet 후보 certainty로 덮어쓰기"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-3-strength-only",
+        "res-case-7-hour-confirmed-climate-only"
+      ],
+      "notes": "partial이 pattern/status를 바꾸지 않음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-041",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "relationPatternOf / STATUS_BY_PATTERN",
+      "inputCondition": "certainty=partial",
+      "outputField": "relationPattern / status",
+      "outputValue": "certainty 분기 없음. partial ≠ unresolved",
+      "evidenceUsed": [
+        "식별자 certainty 미사용 in pattern"
+      ],
+      "evidenceIgnored": [
+        "시간 미상=부정확 강제"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-3-strength-only",
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "partial 후보가 있어도 패턴은 집합만 봄.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-042",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "elementStatesOf",
+      "inputCondition": "original Strength+Climate 후보",
+      "outputField": "elementStates",
+      "outputValue": "element, existingPresence, alreadyPresent 첫 값 유지",
+      "evidenceUsed": [
+        "candidate presence"
+      ],
+      "evidenceIgnored": [
+        "후보 제거/가산/winner/rank"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "메타만.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-043",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "elementStatesOf",
+      "inputCondition": "같은 오행 presence 불일치",
+      "outputField": "reasons",
+      "outputValue": "existing-presence-mismatch:오행 문자열 추가. 후보 삭제 없음",
+      "evidenceUsed": [
+        "presence 비교"
+      ],
+      "evidenceIgnored": [
+        "점수"
+      ],
+      "ruleType": "ENGINE-POLICY",
+      "validationStatus": "conservative-policy-not-mingli-verified",
+      "affectedCases": [
+        "injected if mismatch"
+      ],
+      "notes": "현재 기존 차트 필수 CASE에서 mismatch reason은 관측 우선순위 아님.",
+      "freezeStatus": "FROZEN-POLICY"
+    },
+    {
+      "ruleId": "RES-044",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "needSet 배열",
+      "outputField": "originalStrengthCandidates / originalClimateCandidates",
+      "outputValue": "[...배열] shallow copy. reason/source 보존",
+      "evidenceUsed": [
+        "needSet 후보"
+      ],
+      "evidenceIgnored": [
+        "재작성"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "all"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-045",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "NeedResolution type / return",
+      "inputCondition": "필드 검색",
+      "outputField": "(없음)",
+      "outputValue": "winner, neededElement, finalElement, score, rank, priority, yongsin, heesin 없음",
+      "evidenceUsed": [
+        "types + return"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "needResolution.test.ts forbidden"
+      ],
+      "notes": "",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-046",
+      "sourceFile": "src/lib/saju/validation/report.ts",
+      "sourceFunction": "buildSajuValidationReportFromPillars",
+      "inputCondition": "needResolution",
+      "outputField": "needResolution / validationStatus",
+      "outputValue": "객체 복사. finalDecisionBlocked = decisionBlockedBy.length>0",
+      "evidenceUsed": [
+        "NeedResolution"
+      ],
+      "evidenceIgnored": [
+        "supportedElements[0]"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "validationReport.test.ts"
+      ],
+      "notes": "암묵적 final 소비 없음.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-047",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "resolveNeedCandidates",
+      "inputCondition": "reasons 배열",
+      "outputField": "reasons",
+      "outputValue": "relation-pattern=, status=, blocked-by=, policy-gap=",
+      "evidenceUsed": [
+        "pattern",
+        "status",
+        "blockers",
+        "gaps"
+      ],
+      "evidenceIgnored": [
+        "점수"
+      ],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "all"
+      ],
+      "notes": "진단 문자열.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-048",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "strengthOnlyElements / climateOnlyElements",
+      "inputCondition": "항상 계산",
+      "outputField": "strengthOnlyElements, climateOnlyElements",
+      "outputValue": "패턴과 무관하게 채움. deferred/singleAxis는 패턴 가드",
+      "evidenceUsed": [
+        "active filters"
+      ],
+      "evidenceIgnored": [],
+      "ruleType": "FACT",
+      "validationStatus": "observed-in-code",
+      "affectedCases": [
+        "res-case-5-partial-overlap"
+      ],
+      "notes": "필드가 항상 있음. 소비는 패턴 가드.",
+      "freezeStatus": "VERIFIED-FACT"
+    },
+    {
+      "ruleId": "RES-049",
+      "sourceFile": "src/lib/saju/elements/needResolution.ts",
+      "sourceFunction": "singleAxisElements vs climateOnlyElements",
+      "inputCondition": "climate-only + suppressedShared 동일 오행",
+      "outputField": "singleAxisElements / climateOnlyElements",
+      "outputValue": "singleAxis는 climateActive, climateOnly는 제외될 수 있음",
+      "evidenceUsed": [
+        "res-case-11"
+      ],
+      "evidenceIgnored": [
+        "어느 쪽이 사용자 의미인지"
+      ],
+      "ruleType": "OPEN",
+      "validationStatus": "structure-observed-meaning-unclear",
+      "affectedCases": [
+        "res-case-11-suppressed-shared-injected"
+      ],
+      "notes": "구현은 명확. 두 필드의 제품 의미는 미정. 새 규칙으로 맞추지 않음.",
+      "freezeStatus": "OPEN"
+    }
+  ],
+  "freezeStates": [
+    "VERIFIED-FACT",
+    "FROZEN-POLICY",
+    "REQUIRES-INTERPRETIVE-VALIDATION",
+    "OPEN"
+  ],
+  "freezeCounts": {
+    "total": 49,
+    "VERIFIED-FACT": 31,
+    "REQUIRES-INTERPRETIVE-VALIDATION": 4,
+    "FROZEN-POLICY": 11,
+    "OPEN": 3
+  }
+}

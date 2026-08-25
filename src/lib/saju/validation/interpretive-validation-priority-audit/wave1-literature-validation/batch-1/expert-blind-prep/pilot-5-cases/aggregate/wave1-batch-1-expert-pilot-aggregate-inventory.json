@@ -1,0 +1,203 @@
+{
+  "set": "wave1-batch-1-expert-pilot-aggregate",
+  "status": "expert-pilot-aggregate-complete",
+  "schemaVersion": "w1b1-expert-pilot-aggregate-v1",
+  "questionSetVersion": "w1b1-shiShen-strength-v1",
+  "caseSetVersion": "w1b1-blind-pilot5-v1",
+  "engineUnchanged": true,
+  "str010VerdictUnchanged": true,
+  "str011VerdictUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "expectedCreated": false,
+  "majorityTreatedAsTruth": false,
+  "wave2Started": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "note": "Aggregate of E1–E4 Blind Pilot raw only. Literature verdicts kept separate. No VERIFIED/truth claims.",
+  "rawCorpus": {
+    "E1": {
+      "path": "raw/E1-raw.md",
+      "expertId": "E1",
+      "rawFileModified": false,
+      "expertBodyUnchanged": true,
+      "formerPath": "raw/PENDING-second-paste-raw.md",
+      "provenanceStatus": "confirmed-e1",
+      "note": "Same paste body as former PENDING file; renamed and header-identified as E1 only"
+    },
+    "E2": {
+      "path": "raw/E2-raw.md",
+      "rawFileModified": false
+    },
+    "E3": {
+      "path": "raw/E3-raw.md",
+      "rawFileModified": false
+    },
+    "E4": {
+      "path": "raw/E4-raw.md",
+      "rawFileModified": false
+    }
+  },
+  "literatureLayerUnchanged": {
+    "STR-010": {
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM"
+    },
+    "STR-011": {
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM"
+    }
+  },
+  "conceptComparisons": {
+    "peerResourceStrengthenDirection": {
+      "E1": "agree",
+      "E2": "agree-via-framework",
+      "E3": "agree",
+      "E4": "agree",
+      "agreementCount": 4,
+      "disagreementCount": 0,
+      "note": "Direction only; mechanism split noted by E3/E4"
+    },
+    "outputWealthOfficialWeakenDirection": {
+      "E1": "agree",
+      "E2": "agree-via-framework",
+      "E3": "agree-direction-split-mechanism",
+      "E4": "agree-direction-wealth-conditional",
+      "agreementCount": 4,
+      "disagreementCount": 0,
+      "mechanismDisagreement": true
+    },
+    "equalWeightOrSimpleCountForFinalGrade": {
+      "E1": "unclear",
+      "E2": "reject",
+      "E3": "reject",
+      "E4": "reject",
+      "rejectCount": 3,
+      "unclearCount": 1,
+      "majorityNotTruth": true
+    },
+    "zhengPianSamePrimaryDirection": {
+      "E1": "not-stated",
+      "E2": "not-stated",
+      "E3": "same-primary-direction",
+      "E4": "same-primary-direction-intensity-differs",
+      "comparableCount": 2,
+      "notStatedCount": 2
+    },
+    "monthRootPositionOverRawCount": {
+      "E1": "agree",
+      "E2": "agree",
+      "E3": "agree",
+      "E4": "agree",
+      "agreementCount": 4
+    }
+  },
+  "pilotCases": {
+    "w1b1-blind-01": {
+      "directionTags": {
+        "E1": "weak",
+        "E2": "weak",
+        "E3": "weak",
+        "E4": "weak"
+      },
+      "rawLabels": {
+        "E1": "신약 ~ 중화약",
+        "E2": "신약",
+        "E3": "신약 (극신약 아님)",
+        "E4": "신약 — 편약"
+      },
+      "directionAgreement": "4/4-weak",
+      "gradeDisagreement": true
+    },
+    "w1b1-blind-02": {
+      "directionTags": {
+        "E1": "strong",
+        "E2": "strong",
+        "E3": "strong",
+        "E4": "strong"
+      },
+      "rawLabels": {
+        "E1": "태강 ~ 극왕 (극신강)",
+        "E2": "태강~극왕",
+        "E3": "신강",
+        "E4": "신강 — 편강"
+      },
+      "directionAgreement": "4/4-strong",
+      "gradeDisagreement": true
+    },
+    "w1b1-blind-03": {
+      "directionTags": {
+        "E1": "weak",
+        "E2": "weak",
+        "E3": "weak",
+        "E4": "weak"
+      },
+      "rawLabels": {
+        "E1": "신약",
+        "E2": "신약(뚜렷)",
+        "E3": "신약",
+        "E4": "신약 — 편약"
+      },
+      "directionAgreement": "4/4-weak",
+      "gradeDisagreement": false
+    },
+    "w1b1-blind-04": {
+      "directionTags": {
+        "E1": "neutral-lean-strong",
+        "E2": "neutral-lean-weak",
+        "E3": "weak-near-neutral",
+        "E4": "neutral-lean-weak"
+      },
+      "rawLabels": {
+        "E1": "중화 ~ 중화신강",
+        "E2": "애매(중화~신약 쪽 무게; 중화신강도 가능)",
+        "E3": "신약(중화 근접)",
+        "E4": "중화 (기울면 편약)"
+      },
+      "directionAgreement": "open-disagreement",
+      "specialSection": "case-04-disagreement",
+      "majorityNotTruth": true
+    },
+    "w1b1-blind-05": {
+      "directionTags": {
+        "E1": "weak",
+        "E2": "weak",
+        "E3": "weak",
+        "E4": "weak"
+      },
+      "rawLabels": {
+        "E1": "극신약 (시주 비겁/인성 미보강 시)",
+        "E2": "극신약에 가까운 신약",
+        "E3": "신약(잠정)",
+        "E4": "신약 — 차약 / 시주별 중화~차약"
+      },
+      "directionAgreement": "4/4-weak-with-uncertainty",
+      "hourUnknownUncertaintyExplicitCount": 4,
+      "specialSection": "case-05-hour-unknown-uncertainty"
+    }
+  },
+  "scopeSayable": [
+    "peer+resource strengthen direction agreement 4/4 (observation)",
+    "output+wealth+official weaken macro-direction agreement 4/4 (observation)",
+    "month/root/position prioritized over raw shiShen count (4/4)",
+    "cases 01/02/03 direction-level convergence",
+    "case 05 weak direction + hour uncertainty common"
+  ],
+  "scopeNotSayable": [
+    "promote STR-010/011 literature verdict or freezeStatus",
+    "engine equal-weight/count as closed rule",
+    "zheng/pian full consensus (E1/E2 not stated)",
+    "case 04 final strength label",
+    "case 05 final grade without hour",
+    "geju/yongsin/needed-element"
+  ],
+  "unresolved": [
+    "W1B1-EP-U1-e1-provenance-resolved-as-E1-raw",
+    "W1B1-EP-U2-case-04-open-disagreement",
+    "W1B1-EP-U3-case-05-hour-uncertainty",
+    "W1B1-EP-U4-wealth-mechanism-disagreement",
+    "W1B1-EP-U5-e1-equal-weight-unclear",
+    "W1B1-EP-U6-zheng-pian-e1-e2-not-stated",
+    "W1B1-EP-U7-literature-vs-expert-layers-stay-separate"
+  ],
+  "aggregateDocument": "wave1-batch-1-expert-pilot-aggregate.md"
+}

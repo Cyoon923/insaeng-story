@@ -1,0 +1,282 @@
+{
+  "set": "wave1-actual-literature-validation-batch-2",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "batch1Preserved": true,
+  "note": "Batch 2 = W1-G2-SEASON-PHASE (STR-022, STR-024) only. Grouping unchanged from Batch 1. STR-010/011 and Pilot 5 untouched. freezeStatus/method/VERIFIED-FACT unchanged.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-validation.md",
+    "interpretive-validation-priority-audit.md"
+  ],
+  "remainingCandidateGroupsBeforeSelection": 5,
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch1CompletedGroup": "W1-G1-SHISHEN-SIDE",
+    "batch2Rules": 2,
+    "literaturesConsulted": 5,
+    "originalTextEvidenceUnits": 6,
+    "commentaryEvidenceUnits": 1,
+    "modernInterpretationEvidenceUnits": 0,
+    "independentCrossChecks": 2,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 2,
+    "CONTESTED": 0,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "groupsUnchanged": [
+    {
+      "groupId": "W1-G1-SHISHEN-SIDE",
+      "ruleIds": ["STR-010", "STR-011"],
+      "batchStatus": "batch-1-complete-preserved"
+    },
+    {
+      "groupId": "W1-G2-SEASON-PHASE",
+      "ruleIds": ["STR-022", "STR-024"],
+      "commonTopic": "왕상휴수사에서 왕=강측, 수/사=약측으로 기록",
+      "upstream": ["STR-004"],
+      "downstreamImpact": ["STR-023", "STR-025", "STR-050", "STR-051", "STR-055"],
+      "batchStatus": "batch-2-selected"
+    },
+    {
+      "groupId": "W1-G3-ROOT-DEPTH",
+      "ruleIds": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "batchStatus": "not-judged"
+    },
+    {
+      "groupId": "W1-G4-MONTH-CLIMATE",
+      "ruleIds": [
+        "CLI-002",
+        "CLI-003a",
+        "CLI-003b",
+        "CLI-003c",
+        "CLI-003d",
+        "CLI-004"
+      ],
+      "batchStatus": "not-judged"
+    },
+    {
+      "groupId": "W1-G5-BRANCH-FIRE-WATER",
+      "ruleIds": ["CLI-011", "CLI-012"],
+      "batchStatus": "not-judged"
+    },
+    {
+      "groupId": "W1-G6-CLIMATE-ADJUST",
+      "ruleIds": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+      "upstream": ["CLI-002"],
+      "batchStatus": "not-judged-depends-on-G4"
+    }
+  ],
+  "batch2Selection": {
+    "groupId": "W1-G2-SEASON-PHASE",
+    "ruleIds": ["STR-022", "STR-024"],
+    "selectionReason": [
+      "Does not depend on other BOTH groups (only STR-004 FACT lookup).",
+      "Large Strength downstream into STR-023/025 and leaning STR-050/051/055 after Batch 1 shiShen sides.",
+      "Continues Strength axis; Batch 1 deferred Climate (G4). G3 parallel but month-command 得時/失時 is classically the first 旺衰 axis; clear/present/shallow is more engine-specific.",
+      "G6 excluded as dependent on G4. Not chosen for small rule count."
+    ],
+    "notSelectedThisBatch": [
+      "STR-030-clear",
+      "STR-030-present",
+      "STR-030-shallow",
+      "CLI-002",
+      "CLI-003a",
+      "CLI-003b",
+      "CLI-003c",
+      "CLI-003d",
+      "CLI-004",
+      "CLI-011",
+      "CLI-012",
+      "CLI-018",
+      "CLI-019",
+      "CLI-036",
+      "CLI-037"
+    ]
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "work": "淵海子平",
+      "authorTradition": "徐升-lineage (attribution debated)",
+      "access": "https://zh.wikisource.org/wiki/淵海子平",
+      "locus": "论日为主",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S2",
+      "work": "三命通會",
+      "author": "萬民英",
+      "access": [
+        "https://www.shidianguji.com/zh/book/SK1610/chapter/1kf5v6ol1tqg5",
+        "https://ctext.org/wiki.pl?chapter=17423&if=gb"
+      ],
+      "locus": "卷二 論五行旺相休囚死並寄生十二宫",
+      "layer": "ORIGINAL-TEXT",
+      "crossChecked": true,
+      "pageConfirmed": false
+    },
+    {
+      "id": "S3",
+      "work": "子平真詮",
+      "author": "沈孝瞻",
+      "access": "https://ctext.org/wiki.pl?chapter=974137&if=gb",
+      "locus": "論十干得時不旺失時不弱",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S4",
+      "work": "子平真詮評注",
+      "author": "徐樂吾",
+      "access": "https://ctext.org/wiki.pl?chapter=974137&if=gb",
+      "locus": "旺衰強弱四字…得時為旺，失時為衰",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S5",
+      "work": "滴天髓",
+      "authorTradition": "京圖/劉基-lineage",
+      "access": "https://zh.wikisource.org/wiki/滴天髓",
+      "locus": ["衰旺論", "月令論"],
+      "layer": "ORIGINAL-TEXT",
+      "note": "月令 得令 primarily 格局/用神 layer — not used as direct STR-022/024 support",
+      "pageConfirmed": false
+    }
+  ],
+  "evidenceUnits": [
+    {
+      "id": "E-S1-body-month-wang",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-022-supporting", "STR-022-limiting"]
+    },
+    {
+      "id": "E-S2-wang-xiang-xiu-qiu-si-defs",
+      "sourceId": "S2",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-022-supporting", "STR-024-supporting", "STR-024-limiting"]
+    },
+    {
+      "id": "E-S2-tongbian-not-auto-ji-xiong",
+      "sourceId": "S2",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-022-limiting", "STR-024-limiting"]
+    },
+    {
+      "id": "E-S3-deshi-sifa",
+      "sourceId": "S3",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-022-supporting", "STR-022-limiting", "STR-024-limiting"]
+    },
+    {
+      "id": "E-S3-root-overrides-xiqiu",
+      "sourceId": "S3",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["STR-024-limiting", "STR-022-limiting"]
+    },
+    {
+      "id": "E-S5-shuaiwang",
+      "sourceId": "S5",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["context-strength-not-side-list"]
+    },
+    {
+      "id": "E-S4-xu-wangshuai-qiangruo",
+      "sourceId": "S4",
+      "layer": "COMMENTARY",
+      "relation": ["STR-022-commentary-support", "STR-024-commentary-support"]
+    }
+  ],
+  "contextMixingFound": true,
+  "contextMixingNotes": [
+    "三命通會 same chapter: 旺相休囚死 vs 寄生十二宫 — separated",
+    "滴天髓 月令 得令 (格局/喜神) vs day-master seasonal side — not used as direct evidence",
+    "徐 COMMENTARY not back-projected onto 沈 ORIGINAL-TEXT"
+  ],
+  "rules": [
+    {
+      "ruleId": "STR-022",
+      "name": "왕 → strong-side",
+      "method": "BOTH",
+      "engineSummary": "phase===왕 → strongSideEvidence seasonal 왕",
+      "validationQuestion": "월령(왕상휴수사)에서 ‘왕’을 일간 세력의 강(strong-side) 근거로 기록하는 조건이 문헌에서 어떻게 정의되는가? 왕이면 곧바로 신강으로 닫는지, 목록/근거로만 남기는지 구분이 있는가?",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "三命通會: 盛德乘時曰旺",
+        "淵海子平: 身旺身弱에 月令何者旺",
+        "沈: 得時俱為旺論을 기본 이치로 인용"
+      ],
+      "limitingEvidence": [
+        "沈: 得時=旺은 死法 — 왕만으로 신강 확정 금지",
+        "三命通會: 生旺未必吉",
+        "엔진 leaning 마감은 STR-050 (이번 비대상)"
+      ],
+      "conflictingEvidence": [
+        "滴天髓 月令/喜神得令을 일간 strong-side와 동일시하는 층 혼동",
+        "통속 ‘왕=신강’ 단정은 고전 활법과 불일치"
+      ]
+    },
+    {
+      "ruleId": "STR-024",
+      "name": "수/사 → weak-side",
+      "method": "BOTH",
+      "engineSummary": "phase===수|사 → weakSideEvidence seasonal",
+      "validationQuestion": "월령이 ‘수’ 또는 ‘사’일 때 이를 일간 세력의 약(weak-side) 근거로 두는 조건이 문헌에서 어떻게 정의되는가? ‘휴’와 ‘수/사’를 약 계절로 구분하는 서술이 있는가?",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "三命通會: 囚·死를 시절 약세 상태로 정의",
+        "沈: 失時·月令休囚를 衰 논의의 전제로 언급"
+      ],
+      "limitingEvidence": [
+        "三命通會: 休 정의 ≠ 囚/死 — 엔진이 휴를 weak-side에서 제외하는 방향과 맞닿음",
+        "沈: 休囚여도 通根이면 약하지 않을 수 있음"
+      ],
+      "conflictingEvidence": [
+        "失時를 相·休·囚·死 전부에 걸치는 읽기와, 엔진이 수|사만 weak-side에 넣는 범위 차이",
+        "囚과 死를 동일 weakSideEvidence로 동등 취급하는 엔진 단순화 vs 학파별 세분",
+        "十二宫 死와 시절 死 혼동 위험"
+      ]
+    }
+  ],
+  "preservedFromBatch1": {
+    "STR-010": {
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "unchanged": true
+    },
+    "STR-011": {
+      "literatureVerdict": "CONTESTED",
+      "evidenceConfidence": "MEDIUM",
+      "unchanged": true
+    },
+    "expertBlindPrepUnchanged": true,
+    "pilot5CasesUnchanged": true,
+    "expertAnswersGenerated": 0
+  },
+  "unresolved": [
+    "W1B2-U1-season-phase-table-values-are-STR-004-FACT",
+    "W1B2-U2-STR-026-027-pair-not-in-batch-2",
+    "W1B2-U3-ditian-sui-yueling-parenthetical-collation",
+    "W1B2-U4-expert-weighting-of-seasonal-side-evidence"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "batch3Started": false
+}

@@ -1,0 +1,193 @@
+{
+  "set": "wave1-actual-literature-validation-batch-1",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "note": "Wave 1 BOTH 19개를 기존 dependency로 6그룹화. Batch 1은 W1-G1-SHISHEN-SIDE(STR-010, STR-011)만 문헌 대조. freezeStatus/method/VERIFIED-FACT 미변경. NeedCandidate/NeedResolution 미변경.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-prep/wave1-literature-prep-inventory.json",
+    "interpretive-validation-priority-audit.md"
+  ],
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch1Rules": 2,
+    "literaturesConsulted": 5,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 1,
+    "CONTESTED": 1,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "groups": [
+    {
+      "groupId": "W1-G1-SHISHEN-SIDE",
+      "ruleIds": ["STR-010", "STR-011"],
+      "commonTopic": "십신을 일간 세력의 support / pressure 양축으로 묶는 해석",
+      "upstream": ["STR-003"],
+      "downstreamImpact": [
+        "STR-040",
+        "STR-041",
+        "STR-050",
+        "STR-051",
+        "STR-055",
+        "STR-070",
+        "NEED-010",
+        "NEED-011"
+      ]
+    },
+    {
+      "groupId": "W1-G2-SEASON-PHASE",
+      "ruleIds": ["STR-022", "STR-024"],
+      "commonTopic": "왕상휴수사에서 왕=강측, 수/사=약측으로 기록",
+      "upstream": ["STR-004"],
+      "downstreamImpact": ["STR-023", "STR-025", "STR-050", "STR-051", "STR-055"]
+    },
+    {
+      "groupId": "W1-G3-ROOT-DEPTH",
+      "ruleIds": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "commonTopic": "지장간 정기/중기/여기 → rootQuality 깊이",
+      "upstream": ["STR-005"],
+      "downstreamImpact": ["STR-033", "STR-050"]
+    },
+    {
+      "groupId": "W1-G4-MONTH-CLIMATE",
+      "ruleIds": [
+        "CLI-002",
+        "CLI-003a",
+        "CLI-003b",
+        "CLI-003c",
+        "CLI-003d",
+        "CLI-004"
+      ],
+      "commonTopic": "12월지 한난·조습 표와 토월=인접 계절 공유",
+      "upstream": ["CLI-001"],
+      "downstreamImpact": [
+        "CLI-018",
+        "CLI-019",
+        "CLI-041",
+        "CLI-042",
+        "CLI-043",
+        "NEED-020",
+        "NEED-021",
+        "NEED-022"
+      ]
+    },
+    {
+      "groupId": "W1-G5-BRANCH-FIRE-WATER",
+      "ruleIds": ["CLI-011", "CLI-012"],
+      "commonTopic": "조후 지지 火=巳午, 水=亥子만",
+      "upstream": ["CLI-009", "CLI-010"],
+      "downstreamImpact": ["CLI-021", "CLI-025"]
+    },
+    {
+      "groupId": "W1-G6-CLIMATE-ADJUST",
+      "ruleIds": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+      "commonTopic": "한난·조습에서 火/水 mit·reinf",
+      "upstream": ["CLI-002"],
+      "downstreamImpact": [
+        "CLI-032",
+        "CLI-036",
+        "CLI-037",
+        "CLI-041",
+        "CLI-042",
+        "CLI-043",
+        "NEED-020",
+        "NEED-021",
+        "NEED-022"
+      ]
+    }
+  ],
+  "batch1": {
+    "groupId": "W1-G1-SHISHEN-SIDE",
+    "selectionReason": "Strength BOTH 중 다른 BOTH 그룹에 의존하지 않는 최상류이며, Priority Audit의 Strength Need 체인(STR-010/011 → STR-040/041 → STR-050/051/055 → NEED → RES)의 첫 해석 도약. 규칙 수(2)가 많아서가 아님. G4는 Climate 상류로 이후 Batch.",
+    "ruleIds": ["STR-010", "STR-011"],
+    "notJudgedThisBatch": [
+      "STR-022",
+      "STR-024",
+      "STR-030-clear",
+      "STR-030-present",
+      "STR-030-shallow",
+      "CLI-002",
+      "CLI-003a",
+      "CLI-003b",
+      "CLI-003c",
+      "CLI-003d",
+      "CLI-004",
+      "CLI-011",
+      "CLI-012",
+      "CLI-018",
+      "CLI-019",
+      "CLI-036",
+      "CLI-037"
+    ]
+  },
+  "literatures": [
+    {
+      "id": "S1",
+      "title": "淵海子平",
+      "access": "https://zh.wikisource.org/wiki/淵海子平",
+      "locations": ["论日为主", "论印綬", "论食神"]
+    },
+    {
+      "id": "S2",
+      "title": "三命通會",
+      "author": "萬民英",
+      "edition": "四庫全書本 卷五",
+      "access": "https://zh.wikisource.org/wiki/三命通會_(四庫全書本)/卷05",
+      "locations": ["論古人立印食官財名義"]
+    },
+    {
+      "id": "S3",
+      "title": "滴天髓",
+      "access": "https://zh.wikisource.org/wiki/滴天髓",
+      "locations": ["傷官見官果難辨", "體用論"]
+    },
+    {
+      "id": "S4",
+      "title": "滴天髓闡微",
+      "author": "任鐵樵 증주",
+      "access": "https://zh.wikisource.org/wiki/滴天髓闡微",
+      "locations": ["通神论·配合", "形象"]
+    },
+    {
+      "id": "S5",
+      "title": "子平真詮評注",
+      "authors": ["沈孝瞻 원문", "徐樂吾 평주"],
+      "access": "https://ctext.org/wiki.pl?chapter=974137&if=gb",
+      "locations": ["論用神", "傷旺扶弱 정법 비판", "徐評 扶抑 항목"],
+      "note": "원문과 평주를 혼용하지 않음"
+    }
+  ],
+  "academicMetadataNotUsedForVerdict": [
+    {
+      "id": "A1",
+      "title": "子平學之理論研究",
+      "author": "張新智",
+      "year": 2002,
+      "access": "https://ah.lib.nccu.edu.tw/item?item_id=107759",
+      "note": "목차만 확인. 본문 미열람."
+    }
+  ],
+  "verdicts": [
+    {
+      "ruleId": "STR-010",
+      "literatureEvidenceVerdict": "PARTIALLY-SUPPORTED",
+      "expertStillRequired": true,
+      "freezeStatusUnchanged": true
+    },
+    {
+      "ruleId": "STR-011",
+      "literatureEvidenceVerdict": "CONTESTED",
+      "expertStillRequired": true,
+      "freezeStatusUnchanged": true
+    }
+  ],
+  "unresolved": [
+    "W1B1-U1 세력 분류와 용신/격국 분류가 같은 십신 라벨에서 수렴하지 않음",
+    "W1B1-U2 편인=生氣 vs 倒食 해식과 엔진 support의 양립 여부 미결",
+    "W1B1-U3 인쇄본 페이지·교감 미실시",
+    "W1B1-U4 A1 본문 미열람"
+  ]
+}

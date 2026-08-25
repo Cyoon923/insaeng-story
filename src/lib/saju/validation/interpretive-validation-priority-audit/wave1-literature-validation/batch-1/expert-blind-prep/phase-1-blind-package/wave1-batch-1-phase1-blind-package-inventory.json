@@ -1,0 +1,51 @@
+{
+  "set": "wave1-batch-1-phase1-blind-package",
+  "status": "phase1-blind-package-ready",
+  "schemaVersion": "w1b1-phase1-blind-package-v1",
+  "questionSetVersion": "w1b1-shiShen-strength-v1",
+  "caseSetVersion": "w1b1-phase1-blind8-v1",
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "phase1Executed": false,
+  "aggregationStarted": false,
+  "wave2Started": false,
+  "engineUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "literatureVerdictUnchanged": true,
+  "deliverToExpert": ["expert-blind-package.md"],
+  "operatorOnly": [
+    "operator-case-purpose.md",
+    "operator-leakage-checklist.md",
+    "expert-response-template.json"
+  ],
+  "caseIdsIncluded": [
+    "w1b1-p1-01",
+    "w1b1-p1-02",
+    "w1b1-p1-03",
+    "w1b1-p1-04",
+    "w1b1-p1-05",
+    "w1b1-p1-06",
+    "w1b1-p1-07",
+    "w1b1-p1-08"
+  ],
+  "caseCount": 8,
+  "leakageCheck": {
+    "expertPackagePath": "expert-blind-package.md",
+    "scanPassed": true,
+    "absentFromExpertPackage": [
+      "STR-010",
+      "STR-011",
+      "literatureVerdict",
+      "engineStrength",
+      "E1-E4 answers",
+      "pilotAggregate",
+      "caseSelectionAxes",
+      "expectedStrength"
+    ]
+  },
+  "unresolved": [
+    "W1B1-P1-BP-U1-phase1-not-executed",
+    "W1B1-P1-BP-U2-expert-answers-empty",
+    "W1B1-P1-BP-U3-pure-support-control-pool-gap-inherited-from-case-design"
+  ]
+}

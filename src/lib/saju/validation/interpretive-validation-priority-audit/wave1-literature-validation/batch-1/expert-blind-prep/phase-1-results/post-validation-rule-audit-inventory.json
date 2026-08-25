@@ -1,0 +1,89 @@
+{
+  "set": "wave1-batch-1-post-validation-rule-audit",
+  "status": "post-validation-rule-audit-complete",
+  "schemaVersion": "w1b1-post-validation-rule-audit-v1",
+  "sources": {
+    "phase1Closure": "phase1-closure.md",
+    "strengthRuleInventory": "validation/strength-audit/strength-rule-inventory.json",
+    "interpretiveRuleInventory": "interpretive-validation-priority-audit/interpretive-rule-inventory.json",
+    "literatureFinalAudit": "wave1-literature-validation/final-audit",
+    "code": [
+      "elements/strength.ts",
+      "elements/strengthSummary.ts"
+    ]
+  },
+  "constraints": {
+    "codeUnchanged": true,
+    "strUnchanged": true,
+    "noNewFormulasOrWeights": true,
+    "verifiedOrFreezeUnchanged": true,
+    "unresolvedNotArbitrarilyResolved": true
+  },
+  "literatureUnchanged": {
+    "STR-010": "PARTIALLY-SUPPORTED",
+    "STR-011": "CONTESTED"
+  },
+  "itemClassifications": {
+    "1_peerResourceStrengthenDirection": "ALIGNED",
+    "2_outputWealthOfficialWeakenDirection": "ALIGNED",
+    "3_equalWeightWithinBundles": "CONFLICT",
+    "4_simpleLetterCountSum": "ALIGNED",
+    "5_monthRootProjection": "ALIGNED",
+    "6_wealthAttenuationMechanism": "NOT_IMPLEMENTED",
+    "7_zhengPianFixedDeltas": "ALIGNED",
+    "8_hechungClimateGeYongInStrengthScore": "ALIGNED",
+    "9_hourUnknownSingleStrengthFinalize": "CONFLICT",
+    "10_case06BoundaryHandling": "UNRESOLVED_IMPLEMENTATION"
+  },
+  "conflictCount": 2,
+  "conflicts": [
+    {
+      "id": "C-A",
+      "item": 3,
+      "title": "equal-treatment-within-support-pressure-sides",
+      "ruleLocations": ["STR-010", "STR-011", "STR-012"],
+      "codeLocations": [
+        "elements/strength.ts SUPPORT_SHI_SHEN/PRESSURE_SHI_SHEN",
+        "elements/strengthSummary.ts decideDirection rootedSupport/rootedPressure booleans"
+      ],
+      "currentBehavior": "No per-type intensity; peer=resource and output=wealth=official as equal boolean side contributors",
+      "expertDelta": "Equal weight / equal action quantity not validated; bundle allowed but intensity separate",
+      "literature": {
+        "STR-010": "PARTIALLY-SUPPORTED",
+        "STR-011": "CONTESTED",
+        "STR-012": "FROZEN-POLICY"
+      }
+    },
+    {
+      "id": "C-B",
+      "item": 9,
+      "title": "hour-unknown-can-emit-clear-direction",
+      "ruleLocations": ["STR-007", "STR-066"],
+      "codeLocations": [
+        "elements/strengthSummary.ts certainty partial + decideDirection",
+        "probe p1-08 leaning-weak clear-direction"
+      ],
+      "currentBehavior": "Hour omitted and certainty=partial, but leaning-* with resolution clear-direction still possible",
+      "expertDelta": "Hour-unknown treated as conditional / defer final grade; single finalized value discouraged",
+      "literature": {
+        "STR-007": "FROZEN-POLICY",
+        "STR-066": "FROZEN-POLICY"
+      }
+    }
+  ],
+  "case06Probe": {
+    "pillars": "己亥 丙子 癸卯 戊午",
+    "directionCandidate": "mixed",
+    "mixedPattern": "strong-base-with-pressure",
+    "seasonalPhase": "왕",
+    "rootQuality": "clear",
+    "expertStatus": "open-disagreement-no-truth",
+    "classification": "UNRESOLVED_IMPLEMENTATION"
+  },
+  "case08Probe": {
+    "pillars": "辛丑 辛丑 乙酉 / hour unknown",
+    "directionCandidate": "leaning-weak",
+    "resolution": "clear-direction",
+    "certainty": "partial"
+  }
+}

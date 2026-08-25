@@ -1,0 +1,1253 @@
+{
+  "description": "Current-engine Climate traces. Results were not rewritten. Audit documents do not change Climate judgment.",
+  "generatedBy": "buildClimateCaseTrace.collectClimateCaseTraces + collectClimateEvidence + buildAdjustedClimateSummary + buildNeedCandidateSet",
+  "engineUnchanged": true,
+  "counts": {
+    "total": 16,
+    "temperatureUnresolved": 1,
+    "moistureUnresolved": 1,
+    "climateNeedEmpty": 7,
+    "counterSignalsAlwaysEmpty": true
+  },
+  "cases": [
+    {
+      "caseId": "cli-case-1-gimo-bingja-muo",
+      "group": "required-audit",
+      "note": "cold+moist → Fire clear → adjusted balanced. Climate Need 없음.",
+      "pillars": {
+        "year": {
+          "stem": "己",
+          "branch": "卯"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": {
+          "stem": "戊",
+          "branch": "午"
+        }
+      },
+      "monthBranch": "子",
+      "baseClimate": {
+        "temperature": "cold",
+        "moisture": "moist"
+      },
+      "fireQuality": "clear",
+      "waterQuality": "absent",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "certainty": "complete",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003d",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-018",
+        "CLI-019",
+        "CLI-020",
+        "CLI-021",
+        "CLI-027",
+        "CLI-032",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-054",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-2-gapjin-bingo",
+      "group": "required-audit",
+      "note": "warm+dry. Fire substantial reinforcement, Water hidden. Need 水.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "辰"
+        },
+        "month": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "day": {
+          "stem": "丁",
+          "branch": "酉"
+        },
+        "hour": {
+          "stem": "庚",
+          "branch": "申"
+        }
+      },
+      "monthBranch": "午",
+      "baseClimate": {
+        "temperature": "warm",
+        "moisture": "dry"
+      },
+      "fireQuality": "substantial",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "warm"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "complete",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003b",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-018",
+        "CLI-019",
+        "CLI-022",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-038",
+        "CLI-040",
+        "CLI-042",
+        "CLI-043",
+        "CLI-047",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-3-imin-gihae",
+      "group": "required-audit",
+      "note": "Fire substantial + Water clear conflict. 시간 미상.",
+      "pillars": {
+        "year": {
+          "stem": "壬",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "亥",
+      "baseClimate": {
+        "temperature": "cold",
+        "moisture": "moist"
+      },
+      "fireQuality": "substantial",
+      "waterQuality": "clear",
+      "temperature": {
+        "status": "unresolved",
+        "value": null
+      },
+      "moisture": {
+        "status": "unresolved",
+        "value": null
+      },
+      "certainty": "partial",
+      "conflicts": [
+        "substantial-mitigation-and-reinforcement"
+      ],
+      "unresolvedReasons": [
+        "substantial-mitigation-and-reinforcement",
+        "hour-unknown-may-change-climate-factors"
+      ],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "unresolved",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003d",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-021",
+        "CLI-022",
+        "CLI-027",
+        "CLI-030",
+        "CLI-039",
+        "CLI-040",
+        "CLI-046",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-054",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-4-gyeongja-gimi",
+      "group": "required-audit",
+      "note": "warm+dry + Water hidden. 시간 미상.",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "未",
+      "baseClimate": {
+        "temperature": "warm",
+        "moisture": "dry"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "warm"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003b",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-038",
+        "CLI-040",
+        "CLI-042",
+        "CLI-043",
+        "CLI-047",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-5-gapyu-empty",
+      "group": "required-audit",
+      "note": "balanced+dry, Fire/Water factor 없음.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "month": {
+          "stem": "庚",
+          "branch": "酉"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "酉"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "酉",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "dry"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "absent",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003c",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-020",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-043",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-6-chuk-cold-moist",
+      "group": "required-audit",
+      "note": "丑월 cold+moist.",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "丑"
+        },
+        "day": {
+          "stem": "乙",
+          "branch": "丑"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "丑",
+      "baseClimate": {
+        "temperature": "cold",
+        "moisture": "moist"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "cold"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "absent",
+          "evidenceRefs": [
+            "climate.temperature=cold"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003d",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-040",
+        "CLI-041",
+        "CLI-044",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-054",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-7-jin-month",
+      "group": "earth-branch",
+      "note": "辰월 balanced+moist. 기존 fixture s7.",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "辰",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "moist"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003a",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-8-sul-month",
+      "group": "earth-branch",
+      "note": "戌월 balanced+dry. 기존 fixture s9.",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "戌"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "戌",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "dry"
+      },
+      "fireQuality": "clear",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003c",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-021",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-043",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-9-wei-month",
+      "group": "earth-branch",
+      "note": "未월 warm+dry. 기존 fixture s8.",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "未",
+      "baseClimate": {
+        "temperature": "warm",
+        "moisture": "dry"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "warm"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003b",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-038",
+        "CLI-040",
+        "CLI-042",
+        "CLI-043",
+        "CLI-047",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-10-balanced-moist-in",
+      "group": "moist-need-policy",
+      "note": "寅월 balanced+moist. Climate Need 없음.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "寅",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "moist"
+      },
+      "fireQuality": "hidden",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003a",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "cli-case-11-cold-moist-fire-need",
+      "group": "moist-need-policy",
+      "note": "亥월 cold+moist. Fire Need from temperature only.",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "辛",
+          "branch": "亥"
+        },
+        "day": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "亥",
+      "baseClimate": {
+        "temperature": "cold",
+        "moisture": "moist"
+      },
+      "fireQuality": "hidden",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "cold"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "火",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-cold"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.temperature=cold"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003d",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-040",
+        "CLI-041",
+        "CLI-044",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-054",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "s7-gap-jin-yogi",
+      "group": "axis-review-earth-month",
+      "note": "庚申 戊辰 甲子 시주미상",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "申"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "辰",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "moist"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003a",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "s8-sin-mi-sang",
+      "group": "axis-review-earth-month",
+      "note": "庚子 己未 辛卯 시주미상",
+      "pillars": {
+        "year": {
+          "stem": "庚",
+          "branch": "子"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "未"
+        },
+        "day": {
+          "stem": "辛",
+          "branch": "卯"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "未",
+      "baseClimate": {
+        "temperature": "warm",
+        "moisture": "dry"
+      },
+      "fireQuality": "absent",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "warm"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-temperature-warm",
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.temperature=warm",
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003b",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-033",
+        "CLI-038",
+        "CLI-040",
+        "CLI-042",
+        "CLI-043",
+        "CLI-047",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "s9-gap-sul-mugun",
+      "group": "axis-review-earth-month",
+      "note": "丙午 戊戌 甲申 시주미상",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "午"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "戌"
+        },
+        "day": {
+          "stem": "甲",
+          "branch": "申"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "戌",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "dry"
+      },
+      "fireQuality": "clear",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "dry"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [
+        {
+          "element": "水",
+          "source": "climate",
+          "reasons": [
+            "climate-moisture-dry"
+          ],
+          "status": "candidate",
+          "existingPresence": "hidden-only",
+          "evidenceRefs": [
+            "climate.moisture=dry"
+          ]
+        }
+      ],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003c",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-021",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-043",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "s10-byeong-chuk-hyu",
+      "group": "axis-review-earth-month",
+      "note": "丙巳 己丑 丙子 시주미상",
+      "pillars": {
+        "year": {
+          "stem": "丙",
+          "branch": "巳"
+        },
+        "month": {
+          "stem": "己",
+          "branch": "丑"
+        },
+        "day": {
+          "stem": "丙",
+          "branch": "子"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "丑",
+      "baseClimate": {
+        "temperature": "cold",
+        "moisture": "moist"
+      },
+      "fireQuality": "clear",
+      "waterQuality": "hidden",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003d",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-018",
+        "CLI-019",
+        "CLI-021",
+        "CLI-024",
+        "CLI-027",
+        "CLI-032",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-054",
+        "CLI-056"
+      ]
+    },
+    {
+      "caseId": "s12-mu-jin-wang-multi",
+      "group": "axis-review-earth-month",
+      "note": "甲寅 戊辰 戊午 시주미상",
+      "pillars": {
+        "year": {
+          "stem": "甲",
+          "branch": "寅"
+        },
+        "month": {
+          "stem": "戊",
+          "branch": "辰"
+        },
+        "day": {
+          "stem": "戊",
+          "branch": "午"
+        },
+        "hour": "unknown"
+      },
+      "monthBranch": "辰",
+      "baseClimate": {
+        "temperature": "balanced",
+        "moisture": "moist"
+      },
+      "fireQuality": "hidden",
+      "waterQuality": "absent",
+      "temperature": {
+        "status": "resolved",
+        "value": "balanced"
+      },
+      "moisture": {
+        "status": "resolved",
+        "value": "moist"
+      },
+      "certainty": "partial",
+      "conflicts": [],
+      "unresolvedReasons": [],
+      "omittedSlots": [
+        "hour"
+      ],
+      "climateNeedCandidates": [],
+      "counterSignals": [],
+      "climateNeedStatus": "ready",
+      "triggeredRules": [
+        "CLI-001",
+        "CLI-002",
+        "CLI-003a",
+        "CLI-009",
+        "CLI-010",
+        "CLI-013",
+        "CLI-014",
+        "CLI-015",
+        "CLI-016",
+        "CLI-019",
+        "CLI-020",
+        "CLI-024",
+        "CLI-027",
+        "CLI-028",
+        "CLI-033",
+        "CLI-040",
+        "CLI-044",
+        "CLI-045",
+        "CLI-048",
+        "CLI-049",
+        "CLI-050",
+        "CLI-051",
+        "CLI-056"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "set": "wave1-batch-2-g2-season-phase-blind-package",
+  "status": "g2-blind-package-ready",
+  "schemaVersion": "w1b2-g2-blind-package-v1",
+  "questionSetVersion": "w1b2-season-phase-strength-v1",
+  "caseSetVersion": "w1b2-g2-blind7-v1",
+  "targetRules": ["STR-022", "STR-024"],
+  "groupId": "W1-G2-SEASON-PHASE",
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "g2Executed": false,
+  "aggregationStarted": false,
+  "g3OrLaterStarted": false,
+  "engineUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "literatureVerdictUnchanged": true,
+  "deliverToExpert": ["expert-blind-package.md"],
+  "operatorOnly": [
+    "selection-audit.md",
+    "operator-case-purpose.md",
+    "operator-leakage-checklist.md",
+    "expert-response-template.json",
+    "wave1-batch-2-expert-blind-prep.md",
+    "wave1-batch-2-g2-blind-package-inventory.json"
+  ],
+  "caseIdsIncluded": [
+    "w1b2-sp-01",
+    "w1b2-sp-02",
+    "w1b2-sp-03",
+    "w1b2-sp-04",
+    "w1b2-sp-05",
+    "w1b2-sp-06",
+    "w1b2-sp-07"
+  ],
+  "sourceFixtureMap": {
+    "w1b2-sp-01": "s15-gyeong-hae-hyu",
+    "w1b2-sp-02": "s13-eul-in-jeonggi-geop",
+    "w1b2-sp-03": "s3-gap-yu-unrooted",
+    "w1b2-sp-04": "s1-gimo-bingja-muo",
+    "w1b2-sp-05": "c2-gi-sa-jeonggi-support",
+    "w1b2-sp-06": "s10-byeong-chuk-hyu",
+    "w1b2-sp-07": "s9-gap-sul-mugun"
+  },
+  "caseCount": 7,
+  "coverageSlots": [
+    "deuksi-weak-aux",
+    "silsii-strong-root",
+    "hyu-vs-su-sa",
+    "month-vs-other-force-boundary"
+  ],
+  "leakageCheck": {
+    "expertPackagePath": "expert-blind-package.md",
+    "scanPassed": true,
+    "absentFromExpertPackage": [
+      "STR-022",
+      "STR-024",
+      "literatureVerdict",
+      "engineStrength",
+      "sourceFixtureIds",
+      "caseSelectionPurpose",
+      "expectedStrength"
+    ]
+  },
+  "unresolved": [
+    "W1B2-G2-U1-expert-answers-empty",
+    "W1B2-G2-U2-most-cases-pillars-only-no-birth",
+    "W1B2-G2-U3-STR-026-027-sang-hyu-policy-out-of-scope-but-hyu-asked-for-contrast",
+    "W1B2-G2-U4-su-vs-sa-equal-weight-open",
+    "W1B2-G2-U5-g3-not-started"
+  ]
+}

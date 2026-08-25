@@ -1,0 +1,252 @@
+{
+  "set": "wave1-batch-1-literature-evidence-hardening",
+  "status": "evidence-hardened-verdicts-unchanged",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "priorBatch1FilesPreserved": true,
+  "note": "STR-010/STR-011 literature evidence를 원전·주석 분리와 교차 확인으로 보강. freezeStatus/method/engine rule 미변경. Batch 2 미진행.",
+  "source": [
+    "wave1-batch-1-literature-validation.md",
+    "wave1-batch-1-literature-inventory.json"
+  ],
+  "counts": {
+    "rulesReexamined": 2,
+    "literaturesReexamined": 5,
+    "originalTextItems": 15,
+    "commentaryItems": 6,
+    "modernInterpretationUsedForVerdict": 0,
+    "independentCrossChecks": 3,
+    "editionOrContextInsufficient": 5
+  },
+  "citationLayerCorrections": [
+    "MIX-001 滴天髓 體用 산문 → 原註",
+    "MIX-002 傷官見官 산문 → 原註",
+    "MIX-003 旺則宜泄宜傷… → 任氏가 인용한 子平 구결",
+    "MIX-004 論用神 순역 → 格局/用神 문맥",
+    "MIX-005 四庫提要 → 총목 COMMENTARY",
+    "MIX-006 繼善篇 → 구결편, 귀부 격언"
+  ],
+  "verdicts": [
+    {
+      "ruleId": "STR-010",
+      "previousLiteratureEvidenceVerdict": "PARTIALLY-SUPPORTED",
+      "currentLiteratureEvidenceVerdict": "PARTIALLY-SUPPORTED",
+      "changed": false,
+      "changeReason": null,
+      "evidenceConfidence": "MEDIUM",
+      "expertStillRequired": true,
+      "freezeStatusUnchanged": true
+    },
+    {
+      "ruleId": "STR-011",
+      "previousLiteratureEvidenceVerdict": "CONTESTED",
+      "currentLiteratureEvidenceVerdict": "CONTESTED",
+      "changed": false,
+      "changeReason": null,
+      "evidenceConfidence": "MEDIUM",
+      "expertStillRequired": true,
+      "freezeStatusUnchanged": true
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-YH-01",
+      "work": "淵海子平",
+      "chapter": "论日为主",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "ten-god five-fold classification; not engine 4+6 sides"
+    },
+    {
+      "id": "E-YH-02",
+      "work": "淵海子平",
+      "chapter": "论印綬",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "STR-010 resource = 生我/生氣"
+    },
+    {
+      "id": "E-YH-03",
+      "work": "淵海子平",
+      "chapter": "论食神",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "STR-011 output = 盜氣 but also fortune god"
+    },
+    {
+      "id": "E-YH-04",
+      "work": "淵海子平",
+      "chapter": "论偏财",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "wealth 盜氣 vs official 剋身 as distinct; conditional on 財盛身弱"
+    },
+    {
+      "id": "E-YH-05",
+      "work": "淵海子平",
+      "chapter": "论倒食",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "partial seal harms food god; limits STR-010 unconditional support"
+    },
+    {
+      "id": "E-YH-06",
+      "work": "淵海子平",
+      "chapter": "正财",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+ctext-296619",
+      "relation": "印生身 if weak; 比肩劫财 feared in wealth pattern"
+    },
+    {
+      "id": "E-YH-07",
+      "work": "淵海子平",
+      "chapter": "继善篇",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource",
+      "relation": "gui-fu maxims; not Strength side definition"
+    },
+    {
+      "id": "E-SM-01",
+      "work": "三命通會",
+      "chapter": "卷五 論古人立印食官財名義",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource-skqs-transcription; archive-scan-06056481-exists-page-not-collated",
+      "relation": "four shengke directions; zheng/pian distinguished"
+    },
+    {
+      "id": "E-SM-02",
+      "work": "四庫全書總目提要",
+      "chapter": "三命通會",
+      "layer": "COMMENTARY",
+      "crossCheck": "wikisource-header",
+      "relation": "editorial critique of zheng-bias; not Wan text"
+    },
+    {
+      "id": "E-DT-01",
+      "work": "滴天髓",
+      "chapter": "體用 운문",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+chanwei-verse",
+      "relation": "fu-yi principle only"
+    },
+    {
+      "id": "E-DT-02",
+      "work": "滴天髓闡微",
+      "chapter": "體用 原註",
+      "layer": "COMMENTARY",
+      "crossCheck": "chanwei-labeled-yuanju",
+      "relation": "yongshen/tiyong; concept-mix if used as Strength"
+    },
+    {
+      "id": "E-DT-03",
+      "work": "滴天髓",
+      "chapter": "傷官 운문",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "wikisource+chanwei-verse",
+      "relation": "not Strength sides"
+    },
+    {
+      "id": "E-DT-04",
+      "work": "滴天髓闡微",
+      "chapter": "傷官 原註",
+      "layer": "COMMENTARY",
+      "crossCheck": "chanwei-labeled-yuanju",
+      "relation": "印扶身 / 官剋身 hints"
+    },
+    {
+      "id": "E-DT-05",
+      "work": "滴天髓",
+      "chapter": "形象 운문",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "chanwei",
+      "relation": "form excess/deficit; not ten-god set"
+    },
+    {
+      "id": "E-DT-06",
+      "work": "滴天髓闡微",
+      "chapter": "形象 任氏",
+      "layer": "COMMENTARY",
+      "crossCheck": "chanwei",
+      "relation": "split 泄/傷/幫/助; conflicts engine fused sides"
+    },
+    {
+      "id": "E-DT-07",
+      "work": "滴天髓闡微",
+      "chapter": "配合 任氏",
+      "layer": "COMMENTARY",
+      "crossCheck": "chanwei",
+      "relation": "any ten-god may be yong; yongshen context"
+    },
+    {
+      "id": "E-ZP-01",
+      "work": "子平真詮",
+      "chapter": "論十干得時不旺失時不弱",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "ctext-pingzhu-only",
+      "relation": "STR-010 比劫印綬 as 黨眾; 洩氣 weakens 強"
+    },
+    {
+      "id": "E-ZP-02",
+      "work": "子平真詮",
+      "chapter": "論十干得時不旺失時不弱",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "ctext-pingzhu-only",
+      "relation": "財官食神 vs 傷官七煞 not one pressure set"
+    },
+    {
+      "id": "E-ZP-03",
+      "work": "子平真詮",
+      "chapter": "論用神",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "ctext-pingzhu-only",
+      "relation": "geju/yongshen cut ≠ engine sides"
+    },
+    {
+      "id": "E-ZP-04",
+      "work": "子平真詮",
+      "chapter": "論時說以訛傳訛",
+      "layer": "ORIGINAL-TEXT",
+      "crossCheck": "ctext-pingzhu-only",
+      "relation": "rejects 傷旺扶弱 as fixed shengke method"
+    },
+    {
+      "id": "E-ZP-05",
+      "work": "子平真詮評注",
+      "chapter": "徐樂吾 取用 귀납",
+      "layer": "COMMENTARY",
+      "crossCheck": "ctext-pingzhu",
+      "relation": "modern fu-yi yongshen; not Shen original"
+    },
+    {
+      "id": "A1",
+      "work": "子平學之理論研究",
+      "author": "張新智",
+      "year": 2002,
+      "layer": "MODERN-INTERPRETATION",
+      "status": "NOT-REVIEWED-FULLTEXT",
+      "usedForVerdict": false
+    }
+  ],
+  "supporting": {
+    "STR-010": ["E-YH-02", "E-YH-06", "E-SM-01", "E-ZP-01", "E-DT-04"],
+    "STR-011": ["E-YH-01", "E-YH-03", "E-YH-04", "E-ZP-01", "E-YH-07-output-as-bippo"]
+  },
+  "limiting": {
+    "STR-010": ["E-YH-01", "E-YH-05", "E-YH-06", "E-DT-06", "E-SM-01"],
+    "STR-011": ["E-YH-03", "E-YH-04", "E-ZP-02", "E-DT-06", "E-SM-01"]
+  },
+  "conflicting": {
+    "STR-010": ["E-YH-05", "E-ZP-03"],
+    "STR-011": ["E-ZP-03", "E-DT-02", "E-YH-07-gui-fu", "E-ZP-04"]
+  },
+  "conceptMixingFound": true,
+  "zhangXinZhi2002Fulltext": "NOT-REVIEWED-FULLTEXT",
+  "unresolved": [
+    "W1B1-U1 세력 vs 격국/용신 미수렴",
+    "W1B1-U2 편인 生氣 vs 倒食",
+    "W1B1-U3 인쇄 페이지/교감 미실시",
+    "W1B1-U4 張新智 본문 미열람",
+    "W1B1-U5 滴天髓 Wikisource 원주 미표기",
+    "W1B1-U6 沈 黨眾이 십신만인지 통근 포함인지"
+  ]
+}

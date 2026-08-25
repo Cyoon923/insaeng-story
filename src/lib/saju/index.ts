@@ -8,7 +8,8 @@ export { collectStrengthEvidence, hiddenStemSourceKey } from "@/lib/saju/element
 export { buildStrengthSummary } from "@/lib/saju/elements/strengthSummary";
 export { collectClimateEvidence } from "@/lib/saju/elements/climate";
 export { buildAdjustedClimateSummary } from "@/lib/saju/elements/adjustedClimate";
-export { buildNeedCandidateSet, suppressedForLeaningStrong } from "@/lib/saju/elements/needCandidates";
+export { buildNeedCandidateSet, collectLeaningStrongNeedCandidates, suppressedForLeaningStrong } from "@/lib/saju/elements/needCandidates";
+export { buildNeedResolution, resolveNeedCandidates } from "@/lib/saju/elements/needResolution";
 export { baseClimateOf } from "@/lib/saju/data/baseClimate";
 export { shiShenOf } from "@/lib/saju/data/shiShen";
 export { pillarLabel } from "@/lib/saju/constants/ganzhi";
@@ -32,11 +33,22 @@ export type {
   ClimateMoisture,
   ClimateTemperature,
   ClimateNeedStatus,
+  ClimateCounterSignal,
   NeedCandidate,
   NeedCandidateSet,
   NeedCandidateStatus,
+  NeedCompetingElementsByAxis,
+  NeedCounterSignal,
+  NeedDecisionBlocker,
   NeedDirection,
+  NeedElementState,
+  NeedPolicyGap,
+  NeedRelationPattern,
+  NeedResolution,
+  NeedResolutionCertainty,
+  NeedResolutionStatus,
   NeedSource,
+  NeedSupportedElement,
   StrengthNeedStatus,
   AdjustedClimateSummary,
   AdjustedMoistureAxis,
@@ -79,6 +91,9 @@ export type {
   StrengthSideKind,
   StrengthSideQuality,
   StrengthSummary,
+  MixedConflictLevel,
+  MixedStrengthPattern,
+  UnresolvedStrengthReason,
   SupportEvidence,
   SupportShiShen,
   HiddenRelationNote,

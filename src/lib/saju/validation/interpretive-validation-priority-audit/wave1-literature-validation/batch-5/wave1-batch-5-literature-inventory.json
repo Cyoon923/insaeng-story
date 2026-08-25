@@ -1,0 +1,311 @@
+{
+  "set": "wave1-actual-literature-validation-batch-5",
+  "status": "literature-evidence-only",
+  "engineUnchanged": true,
+  "verifiedFactNotUpdated": true,
+  "batch1Preserved": true,
+  "batch2Preserved": true,
+  "batch3Preserved": true,
+  "batch4Preserved": true,
+  "note": "Batch 5 = W1-G5-BRANCH-FIRE-WATER (CLI-011, CLI-012) only. Grouping unchanged. Prior batches and Pilot 5 untouched. freezeStatus/method/VERIFIED-FACT unchanged. FIRE_BRANCHES/WATER_BRANCHES not modified. G6 not judged.",
+  "source": [
+    "wave1-literature-prep/wave1-literature-validation-prep.md",
+    "wave1-literature-validation/batch-1/wave1-batch-1-literature-validation.md",
+    "wave1-literature-validation/batch-4/wave1-batch-4-literature-validation.md",
+    "interpretive-validation-priority-audit.md",
+    "interpretive-rule-inventory.json",
+    "src/lib/saju/validation/climate-audit/climate-rule-inventory.json",
+    "src/lib/saju/elements/climate.ts",
+    "src/lib/saju/constants/elements.ts"
+  ],
+  "dependencyRecheck": {
+    "groupId": "W1-G5-BRANCH-FIRE-WATER",
+    "dependsOn": ["CLI-009", "CLI-010"],
+    "cli009Cli010FreezeStatus": "VERIFIED-FACT",
+    "parallelToG4": true,
+    "g6UpstreamRemainsCli002": true,
+    "newDependenciesInvented": false,
+    "existingDependenciesModified": false,
+    "proceedAsBatch5": true,
+    "distinction": "CLI-009/010 = stem 丙丁火 / 壬癸水 FACT. CLI-011/012 = interpretive: branch-layer fire/water only 巳午 / 亥子. Hidden-stem 丙 in 寅 or 癸 in 辰 remain non-branch factors. G6 still depends on CLI-002, not judged."
+  },
+  "counts": {
+    "wave1BothTotal": 19,
+    "dependencyGroups": 6,
+    "batch5Rules": 2,
+    "literaturesConsulted": 7,
+    "originalTextEvidenceUnits": 6,
+    "commentaryEvidenceUnits": 2,
+    "modernInterpretationEvidenceUnits": 0,
+    "independentCrossChecks": 2,
+    "SUPPORTED": 0,
+    "PARTIALLY_SUPPORTED": 2,
+    "CONTESTED": 0,
+    "INSUFFICIENT_EVIDENCE": 0,
+    "CONTRADICTED": 0
+  },
+  "engineDefinitionFromRepo": {
+    "file": "src/lib/saju/elements/climate.ts",
+    "FIRE_BRANCHES": ["巳", "午"],
+    "WATER_BRANCHES": ["亥", "子"],
+    "branchLayerOnly": true,
+    "hiddenStemFireStillCollected": ["寅丙", "未丁", "戌丁"],
+    "hiddenStemWaterStillCollected": ["辰癸", "丑癸", "申壬"],
+    "monthBranchSkippedAsFactor": "CLI-014 ENGINE-POLICY not judged",
+    "qualityGradesNotJudged": ["CLI-021", "CLI-022", "CLI-023", "CLI-024", "CLI-025"]
+  },
+  "batch5Selection": {
+    "groupId": "W1-G5-BRANCH-FIRE-WATER",
+    "ruleIds": ["CLI-011", "CLI-012"],
+    "notJudgedThisBatch": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"]
+  },
+  "validationQuestionsSeparated": {
+    "A_benqi_fire_si_wu_water_hai_zi": "地支 본기 火=巳午, 水=亥子 is classically attested as 五行所属, not as a dedicated 調候 collection table.",
+    "B_zanggan_same_layer_as_benqi": "Literature lists 藏干 separately from 本气. Engine also splits branch vs hiddenStem.",
+    "C_presence_vs_tiaohou_adjustment": "Existence of 火/水 material is not the same rule as 寒暖燥濕 adjustment (G6 / 丙癸 調候).",
+    "D_season_changes_same_fire_water": "Later 調候 varies by 月令×日干. CLI-011/012 collect 巳午/亥子 regardless of season.",
+    "E_wangshuai_sanhe_changsheng_mixing": "夏火旺, 寅午戌, 火長生寅, 申子辰, 水長生申 are other layers. Engine does not expand branch fire/water via those.",
+    "F_quality_grades": "clear/substantial/shallow/hidden/branch-only are engine abstractions. Not judged this batch."
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "work": "滴天髓",
+      "authorTradition": "京圖/劉基-lineage",
+      "access": "https://zh.wikisource.org/wiki/滴天髓/16",
+      "locus": "寒暖論 / 燥濕 verse",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S2",
+      "work": "滴天髓",
+      "authorTradition": "原註 prose",
+      "access": "https://zh.wikisource.org/wiki/滴天髓/16",
+      "locus": "陰支為寒，陽支為暖，金水為寒，木火為暖",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S3",
+      "work": "滴天髓闡微",
+      "author": "任鐵樵",
+      "locus": "燥濕 — 丑辰濕土 / 未戌燥土; 壬癸 in summer",
+      "layer": "COMMENTARY",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S4",
+      "work": "三命通會",
+      "author": "萬民英",
+      "locus": "卷二 論地支 — 寅有丙火生 / 巳火增光 / 午炎火 / 子水 / 亥雨雪",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S5",
+      "work": "淵海子平",
+      "authorTradition": "徐升-lineage",
+      "access": "https://zh.wikisource.org/wiki/淵海子平大全",
+      "locus": "又地支藏遁歌 — 寅宮甲木兼丙戊; 辰藏乙戊三分癸; 亥藏壬甲",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S6",
+      "work": "三命通會",
+      "author": "萬民英",
+      "locus": "卷二 旺相休囚死 — 夏火旺 / 冬水旺 (旺衰 chapter, not climate collection)",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    },
+    {
+      "id": "S7",
+      "work": "窮通寶鑑",
+      "authorTradition": "攔江網 / 余春台-lineage (later 調候; not back-projected to early 子平)",
+      "access": "https://zh.wikisource.org/wiki/窮通寶鑑",
+      "locus": "寅月 餘寒 用丙; 調候 丙癸 stems not 巳午/亥子 branch table",
+      "layer": "ORIGINAL-TEXT",
+      "pageConfirmed": false
+    }
+  ],
+  "evidenceUnits": [
+    {
+      "id": "E-S1-verse-axes-only",
+      "sourceId": "S1",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["C-axes-not-branch-list", "F-not-quality-grades"]
+    },
+    {
+      "id": "E-S4-si-wu-fire-hai-zi-water-benqi",
+      "sourceId": "S4",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["A-supporting-benqi", "CLI-011-partial", "CLI-012-partial"]
+    },
+    {
+      "id": "E-S4-yin-has-bing-not-fire-branch",
+      "sourceId": "S4",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["B-zanggan-distinct", "CLI-011-supporting-exclusion-of-寅"]
+    },
+    {
+      "id": "E-S5-cangdun-ge",
+      "sourceId": "S5",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["B-zanggan-list-not-renaming-branch", "CLI-011-partial", "CLI-012-partial"]
+    },
+    {
+      "id": "E-S6-wangshuai-not-climate-collection",
+      "sourceId": "S6",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["E-context-mixing-wangshuai"]
+    },
+    {
+      "id": "E-S7-bing-gui-tiaohou-not-branch-table",
+      "sourceId": "S7",
+      "layer": "ORIGINAL-TEXT",
+      "relation": ["C-presence-not-adjustment", "D-month-daymaster-dependent"]
+    },
+    {
+      "id": "E-S2-yinyang-branch-han-nuan",
+      "sourceId": "S2",
+      "layer": "COMMENTARY",
+      "relation": ["E-different-axis-from-si-wu-hai-zi"]
+    },
+    {
+      "id": "E-S3-chen-chou-shitu-not-water-branch",
+      "sourceId": "S3",
+      "layer": "COMMENTARY",
+      "relation": ["CLI-012-supporting-exclusion-of-辰", "C-gui-stems-for-moisture"]
+    }
+  ],
+  "independentCrossChecks": [
+    {
+      "id": "X1",
+      "items": ["S1 Wikisource verse", "S2 same-page 原註 distinguished from verse"]
+    },
+    {
+      "id": "X2",
+      "items": ["S5 地支藏遁歌 Wikisource/ctext", "S4 論地支 本气 vs 寅中丙"]
+    }
+  ],
+  "contextMixingFound": true,
+  "contextMixingNotes": [
+    "夏火旺 / 冬水旺 is 旺衰, not branch Climate collection",
+    "火長生在寅 ≠ 寅 is branch 火",
+    "水長生在申 ≠ 申 is branch 水",
+    "寅午戌 火局 / 申子辰 水局 ≠ 本气 火=巳午 / 水=亥子",
+    "窮通 丙癸 調候 ≠ branch factor list",
+    "滴天髓 原註 陰支陽支 寒暖 ≠ 巳午/亥子 collection"
+  ],
+  "schoolEraDifferenceFound": true,
+  "schoolEraNotes": [
+    "地支五行 + 藏遁: 본기 vs 장간 목록",
+    "滴天髓 verse: axes only",
+    "原註: yin/yang branch 寒暖 — different axis",
+    "通會: 論地支 weather vs 旺相休囚死",
+    "任: 丑辰濕土 未戌燥土",
+    "later 窮通: stem 調候, not branch table"
+  ],
+  "presenceVsAdjustment": {
+    "cli011012": "collect branch-layer 火/水 materials only",
+    "adjustment": "CLI-018/019 / quality grades = not this batch",
+    "literature": "調候 uses 丙丁壬癸 and 濕土燥土 more than a 巳午/亥子-only climate table"
+  },
+  "benqiVsZangganVsTonggen": {
+    "benqi": "attested 巳午火 亥子水 寅木 辰土",
+    "zanggan": "attested separately; engine hiddenStem still collects 丙/癸",
+    "tonggen": "used in qualityOf; EXPERT CLI-021+; not judged"
+  },
+  "downstreamImpactFromExistingAuditOnly": {
+    "impacts": ["CLI-021", "CLI-025"],
+    "g6NotJudged": true,
+    "g6DependsOnCli002NotG5InInventory": true,
+    "newDependenciesInvented": false
+  },
+  "rules": [
+    {
+      "ruleId": "CLI-011",
+      "name": "branch 火 = 巳午만",
+      "method": "BOTH",
+      "engineSummary": "branch ∈ {巳, 午} → ClimateElement 火 layer=branch; 寅중丙 is hiddenStem not branch fire",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "地支 五行 巳午=火",
+        "通會 巳午 화지 기상; 寅=목지 with 丙火生 as 장간",
+        "藏遁歌 寅宮甲木兼丙戊 does not rename 寅 as 火支"
+      ],
+      "limitingEvidence": [
+        "no dedicated 調候 table 'representative fire branch = 巳午 only'",
+        "later 調候 uses 丙丁 stems",
+        "month 巳午 skipped as factor by CLI-014"
+      ],
+      "conflictingEvidence": [
+        "火長生在寅 and 寅午戌 火局 treat 寅/戌 as fire-related on another layer",
+        "原註 陽支為暖 can treat 寅 as 暖 on a different axis"
+      ]
+    },
+    {
+      "ruleId": "CLI-012",
+      "name": "branch 水 = 亥子만",
+      "method": "BOTH",
+      "engineSummary": "branch ∈ {亥, 子} → ClimateElement 水 layer=branch; 辰중癸 is hiddenStem not branch water",
+      "literatureVerdict": "PARTIALLY-SUPPORTED",
+      "evidenceConfidence": "MEDIUM",
+      "expertValidationRequired": true,
+      "freezeStatusUnchanged": true,
+      "verifiedFactNotClaimed": true,
+      "supportingEvidence": [
+        "地支 五行 亥子=水",
+        "通會 子·亥 수지 기상",
+        "辰/丑 as 土 / 任 濕土, not 水支",
+        "藏遁歌 辰藏三分癸 / 申位壬水 as 藏 not 본기 수"
+      ],
+      "limitingEvidence": [
+        "no dedicated 調候 table 'representative water branch = 亥子 only'",
+        "later 調候 uses 壬癸 stems",
+        "辰 also called 水庫 on another layer"
+      ],
+      "conflictingEvidence": [
+        "水長生在申 and 申子辰 水局 treat 申/辰 as water-related on another layer",
+        "原註 陰支為寒 is not 亥子-only"
+      ]
+    }
+  ],
+  "preservedFromPriorBatches": {
+    "STR-010": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-011": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-022": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-024": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-clear": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-present": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "STR-030-shallow": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-002": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003a": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003b": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003c": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-003d": { "literatureVerdict": "PARTIALLY-SUPPORTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "CLI-004": { "literatureVerdict": "CONTESTED", "evidenceConfidence": "MEDIUM", "unchanged": true },
+    "expertBlindPrepUnchanged": true,
+    "pilot5CasesUnchanged": true,
+    "expertAnswersGenerated": 0
+  },
+  "unresolved": [
+    "W1B5-U1-benqi-list-is-not-tiaohou-collection-table",
+    "W1B5-U2-sanhe-changsheng-vs-benqi-branch-factor",
+    "W1B5-U3-hidden-stem-fire-water-weight-is-CLI-024-expert",
+    "W1B5-U4-CLI-014-month-skip-unjudged",
+    "W1B5-U5-quality-and-G6-unjudged"
+  ],
+  "engineCodeChanged": false,
+  "rulesChanged": false,
+  "freezeStatusChanged": false,
+  "scoresOrWeightsAdded": false,
+  "newMingliRulesAdded": false,
+  "neededElementDesigned": false,
+  "batch6Started": false
+}

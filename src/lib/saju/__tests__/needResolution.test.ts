@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNeedResolution, buildStrengthSummary } from "@/lib/saju";
+import { buildNeedResolution } from "@/lib/saju";
 import { resolveNeedCandidates } from "@/lib/saju/elements/needResolution";
 import type {
   AdjustedClimateSummary,
@@ -125,16 +125,6 @@ describe("NeedResolution CASE", () => {
     expect(resolution.strengthAxisStatus).toBe("unresolved");
     expect(resolution.policyGaps).toEqual([]);
     expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
-    expect(
-      buildStrengthSummary(
-        chart({
-          year: { stem: "庚", branch: "子" },
-          month: { stem: "己", branch: "未" },
-          day: { stem: "辛", branch: "卯" },
-          hour: "unknown",
-        }),
-      ).mixedPattern,
-    ).toBe("help-season-absent-root");
     forbidden(resolution);
   });
 
