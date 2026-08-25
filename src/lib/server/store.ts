@@ -19,6 +19,7 @@ const EMPTY: AppData = {
   codes: {},
   blockedSlots: [],
   adminPromo: null,
+  musicCatalog: [],
 };
 
 function databaseUrl() {

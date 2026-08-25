@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import type {
@@ -488,13 +489,21 @@ export default function AdminPage() {
             <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
             <p className="text-[12px] text-[#8b6f5c]">인생스토리 운영 현황</p>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="h-10 rounded-full border border-[#d4c8ba] px-4 text-[13px] font-medium text-[#5c3d2e]"
-          >
-            로그아웃
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/admin/music-catalog"
+              className="inline-flex h-10 items-center rounded-full border border-[#d4c8ba] px-3 text-[13px] font-medium text-[#5c3d2e]"
+            >
+              음악
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="h-10 rounded-full border border-[#d4c8ba] px-4 text-[13px] font-medium text-[#5c3d2e]"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {TABS.map((item) => {

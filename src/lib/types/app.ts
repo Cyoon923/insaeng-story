@@ -1,3 +1,5 @@
+import type { MusicCatalogRecord } from "@/lib/saju/speakable/music/catalogTypes";
+
 export type ProductId = "story" | "premium" | "saju-song";
 export type CouponProduct = ProductId | "consultation";
 export type OrderStatus = "신청접수" | "상담진행" | "제작중" | "완성/전달" | "완료";
@@ -116,5 +118,6 @@ export interface AppData {
   codes: Record<string, { code: string; expiresAt: number }>;
   blockedSlots: BlockedSlot[];
   adminPromo: AdminPromo | null;
+  musicCatalog: MusicCatalogRecord[];
   testResetAt?: string;
 }
