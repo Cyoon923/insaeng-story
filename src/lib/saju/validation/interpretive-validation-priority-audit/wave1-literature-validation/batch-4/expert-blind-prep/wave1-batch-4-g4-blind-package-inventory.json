@@ -1,0 +1,112 @@
+{
+  "set": "wave1-batch-4-g4-month-climate-blind-package",
+  "status": "g4-blind-package-ready",
+  "schemaVersion": "w1b4-g4-blind-package-v1",
+  "questionSetVersion": "w1b4-month-climate-v1",
+  "caseSetVersion": "w1b4-g4-blind8-v1",
+  "targetRules": [
+    "CLI-002",
+    "CLI-003a",
+    "CLI-003b",
+    "CLI-003c",
+    "CLI-003d",
+    "CLI-004"
+  ],
+  "groupId": "W1-G4-MONTH-CLIMATE",
+  "literatureBatchUnchanged": true,
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "g4Executed": false,
+  "aggregationStarted": false,
+  "g3Reopened": false,
+  "g5OrLaterStarted": false,
+  "engineUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "literatureVerdictUnchanged": true,
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E1": "active",
+    "E2": "active",
+    "E3": "unavailable",
+    "E4": "active",
+    "e3NotPending": true,
+    "e3NoEstimateOrBackfill": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "majorityTreatedAsTruth": false,
+    "operatorDoc": "operator-expert-panel.md"
+  },
+  "deliverToExpert": ["expert-blind-package.md"],
+  "operatorOnly": [
+    "selection-audit.md",
+    "operator-case-purpose.md",
+    "operator-leakage-checklist.md",
+    "operator-expert-panel.md",
+    "expert-response-template.json",
+    "wave1-batch-4-expert-blind-prep.md",
+    "wave1-batch-4-g4-blind-package-inventory.json"
+  ],
+  "caseIdsIncluded": [
+    "w1b4-mc-01",
+    "w1b4-mc-02",
+    "w1b4-mc-03",
+    "w1b4-mc-04",
+    "w1b4-mc-05",
+    "w1b4-mc-06",
+    "w1b4-mc-07",
+    "w1b4-mc-08"
+  ],
+  "sourceFixtureMap": {
+    "w1b4-mc-01": "s13-eul-in-jeonggi-geop",
+    "w1b4-mc-02": "s14-jeong-o-wang-jeonggi",
+    "w1b4-mc-03": "s8-sin-mi-sang",
+    "w1b4-mc-04": "s7-gap-jin-yogi",
+    "w1b4-mc-05": "s1-gimo-bingja-muo",
+    "w1b4-mc-06": "s10-byeong-chuk-hyu",
+    "w1b4-mc-07": "s3-gap-yu-unrooted",
+    "w1b4-mc-08": "s9-gap-sul-mugun"
+  },
+  "caseCount": 8,
+  "coverageSlots": [
+    "yin-early-spring",
+    "wu-peak-summer",
+    "wei-late-summer-earth",
+    "chen-late-spring-earth",
+    "zi-peak-winter",
+    "chou-late-winter-earth",
+    "you-mid-autumn",
+    "xu-late-autumn-earth"
+  ],
+  "leakageCheck": {
+    "expertPackagePath": "expert-blind-package.md",
+    "scanPassed": true,
+    "absentFromExpertPackage": [
+      "CLI-002",
+      "CLI-003",
+      "CLI-004",
+      "BASE_CLIMATE",
+      "warm",
+      "cold",
+      "balanced",
+      "dry",
+      "moist",
+      "literatureVerdict",
+      "sourceFixtureIds",
+      "caseSelectionPurpose",
+      "expertPanelOperatingConditions"
+    ]
+  },
+  "literatureUnresolvedCarried": [
+    "W1B4-U1-CLI-001-FACT-vs-CLI-002-values",
+    "W1B4-U2-yin-yang-branch-vs-season-cluster",
+    "W1B4-U3-qiong-tong-day-stem-dependence",
+    "W1B4-U4-moisture-balanced-dead-branch",
+    "W1B4-U5-G6-not-in-scope"
+  ],
+  "unresolved": [
+    "W1B4-G4-U1-active-expert-answers-empty-E1-E2-E4",
+    "W1B4-G4-U2-most-cases-pillars-only-no-birth",
+    "W1B4-G4-U3-no-si-or-shen-month-fixture-in-set",
+    "W1B4-G4-U4-g5-not-started"
+  ]
+}

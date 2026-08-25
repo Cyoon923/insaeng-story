@@ -1,0 +1,159 @@
+{
+  "set": "wave1-final-expert-round-g5-g6-integrated-blind",
+  "status": "final-blind-package-ready",
+  "schemaVersion": "w1-final-expert-round-v1",
+  "questionSetVersion": "w1fr-fire-water-adjust-v1",
+  "caseSetVersion": "w1fr-blind8-v1",
+  "integratedGroups": ["W1-G5-BRANCH-FIRE-WATER", "W1-G6-CLIMATE-ADJUST"],
+  "targetRules": {
+    "G5": ["CLI-011", "CLI-012"],
+    "G6": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"]
+  },
+  "literatureBatchUnchanged": true,
+  "literatureSources": [
+    "../batch-5/wave1-batch-5-literature-validation.md",
+    "../batch-5/wave1-batch-5-literature-inventory.json",
+    "../batch-6/wave1-batch-6-literature-validation.md",
+    "../batch-6/wave1-batch-6-literature-inventory.json"
+  ],
+  "literatureVerdictsUnchanged": {
+    "CLI-011": "PARTIALLY-SUPPORTED",
+    "CLI-012": "PARTIALLY-SUPPORTED",
+    "CLI-018": "PARTIALLY-SUPPORTED",
+    "CLI-019": "CONTESTED",
+    "CLI-036": "CONTESTED",
+    "CLI-037": "CONTESTED"
+  },
+  "g4ClosedNotReopened": true,
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "g5ClosureDone": false,
+  "g6ClosureDone": false,
+  "aggregationStarted": false,
+  "g1ThroughG4Reopened": false,
+  "engineUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "scoresOrWeightsAdded": false,
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "responsesPerExpert": 1,
+    "totalResponsesPlanned": 3,
+    "E1": "active",
+    "E2": "active",
+    "E3": "unavailable",
+    "E4": "active",
+    "e3FullyExcluded": true,
+    "e3NotPending": true,
+    "e3NoEstimateOrBackfill": true,
+    "majorityTreatedAsTruth": false
+  },
+  "deliverToExpert": ["expert-blind-package.md"],
+  "operatorOnly": ["operator-mapping.md", "inventory.json"],
+  "questionCounts": {
+    "phaseAOpenQuestions": 10,
+    "phaseBStructuredRows": 12,
+    "maxQuestionsLimit": 10,
+    "phaseAWithinLimit": true
+  },
+  "caseCount": 8,
+  "maxCasesLimit": 8,
+  "caseIdsIncluded": [
+    "w1fr-01",
+    "w1fr-02",
+    "w1fr-03",
+    "w1fr-04",
+    "w1fr-05",
+    "w1fr-06",
+    "w1fr-07",
+    "w1fr-08"
+  ],
+  "sourceFixtureMap": {
+    "w1fr-01": "s13-eul-in-jeonggi-geop",
+    "w1fr-02": "s14-jeong-o-wang-jeonggi",
+    "w1fr-03": "s7-gap-jin-yogi",
+    "w1fr-04": "s15-gyeong-hae-hyu",
+    "w1fr-05": "s1-gimo-bingja-muo",
+    "w1fr-06": "s10-byeong-chuk-hyu",
+    "w1fr-07": "s8-sin-mi-sang",
+    "w1fr-08": "s9-gap-sul-mugun"
+  },
+  "questionToGroupMap": {
+    "A-1": { "primary": "G5", "rules": ["CLI-011", "CLI-012"] },
+    "A-2": { "primary": "G5", "rules": ["CLI-011", "CLI-012"], "secondary": "G6-quality-layer" },
+    "A-3": { "primary": "G5", "unresolved": ["W1B5-U2"] },
+    "A-4": { "primary": "G5+G6", "rules": ["CLI-018", "CLI-019"], "unresolved": ["W1B5-U5", "W1B6-U2"] },
+    "A-5": { "primary": "G6", "rules": ["CLI-018"] },
+    "A-6": { "primary": "G6", "rules": ["CLI-019"], "unresolved": ["W1B6-U4"] },
+    "A-7": { "primary": "G6", "rules": ["CLI-036", "CLI-037"] },
+    "A-8": { "primary": "G6", "unresolved": ["W1B6-U2"], "excludes": ["CLI-021-025-grading"] },
+    "A-9": { "primary": "G6", "unresolved": ["W1B6-U5"], "secondary": "G5-season" },
+    "A-10": { "primary": "G5", "unresolved": ["W1B5-U4"], "policy": ["CLI-014"] }
+  },
+  "deduplicatedItems": [
+    "G5-season-independence + G6-daymaster-month → A-9",
+    "G5-existence-vs-adjustment + G6-existence-vs-adjustment → A-4",
+    "G5-hidden-stem-weight + G6-quality-clear-gate → A-8 (no score table)",
+    "G6-clear-to-balanced-one-step → excluded (engine abstraction)",
+    "G4-month-baseline-and-clusters → excluded (G4 CLOSE)",
+    "CLI-002-contested-lookup → operator-only W1B6-U1, not asked",
+    "CLI-032-CLI-054 → excluded (Batch 6 not judged)",
+    "CLI-021-025-individual-grades → excluded except via A-8 general strength"
+  ],
+  "literatureUnresolvedCarried": {
+    "G5": [
+      "W1B5-U1-benqi-list-is-not-tiaohou-collection-table",
+      "W1B5-U2-sanhe-changsheng-vs-benqi-branch-factor",
+      "W1B5-U3-hidden-stem-fire-water-weight-is-CLI-024-expert",
+      "W1B5-U4-CLI-014-month-skip-unjudged",
+      "W1B5-U5-quality-and-G6-unjudged"
+    ],
+    "G6": [
+      "W1B6-U1-CLI-002-contested-adjustment-target",
+      "W1B6-U2-quality-gate-is-expert",
+      "W1B6-U3-CLI-032-CLI-054-not-judged",
+      "W1B6-U4-earth-as-moisture-factor-vs-CLI-013",
+      "W1B6-U5-daymaster-month-tiaohou-not-mapped"
+    ]
+  },
+  "validationScopeSummary": {
+    "G5": "지지 본기 火=巳午·水=亥子; 본기 vs 지장간; 삼合·장생; 존재 vs 수집; 월지 vs 타 지지 비중",
+    "G6": "한난·조습에서 火/水 역할 방향; 土 조습; 한난·조습 동일 규칙 여부; 조절 세기·월령·일간"
+  },
+  "leakageCheck": {
+    "expertPackagePath": "expert-blind-package.md",
+    "scanPassed": true,
+    "absentFromExpertPackage": [
+      "G5",
+      "G6",
+      "W1-G5",
+      "W1-G6",
+      "CLI-011",
+      "CLI-012",
+      "CLI-018",
+      "CLI-019",
+      "CLI-036",
+      "CLI-037",
+      "CLI-002",
+      "warm",
+      "cold",
+      "balanced",
+      "dry",
+      "moist",
+      "literatureVerdict",
+      "CONTESTED",
+      "PARTIALLY-SUPPORTED",
+      "sourceFixtureIds",
+      "expected",
+      "adjustedClimate",
+      "fireQuality",
+      "waterQuality",
+      "caseSelectionPurpose",
+      "operator-mapping"
+    ]
+  },
+  "postRoundSeparate": [
+    "g5-expert-comparison-and-closure",
+    "g6-expert-comparison-and-closure"
+  ]
+}

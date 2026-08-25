@@ -1,0 +1,93 @@
+{
+  "set": "wave1-batch-5-g5-branch-fire-water-closure",
+  "status": "g5-closure-complete",
+  "schemaVersion": "w1b5-g5-closure-v1",
+  "groupId": "W1-G5-BRANCH-FIRE-WATER",
+  "targetRules": ["CLI-011", "CLI-012"],
+  "g5Decision": "CLOSE",
+  "g5DecisionMeaning": "Validation boundary fixed (speakable vs not-speakable vs policy unresolved); not rule finalization or VERIFIED; literature+expert not merged into a single truth",
+  "source": [
+    "wave1-batch-5-literature-validation.md",
+    "wave1-batch-5-literature-inventory.json",
+    "expert-results/g5-expert-evidence.md",
+    "../final-expert-round/expert-results/final-expert-comparison.md",
+    "../final-expert-round/expert-results/raw/E1-raw.md",
+    "../final-expert-round/expert-results/raw/E2-raw.md",
+    "../final-expert-round/expert-results/raw/E4-raw.md",
+    "../final-expert-round/operator-mapping.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "fireWaterBranchesUnchanged": true,
+    "cli011Cli012NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "literatureAndExpertNotMergedAsTruth": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "sanheChangshengAsBenqiListFixed": false,
+    "monthVsOtherBranchFixedRatio": false,
+    "e3Backfilled": false,
+    "additionalExpertSurvey": false,
+    "g1ThroughG4Reopened": false
+  },
+  "literatureLayerUnchanged": {
+    "CLI-011": "PARTIALLY-SUPPORTED",
+    "CLI-012": "PARTIALLY-SUPPORTED",
+    "evidenceConfidence": "MEDIUM"
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E3": "unavailable",
+    "e3NotPending": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "sourceRound": "final-expert-round-integrated-g5-g6"
+  },
+  "speakableBoundary": [
+    "S1-benqi-fire-si-wu-only",
+    "S2-benqi-water-hai-zi-only",
+    "S3-hidden-stem-fire-water-different-layer",
+    "S4-sanhe-changsheng-not-direct-benqi-list",
+    "S5-presence-not-equal-regulation",
+    "S6-month-branch-fire-water-not-equal-weight-to-other-branches"
+  ],
+  "notSpeakableSettled": [
+    "N1-cli011-012-as-tiaohou-collection-table-VERIFIED",
+    "N2-sanhe-changsheng-fixed-activation-formula",
+    "N3-hidden-stem-fixed-layer-scores",
+    "N4-month-vs-other-fixed-ratio",
+    "N5-CLI-014-literature-closed",
+    "N6-quality-grades-CLI-021-plus-fixed"
+  ],
+  "policyUnresolved": [
+    "P1-sanhe-activation-layer-vs-strength-conversion",
+    "P2-hidden-stem-effective-strength-gate",
+    "P3-month-vs-other-branch-position-weight",
+    "P4-CLI-014-month-branch-skip-policy",
+    "P5-season-independent-collection-vs-seasonal-effect-docs"
+  ],
+  "openDisagreement": [
+    "OD-G5-A10-month-weight-expression",
+    "OD-G5-A3-sanhe-conversion-intensity"
+  ],
+  "dataQualityBoundary": [
+    "DQ-1-E3-unavailable-no-backfill",
+    "DQ-2-AI-self-report",
+    "DQ-3-literature-expert-layers-separate",
+    "DQ-4-numeric-weight-and-engine-meta-not-policy"
+  ],
+  "closure": {
+    "canCloseG5": true,
+    "recommended": true,
+    "decision": "CLOSE",
+    "notVerified": true
+  },
+  "nextStepsOutsideThisDoc": [
+    "optional-policy-memo-P1-P5-no-code",
+    "g6-closure-separate",
+    "wave2-only-on-separate-instruction",
+    "human-expert-rerun-as-new-round-if-needed"
+  ]
+}

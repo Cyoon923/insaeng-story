@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "w1b3-expert-blind-g3-response-v1",
+  "questionSetVersion": "w1b3-root-depth-strength-v1",
+  "caseSetVersion": "w1b3-g3-blind8-v1",
+  "note": "Storage schema only. Experts receive expert-blind-package.md — not this full JSON. Do not fill with AI or engine values. Expert panel ops: operator-expert-panel.md (E1/E2/E4 active; E3 unavailable).",
+  "g3Status": {
+    "packageReadyForDelivery": true,
+    "g3Executed": false,
+    "expertAnswersFilled": false,
+    "expertExpectedsFilled": false,
+    "comparisonExecuted": false,
+    "aggregationStarted": false
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "statuses": {
+      "E1": "active",
+      "E2": "active",
+      "E3": "unavailable",
+      "E4": "active"
+    },
+    "e3NotPending": true,
+    "e3NoEstimateOrBackfill": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "compareAndAggregateWithActiveOnly": true,
+    "majorityTreatedAsTruth": false
+  },
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "preservationRules": {
+    "openResponseTakesPrecedenceOverStructured": true,
+    "doNotOverwriteRawWithMappedEnums": true,
+    "doNotReconcileExpertToEngine": true,
+    "storeSchoolDifferencesAsIs": true,
+    "doNotEstimateOrBackfillE3": true,
+    "doNotChangeG1OrG2Results": true,
+    "doNotChangeEngineStrOrLiteratureVerdict": true,
+    "doNotTreatMajorityAsTruth": true,
+    "disagreementStatuses": [
+      "difference",
+      "partial-match",
+      "not-comparable",
+      "expert-unresolved"
+    ]
+  },
+  "expertFacing": {
+    "deliverToExpert": false,
+    "note": "Mirror of fields writable in expert-blind-package.md. Keep null until human expert answers.",
+    "provenance": {
+      "expertId": null,
+      "yearsOfPractice": null,
+      "primarySchoolOrSystem": null,
+      "trainingBackground": null,
+      "rootDepthJudgmentFramework": null,
+      "responseDate": null,
+      "questionSetVersion": "w1b3-root-depth-strength-v1",
+      "caseSetVersion": "w1b3-g3-blind8-v1"
+    },
+    "phaseA_openResponse": {
+      "A-1": null,
+      "A-2": null,
+      "A-3": null,
+      "A-4": null,
+      "A-5": null,
+      "A-6": null,
+      "A-7": null,
+      "A-8": null
+    },
+    "phaseB_structuredResponse": {
+      "distinguishExistenceVsDepthRaw": null,
+      "threeTierFromRolesAloneRaw": null,
+      "bongiAlwaysStrongestRaw": null,
+      "junggiYogiConsistentGapRaw": null,
+      "jangsaengMugoMoreImportantRaw": null,
+      "monthRootEqualOtherBranchesRaw": null,
+      "tuganSeparateFromTonggeunRaw": null,
+      "threeGradeTraditionalVsAbstractionRaw": null,
+      "answeredForStrengthOnlyRaw": null,
+      "limitsAndSchoolDifferenceRaw": null,
+      "phaseAVsPhaseBConflictNote": null
+    },
+    "cases": [
+      {
+        "caseId": "w1b3-rd-01",
+        "presentationOrder": 1,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-02",
+        "presentationOrder": 2,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-03",
+        "presentationOrder": 3,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-04",
+        "presentationOrder": 4,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-05",
+        "presentationOrder": 5,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-06",
+        "presentationOrder": 6,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-07",
+        "presentationOrder": 7,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b3-rd-08",
+        "presentationOrder": 8,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "dayMasterStrengthNarrative": null,
+          "rootPresenceLocationQiNarrative": null,
+          "rootDepthStrengthNarrative": null,
+          "tuganRoleNarrative": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      }
+    ]
+  },
+  "operatorOnlyAfterCollection": {
+    "deliverToExpert": false,
+    "sourceFixtureMap": {
+      "w1b3-rd-01": "s7-gap-jin-yogi",
+      "w1b3-rd-02": "s13-eul-in-jeonggi-geop",
+      "w1b3-rd-03": "s1-gimo-bingja-muo",
+      "w1b3-rd-04": "c2-gi-sa-jeonggi-support",
+      "w1b3-rd-05": "s12-mu-jin-wang-multi",
+      "w1b3-rd-06": "s10-byeong-chuk-hyu",
+      "w1b3-rd-07": "s2-gap-in-unknown-hour",
+      "w1b3-rd-08": "s14-jeong-o-wang-jeonggi"
+    },
+    "engineComparison": null,
+    "literatureComparison": null,
+    "aggregateNotes": null
+  }
+}

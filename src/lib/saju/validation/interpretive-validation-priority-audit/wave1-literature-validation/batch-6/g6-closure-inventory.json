@@ -1,0 +1,103 @@
+{
+  "set": "wave1-batch-6-g6-climate-adjust-closure",
+  "status": "g6-closure-complete",
+  "schemaVersion": "w1b6-g6-closure-v1",
+  "groupId": "W1-G6-CLIMATE-ADJUST",
+  "targetRules": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+  "g6Decision": "CLOSE",
+  "g6DecisionMeaning": "Validation boundary fixed (speakable vs not-speakable vs policy unresolved); not rule finalization or VERIFIED; not SUPPORTED promotion; CLI-002 upstream remains CONTESTED",
+  "source": [
+    "wave1-batch-6-literature-validation.md",
+    "wave1-batch-6-literature-inventory.json",
+    "expert-results/g6-expert-evidence.md",
+    "../final-expert-round/expert-results/final-expert-comparison.md",
+    "../final-expert-round/expert-results/raw/E1-raw.md",
+    "../final-expert-round/expert-results/raw/E2-raw.md",
+    "../final-expert-round/expert-results/raw/E4-raw.md",
+    "../final-expert-round/operator-mapping.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "adjustPolarUnchanged": true,
+    "cli018To037NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "cli002NotRejudged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "literatureAndExpertNotMergedAsTruth": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "sameHannanJosupFunctionFixed": false,
+    "clearToBalancedOneStepFixed": false,
+    "e3Backfilled": false,
+    "additionalExpertSurvey": false,
+    "g1ThroughG4Reopened": false
+  },
+  "literatureLayerUnchanged": {
+    "CLI-018": "PARTIALLY-SUPPORTED",
+    "CLI-019": "CONTESTED",
+    "CLI-036": "CONTESTED",
+    "CLI-037": "CONTESTED",
+    "CLI-002": "CONTESTED",
+    "evidenceConfidence": "MEDIUM"
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E3": "unavailable",
+    "e3NotPending": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "sourceRound": "final-expert-round-integrated-g5-g6"
+  },
+  "speakableBoundary": [
+    "S1-hannan-fire-water-direction",
+    "S2-presence-not-equal-regulation",
+    "S3-moisture-needs-earth-wetdry-soil",
+    "S4-hannan-josup-not-same-rule-or-single-function",
+    "S5-regulation-needs-strength-conditions",
+    "S6-month-needed-for-regulation-judgment"
+  ],
+  "notSpeakableSettled": [
+    "N1-CLI-018-full-engine-procedure-VERIFIED",
+    "N2-moisture-fire-water-only-table-VERIFIED",
+    "N3-same-adjustPolar-for-hannan-josup-VERIFIED",
+    "N4-clear-mitigation-to-balanced-one-step-VERIFIED",
+    "N5-quality-gate-scores",
+    "N6-daymaster-month-overlay-design-fixed",
+    "N7-case-final-hannan-josup-labels",
+    "N8-CLI-032-CLI-054"
+  ],
+  "policyUnresolved": [
+    "P1-separate-temperature-vs-moisture-regulation-in-engine",
+    "P2-earth-as-moisture-climate-factor-vs-CLI-013",
+    "P3-regulation-strength-gate-quality-policy",
+    "P4-day-master-scope-in-G6-regulation",
+    "P5-document-G6-under-CLI-002-contested-baseline",
+    "P6-CLI-032-CLI-054-unjudged"
+  ],
+  "openDisagreement": [
+    "OD-1-day-master-depth-in-regulation",
+    "OD-G6-05-case05-hannan-frame",
+    "OD-G6-06-case06-mitigation-degree"
+  ],
+  "dataQualityBoundary": [
+    "DQ-1-E3-unavailable-no-backfill",
+    "DQ-2-AI-self-report",
+    "DQ-3-literature-expert-layers-separate",
+    "DQ-4-engine-meta-yongshin-scope",
+    "DQ-5-CLI-002-upstream-unresolved-kept"
+  ],
+  "closure": {
+    "canCloseG6": true,
+    "recommended": true,
+    "decision": "CLOSE",
+    "notVerified": true,
+    "notSupportedPromotion": true
+  },
+  "nextStepsOutsideThisDoc": [
+    "optional-policy-memo-P1-P6-no-code",
+    "optional-downstream-read-G6-as-boundary-docs-only",
+    "wave2-only-on-separate-instruction",
+    "human-expert-rerun-as-new-round-if-needed"
+  ]
+}

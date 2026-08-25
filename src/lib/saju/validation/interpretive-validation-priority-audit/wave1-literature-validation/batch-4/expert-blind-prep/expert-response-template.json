@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "w1b4-expert-blind-g4-response-v1",
+  "questionSetVersion": "w1b4-month-climate-v1",
+  "caseSetVersion": "w1b4-g4-blind8-v1",
+  "note": "Storage schema only. Experts receive expert-blind-package.md — not this full JSON. Do not fill with AI or engine values. Panel: E1/E2/E4 active; E3 unavailable.",
+  "g4Status": {
+    "packageReadyForDelivery": true,
+    "g4Executed": false,
+    "expertAnswersFilled": false,
+    "expertExpectedsFilled": false,
+    "comparisonExecuted": false,
+    "aggregationStarted": false
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "statuses": {
+      "E1": "active",
+      "E2": "active",
+      "E3": "unavailable",
+      "E4": "active"
+    },
+    "e3NotPending": true,
+    "e3NoEstimateOrBackfill": true,
+    "majorityTreatedAsTruth": false
+  },
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "preservationRules": {
+    "openResponseTakesPrecedenceOverStructured": true,
+    "doNotOverwriteRawWithMappedEnums": true,
+    "doNotReconcileExpertToEngine": true,
+    "doNotMapAnswersToBaseClimateEnumsAutomatically": true,
+    "storeSchoolDifferencesAsIs": true,
+    "doNotEstimateOrBackfillE3": true,
+    "doNotChangeG1G2G3Results": true,
+    "doNotChangeEngineCliOrLiteratureVerdict": true,
+    "doNotTreatMajorityAsTruth": true,
+    "disagreementStatuses": [
+      "difference",
+      "partial-match",
+      "not-comparable",
+      "expert-unresolved"
+    ]
+  },
+  "expertFacing": {
+    "deliverToExpert": false,
+    "note": "Mirror of fields writable in expert-blind-package.md. Keep null until human expert answers.",
+    "provenance": {
+      "expertId": null,
+      "yearsOfPractice": null,
+      "primarySchoolOrSystem": null,
+      "climateJudgmentFramework": null,
+      "responseDate": null,
+      "questionSetVersion": "w1b4-month-climate-v1",
+      "caseSetVersion": "w1b4-g4-blind8-v1"
+    },
+    "phaseA_openResponse": {
+      "A-1": null,
+      "A-2": null,
+      "A-3": null,
+      "A-4": null,
+      "A-5": null,
+      "A-6": null,
+      "A-7": null,
+      "A-8": null,
+      "A-9": null
+    },
+    "phaseB_structuredResponse": {
+      "monthAsClimateStartRaw": null,
+      "monthAloneDeterminesClimateRaw": null,
+      "judgeColdWarmFromMonthRaw": null,
+      "judgeDryMoistFromMonthRaw": null,
+      "fixedTempMoisturePairPerMonthRaw": null,
+      "moderateWarmthExistsRaw": null,
+      "yinMaoChenSameClusterRaw": null,
+      "saOMiSameClusterRaw": null,
+      "sinYuSulSameClusterRaw": null,
+      "haeJaChukSameClusterRaw": null,
+      "earthMonthsSameAsAdjacentSeasonRaw": null,
+      "dayStemChangesClimateRaw": null,
+      "seasonStrengthVsClimateSeparateRaw": null,
+      "answeredForClimateOnlyRaw": null,
+      "limitsAndSchoolDifferenceRaw": null,
+      "phaseAVsPhaseBConflictNote": null
+    },
+    "cases": [
+      {
+        "caseId": "w1b4-mc-01",
+        "presentationOrder": 1,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-02",
+        "presentationOrder": 2,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-03",
+        "presentationOrder": 3,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-04",
+        "presentationOrder": 4,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-05",
+        "presentationOrder": 5,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-06",
+        "presentationOrder": 6,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-07",
+        "presentationOrder": 7,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      },
+      {
+        "caseId": "w1b4-mc-08",
+        "presentationOrder": 8,
+        "expertRaw": {
+          "pillarsConfirmed": null,
+          "monthClimateNarrative": null,
+          "monthOnlyOrDayStemOthers": null,
+          "earthMonthOrSeasonClusterNote": null,
+          "wangshuaiVsClimateNote": null,
+          "cannotDetermineOrSchoolNote": null
+        }
+      }
+    ]
+  },
+  "operatorOnlyAfterCollection": {
+    "deliverToExpert": false,
+    "sourceFixtureMap": {
+      "w1b4-mc-01": "s13-eul-in-jeonggi-geop",
+      "w1b4-mc-02": "s14-jeong-o-wang-jeonggi",
+      "w1b4-mc-03": "s8-sin-mi-sang",
+      "w1b4-mc-04": "s7-gap-jin-yogi",
+      "w1b4-mc-05": "s1-gimo-bingja-muo",
+      "w1b4-mc-06": "s10-byeong-chuk-hyu",
+      "w1b4-mc-07": "s3-gap-yu-unrooted",
+      "w1b4-mc-08": "s9-gap-sul-mugun"
+    },
+    "engineComparison": null,
+    "literatureComparison": null,
+    "aggregateNotes": null
+  }
+}

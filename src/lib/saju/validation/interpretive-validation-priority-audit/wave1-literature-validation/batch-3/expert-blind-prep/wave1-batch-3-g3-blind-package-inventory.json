@@ -1,0 +1,103 @@
+{
+  "set": "wave1-batch-3-g3-root-depth-blind-package",
+  "status": "g3-blind-package-ready",
+  "schemaVersion": "w1b3-g3-blind-package-v1",
+  "questionSetVersion": "w1b3-root-depth-strength-v1",
+  "caseSetVersion": "w1b3-g3-blind8-v1",
+  "targetRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+  "groupId": "W1-G3-ROOT-DEPTH",
+  "expertAnswersCreated": 0,
+  "expertExpectedsCreated": 0,
+  "g3Executed": false,
+  "aggregationStarted": false,
+  "g4OrLaterStarted": false,
+  "engineUnchanged": true,
+  "freezeStatusUnchanged": true,
+  "literatureVerdictUnchanged": true,
+  "g1G2ResultsUnchanged": true,
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E1": "active",
+    "E2": "active",
+    "E3": "unavailable",
+    "E4": "active",
+    "e3NotPending": true,
+    "e3NoFurtherCollection": true,
+    "e3NoEstimateOrBackfill": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "compareAndAggregateWithActiveOnly": true,
+    "majorityTreatedAsTruth": false,
+    "operatorDoc": "operator-expert-panel.md"
+  },
+  "deliverToExpert": ["expert-blind-package.md"],
+  "operatorOnly": [
+    "selection-audit.md",
+    "operator-case-purpose.md",
+    "operator-leakage-checklist.md",
+    "operator-expert-panel.md",
+    "expert-response-template.json",
+    "wave1-batch-3-expert-blind-prep.md",
+    "wave1-batch-3-g3-blind-package-inventory.json"
+  ],
+  "caseIdsIncluded": [
+    "w1b3-rd-01",
+    "w1b3-rd-02",
+    "w1b3-rd-03",
+    "w1b3-rd-04",
+    "w1b3-rd-05",
+    "w1b3-rd-06",
+    "w1b3-rd-07",
+    "w1b3-rd-08"
+  ],
+  "sourceFixtureMap": {
+    "w1b3-rd-01": "s7-gap-jin-yogi",
+    "w1b3-rd-02": "s13-eul-in-jeonggi-geop",
+    "w1b3-rd-03": "s1-gimo-bingja-muo",
+    "w1b3-rd-04": "c2-gi-sa-jeonggi-support",
+    "w1b3-rd-05": "s12-mu-jin-wang-multi",
+    "w1b3-rd-06": "s10-byeong-chuk-hyu",
+    "w1b3-rd-07": "s2-gap-in-unknown-hour",
+    "w1b3-rd-08": "s14-jeong-o-wang-jeonggi"
+  },
+  "caseCount": 8,
+  "coverageSlots": [
+    "yogi-only",
+    "jeonggi-month-only",
+    "junggi-only",
+    "jeonggi-weak-jangsaeng",
+    "yogi-with-jangsaeng-multi",
+    "non-month-root",
+    "tugan-present",
+    "tugan-absent"
+  ],
+  "leakageCheck": {
+    "expertPackagePath": "expert-blind-package.md",
+    "scanPassed": true,
+    "expertPackageQuestionContentFrozen": true,
+    "absentFromExpertPackage": [
+      "STR-030",
+      "clear",
+      "present",
+      "shallow",
+      "literatureVerdict",
+      "engineRootQuality",
+      "sourceFixtureIds",
+      "caseSelectionPurpose",
+      "expectedStrength",
+      "expertPanelOperatingConditions"
+    ]
+  },
+  "unresolved": [
+    "W1B3-G3-U1-active-expert-answers-empty-E1-E2-E4",
+    "W1B3-G3-U2-most-cases-pillars-only-no-birth",
+    "W1B3-G3-U3-s12-multi-role-mixes-yogi-jangsaeng-with-other-roots",
+    "W1B3-G3-U4-s10-also-has-exact-stem-visible-on-year-day",
+    "W1B3-G3-U5-g4-not-started"
+  ],
+  "resolvedOperational": [
+    "W1B3-G3-R1-E3-unavailable-not-pending",
+    "W1B3-G3-R2-panel-locked-to-E1-E2-E4",
+    "W1B3-G3-R3-E3-missing-not-closure-incomplete-work"
+  ]
+}

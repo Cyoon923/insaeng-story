@@ -1,0 +1,584 @@
+{
+  "set": "wave1-policy-unresolved-registry",
+  "status": "wave1-closed-with-remaining-unresolved",
+  "schemaVersion": "w1-policy-unresolved-v1",
+  "meaning": "Wave 1 G1–G6 validation boundaries are CLOSED. CL-NEED-HOUR is POLICY-RESOLVED/IMPLEMENTED (Provisional Strength, Gated Need, commit c96b6ec). Remaining items are POLICY-UNRESOLVED only. This update does not decide other clusters, add scores/weights, promote VERIFIED, start Wave 2, or re-run Wave 1.",
+  "constraints": {
+    "noPolicyDecisionExceptClNeedHour": true,
+    "noRecommendedValuesOrScoresOrWeights": true,
+    "noVerifiedPromotion": true,
+    "noEngineChange": true,
+    "noAdditionalExpertSurvey": true,
+    "noWave1Revalidation": true,
+    "noWave2Start": true,
+    "majorityNotPolicy": true
+  },
+  "sources": [
+    "batch-1/expert-blind-prep/phase-1-results/phase1-closure.md",
+    "batch-1/expert-blind-prep/phase-1-results/phase1-closure-inventory.json",
+    "batch-1/expert-blind-prep/phase-1-results/post-validation-conflict-closure.md",
+    "batch-1/expert-blind-prep/phase-1-results/post-validation-conflict-closure-inventory.json",
+    "batch-2/g2-closure.md",
+    "batch-2/g2-closure-inventory.json",
+    "batch-3/g3-closure.md",
+    "batch-3/g3-closure-inventory.json",
+    "batch-4/g4-closure.md",
+    "batch-4/g4-closure-inventory.json",
+    "batch-5/g5-closure.md",
+    "batch-5/g5-closure-inventory.json",
+    "batch-6/g6-closure.md",
+    "batch-6/g6-closure-inventory.json",
+    "final-expert-round/expert-results/final-expert-comparison.md",
+    "../wave1-policy-decisions/need-hour-policy-decision.md"
+  ],
+  "counts": {
+    "catalogUnique": 32,
+    "unresolvedUnique": 28,
+    "resolvedUnique": 4,
+    "byDomainUnresolved": {
+      "A_Strength": 8,
+      "B_Root": 5,
+      "C_Climate": 12,
+      "D_Need": 0,
+      "E_CrossDomain": 3
+    },
+    "byDomainResolved": {
+      "A_Strength": 0,
+      "B_Root": 0,
+      "C_Climate": 0,
+      "D_Need": 3,
+      "E_CrossDomain": 1
+    }
+  },
+  "policies": [
+    {
+      "policyId": "W1-POL-A01",
+      "domain": "A",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-010", "STR-011"],
+      "decisionQuestion": "Use equal boolean side contribution vs differential intensity by peer/resource/output/wealth/officer?",
+      "speakableScope": "Direction bundles observed; sourceBreakdown preserves kinds",
+      "notDecidableYet": "Adopt/reject equal weights; fixed deltas by kind",
+      "disagreementsOrCases": ["G1-NV-1", "G1-NV-2", "C1-C", "C1-D", "p1-06-quality-vs-count"],
+      "engineImpact": ["decideDirection", "substantialStrongWeak"],
+      "provenance": ["G1-phase1-NV-1-2", "G1-postval-C1-C", "G1-postval-C1-D"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A02",
+      "domain": "A",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-010", "STR-011"],
+      "decisionQuestion": "Adopt fixed zheng/pian intensity tables?",
+      "speakableScope": "Directional distinction of zheng/pian observed",
+      "notDecidableYet": "Fixed penalty/rank numbers",
+      "disagreementsOrCases": ["G1-NV-3"],
+      "engineImpact": ["shiShen-to-strength-contribution"],
+      "provenance": ["G1-phase1-NV-3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A03",
+      "domain": "A",
+      "sourceGroups": ["G1", "G2"],
+      "relatedRules": ["STR-010", "STR-011"],
+      "decisionQuestion": "Unify wealth (and output/officer) attenuation mechanism and fixed rank?",
+      "speakableScope": "Macro weaken direction largely agreed",
+      "notDecidableYet": "Single taxonomy; fixed ranks/scores",
+      "disagreementsOrCases": ["G1-NV-4", "G2-OD-2", "G2-NV-G2-4"],
+      "engineImpact": ["pressure-side-aggregation"],
+      "provenance": ["G1-NV-4", "G2-OD-2", "G2-NV-G2-4"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A04",
+      "domain": "A",
+      "sourceGroups": ["G2"],
+      "relatedRules": ["STR-022", "STR-024"],
+      "decisionQuestion": "What closes conflict among month/root/heguk for final Strength priority?",
+      "speakableScope": "Wang not auto strong; score-alone boundary",
+      "notDecidableYet": "Single conflict-resolution formula",
+      "disagreementsOrCases": ["G2-OD-1", "G2-case3-4-flip", "ENG-4"],
+      "engineImpact": ["decideDirection", "substantialStrongWeak"],
+      "provenance": ["G2-OD-1", "G2-NV-G2-3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A05",
+      "domain": "A",
+      "sourceGroups": ["G1", "G2"],
+      "relatedRules": ["STR-010", "STR-011", "STR-022", "STR-024"],
+      "decisionQuestion": "Adopt single numeric priority table for month/root/tugan in Strength?",
+      "speakableScope": "Month and root matter more than raw counts (direction)",
+      "notDecidableYet": "Numeric scales; fixed max-weight wording",
+      "disagreementsOrCases": ["G1-NV-5", "G2-OD-3", "G2-NV-G2-1"],
+      "engineImpact": ["strength-evidence-weights"],
+      "provenance": ["G1-NV-5", "G2-OD-3", "G2-NV-G2-1"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A06",
+      "domain": "A",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-010", "STR-011"],
+      "decisionQuestion": "Standard hechung weights into Strength?",
+      "speakableScope": "Hechung can affect strength (observation)",
+      "notDecidableYet": "Standard weight table",
+      "disagreementsOrCases": ["G1-NV-6"],
+      "engineImpact": ["strength-evidence-collection"],
+      "provenance": ["G1-NV-6"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A07",
+      "domain": "A",
+      "sourceGroups": ["G2"],
+      "relatedRules": ["STR-022", "STR-024", "STR-026", "STR-027"],
+      "decisionQuestion": "Map wangxiangxiushousi to equal-interval Strength scores? Treat 수=사? Close STR-026/027?",
+      "speakableScope": "Wang≠auto strong; hyu not in weak-side (directionally)",
+      "notDecidableYet": "Score map; su=sa equal weight; STR-026/027 closure",
+      "disagreementsOrCases": ["G2-NV-G2-2", "G2-NV-G2-5", "G2-NV-G2-6", "G2-OD-PC"],
+      "engineImpact": ["seasonal-side-evidence", "STR-026", "STR-027"],
+      "provenance": ["G2-NV-G2-2", "G2-NV-G2-5", "G2-NV-G2-6", "G2-OD-PC"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-A08",
+      "domain": "A",
+      "sourceGroups": ["G1", "G2"],
+      "relatedRules": ["STR-010", "STR-011", "STR-022", "STR-024"],
+      "decisionQuestion": "Engine gate when quality-of-root/month conflicts with count/chongxing? (not case truth labels)",
+      "speakableScope": "Disagreement existence documented; majority≠truth",
+      "notDecidableYet": "Case final Strength labels; single gate formula",
+      "disagreementsOrCases": ["G1-p1-06", "G1-NV-8", "G2-case06"],
+      "engineImpact": ["strong-weak-gates"],
+      "provenance": ["G1-remaining-p1-06", "G2-case06", "G2-NV-G2-7"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-B01",
+      "domain": "B",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "decisionQuestion": "Separate structural root depth vs effective root strength in engine?",
+      "speakableScope": "Existence≠depth/effective; role alone cannot finalize strength",
+      "notDecidableYet": "Whether/how to split APIs",
+      "disagreementsOrCases": ["G3-case06-layer-ne-effective"],
+      "engineImpact": ["rootQuality", "STR-030"],
+      "provenance": ["G3-P1"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-B02",
+      "domain": "B",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "decisionQuestion": "Limit STR-030 labels to structural layer only?",
+      "speakableScope": "Not validated as traditional standard 3-grade",
+      "notDecidableYet": "Product/docs interpretation policy",
+      "disagreementsOrCases": ["G3-label-abstraction-mixed"],
+      "engineImpact": ["STR-030-consumers"],
+      "provenance": ["G3-P2"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-B03",
+      "domain": "B",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "decisionQuestion": "How to treat root efficacy after hechung?",
+      "speakableScope": "Chong can affect roots",
+      "notDecidableYet": "Percent attenuation or removal formula",
+      "disagreementsOrCases": ["G3-OD-G3-02-case02"],
+      "engineImpact": ["root-efficacy-flags"],
+      "provenance": ["G3-P5", "G3-OD-G3-02"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-B04",
+      "domain": "B",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+      "decisionQuestion": "How to combine 十二長生/墓庫 with root depth?",
+      "speakableScope": "Factors beyond layer roles may matter",
+      "notDecidableYet": "Combine formula",
+      "disagreementsOrCases": ["G3-OD-2-exception-lists"],
+      "engineImpact": ["root-effective-calculation"],
+      "provenance": ["G3-P6"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-B05",
+      "domain": "B",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-present", "STR-030-shallow"],
+      "decisionQuestion": "Junggi>yogi absolute vs branch-type vs non-regular bundle?",
+      "speakableScope": "Not fixed absolute rule",
+      "notDecidableYet": "Ordering policy",
+      "disagreementsOrCases": ["G3-OD-1"],
+      "engineImpact": ["present-shallow-mapping"],
+      "provenance": ["G3-P7", "G3-OD-1"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C01",
+      "domain": "C",
+      "sourceGroups": ["G4", "G6"],
+      "relatedRules": ["CLI-002", "CLI-003a", "CLI-003b", "CLI-003c", "CLI-003d", "CLI-004", "CLI-018", "CLI-019"],
+      "decisionQuestion": "Day master in climate body vs need/subject interpretation only?",
+      "speakableScope": "Objective climate ≠ day-master meaning (near-common)",
+      "notDecidableYet": "Engine lookup dependence on day master",
+      "disagreementsOrCases": ["G4-OD-1", "G6-OD-1", "final-OD-1-A9"],
+      "engineImpact": ["baseClimate", "adjustPolar", "climateNeed"],
+      "provenance": ["G4-P1", "G6-P4"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C02",
+      "domain": "C",
+      "sourceGroups": ["G4"],
+      "relatedRules": ["CLI-002"],
+      "decisionQuestion": "Rules for Month Climate Baseline → Chart Climate Final?",
+      "speakableScope": "Month alone cannot finalize; baseline≠final",
+      "notDecidableYet": "Transform / reversal formula",
+      "disagreementsOrCases": ["G4-OD-2", "G4-OD-G4-04"],
+      "engineImpact": ["BASE_CLIMATE-to-adjusted"],
+      "provenance": ["G4-P2"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C03",
+      "domain": "C",
+      "sourceGroups": ["G4"],
+      "relatedRules": ["CLI-003a", "CLI-003c"],
+      "decisionQuestion": "Mild/transitional month range and labels?",
+      "speakableScope": "Mild/transitional states possible",
+      "notDecidableYet": "Fixed month list (e.g. 卯辰 only vs include 申酉)",
+      "disagreementsOrCases": ["G4-OD-3"],
+      "engineImpact": ["temperature-balanced-assignment"],
+      "provenance": ["G4-P3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C04",
+      "domain": "C",
+      "sourceGroups": ["G4"],
+      "relatedRules": ["CLI-002", "CLI-003a", "CLI-003b", "CLI-003c", "CLI-003d", "CLI-004"],
+      "decisionQuestion": "How chart hechung/tugan adjust cold-warm/dry-moist?",
+      "speakableScope": "Chart can modify baseline",
+      "notDecidableYet": "Reversal formula; case final labels",
+      "disagreementsOrCases": ["G4-OD-2", "G4-OD-G4-03", "G4-OD-G4-04", "G4-OD-G4-08"],
+      "engineImpact": ["chart-climate-final"],
+      "provenance": ["G4-P4"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C05",
+      "domain": "C",
+      "sourceGroups": ["G4", "G6"],
+      "relatedRules": ["CLI-002", "CLI-003a", "CLI-003b", "CLI-003c", "CLI-003d", "CLI-004", "CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+      "decisionQuestion": "Limit CLI-002/003/004 to baseline lookup; how to document/limit G6 atop CONTESTED CLI-002?",
+      "speakableScope": "12-cell final values not VERIFIED; G6 tied to contested upstream",
+      "notDecidableYet": "Product interpretation / application limits",
+      "disagreementsOrCases": ["W1B6-U1"],
+      "engineImpact": ["BASE_CLIMATE-consumers", "adjustPolar-input"],
+      "provenance": ["G4-P5", "G6-P5"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C06",
+      "domain": "C",
+      "sourceGroups": ["G5"],
+      "relatedRules": ["CLI-011", "CLI-012"],
+      "decisionQuestion": "After sanhe completion: separate activation layer vs strength conversion?",
+      "speakableScope": "Do not put sanhe/changsheng directly into benqi collection list",
+      "notDecidableYet": "Conversion intensity; half-sanhe handling",
+      "disagreementsOrCases": ["G5-OD-G5-A3", "w1fr-03"],
+      "engineImpact": ["climate-evidence", "sanhe-handling"],
+      "provenance": ["G5-P1"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C07",
+      "domain": "C",
+      "sourceGroups": ["G5", "G6"],
+      "relatedRules": ["CLI-011", "CLI-012", "CLI-018", "CLI-019", "CLI-021", "CLI-022", "CLI-023", "CLI-024", "CLI-025"],
+      "decisionQuestion": "Hidden-stem fire/water effective strength and regulation gate (tugan/tonggeun/quality)?",
+      "speakableScope": "Benqi≠hidden; presence≠regulation; strength conditions needed",
+      "notDecidableYet": "Clear/substantial numeric gates; layer scores",
+      "disagreementsOrCases": ["final-A-2", "final-A-4", "final-A-8", "w1fr-01", "w1fr-07", "w1fr-08"],
+      "engineImpact": ["qualityOf", "adjustPolar"],
+      "provenance": ["G5-P2", "G6-P3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C08",
+      "domain": "C",
+      "sourceGroups": ["G5"],
+      "relatedRules": ["CLI-014"],
+      "decisionQuestion": "Keep omitting month-branch climate factors (CLI-014)?",
+      "speakableScope": "Month fire/water weight differs from other branches (direction)",
+      "notDecidableYet": "Keep/drop CLI-014",
+      "disagreementsOrCases": ["G5-OD-G5-A10"],
+      "engineImpact": ["collectClimateEvidence-month-skip"],
+      "provenance": ["G5-P4"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C09",
+      "domain": "C",
+      "sourceGroups": ["G5"],
+      "relatedRules": ["CLI-011", "CLI-012"],
+      "decisionQuestion": "How to document/split season-independent collection vs seasonal regulation effects?",
+      "speakableScope": "Benqi list vs seasonal regulation are different propositions",
+      "notDecidableYet": "Docs/code separation design",
+      "disagreementsOrCases": [],
+      "engineImpact": ["evidence-vs-adjust-docs"],
+      "provenance": ["G5-P5"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C10",
+      "domain": "C",
+      "sourceGroups": ["G6"],
+      "relatedRules": ["CLI-018", "CLI-019", "CLI-036", "CLI-037"],
+      "decisionQuestion": "Separate temperature vs moisture regulation functions vs keep same adjustPolar?",
+      "speakableScope": "Cannot settle same rule/single function (expert 3/3)",
+      "notDecidableYet": "Implementation choice (registry does not choose)",
+      "disagreementsOrCases": ["final-A-7"],
+      "engineImpact": ["adjustPolar", "temperatureRole", "moistureRole"],
+      "provenance": ["G6-P1"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C11",
+      "domain": "C",
+      "sourceGroups": ["G6"],
+      "relatedRules": ["CLI-019", "CLI-013"],
+      "decisionQuestion": "Include wet/dry earth as climate moisture factors?",
+      "speakableScope": "Hard to ignore earth for moisture",
+      "notDecidableYet": "Change CLI-013 or not",
+      "disagreementsOrCases": ["final-A-6", "w1fr-06", "w1fr-07", "w1fr-08"],
+      "engineImpact": ["climate-element-collection", "CLI-013"],
+      "provenance": ["G6-P2", "W1B6-U4"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-C12",
+      "domain": "C",
+      "sourceGroups": ["G6"],
+      "relatedRules": ["CLI-032", "CLI-054"],
+      "decisionQuestion": "One-step width (CLI-032) and dual-axis move (CLI-054)?",
+      "speakableScope": "Not judged in Batch 6",
+      "notDecidableYet": "All width/dual-move policy",
+      "disagreementsOrCases": [],
+      "engineImpact": ["adjustPolar-outputs"],
+      "provenance": ["G6-P6", "W1B6-U3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-D01",
+      "domain": "D",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-050", "STR-051"],
+      "decisionQuestion": "Allow partial + clear-direction coexistence or split resolution vocabulary?",
+      "speakableScope": "Provisional meta information-loss resolved",
+      "resolvedDecision": "Keep certainty=partial with resolution=clear-direction for hour-unknown leaning. Do not rename resolution (Q3-B deferred). UX may treat hour-unknown-provisional as 잠정.",
+      "notDecidableYet": null,
+      "disagreementsOrCases": ["C2-C"],
+      "engineImpact": ["StrengthSummary-semantics-kept", "Need-gated-via-D02"],
+      "provenance": ["G1-postval-C2-C", "need-hour-policy-decision", "c96b6ec"],
+      "status": "POLICY-RESOLVED",
+      "implementation": "IMPLEMENTED",
+      "policyPackage": "Provisional Strength, Gated Need"
+    },
+    {
+      "policyId": "W1-POL-D02",
+      "domain": "D",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["NeedCandidate", "strengthNeedStatus"],
+      "decisionQuestion": "Keep or gate Need ready under partial+hour-unknown-provisional?",
+      "speakableScope": "Hour-unknown leaning not forced to null (info layer)",
+      "resolvedDecision": "Gate Strength Need when directionSensitivity=hour-unknown-provisional: strengthNeedStatus remains unresolved; no confirmed strength Need candidates; NeedResolution does not treat this axis as ready. Confirmed-hour leaning-* stays ready.",
+      "notDecidableYet": null,
+      "disagreementsOrCases": ["C2-D"],
+      "engineImpact": ["needCandidates.ts", "needResolution.ts"],
+      "provenance": ["G1-postval-C2-D", "c96b6ec"],
+      "status": "POLICY-RESOLVED",
+      "implementation": "IMPLEMENTED",
+      "policyPackage": "Provisional Strength, Gated Need"
+    },
+    {
+      "policyId": "W1-POL-D03",
+      "domain": "D",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-050", "STR-051", "STR-066"],
+      "decisionQuestion": "Align freeze-boundary wording with STR-050/051/066 code meaning?",
+      "speakableScope": "Provisional meta added without changing STR-066 meaning",
+      "resolvedDecision": "Keep decideDirection / STR-050/051 leaning. Align freeze 'do not make weak/strong' with Need confirmation gate: hour-unknown leaning is provisional Strength, Strength Need is unresolved. No score/threshold change.",
+      "notDecidableYet": null,
+      "disagreementsOrCases": ["C2-E"],
+      "engineImpact": ["Need-gate-only", "decideDirection-unchanged"],
+      "provenance": ["G1-postval-C2-E", "c96b6ec"],
+      "status": "POLICY-RESOLVED",
+      "implementation": "IMPLEMENTED",
+      "policyPackage": "Provisional Strength, Gated Need"
+    },
+    {
+      "policyId": "W1-POL-E01",
+      "domain": "E",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-010", "STR-011"],
+      "decisionQuestion": "Include climate/ge/yong into Strength judgment?",
+      "speakableScope": "Documented as outside core STR direction scope split",
+      "notDecidableYet": "Inclusion policy",
+      "disagreementsOrCases": ["G1-NV-7"],
+      "engineImpact": ["Strength-input-axes"],
+      "provenance": ["G1-NV-7"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-E02",
+      "domain": "E",
+      "sourceGroups": ["G3"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow", "STR-031", "STR-033", "STR-050"],
+      "decisionQuestion": "How should rootQuality contribute to Strength?",
+      "speakableScope": "Structural≠effective; role≠final Strength",
+      "notDecidableYet": "STR-031/033/050 usage mode",
+      "disagreementsOrCases": ["G3-OD-G3-04"],
+      "engineImpact": ["Strength-pipeline"],
+      "provenance": ["G3-P3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-E03",
+      "domain": "E",
+      "sourceGroups": ["G3", "G5"],
+      "relatedRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow", "CLI-011", "CLI-012", "CLI-014"],
+      "decisionQuestion": "Unified month-vs-other position weight across Root and Climate fire/water, or axis-specific?",
+      "speakableScope": "Month not equal to other branches (Root+Climate direction)",
+      "notDecidableYet": "Fixed ratios; unified Root/Climate scale",
+      "disagreementsOrCases": ["G3-P4-case06", "G5-OD-G5-A10"],
+      "engineImpact": ["root-position-weight", "climate-slot-weight"],
+      "provenance": ["G3-P4", "G5-P3"],
+      "status": "POLICY-UNRESOLVED"
+    },
+    {
+      "policyId": "W1-POL-E04",
+      "domain": "E",
+      "sourceGroups": ["G1"],
+      "relatedRules": ["STR-050", "STR-066", "NeedCandidate"],
+      "decisionQuestion": "Hour-unknown ops protocol: range output vs hold, etc.?",
+      "speakableScope": "Conditional/hold patterns observed; provisional meta exists",
+      "resolvedDecision": "Hour-unknown + leaning user output is 잠정 (provisional). Strength result kept; Strength Need is not a confirmed candidate. Mixed/null Strength Need remains unresolved. Confirmed-hour leaning unchanged.",
+      "notDecidableYet": null,
+      "disagreementsOrCases": ["G1-hour-unknown-remaining", "C2-star"],
+      "engineImpact": ["Need-gates", "directionSensitivity-for-UX"],
+      "provenance": ["G1-phase1-remaining-hour-unknown", "G1-Conflict-2", "c96b6ec"],
+      "status": "POLICY-RESOLVED",
+      "implementation": "IMPLEMENTED",
+      "policyPackage": "Provisional Strength, Gated Need"
+    }
+  ],
+  "clusters": [
+    {
+      "clusterId": "CL-STR-WEIGHT",
+      "members": ["W1-POL-A01", "W1-POL-A03", "W1-POL-A04", "W1-POL-A05"],
+      "reason": "Equal-side, attenuation, conflict priority, and month/root numeric gates couple in one Strength decision path"
+    },
+    {
+      "clusterId": "CL-ROOT-LAYER",
+      "members": ["W1-POL-B01", "W1-POL-B02", "W1-POL-B05", "W1-POL-E02"],
+      "reason": "Structural/effective split, STR-030 meaning, junggi/yogi order, and Strength contribution"
+    },
+    {
+      "clusterId": "CL-CLI-BASELINE",
+      "members": ["W1-POL-C02", "W1-POL-C04", "W1-POL-C05"],
+      "reason": "Baseline→final, chart adjustment, and CLI-002-contested G6 documentation"
+    },
+    {
+      "clusterId": "CL-CLI-DAYMASTER",
+      "members": ["W1-POL-C01"],
+      "reason": "Merged G4+G6 day-master climate scope"
+    },
+    {
+      "clusterId": "CL-CLI-FW-GATE",
+      "members": ["W1-POL-C06", "W1-POL-C07", "W1-POL-C10", "W1-POL-C11"],
+      "reason": "Sanhe activation, hidden-stem regulation gate, temp/moisture function split, earth moisture factor"
+    },
+    {
+      "clusterId": "CL-NEED-HOUR",
+      "members": ["W1-POL-D01", "W1-POL-D02", "W1-POL-D03", "W1-POL-E04"],
+      "reason": "Provisional Strength, Gated Need: keep leaning Strength + hour-unknown-provisional; gate Strength Need",
+      "status": "RESOLVED",
+      "implementation": "IMPLEMENTED",
+      "implementedCommit": "c96b6ecf6bf0399d3edac241611733d0cb595005",
+      "policyPackage": "Provisional Strength, Gated Need"
+    },
+    {
+      "clusterId": "CL-POS-WEIGHT",
+      "members": ["W1-POL-E03", "W1-POL-A05"],
+      "reason": "Month-priority repeats across Root/Climate/Strength"
+    }
+  ],
+  "wave2GateClassification": {
+    "mustDecideBeforeWave2IfNeedInScope": [],
+    "resolvedNeedHourGate": [
+      "W1-POL-D01",
+      "W1-POL-D02",
+      "W1-POL-D03",
+      "W1-POL-E04"
+    ],
+    "canDeferIndependentlyOfWave2": [
+      "W1-POL-A02",
+      "W1-POL-A07",
+      "W1-POL-A08",
+      "W1-POL-B03",
+      "W1-POL-B04",
+      "W1-POL-B05",
+      "W1-POL-C03",
+      "W1-POL-C06",
+      "W1-POL-C08",
+      "W1-POL-C09",
+      "W1-POL-C11",
+      "W1-POL-C12",
+      "W1-POL-E01"
+    ],
+    "reviewWithWave2IfStrengthOrClimateNeedInputs": [
+      "CL-STR-WEIGHT",
+      "CL-CLI-BASELINE",
+      "W1-POL-E02"
+    ],
+    "note": "CL-NEED-HOUR no longer blocks Wave 2. Classification of remaining items only; does not start Wave 2 or decide other policies."
+  },
+  "merges": [
+    {
+      "into": "W1-POL-C01",
+      "from": ["G4-P1", "G6-P4"]
+    },
+    {
+      "into": "W1-POL-C05",
+      "from": ["G4-P5", "G6-P5"]
+    },
+    {
+      "into": "W1-POL-C07",
+      "from": ["G5-P2", "G6-P3"]
+    },
+    {
+      "into": "W1-POL-E03",
+      "from": ["G3-P4", "G5-P3"]
+    },
+    {
+      "into": "W1-POL-A03",
+      "from": ["G1-NV-4", "G2-OD-2", "G2-NV-G2-4"]
+    },
+    {
+      "into": "W1-POL-A05",
+      "from": ["G1-NV-5", "G2-OD-3", "G2-NV-G2-1"]
+    },
+    {
+      "into": "W1-POL-A08",
+      "from": ["G1-p1-06", "G2-case06"]
+    }
+  ]
+}

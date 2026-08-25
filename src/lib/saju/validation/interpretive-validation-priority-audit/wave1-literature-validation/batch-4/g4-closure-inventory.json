@@ -1,0 +1,126 @@
+{
+  "set": "wave1-batch-4-g4-month-climate-closure",
+  "status": "g4-closure-complete",
+  "schemaVersion": "w1b4-g4-closure-v1",
+  "groupId": "W1-G4-MONTH-CLIMATE",
+  "targetRules": [
+    "CLI-002",
+    "CLI-003a",
+    "CLI-003b",
+    "CLI-003c",
+    "CLI-003d",
+    "CLI-004"
+  ],
+  "g4Decision": "CLOSE",
+  "g4DecisionMeaning": "Validation boundary fixed (speakable vs not-speakable vs policy unresolved); not rule finalization or VERIFIED; literature+expert not merged into a single truth",
+  "source": [
+    "wave1-batch-4-literature-validation.md",
+    "wave1-batch-4-literature-inventory.json",
+    "expert-results/g4-expert-comparison.md",
+    "expert-results/raw/G4-E1-raw.md",
+    "expert-results/raw/G4-E2-raw.md",
+    "expert-results/raw/G4-E4-raw.md",
+    "expert-blind-prep/operator-expert-panel.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "baseClimateUnchanged": true,
+    "cli002To004NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "literatureAndExpertNotMergedAsTruth": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "monthFinalClimateFixedValuesVerified": false,
+    "yinMaoChenSingleSameValue": false,
+    "earthMonthsSameAsAdjacentSeason": false,
+    "dayMasterClimateRuleFixed": false,
+    "baselineToFinalTransformFormulaFixed": false,
+    "mildMonthRangeFixed": false,
+    "e3Backfilled": false,
+    "g5OrLaterStarted": false,
+    "monthClimateDeclaredValidatedComplete": false
+  },
+  "literatureLayerUnchanged": {
+    "CLI-002": "CONTESTED",
+    "CLI-003a": "CONTESTED",
+    "CLI-003b": "PARTIALLY-SUPPORTED",
+    "CLI-003c": "CONTESTED",
+    "CLI-003d": "PARTIALLY-SUPPORTED",
+    "CLI-004": "CONTESTED",
+    "evidenceConfidence": "MEDIUM"
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E3": "unavailable",
+    "e3NotPending": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "compareWithActiveOnly": true
+  },
+  "collectionStatus": {
+    "phaseAB": { "E1": true, "E2": true, "E3": false, "E4": true },
+    "cases": { "E1": true, "E2": true, "E3": false, "E4": true },
+    "e3": "unavailable-no-further-collection"
+  },
+  "speakableBoundary": [
+    "S1-month-season-as-climate-baseline-starting-point",
+    "S2-month-alone-cannot-finalize-coldwarm-drymoist",
+    "S3-coldwarm-and-drymoist-separate-axes",
+    "S4-mild-moderate-transitional-states-possible",
+    "S5-yin-mao-chen-not-fully-identical-for-climate",
+    "S6-chen-wei-xu-chou-not-mechanically-same-as-adjacent-season",
+    "S7-wangshuai-and-johu-separate-axes"
+  ],
+  "notSpeakableSettled": [
+    "N1-month-final-climate-fixed-values-VERIFIED",
+    "N2-yin-mao-chen-single-same-climate-value",
+    "N3-earth-months-same-as-adjacent-season-value",
+    "N4-day-master-climate-rule-fixed",
+    "N5-chart-transform-baseline-reversal-formula",
+    "N6-mild-transitional-month-range-fixed",
+    "N7-fixed-scores-or-thresholds",
+    "N8-case-final-climate-answer-labels"
+  ],
+  "policyUnresolved": [
+    "P1-day-master-scope-in-climate-judgment",
+    "P2-month-baseline-to-chart-final-climate-rules",
+    "P3-mild-transitional-month-range-policy",
+    "P4-chart-hechung-tugan-coldwarm-drymoist-adjustment",
+    "P5-limit-CLI-002-003-004-as-baseline-lookup-level"
+  ],
+  "openDisagreement": [
+    "OD-1-day-master-in-climate-judgment-body",
+    "OD-2-chart-transform-baseline-degree",
+    "OD-3-mild-month-range",
+    "OD-G4-03-case03-ja-mitigation-vs-clash",
+    "OD-G4-04-case04-coldwet-transform-vs-mild",
+    "OD-G4-08-case08-temperature-direction"
+  ],
+  "dataQualityBoundary": [
+    "DQ-1-E3-unavailable-no-backfill",
+    "DQ-2-E1-E2-E4-AI-self-report-not-human-expert-overclaim",
+    "DQ-3-literature-and-expert-layers-separate",
+    "DQ-4-comparison-other-dq-kept-jia-you-notation-engine-meta-yongshin-scope"
+  ],
+  "engineTensionObservationsOnly": [
+    "BASE_CLIMATE-fixed-TM-pair-vs-baseline-not-final",
+    "CLI-003a-yin-mao-chen-same-vs-climate-subdivision",
+    "CLI-003b-d-season-cluster-same-vs-earth-month-distinct",
+    "CLI-004-earth-equals-adjacent-vs-mechanical-identity-rejected",
+    "lookup-day-master-independent-vs-OD-1-P1-open"
+  ],
+  "closure": {
+    "canCloseG4": true,
+    "recommended": true,
+    "decision": "CLOSE",
+    "notVerified": true
+  },
+  "nextStepsOutsideThisDoc": [
+    "optional-policy-memo-P1-P5-no-code",
+    "optional-document-CLI-002-as-baseline-lookup-only-for-downstream",
+    "G5-only-on-separate-instruction",
+    "human-expert-rerun-as-new-round-if-needed"
+  ]
+}

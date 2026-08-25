@@ -1,0 +1,110 @@
+{
+  "set": "wave1-batch-3-g3-root-depth-closure",
+  "status": "g3-closure-complete",
+  "schemaVersion": "w1b3-g3-closure-v1",
+  "groupId": "W1-G3-ROOT-DEPTH",
+  "targetRules": ["STR-030-clear", "STR-030-present", "STR-030-shallow"],
+  "g3Decision": "CLOSE",
+  "g3DecisionMeaning": "Validation boundary fixed (speakable vs not-speakable vs policy unresolved); not rule finalization or VERIFIED",
+  "source": [
+    "wave1-batch-3-literature-validation.md",
+    "wave1-batch-3-literature-inventory.json",
+    "expert-results/g3-expert-comparison.md",
+    "expert-results/g3-phase-c-case-comparison.md",
+    "expert-results/raw/G3-E1-raw.md",
+    "expert-results/raw/G3-E2-raw.md",
+    "expert-results/raw/G3-E4-raw.md",
+    "expert-blind-prep/operator-expert-panel.md"
+  ],
+  "constraints": {
+    "engineUnchanged": true,
+    "str030NotVerified": true,
+    "literatureVerdictUnchanged": true,
+    "freezeStatusUnchanged": true,
+    "majorityTreatedAsTruth": false,
+    "expertObservationNotPromotedToLiterature": true,
+    "scoresOrWeightsOrThresholdsAdded": false,
+    "case02ChongAttenuationFixed": false,
+    "case04StrengthLabelFixed": false,
+    "e3Backfilled": false,
+    "g4OrLaterStarted": false,
+    "clearPresentShallowDeclaredValidated": false
+  },
+  "literatureLayerUnchanged": {
+    "STR-030-clear": "PARTIALLY-SUPPORTED",
+    "STR-030-present": "CONTESTED",
+    "STR-030-shallow": "CONTESTED",
+    "evidenceConfidence": "MEDIUM"
+  },
+  "expertPanel": {
+    "active": ["E1", "E2", "E4"],
+    "activeCount": 3,
+    "E3": "unavailable",
+    "e3NotPending": true,
+    "e3MissingNotClosureIncompleteWork": true,
+    "compareWithActiveOnly": true
+  },
+  "collectionStatus": {
+    "phaseAB": { "E1": true, "E2": true, "E3": false, "E4": true },
+    "phaseC": { "E1": true, "E2": true, "E3": false, "E4": true },
+    "e3": "unavailable-no-further-collection"
+  },
+  "speakableBoundary": [
+    "S1-existence-vs-depth-effective-strength-separate",
+    "S2-role-alone-cannot-fully-determine-final-root-strength",
+    "S3-bongi-not-always-strongest-in-effect",
+    "S4-junggi-gt-yogi-not-fixed-absolute",
+    "S5-month-root-not-equal-other-branches",
+    "S6-tugan-separate-from-tonggeun",
+    "S7-clear-present-shallow-engine-abstraction-not-traditional-standard-grade"
+  ],
+  "notSpeakableSettled": [
+    "N1-clear-present-shallow-fixed-strength-weights-VERIFIED",
+    "N2-fixed-scores-for-bongi-junggi-yogi",
+    "N3-junggi-gt-yogi-absolute",
+    "N4-chong-percent-attenuation",
+    "N5-fixed-month-vs-other-branch-ratio",
+    "N6-jangsaeng-mugo-yogi-combine-formula",
+    "N7-case04-strength-answer",
+    "N8-case02-chong-attenuation-answer"
+  ],
+  "policyUnresolved": [
+    "P1-separate-structural-depth-vs-effective-strength-in-engine",
+    "P2-limit-STR-030-labels-to-structural-layer",
+    "P3-STR-031-033-050-use-of-rootQuality-for-strength",
+    "P4-month-vs-other-branch-position-weight",
+    "P5-hechung-root-efficacy",
+    "P6-jangsaeng-mugo-additional-axis-combine",
+    "P7-junggi-yogi-ordering-policy"
+  ],
+  "openDisagreement": [
+    "OD-1-junggi-vs-yogi-ordering",
+    "OD-G3-02-case02-chong-effective-attenuation",
+    "OD-G3-04-case04-strength-direction",
+    "OD-G3-03-08-strength-intensity-width"
+  ],
+  "dataQualityBoundary": [
+    "DQ-1-E3-unavailable-no-backfill",
+    "DQ-2-E1-E2-E4-AI-self-report-not-human-expert-overclaim",
+    "DQ-3-literature-and-expert-layers-separate",
+    "DQ-4-E4-prior-round-su-sa-terminology-dq-only"
+  ],
+  "engineTensionObservationsOnly": [
+    "STR-030-single-label-vs-structural-effective-split",
+    "STR-030-equal-slots-vs-month-priority",
+    "STR-030-no-tugan-aligned-with-separation",
+    "STR-031-033-050-downstream-rootQuality-use-open"
+  ],
+  "closure": {
+    "canCloseG3": true,
+    "recommended": true,
+    "decision": "CLOSE",
+    "notVerified": true
+  },
+  "nextStepsOutsideThisDoc": [
+    "optional-policy-memo-P1-P7-no-code",
+    "optional-document-STR-030-as-structural-layer-only",
+    "G4-only-on-separate-instruction",
+    "human-expert-rerun-as-new-round-if-needed"
+  ]
+}
