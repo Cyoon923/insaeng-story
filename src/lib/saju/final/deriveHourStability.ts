@@ -11,6 +11,11 @@ import { collectStrengthEvidence } from "@/lib/saju/elements/strength";
 import { derivePriorityRoles } from "@/lib/saju/final/derivePriorityRoles";
 import { deriveR2Bottleneck } from "@/lib/saju/final/deriveR2Bottleneck";
 import { deriveR5Bottleneck } from "@/lib/saju/final/deriveR5Bottleneck";
+import {
+  r1HasClearEvidence,
+  r3HasClearEvidence,
+  r4HasClearEvidence,
+} from "@/lib/saju/final/deriveRoleClearGrade";
 import { deriveRoleActivities } from "@/lib/saju/final/deriveRoleActivities";
 import { deriveRoleElementCandidates } from "@/lib/saju/final/deriveRoleElementCandidates";
 import { resolveStructuralElement } from "@/lib/saju/final/resolveStructuralElement";
@@ -30,7 +35,6 @@ import type {
   AdjustedTemperatureAxis,
   Element,
   NeedResolution,
-  PillarSlot,
   StrengthEvidence,
   StrengthSummary,
   FourPillars,
@@ -61,79 +65,6 @@ function withConfirmedHour(base: FourPillars, hour: Pillar): FourPillars {
     hour,
     hourCertainty: "confirmed",
   };
-}
-
-function isEligibleSlot(slot: PillarSlot, hourUnknown: boolean): boolean {
-  if (hourUnknown && slot === "hour") return false;
-  return true;
-}
-
-function isVisiblePresence(presence: string | undefined): boolean {
-  return presence === "rooted-visible" || presence === "unrooted-visible";
-}
-
-function isResourceShiShen(shiShen: string): boolean {
-  return shiShen === "정인" || shiShen === "편인";
-}
-
-function isOutputShiShen(shiShen: string): boolean {
-  return shiShen === "식신" || shiShen === "상관";
-}
-
-function isControlShiShen(shiShen: string): boolean {
-  return shiShen === "정재" || shiShen === "편재" || shiShen === "정관" || shiShen === "편관";
-}
-
-/**
- * R1 CLEAR-grade — same criteria as deriveFinalCertainty.r1HasClearEvidence.
- */
-function r1HasClearEvidence(
-  summary: StrengthSummary,
-  evidence: StrengthEvidence | undefined,
-): boolean {
-  if (!summary.sourceBreakdown.resource.rootedVisible) return false;
-  if (!evidence) return false;
-  return evidence.supportEvidence.items.some(
-    (item) =>
-      isResourceShiShen(item.shiShen) &&
-      isVisiblePresence(item.presence) &&
-      isEligibleSlot(item.slot, evidence.hourUnknown),
-  );
-}
-
-/**
- * R3 CLEAR-grade — same criteria as deriveFinalCertainty.r3HasClearEvidence.
- */
-function r3HasClearEvidence(
-  summary: StrengthSummary,
-  evidence: StrengthEvidence | undefined,
-): boolean {
-  if (summary.sourceBreakdown.output.rootedVisible) return true;
-  if (!evidence) return false;
-  return evidence.pressureEvidence.items.some(
-    (item) =>
-      isOutputShiShen(item.shiShen) &&
-      item.presence === "rooted-visible" &&
-      isEligibleSlot(item.slot, evidence.hourUnknown),
-  );
-}
-
-/**
- * R4 CLEAR-grade — same criteria as deriveFinalCertainty.r4HasClearEvidence.
- */
-function r4HasClearEvidence(
-  summary: StrengthSummary,
-  evidence: StrengthEvidence | undefined,
-): boolean {
-  const { wealth, officer } = summary.sourceBreakdown;
-  if (wealth.rootedVisible || officer.rootedVisible) return true;
-  if (!evidence) return false;
-  return evidence.pressureEvidence.items.some(
-    (item) =>
-      isControlShiShen(item.shiShen) &&
-      item.presence === "rooted-visible" &&
-      isEligibleSlot(item.slot, evidence.hourUnknown),
-  );
 }
 
 function axisIncomplete(axis: ClimateAxis): boolean {
