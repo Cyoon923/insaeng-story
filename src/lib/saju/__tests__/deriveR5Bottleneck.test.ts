@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { analyzeR5Corridors } from "@/lib/saju/final/analyzeR5Corridors";
 import { deriveR5Bottleneck } from "@/lib/saju/final/deriveR5Bottleneck";
 import { deriveRoleActivities } from "@/lib/saju/final/deriveRoleActivities";
 import type { RoleActivityMap } from "@/lib/saju/final/types";
@@ -37,12 +38,14 @@ function pack(
     ...deriveRoleActivities({ pillars, evidence, observations }),
     ...options?.roleOverride,
   };
+  const analysis = analyzeR5Corridors({ evidence, observations, roleActivities });
   return {
     pillars,
     evidence,
     observations,
     roleActivities,
-    level: deriveR5Bottleneck({ pillars, evidence, observations, roleActivities }),
+    analysis,
+    level: deriveR5Bottleneck({ evidence, observations, roleActivities }),
   };
 }
 
@@ -71,10 +74,37 @@ function stripWaterPressureRelations(
   };
 }
 
-/** Inject weak 水→木 and 木→火 legs without adding a 木 cluster surface (mid stays absent). */
-function withCorridorSpecificLegs(
-  observations: StrengthObservations,
-): StrengthObservations {
+/** Inject only P→M (水→木). M→Q missing → real one-sided gap; mid stays absent. */
+function withPmLegOnly(observations: StrengthObservations): StrengthObservations {
+  return {
+    ...observations,
+    generationChains: [
+      ...observations.generationChains,
+      {
+        relation: "element-generates",
+        from: {
+          slot: "year",
+          layer: "stem",
+          stem: "壬",
+          element: "水",
+          presence: "unrooted-visible",
+          shiShen: "식신",
+        },
+        to: {
+          slot: "month",
+          layer: "hiddenStem",
+          stem: "甲",
+          element: "木",
+          presence: "hidden-only",
+          shiShen: "편관",
+        },
+      },
+    ],
+  };
+}
+
+/** Both P→M and M→Q present (weak) — already linked, not an R5 gap. */
+function withBothWeakLegs(observations: StrengthObservations): StrengthObservations {
   return {
     ...observations,
     generationChains: [
@@ -139,7 +169,7 @@ function unrelatedActivePack(hour: HourPillar = { stem: "丙", branch: "午" }) 
   });
 }
 
-/** Corridor-specific front/back legs + mid absent + no alternate → CLEAR path. */
+/** One-sided corridor leg + mid absent + no alternate → CLEAR path. */
 function corridorClearPack(
   hour: HourPillar = { stem: "丙", branch: "午" },
   roleOverride?: Partial<RoleActivityMap>,
@@ -148,37 +178,38 @@ function corridorClearPack(
     roleOverride,
     evidenceMut: stripWaterPressure,
     observationsMut: (observations) =>
-      withCorridorSpecificLegs(stripWaterPressureRelations(observations)),
+      withPmLegOnly(stripWaterPressureRelations(observations)),
   });
 }
 
+const LS_BIRTH = chart({
+  year: { stem: "己", branch: "卯" },
+  month: { stem: "丙", branch: "子" },
+  day: { stem: "癸", branch: "卯" },
+  hour: { stem: "壬", branch: "子" },
+});
+
+const LW_GAPYU = chart({
+  year: { stem: "甲", branch: "酉" },
+  month: { stem: "庚", branch: "酉" },
+  day: { stem: "甲", branch: "酉" },
+  hour: "unknown",
+});
+
 describe("deriveR5Bottleneck", () => {
   it("1. Q=day + M=resource alias → NOT (LW-gapyu)", () => {
-    const input = pack(
-      chart({
-        year: { stem: "甲", branch: "酉" },
-        month: { stem: "庚", branch: "酉" },
-        day: { stem: "甲", branch: "酉" },
-        hour: "unknown",
-      }),
-    );
+    const input = pack(LW_GAPYU);
     expect(stemElement(input.pillars.day.stem)).toBe("木");
     expect(input.level).toBe("NOT");
   });
 
-  it("2. pressure-only P → NOT (LS-birth 土 pressure; no CLEAR)", () => {
-    const input = pack(
-      chart({
-        year: { stem: "己", branch: "卯" },
-        month: { stem: "丙", branch: "子" },
-        day: { stem: "癸", branch: "卯" },
-        hour: { stem: "壬", branch: "子" },
-      }),
-    );
+  it("2. LS-birth → NOT (both-leg weak corridors + alias/pressure day path)", () => {
+    const input = pack(LS_BIRTH);
     expect(
       input.evidence.pressureEvidence.items.some((item) => stemElement(item.stem) === "土"),
     ).toBe(true);
-    expect(input.level).not.toBe("CLEAR");
+    expect(input.level).toBe("NOT");
+    expect(input.analysis.candidateMids).toEqual([]);
   });
 
   it("3. alternate path to Q → NOT", () => {
@@ -188,7 +219,7 @@ describe("deriveR5Bottleneck", () => {
     const withAlternate = pack(base.pillars, {
       evidenceMut: stripWaterPressure,
       observationsMut: (observations) => {
-        const linked = withCorridorSpecificLegs(stripWaterPressureRelations(observations));
+        const linked = withPmLegOnly(stripWaterPressureRelations(observations));
         return {
           ...linked,
           generationChains: [
@@ -220,25 +251,44 @@ describe("deriveR5Bottleneck", () => {
     expect(withAlternate.level).toBe("NOT");
   });
 
-  it("4. corridor-specific front/back + mid absent + no alternate → CLEAR", () => {
+  it("4. one-sided corridor leg + mid absent + no alternate → CLEAR", () => {
     const input = corridorClearPack();
     expect(input.roleActivities.R5).not.toBe("C");
     expect(input.observations.elementClusters.some((cluster) => cluster.element === "木")).toBe(
       false,
     );
     expect(input.level).toBe("CLEAR");
+    expect(input.analysis.candidateMids).toEqual(["木"]);
   });
 
-  it("5. only one side RELATION → POSSIBLE", () => {
-    const input = pack(
-      chart({
-        year: { stem: "壬", branch: "子" },
-        month: { stem: "丙", branch: "午" },
-        day: { stem: "庚", branch: "辰" },
-        hour: { stem: "丁", branch: "未" },
-      }),
-    );
+  it("5. one-sided connection gap but mid not absent → POSSIBLE + same mid", () => {
+    const input = pack(corridorBasePillars(), {
+      evidenceMut: stripWaterPressure,
+      observationsMut: (observations) => {
+        const withLeg = withPmLegOnly(stripWaterPressureRelations(observations));
+        // Mid 木 present (weak) → CLEAR mid-gap unmet; pm-only still a real gap.
+        return {
+          ...withLeg,
+          elementClusters: [
+            ...withLeg.elementClusters,
+            {
+              element: "木",
+              anchors: [
+                {
+                  slot: "month",
+                  layer: "hiddenStem",
+                  stem: "甲",
+                  element: "木",
+                  presence: "hidden-only",
+                },
+              ],
+            },
+          ],
+        };
+      },
+    });
     expect(input.level).toBe("POSSIBLE");
+    expect(input.analysis.candidateMids).toEqual(["木"]);
   });
 
   it("6. 2-step discontinuity → NOT or at least not CLEAR", () => {
@@ -282,8 +332,16 @@ describe("deriveR5Bottleneck", () => {
     expect(input.level).toBe("POSSIBLE");
   });
 
-  it("B. corridor-specific front/back + M gap + no alternate → CLEAR", () => {
-    expect(corridorClearPack().level).toBe("CLEAR");
+  it("B. both weak legs already linked → NOT (not POSSIBLE)", () => {
+    const input = pack(corridorBasePillars(), {
+      evidenceMut: stripWaterPressure,
+      observationsMut: (observations) =>
+        withBothWeakLegs(stripWaterPressureRelations(observations)),
+    });
+    const wood = input.analysis.corridors.find((c) => c.mid === "木");
+    expect(wood?.bothLegsLinked).toBe(true);
+    expect(wood?.grade).toBe("NOT");
+    expect(input.level).toBe("NOT");
   });
 
   it("R1=C does not globally NOT a non-day independent CLEAR corridor", () => {
@@ -300,30 +358,14 @@ describe("deriveR5Bottleneck", () => {
     expect(input.level).toBe("CLEAR");
   });
 
-  it("representative: LS-birth is not CLEAR", () => {
-    expect(
-      pack(
-        chart({
-          year: { stem: "己", branch: "卯" },
-          month: { stem: "丙", branch: "子" },
-          day: { stem: "癸", branch: "卯" },
-          hour: { stem: "壬", branch: "子" },
-        }),
-      ).level,
-    ).not.toBe("CLEAR");
+  it("representative: LS-birth → NOT / no candidates", () => {
+    const input = pack(LS_BIRTH);
+    expect(input.level).toBe("NOT");
+    expect(input.analysis.candidateMids).toEqual([]);
   });
 
   it("representative: LW-gapyu → NOT", () => {
-    expect(
-      pack(
-        chart({
-          year: { stem: "甲", branch: "酉" },
-          month: { stem: "庚", branch: "酉" },
-          day: { stem: "甲", branch: "酉" },
-          hour: "unknown",
-        }),
-      ).level,
-    ).toBe("NOT");
+    expect(pack(LW_GAPYU).level).toBe("NOT");
   });
 
   it("representative: MX-gimo is not CLEAR", () => {
