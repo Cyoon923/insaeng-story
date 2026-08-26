@@ -373,21 +373,6 @@ function hasPressureOnElement(
   });
 }
 
-function hasGenerationOrSupportRole(
-  evidence: StrengthEvidence,
-  observations: StrengthObservations,
-  element: Element,
-  dayElement: Element,
-  hourUnknown: boolean,
-): boolean {
-  return (
-    elementInGenerationChains(observations, element, hourUnknown) ||
-    elementInGenerationOrResourceSupport(observations, element, hourUnknown) ||
-    elementHasVisibleSupportStem(evidence, element, hourUnknown) ||
-    elementHasPeerSupportAsDay(observations, element, dayElement, hourUnknown)
-  );
-}
-
 /** Outgoing generation/support from P (being a generation target alone does not count). */
 function hasOutgoingGenerationOrSupport(
   evidence: StrengthEvidence,
@@ -448,16 +433,70 @@ function hasAlternatePathToChild(
 }
 
 /**
- * Day already circulating via peer/resource: R5 gaps are not the overall connection bottleneck.
+ * Day-Q gap while peer/resource already feeds the day master:
+ * this specific corridor is not the overall connection bottleneck.
+ * Non-day Q corridors must not use this gate.
  */
-function dayCycleAlreadySufficient(roleActivities: RoleActivityMap): boolean {
+function duplicatesDayMasterFeeding(
+  candidate: CorridorCandidate,
+  dayElement: Element,
+  roleActivities: RoleActivityMap,
+): boolean {
+  if (candidate.child !== dayElement) return false;
   return roleActivities.R1 === "C" || roleActivities.R2 === "C";
 }
 
-function isGenerationSupportCorridor(
+function hasGenerationSupportPair(
+  observations: StrengthObservations,
+  left: Element,
+  right: Element,
+  hourUnknown: boolean,
+): boolean {
+  return observations.structureObservation.supportRelations.some((relation) => {
+    if (relation.kind !== "generation-support") return false;
+    if (!relation.elements.includes(left) || !relation.elements.includes(right)) return false;
+    return relation.slots.some((slot) => isEligibleSlot(slot, hourUnknown));
+  });
+}
+
+/** Front-of-corridor evidence for P→M (complete rooted chain not required). */
+function hasCorridorFrontEvidence(
+  observations: StrengthObservations,
+  parent: Element,
+  mid: Element,
+  hourUnknown: boolean,
+): boolean {
+  if (collectPmLinks(observations, parent, mid, hourUnknown).length > 0) return true;
+  return hasGenerationSupportPair(observations, parent, mid, hourUnknown);
+}
+
+/** Back-of-corridor evidence for M→Q (complete rooted chain not required). */
+function hasCorridorBackEvidence(
+  evidence: StrengthEvidence,
+  observations: StrengthObservations,
+  mid: Element,
+  child: Element,
+  dayElement: Element,
+  hourUnknown: boolean,
+): boolean {
+  if (collectMqLinks(observations, mid, child, dayElement, hourUnknown).length > 0) {
+    return true;
+  }
+  if (generationSupportConfirmsMq(observations, mid, child, dayElement, hourUnknown)) {
+    return true;
+  }
+  return hasGenerationSupportPair(observations, mid, child, hourUnknown);
+}
+
+/**
+ * CLEAR requires corridor-specific front AND back linkage on this P→M→Q path.
+ * Unrelated generation/support that merely makes P and Q each "active" is not enough.
+ */
+function hasCorridorSpecificLinkage(
   evidence: StrengthEvidence,
   observations: StrengthObservations,
   parent: Element,
+  mid: Element,
   child: Element,
   dayElement: Element,
   hourUnknown: boolean,
@@ -466,22 +505,10 @@ function isGenerationSupportCorridor(
     return false;
   }
 
-  const parentGen = hasOutgoingGenerationOrSupport(
-    evidence,
-    observations,
-    parent,
-    hourUnknown,
+  return (
+    hasCorridorFrontEvidence(observations, parent, mid, hourUnknown) &&
+    hasCorridorBackEvidence(evidence, observations, mid, child, dayElement, hourUnknown)
   );
-  const childGen = hasGenerationOrSupportRole(
-    evidence,
-    observations,
-    child,
-    dayElement,
-    hourUnknown,
-  );
-
-  // Corridor character: at least one end participates in generation/support (not pressure-only).
-  return parentGen || childGen;
 }
 
 function activityEvidenceSlots(
@@ -576,14 +603,54 @@ function reliesOnHourUnknownOnly(
 }
 
 /**
- * CLEAR-grade mid gap: connection role A (no working/partial corridor legs).
- * Mid B (hidden/partial) is candidate-possible but not CLEAR-positive emptiness.
+ * CLEAR mid gap: M has no eligible cluster surface (true absence).
+ * Present-only / structural mid is at most POSSIBLE even with weak corridor legs.
  */
-function hasClearPositiveMidGap(candidate: CorridorCandidate): boolean {
-  return (
-    candidate.midRole === "A" &&
-    candidate.parentActivity === "relation-active" &&
-    candidate.childActivity === "relation-active"
+function midIsClearGapSurface(
+  evidence: StrengthEvidence,
+  observations: StrengthObservations,
+  mid: Element,
+  dayElement: Element,
+  hourUnknown: boolean,
+): boolean {
+  const activity = segmentActivity(evidence, observations, mid, dayElement, hourUnknown);
+  return activity === "absent";
+}
+
+/**
+ * CLEAR-grade mid gap: both ends relation-active, mid surface is a true gap,
+ * and this P→M→Q path has corridor-specific front/back evidence (not unrelated actives).
+ */
+function hasClearPositiveMidGap(
+  evidence: StrengthEvidence,
+  observations: StrengthObservations,
+  candidate: CorridorCandidate,
+  dayElement: Element,
+  hourUnknown: boolean,
+): boolean {
+  if (candidate.midRole === "C") return false;
+  if (candidate.parentActivity !== "relation-active") return false;
+  if (candidate.childActivity !== "relation-active") return false;
+  if (
+    !midIsClearGapSurface(
+      evidence,
+      observations,
+      candidate.mid,
+      dayElement,
+      hourUnknown,
+    )
+  ) {
+    return false;
+  }
+
+  return hasCorridorSpecificLinkage(
+    evidence,
+    observations,
+    candidate.parent,
+    candidate.mid,
+    candidate.child,
+    dayElement,
+    hourUnknown,
   );
 }
 
@@ -642,6 +709,7 @@ function collectOneStepCandidates(
 function gradeCandidate(
   evidence: StrengthEvidence,
   observations: StrengthObservations,
+  roleActivities: RoleActivityMap,
   candidate: CorridorCandidate,
   dayElement: Element,
 ): BottleneckLevel {
@@ -662,18 +730,8 @@ function gradeCandidate(
   ) {
     return "NOT";
   }
-  const bothRelation =
-    candidate.parentActivity === "relation-active" &&
-    candidate.childActivity === "relation-active";
-  const generationCorridor = isGenerationSupportCorridor(
-    evidence,
-    observations,
-    candidate.parent,
-    candidate.child,
-    dayElement,
-    hourUnknown,
-  );
-  const positiveGap = hasClearPositiveMidGap(candidate);
+  if (duplicatesDayMasterFeeding(candidate, dayElement, roleActivities)) return "NOT";
+
   const hourBlocked = reliesOnHourUnknownOnly(
     evidence,
     observations,
@@ -682,7 +740,10 @@ function gradeCandidate(
     dayElement,
   );
 
-  if (bothRelation && generationCorridor && positiveGap && !hourBlocked) {
+  if (
+    hasClearPositiveMidGap(evidence, observations, candidate, dayElement, hourUnknown) &&
+    !hourBlocked
+  ) {
     return "CLEAR";
   }
 
@@ -706,8 +767,6 @@ export function deriveR5Bottleneck(input: DeriveR5BottleneckInput): BottleneckLe
 
   // Same working connection must not be reopened as a bottleneck.
   if (roleActivities.R5 === "C") return "NOT";
-  // Day already fed by peer/resource — R5 gap is not the overall connection bottleneck.
-  if (dayCycleAlreadySufficient(roleActivities)) return "NOT";
 
   const candidates = collectOneStepCandidates(evidence, observations, dayElement, hourUnknown);
 
@@ -720,7 +779,7 @@ export function deriveR5Bottleneck(input: DeriveR5BottleneckInput): BottleneckLe
   for (const candidate of candidates) {
     best = betterLevel(
       best,
-      gradeCandidate(evidence, observations, candidate, dayElement),
+      gradeCandidate(evidence, observations, roleActivities, candidate, dayElement),
     );
   }
 

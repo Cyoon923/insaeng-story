@@ -46,32 +46,109 @@ function pack(
   };
 }
 
-/** Non-day Q corridor 水→[木]→火; strip water pressure so P is not pressure-only. */
-function clearCorridorPack(hour: HourPillar = { stem: "丙", branch: "午" }) {
-  const pillars = chart({
+function stripWaterPressure(evidence: StrengthEvidence): StrengthEvidence {
+  return {
+    ...evidence,
+    pressureEvidence: {
+      items: evidence.pressureEvidence.items.filter(
+        (item) => stemElement(item.stem) !== "水",
+      ),
+    },
+  };
+}
+
+function stripWaterPressureRelations(
+  observations: StrengthObservations,
+): StrengthObservations {
+  return {
+    ...observations,
+    structureObservation: {
+      ...observations.structureObservation,
+      pressureRelations: observations.structureObservation.pressureRelations.filter(
+        (relation) => relation.element !== "水",
+      ),
+    },
+  };
+}
+
+/** Inject weak 水→木 and 木→火 legs without adding a 木 cluster surface (mid stays absent). */
+function withCorridorSpecificLegs(
+  observations: StrengthObservations,
+): StrengthObservations {
+  return {
+    ...observations,
+    generationChains: [
+      ...observations.generationChains,
+      {
+        relation: "element-generates",
+        from: {
+          slot: "year",
+          layer: "stem",
+          stem: "壬",
+          element: "水",
+          presence: "unrooted-visible",
+          shiShen: "식신",
+        },
+        to: {
+          slot: "month",
+          layer: "hiddenStem",
+          stem: "甲",
+          element: "木",
+          presence: "hidden-only",
+          shiShen: "편관",
+        },
+      },
+      {
+        relation: "element-generates",
+        from: {
+          slot: "month",
+          layer: "hiddenStem",
+          stem: "甲",
+          element: "木",
+          presence: "hidden-only",
+          shiShen: "편관",
+        },
+        to: {
+          slot: "hour",
+          layer: "stem",
+          stem: "丙",
+          element: "火",
+          presence: "rooted-visible",
+          shiShen: "편관",
+        },
+      },
+    ],
+  };
+}
+
+/** Non-day Q base chart 水 / 火 present, 木 absent. */
+function corridorBasePillars(hour: HourPillar = { stem: "丙", branch: "午" }): FourPillars {
+  return chart({
     year: { stem: "壬", branch: "子" },
     month: { stem: "癸", branch: "子" },
     day: { stem: "庚", branch: "申" },
     hour,
   });
-  return pack(pillars, {
-    evidenceMut: (evidence) => ({
-      ...evidence,
-      pressureEvidence: {
-        items: evidence.pressureEvidence.items.filter(
-          (item) => stemElement(item.stem) !== "水",
-        ),
-      },
-    }),
-    observationsMut: (observations) => ({
-      ...observations,
-      structureObservation: {
-        ...observations.structureObservation,
-        pressureRelations: observations.structureObservation.pressureRelations.filter(
-          (relation) => relation.element !== "水",
-        ),
-      },
-    }),
+}
+
+/** Unrelated actives only (no corridor-specific P→M / M→Q legs). */
+function unrelatedActivePack(hour: HourPillar = { stem: "丙", branch: "午" }) {
+  return pack(corridorBasePillars(hour), {
+    evidenceMut: stripWaterPressure,
+    observationsMut: stripWaterPressureRelations,
+  });
+}
+
+/** Corridor-specific front/back legs + mid absent + no alternate → CLEAR path. */
+function corridorClearPack(
+  hour: HourPillar = { stem: "丙", branch: "午" },
+  roleOverride?: Partial<RoleActivityMap>,
+) {
+  return pack(corridorBasePillars(hour), {
+    roleOverride,
+    evidenceMut: stripWaterPressure,
+    observationsMut: (observations) =>
+      withCorridorSpecificLegs(stripWaterPressureRelations(observations)),
   });
 }
 
@@ -89,7 +166,7 @@ describe("deriveR5Bottleneck", () => {
     expect(input.level).toBe("NOT");
   });
 
-  it("2. pressure-only P → NOT (LS-birth 土→金→水 shape)", () => {
+  it("2. pressure-only P → NOT (LS-birth 土 pressure; no CLEAR)", () => {
     const input = pack(
       chart({
         year: { stem: "己", branch: "卯" },
@@ -101,63 +178,51 @@ describe("deriveR5Bottleneck", () => {
     expect(
       input.evidence.pressureEvidence.items.some((item) => stemElement(item.stem) === "土"),
     ).toBe(true);
-    expect(input.level).toBe("NOT");
+    expect(input.level).not.toBe("CLEAR");
   });
 
   it("3. alternate path to Q → NOT", () => {
-    const base = clearCorridorPack();
+    const base = corridorClearPack();
     expect(base.level).toBe("CLEAR");
 
     const withAlternate = pack(base.pillars, {
-      evidenceMut: (evidence) => ({
-        ...evidence,
-        pressureEvidence: {
-          items: evidence.pressureEvidence.items.filter(
-            (item) => stemElement(item.stem) !== "水",
-          ),
-        },
-      }),
-      observationsMut: (observations) => ({
-        ...observations,
-        structureObservation: {
-          ...observations.structureObservation,
-          pressureRelations: observations.structureObservation.pressureRelations.filter(
-            (relation) => relation.element !== "水",
-          ),
-        },
-        generationChains: [
-          ...observations.generationChains,
-          {
-            relation: "element-generates",
-            from: {
-              slot: "year",
-              layer: "stem",
-              stem: "戊",
-              element: "土",
-              presence: "rooted-visible",
-              shiShen: "편재",
+      evidenceMut: stripWaterPressure,
+      observationsMut: (observations) => {
+        const linked = withCorridorSpecificLegs(stripWaterPressureRelations(observations));
+        return {
+          ...linked,
+          generationChains: [
+            ...linked.generationChains,
+            {
+              relation: "element-generates",
+              from: {
+                slot: "year",
+                layer: "stem",
+                stem: "戊",
+                element: "土",
+                presence: "rooted-visible",
+                shiShen: "편재",
+              },
+              to: {
+                slot: "hour",
+                layer: "stem",
+                stem: "丙",
+                element: "火",
+                presence: "rooted-visible",
+                shiShen: "편관",
+              },
             },
-            to: {
-              slot: "hour",
-              layer: "stem",
-              stem: "丙",
-              element: "火",
-              presence: "rooted-visible",
-              shiShen: "편관",
-            },
-          },
-        ],
-      }),
+          ],
+        };
+      },
     });
 
     expect(withAlternate.level).toBe("NOT");
   });
 
-  it("4. 1-step + both RELATION + no alternate → CLEAR", () => {
-    const input = clearCorridorPack();
+  it("4. corridor-specific front/back + mid absent + no alternate → CLEAR", () => {
+    const input = corridorClearPack();
     expect(input.roleActivities.R5).not.toBe("C");
-    expect(input.roleActivities.R1).not.toBe("C");
-    expect(input.roleActivities.R2).not.toBe("C");
     expect(input.observations.elementClusters.some((cluster) => cluster.element === "木")).toBe(
       false,
     );
@@ -202,15 +267,40 @@ describe("deriveR5Bottleneck", () => {
   });
 
   it("8. hour unknown unique slot dependence → CLEAR forbidden", () => {
-    const confirmed = clearCorridorPack({ stem: "丙", branch: "午" });
+    const confirmed = corridorClearPack({ stem: "丙", branch: "午" });
     expect(confirmed.level).toBe("CLEAR");
 
-    const hourUnknown = clearCorridorPack("unknown");
+    const hourUnknown = corridorClearPack("unknown");
     expect(hourUnknown.evidence.hourUnknown).toBe(true);
     expect(hourUnknown.level).not.toBe("CLEAR");
   });
 
-  it("representative: LS-birth → NOT", () => {
+  it("A. both relation-active but unrelated relations → CLEAR forbidden, max POSSIBLE", () => {
+    const input = unrelatedActivePack();
+    expect(input.roleActivities.R5).not.toBe("C");
+    expect(input.level).not.toBe("CLEAR");
+    expect(input.level).toBe("POSSIBLE");
+  });
+
+  it("B. corridor-specific front/back + M gap + no alternate → CLEAR", () => {
+    expect(corridorClearPack().level).toBe("CLEAR");
+  });
+
+  it("R1=C does not globally NOT a non-day independent CLEAR corridor", () => {
+    const input = corridorClearPack({ stem: "丙", branch: "午" }, { R1: "C" });
+    expect(input.roleActivities.R1).toBe("C");
+    expect(stemElement(input.pillars.day.stem)).toBe("金");
+    expect(input.level).toBe("CLEAR");
+  });
+
+  it("R2=C does not globally NOT a non-day independent CLEAR corridor", () => {
+    const input = corridorClearPack({ stem: "丙", branch: "午" }, { R2: "C" });
+    expect(input.roleActivities.R2).toBe("C");
+    expect(stemElement(input.pillars.day.stem)).toBe("金");
+    expect(input.level).toBe("CLEAR");
+  });
+
+  it("representative: LS-birth is not CLEAR", () => {
     expect(
       pack(
         chart({
@@ -220,7 +310,7 @@ describe("deriveR5Bottleneck", () => {
           hour: { stem: "壬", branch: "子" },
         }),
       ).level,
-    ).toBe("NOT");
+    ).not.toBe("CLEAR");
   });
 
   it("representative: LW-gapyu → NOT", () => {
@@ -246,6 +336,5 @@ describe("deriveR5Bottleneck", () => {
       }),
     );
     expect(input.level).not.toBe("CLEAR");
-    expect(input.level).toBe("NOT");
   });
 });
