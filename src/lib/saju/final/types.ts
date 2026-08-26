@@ -49,3 +49,18 @@ export type FinalResolution = {
   reasons: string[];
   decisionTrace: string[];
 };
+
+export type SupplementResolutionStatus = "resolved" | "unresolved";
+
+/**
+ * Combined Core (FER) + Supplement presentation contract.
+ * `reasons` are internal diagnostics — not user copy.
+ */
+export type CoreAndSupplementResolution = {
+  coreElement: Element | null;
+  coreRole: FinalRole | null;
+  coreCertainty: Certainty;
+  supplementElement: Element | null;
+  supplementStatus: SupplementResolutionStatus;
+  reasons: string[];
+};

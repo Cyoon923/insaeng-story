@@ -14,15 +14,16 @@ import {
   buildStrengthSummary,
   collectStrengthEvidence,
   deriveMusicRecommendationGate,
-  selectMusicRecommendationCandidates,
 } from "@/lib/saju";
-import { buildFinalPresentation } from "@/lib/saju/final/buildFinalPresentation";
+import { buildSupplementPresentation } from "@/lib/saju/final/buildSupplementPresentation";
+import type { SupplementPresentation } from "@/lib/saju/final/buildSupplementPresentation";
 import { resolveFinalElement } from "@/lib/saju/final";
-import type { FinalPresentation } from "@/lib/saju/final/buildFinalPresentation";
+import { resolveSupplementFlow } from "@/lib/saju/final/resolveSupplementFlow";
 import type { FreeSajuBirthFormInput } from "@/lib/saju/free/buildFreeSajuPillars";
 import { buildFreeSajuPipeline } from "@/lib/saju/free/buildFreeSajuPipeline";
 import { freeSajuBirthFromSearchParams } from "@/lib/saju/free/unyulBirthQuery";
 import type { FreeInterpretation } from "@/lib/saju/interpretation/types";
+import { selectMusicBySupplementElement } from "@/lib/saju/music/selectMusicBySupplementElement";
 import type { ObservationInterpretation } from "@/lib/saju/observation/interpretation/types";
 import { buildSpeakableOutput } from "@/lib/saju/speakable/buildSpeakableOutput";
 import { readData } from "@/lib/server/store";
@@ -59,9 +60,20 @@ function UnyulShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FinalPresentationHero({ presentation }: { presentation: FinalPresentation }) {
+/** Short UI chip icon for reasonFlow words (no internal jargon). */
+function reasonFlowChipSymbol(word: string, fallback: string): string {
+  if (word === "균형") return "⚖️";
+  if (word.includes("불")) return "🔥";
+  if (word.includes("나무")) return "🌱";
+  if (word.includes("흙")) return "🪨";
+  if (word.includes("금")) return "✨";
+  if (word.includes("물")) return "💧";
+  return fallback;
+}
+
+function FinalPresentationHero({ presentation }: { presentation: SupplementPresentation }) {
   const isUnresolved =
-    presentation.certainty === "unresolved" || presentation.element === null;
+    presentation.supplementStatus === "unresolved" || presentation.element === null;
 
   if (isUnresolved) {
     return (
@@ -74,11 +86,12 @@ function FinalPresentationHero({ presentation }: { presentation: FinalPresentati
   }
 
   const flow = presentation.reasonFlow.slice(0, 3);
+  const heroSymbol = presentation.symbol ?? "";
 
   return (
     <section className="px-5 pb-4 pt-8">
       <p className="font-serif text-[42px] font-bold leading-none tracking-tight text-[#3d2b1f]">
-        <span aria-hidden="true">{presentation.symbol}</span>{" "}
+        <span aria-hidden="true">{heroSymbol}</span>{" "}
         <span>{presentation.element}</span>
         <span className="mx-2 text-[28px] font-semibold text-[#8a735a]">·</span>
         <span className="text-[34px]">{presentation.name}</span>
@@ -95,7 +108,7 @@ function FinalPresentationHero({ presentation }: { presentation: FinalPresentati
               <div key={`${word}-${index}`} className="contents">
                 <div className="flex min-w-0 flex-1 flex-col items-center rounded-2xl bg-[#fffaf3] px-2 py-3 shadow-[0_1px_0_rgba(61,43,31,0.06)]">
                   <span className="text-[26px] leading-none" aria-hidden="true">
-                    {presentation.symbol}
+                    {reasonFlowChipSymbol(word, heroSymbol)}
                   </span>
                   <span className="mt-1.5 truncate text-[17px] font-semibold leading-none text-[#3d2b1f]">
                     {word}
@@ -119,7 +132,9 @@ function FinalPresentationHero({ presentation }: { presentation: FinalPresentati
 }
 
 function looksInternalCopy(text: string): boolean {
-  return /R[1-6]|bottleneck|leaning|provisional|confirmed|\bmixed\b|\bnull\b/i.test(text);
+  return /R[1-6]|ACTIVE|CAUTION|INACTIVE|F[1-8]|bottleneck|leaning|provisional|confirmed|\bmixed\b|\bnull\b/i.test(
+    text,
+  );
 }
 
 function firstSentence(text: string): string {
@@ -136,7 +151,7 @@ function firstSentence(text: string): string {
 function buildFlowSummarySentences(
   interpretation: FreeInterpretation,
   observation: ObservationInterpretation,
-  presentation: FinalPresentation,
+  presentation: SupplementPresentation,
 ): string[] {
   const heroHeadline = presentation.headline.trim();
   const candidates = [
@@ -167,7 +182,7 @@ function FlowSummaryCard({
 }: {
   interpretation: FreeInterpretation;
   observation: ObservationInterpretation;
-  presentation: FinalPresentation;
+  presentation: SupplementPresentation;
 }) {
   const sentences = buildFlowSummarySentences(interpretation, observation, presentation);
   if (sentences.length === 0) return null;
@@ -249,7 +264,7 @@ function MusicRecommendationSection({
 }
 
 /**
- * Unyul free result: query birth → free pipeline → FER hero + short flow + music.
+ * Unyul free result: query birth → FER Core → Supplement hero + short flow + music.
  */
 export default async function UnyulResultPage({
   searchParams,
@@ -279,7 +294,7 @@ export default async function UnyulResultPage({
   let interpretation: ReturnType<typeof buildFreeSajuPipeline>["interpretation"];
   let observationInterpretation: ReturnType<typeof buildObservationInterpretation>;
   let musicRecommendations: FreeResultMusicCardModel[] = [];
-  let finalPresentation: FinalPresentation;
+  let supplementPresentation: SupplementPresentation;
 
   try {
     const result = buildFreeSajuPipeline(parsed.input);
@@ -306,7 +321,16 @@ export default async function UnyulResultPage({
       climate,
       needResolution,
     });
-    finalPresentation = buildFinalPresentation(finalResolution);
+
+    const supplementFlow = resolveSupplementFlow({
+      pillars,
+      finalResolution,
+      observations,
+      climate,
+      needResolution,
+    });
+
+    supplementPresentation = buildSupplementPresentation(supplementFlow.resolution);
 
     const speakable = buildSpeakableOutput({
       strength,
@@ -322,11 +346,16 @@ export default async function UnyulResultPage({
       speakable,
     });
 
-    const allowMusic = finalPresentation.certainty !== "unresolved";
+    // Music hard-gated by Supplement Element (not Need/Speakable bags or Core).
+    const allowMusic =
+      supplementPresentation.supplementStatus === "resolved" &&
+      Boolean(supplementPresentation.name) &&
+      supplementFlow.resolution.supplementElement !== null;
 
     if (allowMusic) {
       const data = await readData();
-      const candidates = selectMusicRecommendationCandidates({
+      const candidates = selectMusicBySupplementElement({
+        supplementElement: supplementFlow.resolution.supplementElement,
         gate,
         hints: speakable.musicRecommendationHints,
         catalog: data.musicCatalog ?? [],
@@ -369,11 +398,11 @@ export default async function UnyulResultPage({
 
   return (
     <UnyulShell>
-      <FinalPresentationHero presentation={finalPresentation} />
+      <FinalPresentationHero presentation={supplementPresentation} />
       <FlowSummaryCard
         interpretation={interpretation}
         observation={observationInterpretation}
-        presentation={finalPresentation}
+        presentation={supplementPresentation}
       />
       <BirthInfoCard birth={parsed.input} />
       {pillars.hour === "unknown" ? (
@@ -381,9 +410,9 @@ export default async function UnyulResultPage({
           태어난 시간을 몰라서, 시주에 따라 달라질 수 있는 부분은 열어두고 살펴봤어요.
         </p>
       ) : null}
-      {finalPresentation.certainty !== "unresolved" && finalPresentation.name ? (
+      {supplementPresentation.supplementStatus === "resolved" && supplementPresentation.name ? (
         <MusicRecommendationSection
-          name={finalPresentation.name}
+          name={supplementPresentation.name}
           items={musicRecommendations}
         />
       ) : null}
