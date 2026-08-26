@@ -240,15 +240,16 @@ describe("derivePriorityRoles", () => {
     expect(JSON.stringify(input.result)).not.toMatch(/"火"/);
   });
 
-  it("10. R2 POSSIBLE + R3=A → not dominant → R2 primary 금지", () => {
+  it("10. R2 POSSIBLE-WEAK + R3=A → G3 can review R3 (no foundation block)", () => {
     const input = pack(MX_1981, {
       roleOverride: { R3: "A" },
       candidateOverride: { R3: ["土"] },
     });
     expect(input.r2Bottleneck).toBe("POSSIBLE");
     expect(input.result.reasons).toContain("g2:r2-possible-not-dominant");
+    expect(input.result.reasons).not.toContain("g3:foundation-core-blocks-r3-r4");
+    expect(input.result.primaryRoles).toEqual(["R3"]);
     expect(input.result.primaryRoles).not.toContain("R2");
-    expect(input.result.reasons).not.toContain("g5:directness-r2");
   });
 
   it("11. R2 POSSIBLE + leaning-strong → R2 primary 금지", () => {
@@ -307,5 +308,68 @@ describe("derivePriorityRoles", () => {
     expect(input.result.reasons).toContain("g2:r2-possible-not-dominant");
     expect(input.result.primaryRoles).not.toContain("R2");
     expect(input.result.reasons).not.toContain("g5:directness-r2");
+  });
+
+  it("A. POSSIBLE-WEAK + R3 candidates → G3 R3, not foundation-blocked", () => {
+    const input = pack(baseChart(), {
+      roleOverride: { R1: "C", R2: "B", R3: "A", R4: "C", R5: "A", R6: "A" },
+      r2Bottleneck: "POSSIBLE",
+      r5Bottleneck: "NOT",
+      candidateOverride: { ...EMPTY_CANDIDATES, R2: ["木"], R3: ["火"] },
+      summaryMut: (summary) => ({
+        ...summary,
+        directionCandidate: "leaning-strong",
+      }),
+    });
+    expect(input.result.reasons).toContain("g2:r2-possible-not-dominant");
+    expect(input.result.reasons).not.toContain("g3:foundation-core-blocks-r3-r4");
+    expect(input.result.primaryRoles).toEqual(["R3"]);
+  });
+
+  it("B. POSSIBLE-WEAK + no R3/R4 + R6 resolved → R6 primary, not deferred", () => {
+    const input = pack(baseChart(), {
+      roleOverride: { R1: "C", R2: "B", R3: "C", R4: "C", R5: "A", R6: "B" },
+      r2Bottleneck: "POSSIBLE",
+      r5Bottleneck: "NOT",
+      candidateOverride: { ...EMPTY_CANDIDATES, R2: ["木"], R6: ["水"] },
+      summaryMut: (summary) => ({
+        ...summary,
+        directionCandidate: "leaning-strong",
+      }),
+      climateOverride: {
+        conflicts: [],
+        temperature: {
+          status: "resolved",
+          value: "cold",
+          outcome: "unchanged",
+        },
+        moisture: {
+          status: "resolved",
+          value: "balanced",
+          outcome: "unchanged",
+        },
+      },
+    });
+    expect(input.result.reasons).toContain("g2:r2-possible-not-dominant");
+    expect(input.result.reasons).not.toContain("g4:r6-deferred-structure-foundation-open");
+    expect(input.result.reasons).toContain("g4:r6-resolved-primary");
+    expect(input.result.primaryRoles).toEqual(["R6"]);
+  });
+
+  it("C. R2 POSSIBLE-DOMINANT (MX-1981) → G2 [R2] unchanged", () => {
+    const input = pack(MX_1981);
+    expect(input.result.primaryRoles).toEqual(["R2"]);
+    expect(input.result.reasons).toContain("g2:r2-possible-dominant");
+  });
+
+  it("D. R2 CLEAR → G2 [R2] unchanged", () => {
+    const input = pack(baseChart(), {
+      roleOverride: { R1: "C", R2: "B", R3: "C", R4: "C", R5: "A", R6: "A" },
+      r5Bottleneck: "NOT",
+      r2Bottleneck: "CLEAR",
+      candidateOverride: { ...EMPTY_CANDIDATES, R2: ["木"] },
+    });
+    expect(input.result.primaryRoles).toEqual(["R2"]);
+    expect(input.result.reasons).toContain("g2:r2-clear");
   });
 });

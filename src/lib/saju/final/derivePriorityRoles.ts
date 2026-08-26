@@ -128,20 +128,19 @@ function hasDayFoundation(
 
 /**
  * R1/R2 foundation still the core open problem — do not elevate R3/R4 first.
- * R2 POSSIBLE counts as foundation-in-play (CLEAR already handled at G2).
+ * R2 POSSIBLE counts only when POSSIBLE-DOMINANT (provisionalGate.allowed).
+ * POSSIBLE-WEAK is not foundation-in-play.
  */
 function foundationCoreOpen(
   roleActivities: RoleActivityMap,
   candidates: RoleElementCandidateMap,
   r2Bottleneck: BottleneckLevel,
+  r2ProvisionalAllowed: boolean,
 ): boolean {
   if (isRoleOpen(roleActivities.R1) && hasCandidates(candidates, "R1")) return true;
-  if (
-    isRoleOpen(roleActivities.R2) &&
-    (r2Bottleneck === "CLEAR" || r2Bottleneck === "POSSIBLE")
-  ) {
-    return true;
-  }
+  if (!isRoleOpen(roleActivities.R2)) return false;
+  if (r2Bottleneck === "CLEAR") return true;
+  if (r2Bottleneck === "POSSIBLE" && r2ProvisionalAllowed) return true;
   return false;
 }
 
@@ -394,7 +393,7 @@ export function derivePriorityRoles(input: DerivePriorityRolesInput): PriorityRo
   }
 
   // ——— G3: R3/R4 (not before foundation) ———
-  if (foundationCoreOpen(roleActivities, candidates, r2Bottleneck)) {
+  if (foundationCoreOpen(roleActivities, candidates, r2Bottleneck, r2ProvisionalAllowed)) {
     reasons.push("g3:foundation-core-blocks-r3-r4");
   } else {
     const g3 = selectR3R4(
@@ -414,7 +413,9 @@ export function derivePriorityRoles(input: DerivePriorityRolesInput): PriorityRo
   if (hasCandidates(candidates, "R6") && isRoleOpen(roleActivities.R6)) {
     if (!climateAllowsClearR6(climate)) {
       reasons.push("g4:r6-contested-or-partial-blocked");
-    } else if (foundationCoreOpen(roleActivities, candidates, r2Bottleneck)) {
+    } else if (
+      foundationCoreOpen(roleActivities, candidates, r2Bottleneck, r2ProvisionalAllowed)
+    ) {
       // Structure foundation still in play — do not let climate cover it.
       reasons.push("g4:r6-deferred-structure-foundation-open");
     } else {
