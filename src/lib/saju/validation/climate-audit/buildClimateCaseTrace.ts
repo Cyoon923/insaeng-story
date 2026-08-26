@@ -74,19 +74,39 @@ function inferTriggeredRules(
   else ids.add("CLI-019");
 
   if (summary.conflicts.includes("both-fire-and-water-clear-or-substantial")) ids.add("CLI-029");
-  if (summary.conflicts.includes("substantial-mitigation-and-reinforcement")) ids.add("CLI-030");
-  if (summary.unresolvedReasons.includes("substantial-fire-mitigation-needs-review")) ids.add("CLI-031");
-  if (summary.unresolvedReasons.includes("substantial-water-mitigation-needs-review")) ids.add("CLI-031");
-  if (summary.temperature.status === "resolved" && summary.temperature.value === "balanced" && summary.baseClimate.temperature !== "balanced") {
+  if (
+    summary.conflicts.includes("substantial-mitigation-and-reinforcement") ||
+    summary.temperature.outcome === "mitigation-reinforcement-conflict" ||
+    summary.moisture.outcome === "mitigation-reinforcement-conflict"
+  ) {
+    ids.add("CLI-030");
+  }
+  if (
+    summary.unresolvedReasons.includes("substantial-fire-mitigation-needs-review") ||
+    summary.unresolvedReasons.includes("substantial-water-mitigation-needs-review") ||
+    summary.temperature.outcome === "partially-mitigated" ||
+    summary.moisture.outcome === "partially-mitigated"
+  ) {
+    ids.add("CLI-031");
+  }
+  if (
+    summary.temperature.outcome === "balanced" ||
+    summary.moisture.outcome === "balanced" ||
+    (summary.temperature.status === "resolved" &&
+      summary.temperature.value === "balanced" &&
+      summary.baseClimate.temperature !== "balanced") ||
+    (summary.moisture.status === "resolved" &&
+      summary.moisture.value === "balanced" &&
+      summary.baseClimate.moisture !== "balanced")
+  ) {
     ids.add("CLI-032");
   }
-  if (summary.moisture.status === "resolved" && summary.moisture.value === "balanced" && summary.baseClimate.moisture !== "balanced") {
-    ids.add("CLI-032");
-  }
-  if (summary.temperature.status === "resolved" && summary.temperature.value === summary.baseClimate.temperature) {
-    ids.add("CLI-033");
-  }
-  if (summary.moisture.status === "resolved" && summary.moisture.value === summary.baseClimate.moisture) {
+  if (
+    summary.temperature.outcome === "unchanged" ||
+    summary.moisture.outcome === "unchanged" ||
+    (summary.temperature.status === "resolved" && summary.temperature.value === summary.baseClimate.temperature) ||
+    (summary.moisture.status === "resolved" && summary.moisture.value === summary.baseClimate.moisture)
+  ) {
     ids.add("CLI-033");
   }
   if (summary.unresolvedReasons.includes("hour-unknown-may-change-climate-factors")) ids.add("CLI-039");

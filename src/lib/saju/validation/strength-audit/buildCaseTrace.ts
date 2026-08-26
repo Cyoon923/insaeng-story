@@ -69,7 +69,11 @@ function inferTriggeredRules(summary: StrengthSummary): string[] {
   if (summary.directionCandidate === "leaning-strong") ids.add("STR-050");
   if (summary.directionCandidate === "leaning-weak") ids.add("STR-051");
   if (summary.directionCandidate === "mixed") {
-    ids.add("STR-055");
+    if (summary.seasonalPhase === "휴") {
+      ids.add("STR-057");
+    } else {
+      ids.add("STR-055");
+    }
     ids.add("STR-060");
     ids.add("STR-062");
     if (summary.mixedPattern === "strong-base-with-pressure") ids.add("STR-061a");

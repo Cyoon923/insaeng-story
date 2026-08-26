@@ -17,6 +17,10 @@ import type {
   StrengthSummary,
   SupportShiShen,
   UnresolvedStrengthReason,
+  WeakSeasonPattern,
+  WeakSeasonPressureAxis,
+  WeakSeasonRootBand,
+  WeakSeasonSupportAxis,
 } from "@/lib/saju/types";
 
 function emptySourcePresence(): StrengthSourcePresence {
@@ -87,6 +91,149 @@ function hiddenNote(item: StrengthEvidence["branchRelationEvidence"]["items"][nu
 
 function hasRooted(items: Array<{ presence: string }>, value: "rooted-visible" | "unrooted-visible"): boolean {
   return items.some((item) => item.presence === value);
+}
+
+function weakSeasonRootBand(rootQuality: RootQuality): WeakSeasonRootBand {
+  if (rootQuality === "absent") return "absent";
+  if (rootQuality === "shallow") return "shallow";
+  return "firm";
+}
+
+function weakSeasonSupportAxis(
+  supportItems: StrengthEvidence["supportEvidence"]["items"],
+): WeakSeasonSupportAxis {
+  let peer = false;
+  let resource = false;
+  for (const item of supportItems) {
+    if (item.presence !== "rooted-visible") continue;
+    if (item.shiShen === "비견" || item.shiShen === "겁재") peer = true;
+    if (item.shiShen === "정인" || item.shiShen === "편인") resource = true;
+  }
+  if (peer && resource) return "both";
+  if (peer) return "peer";
+  if (resource) return "resource";
+  return "none";
+}
+
+function weakSeasonPressureAxis(
+  pressureItems: StrengthEvidence["pressureEvidence"]["items"],
+): WeakSeasonPressureAxis {
+  let drain = false;
+  let control = false;
+  for (const item of pressureItems) {
+    if (item.presence !== "rooted-visible") continue;
+    if (item.shiShen === "식신" || item.shiShen === "상관") drain = true;
+    if (
+      item.shiShen === "편재" ||
+      item.shiShen === "정재" ||
+      item.shiShen === "편관" ||
+      item.shiShen === "정관"
+    ) {
+      control = true;
+    }
+  }
+  if (drain && control) return "multi";
+  if (drain) return "drain";
+  if (control) return "control";
+  return "none";
+}
+
+type DecideDirectionResult = {
+  direction: StrengthDirectionCandidate;
+  weakSeasonPattern: WeakSeasonPattern;
+};
+
+/**
+ * 휴(休): conflict-pair mixed only. No leaning-strong/weak; no STR-055 residual.
+ */
+function decideHyuDirection(input: {
+  rootQuality: RootQuality;
+  visibleSupport: StrengthEvidence["supportEvidence"]["items"];
+  visiblePressure: StrengthEvidence["pressureEvidence"]["items"];
+}): StrengthDirectionCandidate {
+  const rootBand = weakSeasonRootBand(input.rootQuality);
+  const supportAxis = weakSeasonSupportAxis(input.visibleSupport);
+  const pressureAxis = weakSeasonPressureAxis(input.visiblePressure);
+  const firmOrShallow = rootBand === "shallow" || rootBand === "firm";
+
+  if (pressureAxis === "multi" && firmOrShallow) {
+    return "mixed";
+  }
+  if (supportAxis === "peer" && pressureAxis === "drain" && firmOrShallow) {
+    return "mixed";
+  }
+  if (supportAxis === "resource" && pressureAxis === "control" && rootBand === "firm") {
+    return "mixed";
+  }
+  if (supportAxis === "both" && pressureAxis === "control" && rootBand === "firm") {
+    return "mixed";
+  }
+  return null;
+}
+
+/**
+ * Weak-season (사/수) three-axis ladder. R4 removed; R6 not applied on 사/수.
+ * 상 keeps residual R6. 휴 uses decideHyuDirection.
+ */
+function decideDirection(input: {
+  phase: StrengthEvidence["seasonalEvidence"]["phase"];
+  rootQuality: RootQuality;
+  visibleSupport: StrengthEvidence["supportEvidence"]["items"];
+  visiblePressure: StrengthEvidence["pressureEvidence"]["items"];
+}): DecideDirectionResult {
+  const { phase, rootQuality, visibleSupport, visiblePressure } = input;
+  const rootedSupport = hasRooted(visibleSupport, "rooted-visible");
+  const rootedPressure = hasRooted(visiblePressure, "rooted-visible");
+  const rootedRoot = rootQuality === "clear" || rootQuality === "present" || rootQuality === "shallow";
+
+  if (phase === "왕" && rootQuality === "clear" && rootedSupport && !rootedPressure) {
+    return { direction: "leaning-strong", weakSeasonPattern: null };
+  }
+
+  if (phase === "왕" && rootQuality === "clear" && rootedPressure) {
+    return { direction: "mixed", weakSeasonPattern: null };
+  }
+
+  if (phase === "사" || phase === "수") {
+    const rootBand = weakSeasonRootBand(rootQuality);
+    const supportAxis = weakSeasonSupportAxis(visibleSupport);
+    const pressureAxis = weakSeasonPressureAxis(visiblePressure);
+
+    if (rootBand === "absent" && rootedPressure && !rootedSupport) {
+      return { direction: "leaning-weak", weakSeasonPattern: null };
+    }
+    if (
+      (rootBand === "shallow" || rootBand === "firm") &&
+      pressureAxis === "none" &&
+      (supportAxis === "none" || supportAxis === "peer" || supportAxis === "resource")
+    ) {
+      return { direction: "leaning-weak", weakSeasonPattern: "weak-season-with-root" };
+    }
+    if (rootBand === "firm" && supportAxis === "both" && pressureAxis === "none") {
+      return { direction: "mixed", weakSeasonPattern: null };
+    }
+    if (rootBand !== "absent" && (pressureAxis === "control" || pressureAxis === "multi")) {
+      return { direction: "mixed", weakSeasonPattern: null };
+    }
+    if (rootBand !== "absent" && pressureAxis === "drain" && supportAxis !== "none") {
+      return { direction: "mixed", weakSeasonPattern: null };
+    }
+    return { direction: null, weakSeasonPattern: null };
+  }
+
+  if (phase === "휴") {
+    return { direction: decideHyuDirection(input), weakSeasonPattern: null };
+  }
+
+  const substantialStrong = phase === "왕" || rootedRoot || rootedSupport;
+  const substantialWeak =
+    phase === "수" || phase === "사" || rootQuality === "absent" || rootedPressure;
+
+  if (substantialStrong && substantialWeak) {
+    return { direction: "mixed", weakSeasonPattern: null };
+  }
+
+  return { direction: null, weakSeasonPattern: null };
 }
 
 function mixedPatternOf(input: {
@@ -160,36 +307,6 @@ function unresolvedStrengthReasonsOf(input: {
   if (hiddenConflict && !helpOrRest) reasons.push("hidden-relations-conflict");
   if (input.hourUnknown) reasons.push("hour-unknown-sensitive");
   return reasons;
-}
-
-function decideDirection(input: {
-  phase: StrengthEvidence["seasonalEvidence"]["phase"];
-  rootQuality: RootQuality;
-  visibleSupport: StrengthEvidence["supportEvidence"]["items"];
-  visiblePressure: StrengthEvidence["pressureEvidence"]["items"];
-}): StrengthDirectionCandidate {
-  const { phase, rootQuality, visibleSupport, visiblePressure } = input;
-  const rootedSupport = hasRooted(visibleSupport, "rooted-visible");
-  const rootedPressure = hasRooted(visiblePressure, "rooted-visible");
-  const rootedRoot = rootQuality === "clear" || rootQuality === "present" || rootQuality === "shallow";
-
-  if (phase === "왕" && rootQuality === "clear" && rootedSupport && !rootedPressure) {
-    return "leaning-strong";
-  }
-
-  if ((phase === "사" || phase === "수") && rootQuality === "absent" && rootedPressure && !rootedSupport) {
-    return "leaning-weak";
-  }
-
-  const substantialStrong = phase === "왕" || rootedRoot || rootedSupport;
-  const substantialWeak = phase === "수" || phase === "사" || rootQuality === "absent" || rootedPressure;
-
-  if (phase === "왕" && rootQuality === "clear" && rootedPressure) return "mixed";
-  if (phase === "사" && rootedRoot && rootedSupport) return "mixed";
-  if (phase === "수" && rootedRoot && (rootedSupport || rootedPressure)) return "mixed";
-  if (substantialStrong && substantialWeak) return "mixed";
-
-  return null;
 }
 
 function resolutionOf(direction: StrengthDirectionCandidate): StrengthResolution {
@@ -327,12 +444,14 @@ export function buildStrengthSummary(pillars: FourPillars): StrengthSummary {
     .filter((item) => item.relationSide === "pressure")
     .map(hiddenNote);
 
-  const directionCandidate = decideDirection({
+  const decided = decideDirection({
     phase,
     rootQuality,
     visibleSupport: evidence.supportEvidence.items,
     visiblePressure: evidence.pressureEvidence.items,
   });
+  const directionCandidate = decided.direction;
+  const weakSeasonPattern = decided.weakSeasonPattern;
   const rootedSupport = hasRooted(evidence.supportEvidence.items, "rooted-visible");
   const rootedPressure = hasRooted(evidence.pressureEvidence.items, "rooted-visible");
   const mixedInput = {
@@ -376,6 +495,7 @@ export function buildStrengthSummary(pillars: FourPillars): StrengthSummary {
     }),
     mixedPattern: mixedPatternOf(mixedInput),
     mixedConflictLevel: mixedConflictLevelOf(mixedInput),
+    weakSeasonPattern,
     unresolvedStrengthReasons: unresolvedStrengthReasonsOf({
       direction: directionCandidate,
       phase,

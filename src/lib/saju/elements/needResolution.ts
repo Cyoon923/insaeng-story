@@ -102,6 +102,9 @@ function decisionBlockedByOf(input: {
   if (input.relationPattern === "strength-only" && hasThreeWayUnranked(input.strengthActive)) {
     blocked.push("strength-three-way-unranked");
   }
+  if (input.climateActive.some((item) => item.boundary === "contested-inherited")) {
+    blocked.push("climate-need-contested-inherited");
+  }
   return blocked;
 }
 

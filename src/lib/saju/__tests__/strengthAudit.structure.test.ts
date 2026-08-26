@@ -31,7 +31,7 @@ describe("Strength freeze-boundary artifacts", () => {
       "REQUIRES-INTERPRETIVE-VALIDATION",
       "OPEN",
     ]);
-    expect(inventory.rules).toHaveLength(60);
+    expect(inventory.rules).toHaveLength(61);
     const counts: Record<string, number> = {};
     for (const rule of inventory.rules) {
       expect(inventory.freezeStates).toContain(rule.freezeStatus);
@@ -41,7 +41,7 @@ describe("Strength freeze-boundary artifacts", () => {
       counts[rule.freezeStatus] = (counts[rule.freezeStatus] ?? 0) + 1;
     }
     expect(counts["VERIFIED-FACT"]).toBe(6);
-    expect(counts["FROZEN-POLICY"]).toBe(32);
+    expect(counts["FROZEN-POLICY"]).toBe(33);
     expect(counts["REQUIRES-INTERPRETIVE-VALIDATION"]).toBe(21);
     expect(counts.OPEN).toBe(1);
     expect(inventory.rules.filter((item) => item.validationClass === "FACT").every((item) => item.freezeStatus === "VERIFIED-FACT")).toBe(

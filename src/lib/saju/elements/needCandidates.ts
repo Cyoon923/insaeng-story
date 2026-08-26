@@ -29,6 +29,10 @@ function climateStatus(temperatureUnresolved: boolean, moistureUnresolved: boole
   return "ready";
 }
 
+function climateBoundaryOf(reasons: string[]): NeedCandidate["boundary"] {
+  return reasons.includes("climate-moisture-dry") ? "contested-inherited" : null;
+}
+
 function makeCandidate(input: {
   element: Element;
   source: NeedCandidate["source"];
@@ -38,6 +42,7 @@ function makeCandidate(input: {
   certainty: NeedCandidate["certainty"];
   status: NeedCandidate["status"];
   evidenceRefs: string[];
+  boundary?: NeedCandidate["boundary"];
 }): NeedCandidate {
   return {
     element: input.element,
@@ -49,6 +54,7 @@ function makeCandidate(input: {
     certainty: input.certainty,
     status: input.status,
     evidenceRefs: input.evidenceRefs,
+    boundary: input.boundary ?? null,
   };
 }
 
@@ -177,18 +183,21 @@ export function buildNeedCandidateSet(pillars: FourPillars): NeedCandidateSet {
     if (existing) {
       existing.reasons.push(reason);
       existing.evidenceRefs.push(ref);
+      existing.boundary = climateBoundaryOf(existing.reasons);
       return;
     }
     const presence = analyzeElementPresence(pillars, element).presence;
+    const reasons = [reason];
     const candidate = makeCandidate({
       element,
       source: "climate",
-      reasons: [reason],
+      reasons,
       direction: "climate",
       presence,
       certainty: climate.certainty,
       status: "candidate",
       evidenceRefs: [ref],
+      boundary: climateBoundaryOf(reasons),
     });
     climateByElement.set(element, candidate);
     climateNeedCandidates.push(candidate);

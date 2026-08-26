@@ -85,6 +85,7 @@ describe("NeedCandidateSet CASE", () => {
         reasons: ["climate-moisture-dry"],
         direction: "climate",
         status: "candidate",
+        boundary: "contested-inherited",
       }),
     ]);
     forbidden(set);
@@ -107,6 +108,7 @@ describe("NeedCandidateSet CASE", () => {
       source: "climate",
       reasons: ["climate-temperature-warm", "climate-moisture-dry"],
       certainty: "partial",
+      boundary: "contested-inherited",
     });
     expect(set.climateNeedStatus).toBe("ready");
     forbidden(set);
@@ -126,7 +128,12 @@ describe("NeedCandidateSet CASE", () => {
     expect(set.strengthNeedStatus).toBe("unresolved");
     expect(set.strengthNeedCandidates).toEqual([]);
     expect(set.climateNeedCandidates).toEqual([
-      expect.objectContaining({ element: "水", source: "climate", reasons: ["climate-moisture-dry"] }),
+      expect.objectContaining({
+        element: "水",
+        source: "climate",
+        reasons: ["climate-moisture-dry"],
+        boundary: "contested-inherited",
+      }),
     ]);
     forbidden(set);
   });
@@ -146,11 +153,78 @@ describe("NeedCandidateSet CASE", () => {
       expect.objectContaining({
         element: "火",
         reasons: ["climate-temperature-cold"],
+        boundary: null,
       }),
     ]);
     expect(set.climateNeedCandidates.some((item) => item.reasons.includes("climate-moisture-moist"))).toBe(false);
     expect(set.climateNeedStatus).toBe("ready");
     forbidden(set);
+  });
+});
+
+describe("NeedCandidateSet climate boundary (NEED-022)", () => {
+  it("dry-only Climate 水 is contested-inherited", () => {
+    const set = buildNeedCandidateSet(
+      chart({
+        year: { stem: "甲", branch: "酉" },
+        month: { stem: "庚", branch: "酉" },
+        day: { stem: "甲", branch: "酉" },
+        hour: "unknown",
+      }),
+    );
+    expect(set.climateNeedCandidates).toEqual([
+      expect.objectContaining({
+        element: "水",
+        reasons: ["climate-moisture-dry"],
+        boundary: "contested-inherited",
+      }),
+    ]);
+  });
+
+  it("warm+dry merged Climate 水 keeps contested-inherited", () => {
+    const set = buildNeedCandidateSet(
+      chart({
+        year: { stem: "庚", branch: "子" },
+        month: { stem: "己", branch: "未" },
+        day: { stem: "辛", branch: "卯" },
+        hour: "unknown",
+      }),
+    );
+    expect(set.climateNeedCandidates[0]).toMatchObject({
+      reasons: ["climate-temperature-warm", "climate-moisture-dry"],
+      boundary: "contested-inherited",
+    });
+  });
+
+  it("cold-only Climate 火 is not contested", () => {
+    const set = buildNeedCandidateSet(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "辛", branch: "亥" },
+        day: { stem: "庚", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(set.climateNeedCandidates).toEqual([
+      expect.objectContaining({
+        element: "火",
+        reasons: ["climate-temperature-cold"],
+        boundary: null,
+      }),
+    ]);
+  });
+
+  it("Strength Need candidates stay boundary null when ready", () => {
+    const set = buildNeedCandidateSet(
+      chart({
+        year: { stem: "丙", branch: "午" },
+        month: { stem: "戊", branch: "戌" },
+        day: { stem: "甲", branch: "申" },
+        hour: { stem: "甲", branch: "子" },
+      }),
+    );
+    expect(set.strengthNeedCandidates.map((item) => item.element)).toEqual(["木", "水"]);
+    expect(set.strengthNeedCandidates.every((item) => item.boundary === null)).toBe(true);
   });
 });
 

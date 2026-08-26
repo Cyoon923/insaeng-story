@@ -40,6 +40,7 @@ function candidate(partial: Partial<NeedCandidate> & Pick<NeedCandidate, "elemen
     certainty: "partial",
     status: "candidate",
     evidenceRefs: [],
+    boundary: null,
     ...partial,
   };
 }
@@ -125,7 +126,10 @@ describe("NeedResolution CASE", () => {
     expect(resolution.supportedElements).toEqual([]);
     expect(resolution.strengthAxisStatus).toBe("unresolved");
     expect(resolution.policyGaps).toEqual([]);
-    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
+    expect(resolution.decisionBlockedBy).toEqual([
+      "strength-axis-unresolved",
+      "climate-need-contested-inherited",
+    ]);
     forbidden(resolution);
   });
 
@@ -142,9 +146,13 @@ describe("NeedResolution CASE", () => {
     expect(resolution.status).toBe("single-axis");
     expect(resolution.supportedElements).toEqual([]);
     expect(resolution.singleAxisElements.map((item) => item.element)).toEqual(["水"]);
+    expect(resolution.singleAxisElements[0]?.boundary).toBe("contested-inherited");
     expect(resolution.strengthOnlyElements).toEqual([]);
     expect(resolution.deferredElements).toEqual([]);
-    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
+    expect(resolution.decisionBlockedBy).toEqual([
+      "strength-axis-unresolved",
+      "climate-need-contested-inherited",
+    ]);
     expect(resolution.elementStates).toEqual(
       expect.arrayContaining([expect.objectContaining({ element: "水", existingPresence: "absent" })]),
     );
@@ -183,9 +191,71 @@ describe("NeedResolution CASE", () => {
     expect(resolution.status).toBe("single-axis");
     expect(resolution.singleAxisElements.map((item) => item.element)).toEqual(["水"]);
     expect(resolution.certainty).toEqual({ strength: "complete", climate: "complete" });
-    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
+    expect(resolution.decisionBlockedBy).toEqual([
+      "strength-axis-unresolved",
+      "climate-need-contested-inherited",
+    ]);
     expect(resolution.policyGaps).toEqual([]);
     forbidden(resolution);
+  });
+});
+
+describe("NeedResolution climate contested boundary", () => {
+  it("RC-08 dry-only keeps climate-only and stacks contested with hour gate", () => {
+    const resolution = buildNeedResolution(
+      chart({
+        year: { stem: "甲", branch: "酉" },
+        month: { stem: "庚", branch: "酉" },
+        day: { stem: "甲", branch: "酉" },
+        hour: "unknown",
+      }),
+    );
+    expect(resolution.relationPattern).toBe("climate-only");
+    expect(resolution.status).toBe("single-axis");
+    expect(resolution.singleAxisElements).toEqual([
+      expect.objectContaining({
+        element: "水",
+        reasons: ["climate-moisture-dry"],
+        boundary: "contested-inherited",
+      }),
+    ]);
+    expect(resolution.decisionBlockedBy).toEqual([
+      "strength-axis-unresolved",
+      "climate-need-contested-inherited",
+    ]);
+  });
+
+  it("warm+dry merged 水 still blocks with contested-inherited", () => {
+    const resolution = buildNeedResolution(
+      chart({
+        year: { stem: "甲", branch: "辰" },
+        month: { stem: "丙", branch: "午" },
+        day: { stem: "丁", branch: "酉" },
+        hour: { stem: "庚", branch: "申" },
+      }),
+    );
+    expect(resolution.singleAxisElements[0]).toMatchObject({
+      element: "水",
+      reasons: ["climate-temperature-warm", "climate-moisture-dry"],
+      boundary: "contested-inherited",
+    });
+    expect(resolution.decisionBlockedBy).toContain("climate-need-contested-inherited");
+  });
+
+  it("cold-only Climate Need does not add contested blocker", () => {
+    const resolution = buildNeedResolution(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "辛", branch: "亥" },
+        day: { stem: "庚", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(resolution.singleAxisElements).toEqual([
+      expect.objectContaining({ element: "火", boundary: null }),
+    ]);
+    expect(resolution.decisionBlockedBy).toEqual(["strength-axis-unresolved"]);
+    expect(resolution.decisionBlockedBy).not.toContain("climate-need-contested-inherited");
   });
 });
 
@@ -258,7 +328,7 @@ describe("NeedResolution regression", () => {
       strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["strength-axis-unresolved"],
+      decisionBlockedBy: ["strength-axis-unresolved", "climate-need-contested-inherited"],
     },
     {
       name: "甲酉 庚酉 甲酉 — climate-only Strength gated",
@@ -273,7 +343,7 @@ describe("NeedResolution regression", () => {
       strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["strength-axis-unresolved"],
+      decisionBlockedBy: ["strength-axis-unresolved", "climate-need-contested-inherited"],
     },
     {
       name: "丙午 戊戌 甲申 — climate-only Strength gated",
@@ -288,7 +358,7 @@ describe("NeedResolution regression", () => {
       strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["strength-axis-unresolved"],
+      decisionBlockedBy: ["strength-axis-unresolved", "climate-need-contested-inherited"],
     },
     {
       name: "庚申 己丑 乙丑 — climate-only Strength gated",
@@ -318,7 +388,7 @@ describe("NeedResolution regression", () => {
       strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["strength-axis-unresolved"],
+      decisionBlockedBy: ["strength-axis-unresolved", "climate-need-contested-inherited"],
     },
     {
       name: "甲寅 辛亥 庚子 — climate-only unresolved Strength plus moist gap",
@@ -408,7 +478,7 @@ describe("NeedResolution regression", () => {
       strengthAxisStatus: "unresolved",
       climateAxisStatus: "ready",
       policyGaps: [],
-      decisionBlockedBy: ["strength-axis-unresolved"],
+      decisionBlockedBy: ["strength-axis-unresolved", "climate-need-contested-inherited"],
     },
   ];
 
@@ -454,6 +524,7 @@ describe("NeedResolution set branches without invented charts", () => {
           element: "水",
           source: "climate",
           reasons: ["climate-moisture-dry"],
+          boundary: "contested-inherited",
         }),
       ],
       strengthNeedStatus: "ready",
@@ -463,13 +534,14 @@ describe("NeedResolution set branches without invented charts", () => {
     const resolution = resolveNeedCandidates(
       needSet,
       stubStrength("leaning-weak"),
-      stubClimate({ status: "resolved", value: "dry" }),
+      stubClimate({ status: "resolved", value: "dry", outcome: "unchanged" }),
     );
     expect(resolution.relationPattern).toBe("exact-overlap");
     expect(resolution.status).toBe("convergent");
     expect(resolution.supportedElements.map((item) => item.element)).toEqual(["水"]);
     expect(resolution.deferredElements).toEqual([]);
     expect(resolution.singleAxisElements).toEqual([]);
+    expect(resolution.decisionBlockedBy).toContain("climate-need-contested-inherited");
     forbidden(resolution);
   });
 
@@ -502,7 +574,7 @@ describe("NeedResolution set branches without invented charts", () => {
     const resolution = resolveNeedCandidates(
       needSet,
       stubStrength("leaning-strong"),
-      stubClimate({ status: "resolved", value: "balanced" }),
+      stubClimate({ status: "resolved", value: "balanced", outcome: "unchanged" }),
     );
     expect(resolution.relationPattern).toBe("climate-only");
     expect(resolution.status).toBe("single-axis");

@@ -6,6 +6,7 @@ import type {
   ClimateElement,
   ClimateElementQuality,
   ClimateFactor,
+  ClimateMitigationOutcome,
   ClimateMoisture,
   ClimateTemperature,
   FourPillars,
@@ -55,38 +56,57 @@ function qualityOf(element: ClimateElement, factors: ClimateFactor[]): ClimateEl
 
 type PolarValue = "cold" | "warm" | "dry" | "moist";
 
+type AdjustPolarResult = {
+  status: "resolved" | "unresolved";
+  value: PolarValue | "balanced" | null;
+  outcome: ClimateMitigationOutcome;
+  reasons: string[];
+  conflicts: string[];
+};
+
 function adjustPolar(input: {
   base: PolarValue;
   mitigationQuality: ClimateElementQuality;
   reinforcementQuality: ClimateElementQuality;
   mitigationElement: ClimateElement;
-}): { status: "resolved" | "unresolved"; value: PolarValue | "balanced" | null; reasons: string[]; conflicts: string[] } {
+}): AdjustPolarResult {
   const { base, mitigationQuality, reinforcementQuality, mitigationElement } = input;
 
+  // CLI-030: mitigation + reinforcement both strong
   if (isStrong(mitigationQuality) && isStrong(reinforcementQuality)) {
     return {
       status: "unresolved",
       value: null,
+      outcome: "mitigation-reinforcement-conflict",
       reasons: ["substantial-mitigation-and-reinforcement"],
       conflicts: ["substantial-mitigation-and-reinforcement"],
     };
   }
 
+  // CLI-031: substantial mitigation, reinforcement not strong — residual base polarity
   if (isSubstantial(mitigationQuality)) {
     const reason =
       mitigationElement === "火" ? "substantial-fire-mitigation-needs-review" : "substantial-water-mitigation-needs-review";
-    return { status: "unresolved", value: null, reasons: [reason], conflicts: [] };
+    return {
+      status: "unresolved",
+      value: base,
+      outcome: "partially-mitigated",
+      reasons: [reason],
+      conflicts: [],
+    };
   }
 
+  // CLI-032: clear mitigation → one step to balanced
   if (isClear(mitigationQuality)) {
-    return { status: "resolved", value: "balanced", reasons: [], conflicts: [] };
+    return { status: "resolved", value: "balanced", outcome: "balanced", reasons: [], conflicts: [] };
   }
 
+  // CLI-033: weak mitigation → keep base
   if (isWeakQuality(mitigationQuality)) {
-    return { status: "resolved", value: base, reasons: [], conflicts: [] };
+    return { status: "resolved", value: base, outcome: "unchanged", reasons: [], conflicts: [] };
   }
 
-  return { status: "unresolved", value: null, reasons: [], conflicts: [] };
+  return { status: "unresolved", value: null, outcome: "unresolved", reasons: [], conflicts: [] };
 }
 
 export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClimateSummary {
@@ -100,7 +120,8 @@ export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClima
 
   let temperature: AdjustedTemperatureAxis;
   if (baseTemperature === "balanced") {
-    temperature = { status: "resolved", value: "balanced" };
+    // CLI-028: base balanced temperature is not moved by Fire/Water
+    temperature = { status: "resolved", value: "balanced", outcome: "unchanged" };
     if (isStrong(fireQuality) && isStrong(waterQuality)) {
       conflicts.push("both-fire-and-water-clear-or-substantial");
     }
@@ -111,7 +132,11 @@ export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClima
       reinforcementQuality: waterQuality,
       mitigationElement: "火",
     });
-    temperature = { status: adjusted.status, value: adjusted.value as ClimateTemperature | null };
+    temperature = {
+      status: adjusted.status,
+      value: adjusted.value as ClimateTemperature | null,
+      outcome: adjusted.outcome,
+    };
     unresolvedReasons.push(...adjusted.reasons);
     conflicts.push(...adjusted.conflicts);
   } else {
@@ -121,14 +146,18 @@ export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClima
       reinforcementQuality: fireQuality,
       mitigationElement: "水",
     });
-    temperature = { status: adjusted.status, value: adjusted.value as ClimateTemperature | null };
+    temperature = {
+      status: adjusted.status,
+      value: adjusted.value as ClimateTemperature | null,
+      outcome: adjusted.outcome,
+    };
     unresolvedReasons.push(...adjusted.reasons);
     conflicts.push(...adjusted.conflicts);
   }
 
   let moisture: AdjustedMoistureAxis;
   if (baseMoisture === "balanced") {
-    moisture = { status: "resolved", value: "balanced" };
+    moisture = { status: "resolved", value: "balanced", outcome: "unchanged" };
   } else if (baseMoisture === "moist") {
     const adjusted = adjustPolar({
       base: "moist",
@@ -136,7 +165,11 @@ export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClima
       reinforcementQuality: waterQuality,
       mitigationElement: "火",
     });
-    moisture = { status: adjusted.status, value: adjusted.value as ClimateMoisture | null };
+    moisture = {
+      status: adjusted.status,
+      value: adjusted.value as ClimateMoisture | null,
+      outcome: adjusted.outcome,
+    };
     for (const reason of adjusted.reasons) {
       if (!unresolvedReasons.includes(reason)) unresolvedReasons.push(reason);
     }
@@ -150,7 +183,11 @@ export function buildAdjustedClimateSummary(pillars: FourPillars): AdjustedClima
       reinforcementQuality: fireQuality,
       mitigationElement: "水",
     });
-    moisture = { status: adjusted.status, value: adjusted.value as ClimateMoisture | null };
+    moisture = {
+      status: adjusted.status,
+      value: adjusted.value as ClimateMoisture | null,
+      outcome: adjusted.outcome,
+    };
     for (const reason of adjusted.reasons) {
       if (!unresolvedReasons.includes(reason)) unresolvedReasons.push(reason);
     }

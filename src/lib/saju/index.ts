@@ -6,10 +6,59 @@ export { analyzeStemRoots } from "@/lib/saju/elements/roots";
 export { analyzeElementPresence } from "@/lib/saju/elements/presence";
 export { collectStrengthEvidence, hiddenStemSourceKey } from "@/lib/saju/elements/strength";
 export { buildStrengthSummary } from "@/lib/saju/elements/strengthSummary";
+export { buildStrengthObservations } from "@/lib/saju/observation/buildStrengthObservations";
+export { buildElementClusters, clusterAnchorDedupeKey } from "@/lib/saju/observation/buildElementClusters";
+export { buildStructureObservations } from "@/lib/saju/observation/buildStructureObservations";
+export {
+  buildObservationInterpretation,
+  assertObservationInterpretationCopySafe,
+} from "@/lib/saju/observation/interpretation/buildObservationInterpretation";
+export { deriveMusicRecommendationGate } from "@/lib/saju/music/deriveMusicRecommendationGate";
+export {
+  selectMusicRecommendationCandidates,
+  selectMusicRecommendationRecords,
+} from "@/lib/saju/music/selectMusicRecommendationCandidates";
+export {
+  normalizeMusicCatalogMoodTags,
+  MUSIC_CATALOG_STANDARD_MOODS,
+  SPEAKABLE_MOOD_TO_CATALOG,
+} from "@/lib/saju/music/normalizeMusicCatalogMoodTags";
+export type {
+  MusicCatalogStandardMood,
+  NormalizeMusicCatalogMoodTagsResult,
+} from "@/lib/saju/music/normalizeMusicCatalogMoodTags";
+export {
+  buildMusicRecommendationReason,
+  assertMusicRecommendationReasonCopySafe,
+} from "@/lib/saju/music/buildMusicRecommendationReason";
+export type {
+  DeriveMusicRecommendationGateInput,
+} from "@/lib/saju/music/deriveMusicRecommendationGate";
+export type {
+  MusicRecommendationCandidate,
+  MusicRecommendationElementMode,
+  MusicRecommendationGate,
+  MusicRecommendationMatchMeta,
+  MusicRecommendationReasonView,
+  MusicRecommendationState,
+} from "@/lib/saju/music/types";
+export {
+  ELEMENT_GENERATES,
+  elementGenerates,
+  generatedElement,
+} from "@/lib/saju/observation/elementGenerates";
 export { collectClimateEvidence } from "@/lib/saju/elements/climate";
 export { buildAdjustedClimateSummary } from "@/lib/saju/elements/adjustedClimate";
 export { buildNeedCandidateSet, collectLeaningStrongNeedCandidates, suppressedForLeaningStrong } from "@/lib/saju/elements/needCandidates";
 export { buildNeedResolution, resolveNeedCandidates } from "@/lib/saju/elements/needResolution";
+export { buildFreeInterpretation } from "@/lib/saju/interpretation/buildFreeInterpretation";
+export type {
+  FreeDirectionItem,
+  FreeDirectionOrigin,
+  FreeDirectionStance,
+  FreeInterpretation,
+  FreeInterpretationInput,
+} from "@/lib/saju/interpretation/types";
 export { baseClimateOf } from "@/lib/saju/data/baseClimate";
 export { shiShenOf } from "@/lib/saju/data/shiShen";
 export { pillarLabel } from "@/lib/saju/constants/ganzhi";
@@ -27,6 +76,7 @@ export type {
   ClimateCertainty,
   ClimateElement,
   ClimateElementQuality,
+  ClimateMitigationOutcome,
   ClimateEvidence,
   ClimateFactor,
   ClimateFactorRole,
@@ -93,9 +143,45 @@ export type {
   StrengthSummary,
   MixedConflictLevel,
   MixedStrengthPattern,
+  WeakSeasonPattern,
+  WeakSeasonPressureAxis,
+  WeakSeasonRootBand,
+  WeakSeasonSupportAxis,
   UnresolvedStrengthReason,
   SupportEvidence,
   SupportShiShen,
   HiddenRelationNote,
   RootQuality,
 } from "@/lib/saju/types";
+export type {
+  ElementCluster,
+  ElementClusterAnchor,
+  ElementClusterLayer,
+  GenerationChain,
+  GenerationChainRelation,
+  ObservationLayer,
+  StrengthObservationDayMasterRef,
+  StrengthObservationEvidenceRef,
+  StrengthObservationNodeRef,
+  StrengthObservationTargetRef,
+  StrengthObservations,
+  StructureCoexistence,
+  StructureCoexistenceKind,
+  StructureEvidenceRef,
+  StructureObservation,
+  StructureRelation,
+  StructureRelationKind,
+  SupportStructureRelation,
+  SupportStructureRelationKind,
+  PressureStructureRelation,
+  PressureStructureRelationKind,
+} from "@/lib/saju/observation/types";
+export type {
+  ObservationActingItem,
+  ObservationActingKind,
+  ObservationCoexistenceItem,
+  ObservationHelpingItem,
+  ObservationHelpingKind,
+  ObservationHiddenContextItem,
+  ObservationInterpretation,
+} from "@/lib/saju/observation/interpretation/types";

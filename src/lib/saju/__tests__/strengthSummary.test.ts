@@ -376,3 +376,218 @@ describe("StrengthSummary sourceBreakdown", () => {
     expect(["leaning-strong", "mixed", "leaning-weak", null]).toContain(summary.directionCandidate);
   });
 });
+
+describe("StrengthSummary weak-season ladder (사/수)", () => {
+  it("C-01 戊辰 / 辛酉 / 甲寅 / 甲子 stays mixed (L4 control pressure)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "戊", branch: "辰" },
+        month: { stem: "辛", branch: "酉" },
+        day: { stem: "甲", branch: "寅" },
+        hour: { stem: "甲", branch: "子" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("사");
+    expect(summary.rootQuality).toBe("clear");
+    expect(summary.directionCandidate).toBe("mixed");
+    expect(summary.resolution).toBe("mixed");
+    expect(summary.weakSeasonPattern).toBeNull();
+    expect(summary.mixedPattern).toBe("weak-season-with-support");
+    expect(summary.mixedConflictLevel).not.toBeNull();
+    forbiddenFields(summary);
+  });
+
+  it("C-04 / L2 乙亥 / 乙酉 / 甲寅 / 甲子 → leaning-weak with weak-season-with-root", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "乙", branch: "亥" },
+        month: { stem: "乙", branch: "酉" },
+        day: { stem: "甲", branch: "寅" },
+        hour: { stem: "甲", branch: "子" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("사");
+    expect(summary.rootQuality).toBe("clear");
+    expect(summary.directionCandidate).toBe("leaning-weak");
+    expect(summary.resolution).toBe("clear-direction");
+    expect(summary.weakSeasonPattern).toBe("weak-season-with-root");
+    expect(summary.mixedPattern).toBeNull();
+    expect(summary.mixedConflictLevel).toBeNull();
+    expect(summary.sourceBreakdown.peer.rootedVisible).toBe(true);
+    expect(summary.sourceBreakdown.officer.rootedVisible).toBe(false);
+    expect(summary.sourceBreakdown.wealth.rootedVisible).toBe(false);
+    forbiddenFields(summary);
+  });
+
+  it("L3 乙亥 / 乙酉 / 甲寅 / 壬申 → mixed (firm + peer&resource, no pressure)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "乙", branch: "亥" },
+        month: { stem: "乙", branch: "酉" },
+        day: { stem: "甲", branch: "寅" },
+        hour: { stem: "壬", branch: "申" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("사");
+    expect(summary.rootQuality).toBe("clear");
+    expect(summary.sourceBreakdown.peer.rootedVisible).toBe(true);
+    expect(summary.sourceBreakdown.resource.rootedVisible).toBe(true);
+    expect(summary.directionCandidate).toBe("mixed");
+    expect(summary.weakSeasonPattern).toBeNull();
+    expect(summary.mixedPattern).toBe("weak-season-with-support");
+    forbiddenFields(summary);
+  });
+
+  it("L5 甲寅 / 壬申 / 甲子 / 丙寅 → mixed (root + drain + support)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "壬", branch: "申" },
+        day: { stem: "甲", branch: "子" },
+        hour: { stem: "丙", branch: "寅" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("사");
+    expect(summary.rootQuality).toBe("clear");
+    expect(summary.sourceBreakdown.output.rootedVisible).toBe(true);
+    expect(
+      summary.sourceBreakdown.peer.rootedVisible || summary.sourceBreakdown.resource.rootedVisible,
+    ).toBe(true);
+    expect(summary.directionCandidate).toBe("mixed");
+    expect(summary.weakSeasonPattern).toBeNull();
+    forbiddenFields(summary);
+  });
+
+  it("L6 丙辰 / 丁酉 / 甲寅 / 丙寅 → null (root + drain only, no support)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "丙", branch: "辰" },
+        month: { stem: "丁", branch: "酉" },
+        day: { stem: "甲", branch: "寅" },
+        hour: { stem: "丙", branch: "寅" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("사");
+    expect(summary.rootQuality).toBe("clear");
+    expect(summary.sourceBreakdown.output.rootedVisible).toBe(true);
+    expect(summary.sourceBreakdown.peer.rootedVisible).toBe(false);
+    expect(summary.sourceBreakdown.resource.rootedVisible).toBe(false);
+    expect(summary.directionCandidate).toBeNull();
+    expect(summary.resolution).toBe("unresolved");
+    expect(summary.weakSeasonPattern).toBeNull();
+    expect(summary.mixedPattern).toBeNull();
+    forbiddenFields(summary);
+  });
+
+  it("keeps representative leaning-strong / leaning-weak / mixed fixtures", () => {
+    const strong = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "甲", branch: "寅" },
+        day: { stem: "甲", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(strong.directionCandidate).toBe("leaning-strong");
+    expect(strong.weakSeasonPattern).toBeNull();
+
+    const weak = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "酉" },
+        month: { stem: "庚", branch: "酉" },
+        day: { stem: "甲", branch: "酉" },
+        hour: "unknown",
+      }),
+    );
+    expect(weak.directionCandidate).toBe("leaning-weak");
+    expect(weak.weakSeasonPattern).toBeNull();
+
+    const mixed = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "庚", branch: "申" },
+        day: { stem: "甲", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(mixed.directionCandidate).toBe("mixed");
+    expect(mixed.weakSeasonPattern).toBeNull();
+  });
+});
+
+describe("StrengthSummary 휴 conflict-pair (STR-057)", () => {
+  it("A 辛酉/乙未/丙申/戊戌 → mixed (CP4 multi)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "辛", branch: "酉" },
+        month: { stem: "乙", branch: "未" },
+        day: { stem: "丙", branch: "申" },
+        hour: { stem: "戊", branch: "戌" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("휴");
+    expect(summary.directionCandidate).toBe("mixed");
+    expect(summary.mixedPattern).toBe("neutral-season-conflict");
+    forbiddenFields(summary);
+  });
+
+  it("B 辛酉/乙未/丙申/丁酉 → null (shallow+both+control, no CP)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "辛", branch: "酉" },
+        month: { stem: "乙", branch: "未" },
+        day: { stem: "丙", branch: "申" },
+        hour: { stem: "丁", branch: "酉" },
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("휴");
+    expect(summary.directionCandidate).toBeNull();
+    expect(summary.resolution).toBe("unresolved");
+    expect(summary.mixedPattern).toBeNull();
+    forbiddenFields(summary);
+  });
+
+  it("s10-byeong-chuk-hyu → mixed (CP1 peer+drain)", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "丙", branch: "巳" },
+        month: { stem: "己", branch: "丑" },
+        day: { stem: "丙", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("휴");
+    expect(summary.directionCandidate).toBe("mixed");
+    expect(summary.mixedPattern).toBe("neutral-season-conflict");
+    forbiddenFields(summary);
+  });
+
+  it("s15-gyeong-hae-hyu → null", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "辛", branch: "亥" },
+        day: { stem: "庚", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("휴");
+    expect(summary.directionCandidate).toBeNull();
+    expect(summary.resolution).toBe("unresolved");
+    forbiddenFields(summary);
+  });
+
+  it("case-unresolved-hyu → null", () => {
+    const summary = buildStrengthSummary(
+      chart({
+        year: { stem: "甲", branch: "寅" },
+        month: { stem: "辛", branch: "亥" },
+        day: { stem: "庚", branch: "子" },
+        hour: "unknown",
+      }),
+    );
+    expect(summary.seasonalPhase).toBe("휴");
+    expect(summary.directionCandidate).toBeNull();
+    forbiddenFields(summary);
+  });
+});

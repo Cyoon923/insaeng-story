@@ -41,11 +41,13 @@
       "waterQuality": "absent",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "balanced"
       },
       "moisture": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "balanced"
       },
       "certainty": "complete",
       "conflicts": [],
@@ -110,11 +112,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "warm"
+        "value": "warm",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "complete",
       "conflicts": [],
@@ -192,11 +196,13 @@
       "waterQuality": "clear",
       "temperature": {
         "status": "unresolved",
-        "value": null
+        "value": null,
+        "outcome": "mitigation-reinforcement-conflict"
       },
       "moisture": {
         "status": "unresolved",
-        "value": null
+        "value": null,
+        "outcome": "mitigation-reinforcement-conflict"
       },
       "certainty": "partial",
       "conflicts": [
@@ -267,11 +273,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "warm"
+        "value": "warm",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -353,11 +361,13 @@
       "waterQuality": "absent",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -433,11 +443,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "cold"
+        "value": "cold",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -516,11 +528,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -585,11 +599,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -666,11 +682,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "warm"
+        "value": "warm",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -752,11 +770,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -820,11 +840,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "cold"
+        "value": "cold",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -902,11 +924,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -971,11 +995,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "warm"
+        "value": "warm",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -1057,11 +1083,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "dry"
+        "value": "dry",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -1138,11 +1166,13 @@
       "waterQuality": "hidden",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "balanced"
       },
       "moisture": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "balanced"
       },
       "certainty": "partial",
       "conflicts": [],
@@ -1208,11 +1238,13 @@
       "waterQuality": "absent",
       "temperature": {
         "status": "resolved",
-        "value": "balanced"
+        "value": "balanced",
+        "outcome": "unchanged"
       },
       "moisture": {
         "status": "resolved",
-        "value": "moist"
+        "value": "moist",
+        "outcome": "unchanged"
       },
       "certainty": "partial",
       "conflicts": [],

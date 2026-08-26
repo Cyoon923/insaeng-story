@@ -204,6 +204,7 @@ function candidate(partial: Partial<NeedCandidate> & Pick<NeedCandidate, "elemen
     certainty: "partial",
     status: "candidate",
     evidenceRefs: [],
+    boundary: null,
     ...partial,
   };
 }
@@ -406,7 +407,7 @@ export function collectResolutionCaseTraces(): ResolutionCaseTrace[] {
         note: "주입 단위 테스트. 기존 만세력 fixture 없음. exact-overlap 水. winner 없음.",
         source: "injected-needSet",
       },
-      resolveNeedCandidates(exactSet, stubStrength("leaning-weak"), stubClimate({ status: "resolved", value: "dry" })),
+      resolveNeedCandidates(exactSet, stubStrength("leaning-weak"), stubClimate({ status: "resolved", value: "dry", outcome: "unchanged" })),
     ),
     fromResolution(
       {
@@ -419,7 +420,7 @@ export function collectResolutionCaseTraces(): ResolutionCaseTrace[] {
       resolveNeedCandidates(
         suppressedSet,
         stubStrength("leaning-strong"),
-        stubClimate({ status: "resolved", value: "balanced" }),
+        stubClimate({ status: "resolved", value: "balanced", outcome: "unchanged" }),
       ),
     ),
   ];

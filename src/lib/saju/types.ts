@@ -253,6 +253,14 @@ export type StrengthDirectionCandidate = "leaning-strong" | "mixed" | "leaning-w
 /** Diagnostic only: leaning direction under hour-unknown remains provisional (not fed to decideDirection/Need). */
 export type StrengthDirectionSensitivity = "hour-unknown-provisional" | null;
 export type RootQuality = "clear" | "present" | "shallow" | "absent";
+/** Weak-season (사/수) ladder: root band from rootQuality. */
+export type WeakSeasonRootBand = "absent" | "shallow" | "firm";
+/** Weak-season ladder: rooted-visible peer/resource axes only (no counts). */
+export type WeakSeasonSupportAxis = "none" | "peer" | "resource" | "both";
+/** Weak-season ladder: rooted-visible output vs wealth/officer (no counts). */
+export type WeakSeasonPressureAxis = "none" | "drain" | "control" | "multi";
+/** Diagnostic: leaning-weak under 사/수 with root (L2). Not a mixedPattern. */
+export type WeakSeasonPattern = "weak-season-with-root" | null;
 export type MixedStrengthPattern =
   | "strong-base-with-pressure"
   | "weak-season-with-support"
@@ -319,6 +327,8 @@ export type StrengthSummary = {
   unresolvedReasons: string[];
   mixedPattern: MixedStrengthPattern | null;
   mixedConflictLevel: MixedConflictLevel | null;
+  /** Set when 사/수 ladder yields leaning-weak with root (L2). Null otherwise. */
+  weakSeasonPattern: WeakSeasonPattern;
   unresolvedStrengthReasons: UnresolvedStrengthReason[];
   omittedSlots: PillarSlot[];
 };
@@ -360,14 +370,28 @@ export type ClimateCertainty = "complete" | "partial";
 export type ClimateAxisStatus = "resolved" | "unresolved";
 export type ClimateElementQuality = "clear" | "substantial" | "shallow" | "hidden" | "branch-only" | "absent";
 
+/**
+ * Qualitative mitigation path for one adjusted Climate axis.
+ * Need must gate on `status === "resolved"` only — `value != null` does not mean resolved.
+ * When `status === "unresolved"` and `value != null`, value is residual base polarity (not a final judgment).
+ */
+export type ClimateMitigationOutcome =
+  | "unchanged"
+  | "partially-mitigated"
+  | "balanced"
+  | "mitigation-reinforcement-conflict"
+  | "unresolved";
+
 export type AdjustedTemperatureAxis = {
   status: ClimateAxisStatus;
   value: ClimateTemperature | null;
+  outcome: ClimateMitigationOutcome;
 };
 
 export type AdjustedMoistureAxis = {
   status: ClimateAxisStatus;
   value: ClimateMoisture | null;
+  outcome: ClimateMitigationOutcome;
 };
 
 export type AdjustedClimateSummary = {
@@ -390,6 +414,9 @@ export type NeedDirection = "peer" | "resource" | "output" | "wealth" | "officia
 export type StrengthNeedStatus = "ready" | "unresolved";
 export type ClimateNeedStatus = "ready" | "axis-unresolved" | "unresolved";
 
+/** Literature/product boundary inherited onto a Need candidate (e.g. NEED-022 dry). */
+export type NeedCandidateBoundary = null | "contested-inherited";
+
 export type NeedCandidate = {
   element: Element;
   source: NeedSource;
@@ -400,6 +427,8 @@ export type NeedCandidate = {
   certainty: StrengthCertainty | ClimateCertainty;
   status: NeedCandidateStatus;
   evidenceRefs: string[];
+  /** Contested climate paths only; Strength and warm/cold-only stay null. */
+  boundary: NeedCandidateBoundary;
 };
 
 export type ClimateCounterSignal = {
@@ -434,7 +463,8 @@ export type NeedDecisionBlocker =
   | "no-active-climate-need"
   | "deferred-strength-only-element"
   | "competing-axes"
-  | "strength-three-way-unranked";
+  | "strength-three-way-unranked"
+  | "climate-need-contested-inherited";
 
 export type NeedSupportedElement = {
   element: Element;

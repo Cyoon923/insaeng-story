@@ -555,6 +555,20 @@
       "notes": "mixed는 최종 신강/신약이 아니다. OR 조건이 여러 경로로 강/약 실질을 연다. 점수 가산은 없음."
     },
     {
+      "ruleId": "STR-057",
+      "layer": "direction-mixed-hyu",
+      "condition": "phase===휴 && conflict-pair CP1–CP4",
+      "output": "mixed",
+      "evidenceUsed": ["rootBand", "supportAxis", "pressureAxis"],
+      "evidenceIgnored": ["STR-055", "leaning-strong", "leaning-weak"],
+      "rationaleInCurrentEngine": "휴는 seasonal 중립; named conflict-pair만 mixed",
+      "validationClass": "ENGINE-POLICY",
+      "freezeStatus": "FROZEN-POLICY",
+      "sourceStatus": "engine-code",
+      "affectedFixtures": ["s10-byeong-chuk-hyu"],
+      "notes": "CP1 peer+drain; CP2 resource+control+firm; CP3 both+control+firm; CP4 multi+firm|shallow."
+    },
+    {
       "ruleId": "STR-056",
       "layer": "direction-unresolved",
       "condition": "050/051/055 미해당",
