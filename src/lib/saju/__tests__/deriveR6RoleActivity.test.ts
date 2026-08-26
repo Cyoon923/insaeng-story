@@ -146,6 +146,7 @@ describe("deriveR6RoleActivity", () => {
     const completedClimate = buildAdjustedClimateSummary(completed);
     expect(completedClimate.baseClimate.temperature).not.toBe("balanced");
     expect(completedClimate.temperature.outcome).toBe("balanced");
+    expect(completedClimate.moisture.outcome).toBe("balanced");
     expect(deriveR6RoleActivity({ pillars: completed, climate: completedClimate })).toBe("C");
 
     // Never needed on temperature: base already balanced → unchanged (CLI-028),
@@ -166,5 +167,38 @@ describe("deriveR6RoleActivity", () => {
     expect(neverNeededClimate.fireQuality).toBe("absent");
     expect(neverNeededClimate.waterQuality).toBe("absent");
     expect(deriveR6RoleActivity({ pillars: neverNeeded, climate: neverNeededClimate })).toBe("A");
+  });
+
+  it("returns B when one axis is balanced but another polar axis remains unchanged", () => {
+    const pillars = chart({
+      year: { stem: "己", branch: "卯" },
+      month: { stem: "丙", branch: "子" },
+      day: { stem: "戊", branch: "午" },
+      hour: { stem: "戊", branch: "午" },
+    });
+    const base = buildAdjustedClimateSummary(pillars);
+    const climate = {
+      ...base,
+      temperature: {
+        status: "resolved" as const,
+        value: "balanced" as const,
+        outcome: "balanced" as const,
+      },
+      moisture: {
+        status: "resolved" as const,
+        value: "dry" as const,
+        outcome: "unchanged" as const,
+      },
+    };
+
+    expect(climate.temperature.outcome).toBe("balanced");
+    expect(climate.moisture).toEqual({
+      status: "resolved",
+      value: "dry",
+      outcome: "unchanged",
+    });
+
+    expect(deriveR6RoleActivity({ pillars, climate })).toBe("B");
+    expect(deriveR6RoleActivity({ pillars, climate })).not.toBe("C");
   });
 });

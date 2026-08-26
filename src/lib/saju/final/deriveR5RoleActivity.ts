@@ -9,7 +9,11 @@ import { collectStrengthEvidence } from "@/lib/saju/elements/strength";
 import type { RoleActivity } from "@/lib/saju/final/types";
 import { buildStrengthObservations } from "@/lib/saju/observation/buildStrengthObservations";
 import { generatedElement } from "@/lib/saju/observation/elementGenerates";
-import type { GenerationChain, StrengthObservations } from "@/lib/saju/observation/types";
+import type {
+  GenerationChain,
+  StrengthObservations,
+  SupportStructureRelation,
+} from "@/lib/saju/observation/types";
 import type { Element, FourPillars, PillarSlot, StrengthEvidence } from "@/lib/saju/types";
 import { ELEMENTS } from "@/lib/saju/types";
 
@@ -25,6 +29,10 @@ export type DeriveR5RoleActivityInput = {
 function isEligibleSlot(slot: PillarSlot, hourUnknown: boolean): boolean {
   if (hourUnknown && slot === "hour") return false;
   return true;
+}
+
+function isResourceShiShen(shiShen: string): boolean {
+  return shiShen === "정인" || shiShen === "편인";
 }
 
 function parentElement(child: Element): Element {
@@ -117,11 +125,18 @@ function hasWeakMidPresence(
   });
 }
 
-/**
- * generation-support may reinforce an M→Q leg when Q is day
- * (structure builder maps resource-to-day chains). Not a day-resource hardcode:
- * only consulted when child === dayElement for that mid's natural Q.
- */
+function isMidDayGenerationSupport(
+  relation: SupportStructureRelation,
+  mid: Element,
+  dayElement: Element,
+  hourUnknown: boolean,
+): boolean {
+  if (relation.kind !== "generation-support") return false;
+  if (!relation.elements.includes(mid) || !relation.elements.includes(dayElement)) return false;
+  return relation.slots.some((slot) => isEligibleSlot(slot, hourUnknown));
+}
+
+/** Kind-level M→day generation-support presence (any backing strength). */
 function generationSupportConfirmsMq(
   observations: StrengthObservations,
   mid: Element,
@@ -130,13 +145,55 @@ function generationSupportConfirmsMq(
   hourUnknown: boolean,
 ): boolean {
   if (child !== dayElement) return false;
-  return observations.structureObservation.supportRelations.some((relation) => {
-    if (relation.kind !== "generation-support") return false;
-    if (!relation.elements.includes(mid) || !relation.elements.includes(dayElement)) {
-      return false;
+  return observations.structureObservation.supportRelations.some((relation) =>
+    isMidDayGenerationSupport(relation, mid, dayElement, hourUnknown),
+  );
+}
+
+/**
+ * M→Q via generation-support counts as rooted surface only when evidenceRefs
+ * resolve to rooted-visible backing (matching resource-to-day chain and/or
+ * visible resource supportEvidence). Kind existence alone is not enough.
+ */
+function hasRootedVisibleGenerationSupportMq(
+  evidence: StrengthEvidence,
+  observations: StrengthObservations,
+  mid: Element,
+  child: Element,
+  dayElement: Element,
+  hourUnknown: boolean,
+): boolean {
+  if (child !== dayElement) return false;
+
+  for (const relation of observations.structureObservation.supportRelations) {
+    if (!isMidDayGenerationSupport(relation, mid, dayElement, hourUnknown)) continue;
+
+    for (const ref of relation.evidenceRefs) {
+      if (!ref.stem || stemElement(ref.stem) !== mid) continue;
+      if (ref.slot !== undefined && !isEligibleSlot(ref.slot, hourUnknown)) continue;
+
+      const backingChain = observations.generationChains.find(
+        (chain) =>
+          chain.relation === "resource-to-day-master" &&
+          chain.from.element === mid &&
+          chain.from.stem === ref.stem &&
+          (ref.slot === undefined || chain.from.slot === ref.slot) &&
+          eligibleChain(chain, hourUnknown),
+      );
+      if (backingChain?.from.presence === "rooted-visible") return true;
+
+      const supportItem = evidence.supportEvidence.items.find(
+        (item) =>
+          item.stem === ref.stem &&
+          isResourceShiShen(item.shiShen) &&
+          isEligibleSlot(item.slot, hourUnknown) &&
+          (ref.slot === undefined || item.slot === ref.slot),
+      );
+      if (supportItem?.presence === "rooted-visible") return true;
     }
-    return relation.slots.some((slot) => isEligibleSlot(slot, hourUnknown));
-  });
+  }
+
+  return false;
 }
 
 type CorridorTrace = {
@@ -168,11 +225,20 @@ function collectCorridorTraces(
       dayElement,
       hourUnknown,
     );
+    const mqRooted =
+      hasRootedVisible(mq) ||
+      hasRootedVisibleGenerationSupportMq(
+        evidence,
+        observations,
+        mid,
+        child,
+        dayElement,
+        hourUnknown,
+      );
 
     const bothLegs = pm.length > 0 && (mq.length > 0 || supportMq);
-    // Surface C requires both corridor legs to operate as rooted-visible.
-    // One rooted leg + one hidden-only leg is not enough (max B).
-    const rootedSurface = bothLegs && hasRootedVisible(pm) && hasRootedVisible(mq);
+    // Both legs required; M→Q rooted via mq chain OR rooted-visible generation-support evidence.
+    const rootedSurface = bothLegs && hasRootedVisible(pm) && mqRooted;
     const anyLeg = pm.length > 0 || mq.length > 0 || supportMq;
     const midWeakPresence = hasWeakMidPresence(observations, mid, hourUnknown);
     const neighborsPresent =

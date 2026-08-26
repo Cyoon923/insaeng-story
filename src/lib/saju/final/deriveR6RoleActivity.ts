@@ -44,7 +44,7 @@ function axisRegulationComplete(axis: ClimateAxis): boolean {
   return axis.status === "resolved" && axis.outcome === "balanced";
 }
 
-/** Resolved polar bias kept unchanged — complement/mitigation did not close it. */
+/** Resolved polar bias kept unchanged — regulation gap still open on this axis. */
 function axisUnresolvedBiasUnchanged(axis: ClimateAxis): boolean {
   return (
     axis.status === "resolved" && isPolarClimateValue(axis.value) && axis.outcome === "unchanged"
@@ -62,6 +62,7 @@ function hasClimateRegulationTrace(climate: AdjustedClimateSummary): boolean {
 /**
  * Derives R6 Role Activity (A/B/C) from AdjustedClimateSummary.
  * Fire/water Element Presence alone and Climate Need candidates do not yield C.
+ * C requires at least one completed axis and no remaining polar/incomplete gap on others.
  */
 export function deriveR6RoleActivity(input: DeriveR6RoleActivityInput): RoleActivity {
   const climate = input.climate ?? buildAdjustedClimateSummary(input.pillars);
@@ -72,8 +73,11 @@ export function deriveR6RoleActivity(input: DeriveR6RoleActivityInput): RoleActi
     return "B";
   }
 
-  // At least one axis closed by mitigation/balance, none left incomplete.
   if (axes.some(axisRegulationComplete)) {
+    // One balanced axis is not enough if another axis still has an open polar gap.
+    if (axes.some(axisUnresolvedBiasUnchanged)) {
+      return "B";
+    }
     return "C";
   }
 

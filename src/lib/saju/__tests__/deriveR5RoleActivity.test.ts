@@ -120,7 +120,7 @@ describe("deriveR5RoleActivity", () => {
     expect(deriveR5RoleActivity({ pillars, evidence, observations })).toBe("C");
   });
 
-  it("returns C when generation-support confirms a corridor M→Q leg with rooted surface", () => {
+  it("returns C when rooted P→M exists and rooted generation-support alone confirms M→Q", () => {
     const pillars = chart({
       year: { stem: "壬", branch: "子" },
       month: { stem: "乙", branch: "未" },
@@ -128,15 +128,115 @@ describe("deriveR5RoleActivity", () => {
       hour: { stem: "丁", branch: "酉" },
     });
     const evidence = collectStrengthEvidence(pillars);
-    const observations = buildStrengthObservations(pillars, evidence);
+    const base = buildStrengthObservations(pillars, evidence);
+    const dayElement = stemElement(pillars.day.stem);
+    const mid: Element = "木";
 
+    // Strip M→Q generationChains; keep rooted P→M and generation-support.
+    const observations = {
+      ...base,
+      generationChains: base.generationChains.filter((chain) => {
+        if (chain.relation === "resource-to-day-master" && chain.from.element === mid) {
+          return false;
+        }
+        if (
+          chain.relation === "element-generates" &&
+          chain.from.element === mid &&
+          !("target" in chain.to) &&
+          chain.to.element === dayElement
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    };
+
+    const { pm, mq } = corridorLegs(observations, mid, dayElement);
+    expect(pm.some((chain) => chain.from.presence === "rooted-visible")).toBe(true);
+    expect(mq.length).toBe(0);
+    expect(
+      observations.structureObservation.supportRelations.some(
+        (relation) =>
+          relation.kind === "generation-support" &&
+          relation.elements.includes(mid) &&
+          relation.elements.includes(dayElement),
+      ),
+    ).toBe(true);
+    expect(
+      evidence.supportEvidence.items.some(
+        (item) =>
+          (item.shiShen === "정인" || item.shiShen === "편인") &&
+          item.presence === "rooted-visible" &&
+          stemElement(item.stem) === mid,
+      ),
+    ).toBe(true);
+
+    expect(deriveR5RoleActivity({ pillars, evidence, observations })).toBe("C");
+  });
+
+  it("does not return C when generation-support M→Q is only hidden/unrooted", () => {
+    const pillars = chart({
+      year: { stem: "壬", branch: "子" },
+      month: { stem: "乙", branch: "未" },
+      day: { stem: "丙", branch: "申" },
+      hour: { stem: "丁", branch: "酉" },
+    });
+    const evidence = collectStrengthEvidence(pillars);
+    const base = buildStrengthObservations(pillars, evidence);
+    const dayElement = stemElement(pillars.day.stem);
+    const mid: Element = "木";
+
+    // Keep P→M rooted; remove M→Q chains and rooted resource supportEvidence.
+    // generation-support kind remains, but backing is forced to hidden-only only.
+    const observations = {
+      ...base,
+      generationChains: [
+        ...base.generationChains.filter((chain) => {
+          if (chain.relation === "resource-to-day-master" && chain.from.element === mid) {
+            return false;
+          }
+          if (
+            chain.relation === "element-generates" &&
+            chain.from.element === mid &&
+            !("target" in chain.to) &&
+            chain.to.element === dayElement
+          ) {
+            return false;
+          }
+          return true;
+        }),
+        ...base.generationChains
+          .filter(
+            (chain) =>
+              chain.relation === "resource-to-day-master" && chain.from.element === mid,
+          )
+          .map((chain) => ({
+            ...chain,
+            from: { ...chain.from, presence: "hidden-only" as const },
+          })),
+      ],
+    };
+    const weakEvidence = {
+      ...evidence,
+      supportEvidence: {
+        items: evidence.supportEvidence.items.filter(
+          (item) => !(item.shiShen === "정인" || item.shiShen === "편인"),
+        ),
+      },
+    };
+
+    const { pm, mq } = corridorLegs(observations, mid, dayElement);
+    expect(pm.some((chain) => chain.from.presence === "rooted-visible")).toBe(true);
+    expect(mq.every((chain) => chain.from.presence !== "rooted-visible")).toBe(true);
     expect(
       observations.structureObservation.supportRelations.some(
         (relation) => relation.kind === "generation-support",
       ),
     ).toBe(true);
 
-    expect(deriveR5RoleActivity({ pillars, evidence, observations })).toBe("C");
+    expect(deriveR5RoleActivity({ pillars, evidence: weakEvidence, observations })).not.toBe(
+      "C",
+    );
   });
 
   it("returns B when connection mid is hidden-only and surface corridor is not working", () => {
