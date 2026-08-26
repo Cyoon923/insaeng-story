@@ -19,60 +19,72 @@ function chart(partial: {
   };
 }
 
-function snap(partial: Partial<HourFerSnapshot> & Pick<HourFerSnapshot, "element">): HourFerSnapshot {
+function snap(
+  partial: Partial<HourFerSnapshot> & Pick<HourFerSnapshot, "element">,
+): HourFerSnapshot {
   return {
-    role: partial.role ?? "R2",
+    role: partial.role ?? "R3",
     status: partial.status ?? (partial.element ? "resolved" : "unresolved"),
-    r2Bottleneck: partial.r2Bottleneck ?? "NOT",
-    r5Bottleneck: partial.r5Bottleneck ?? "NOT",
+    roleBand: partial.roleBand ?? "CLEAR",
     element: partial.element,
   };
 }
 
 describe("classifyHourStability", () => {
-  it("A fixture: element/role/band all fixed", () => {
+  it("1. snapshots 12개 전부 null/unresolved → C", () => {
     const snapshots = Array.from({ length: 12 }, () =>
-      snap({ element: "火", role: "R2", r2Bottleneck: "POSSIBLE", r5Bottleneck: "NOT" }),
+      snap({ element: null, role: null, status: "unresolved", roleBand: "UNRESOLVED" }),
+    );
+    expect(classifyHourStability(snapshots)).toBe("C");
+  });
+
+  it("2. 火/R3 12개 동일 + R3 band CLEAR↔POSSIBLE 변동 → B", () => {
+    const snapshots: HourFerSnapshot[] = [
+      ...Array.from({ length: 6 }, () =>
+        snap({ element: "火", role: "R3", roleBand: "CLEAR" }),
+      ),
+      ...Array.from({ length: 6 }, () =>
+        snap({ element: "火", role: "R3", roleBand: "POSSIBLE" }),
+      ),
+    ];
+    expect(classifyHourStability(snapshots)).toBe("B");
+  });
+
+  it("3. 火/R3 + 火/R4 변동 → B", () => {
+    const snapshots: HourFerSnapshot[] = [
+      ...Array.from({ length: 6 }, () =>
+        snap({ element: "火", role: "R3", roleBand: "CLEAR" }),
+      ),
+      ...Array.from({ length: 6 }, () =>
+        snap({ element: "火", role: "R4", roleBand: "CLEAR" }),
+      ),
+    ];
+    expect(classifyHourStability(snapshots)).toBe("B");
+  });
+
+  it("4. 火 ↔ 土 → C", () => {
+    expect(
+      classifyHourStability([
+        snap({ element: "火", role: "R3", roleBand: "CLEAR" }),
+        snap({ element: "土", role: "R3", roleBand: "CLEAR" }),
+      ]),
+    ).toBe("C");
+  });
+
+  it("5. 火 ↔ null → C", () => {
+    expect(
+      classifyHourStability([
+        snap({ element: "火", role: "R3", roleBand: "CLEAR" }),
+        snap({ element: null, role: null, status: "unresolved", roleBand: "UNRESOLVED" }),
+      ]),
+    ).toBe("C");
+  });
+
+  it("6. 火/R3/CLEAR 전부 동일 → A", () => {
+    const snapshots = Array.from({ length: 12 }, () =>
+      snap({ element: "火", role: "R3", roleBand: "CLEAR" }),
     );
     expect(classifyHourStability(snapshots)).toBe("A");
-  });
-
-  it("B fixture: same element, band varies", () => {
-    const snapshots: HourFerSnapshot[] = [
-      ...Array.from({ length: 6 }, () =>
-        snap({ element: "火", role: "R2", r2Bottleneck: "POSSIBLE", r5Bottleneck: "NOT" }),
-      ),
-      ...Array.from({ length: 6 }, () =>
-        snap({ element: "火", role: "R2", r2Bottleneck: "CLEAR", r5Bottleneck: "NOT" }),
-      ),
-    ];
-    expect(classifyHourStability(snapshots)).toBe("B");
-  });
-
-  it("B fixture: same element, role varies", () => {
-    const snapshots: HourFerSnapshot[] = [
-      ...Array.from({ length: 6 }, () => snap({ element: "水", role: "R1" })),
-      ...Array.from({ length: 6 }, () => snap({ element: "水", role: "R6" })),
-    ];
-    expect(classifyHourStability(snapshots)).toBe("B");
-  });
-
-  it("C: multiple elements", () => {
-    expect(
-      classifyHourStability([
-        snap({ element: "火" }),
-        snap({ element: "水" }),
-      ]),
-    ).toBe("C");
-  });
-
-  it("C: element mixed with unresolved", () => {
-    expect(
-      classifyHourStability([
-        snap({ element: "火" }),
-        snap({ element: null, status: "unresolved", role: null }),
-      ]),
-    ).toBe("C");
   });
 });
 

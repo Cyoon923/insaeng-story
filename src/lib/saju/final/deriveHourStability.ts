@@ -1,6 +1,7 @@
 /**
  * Hour-unknown stability A/B/C by re-running the FER pipeline on all 12 hour candidates.
- * Does not assign certainty or build FinalResolution.
+ * Compares Final element + role + role certainty band (not bottleneck pair alone).
+ * Does not assign Final certainty or build FinalResolution.
  */
 
 import { buildAdjustedClimateSummary } from "@/lib/saju/elements/adjustedClimate";
@@ -13,23 +14,38 @@ import { deriveR5Bottleneck } from "@/lib/saju/final/deriveR5Bottleneck";
 import { deriveRoleActivities } from "@/lib/saju/final/deriveRoleActivities";
 import { deriveRoleElementCandidates } from "@/lib/saju/final/deriveRoleElementCandidates";
 import { resolveStructuralElement } from "@/lib/saju/final/resolveStructuralElement";
+import type { StructureVsClimateSource } from "@/lib/saju/final/resolveStructureVsClimate";
 import { resolveStructureVsClimate } from "@/lib/saju/final/resolveStructureVsClimate";
 import type {
   BottleneckLevel,
   FinalRole,
   HourStability,
+  RoleActivityMap,
 } from "@/lib/saju/final/types";
 import { buildStrengthObservations } from "@/lib/saju/observation/buildStrengthObservations";
 import { listHourCandidates } from "@/lib/saju/pillars/hour";
-import type { Element, FourPillars, Pillar } from "@/lib/saju/types";
+import type {
+  AdjustedClimateSummary,
+  AdjustedMoistureAxis,
+  AdjustedTemperatureAxis,
+  Element,
+  NeedResolution,
+  PillarSlot,
+  StrengthEvidence,
+  StrengthSummary,
+  FourPillars,
+  Pillar,
+} from "@/lib/saju/types";
 
-/** Per-hour FER outcome used only for A/B/C comparison (no certainty). */
+/** Role-scoped certainty band for hour-stability comparison only. */
+export type HourRoleBand = "CLEAR" | "POSSIBLE" | "UNRESOLVED";
+
+/** Per-hour FER outcome used only for A/B/C comparison (no Final certainty). */
 export type HourFerSnapshot = {
   element: Element | null;
   role: FinalRole | null;
   status: "resolved" | "unresolved";
-  r2Bottleneck: BottleneckLevel;
-  r5Bottleneck: BottleneckLevel;
+  roleBand: HourRoleBand;
 };
 
 export type DeriveHourStabilityInput = {
@@ -37,12 +53,178 @@ export type DeriveHourStabilityInput = {
   pillars: FourPillars;
 };
 
+type ClimateAxis = AdjustedTemperatureAxis | AdjustedMoistureAxis;
+
 function withConfirmedHour(base: FourPillars, hour: Pillar): FourPillars {
   return {
     ...base,
     hour,
     hourCertainty: "confirmed",
   };
+}
+
+function isEligibleSlot(slot: PillarSlot, hourUnknown: boolean): boolean {
+  if (hourUnknown && slot === "hour") return false;
+  return true;
+}
+
+function isVisiblePresence(presence: string | undefined): boolean {
+  return presence === "rooted-visible" || presence === "unrooted-visible";
+}
+
+function isResourceShiShen(shiShen: string): boolean {
+  return shiShen === "정인" || shiShen === "편인";
+}
+
+function isOutputShiShen(shiShen: string): boolean {
+  return shiShen === "식신" || shiShen === "상관";
+}
+
+function isControlShiShen(shiShen: string): boolean {
+  return shiShen === "정재" || shiShen === "편재" || shiShen === "정관" || shiShen === "편관";
+}
+
+/**
+ * R1 CLEAR-grade — same criteria as deriveFinalCertainty.r1HasClearEvidence.
+ */
+function r1HasClearEvidence(
+  summary: StrengthSummary,
+  evidence: StrengthEvidence | undefined,
+): boolean {
+  if (!summary.sourceBreakdown.resource.rootedVisible) return false;
+  if (!evidence) return false;
+  return evidence.supportEvidence.items.some(
+    (item) =>
+      isResourceShiShen(item.shiShen) &&
+      isVisiblePresence(item.presence) &&
+      isEligibleSlot(item.slot, evidence.hourUnknown),
+  );
+}
+
+/**
+ * R3 CLEAR-grade — same criteria as deriveFinalCertainty.r3HasClearEvidence.
+ */
+function r3HasClearEvidence(
+  summary: StrengthSummary,
+  evidence: StrengthEvidence | undefined,
+): boolean {
+  if (summary.sourceBreakdown.output.rootedVisible) return true;
+  if (!evidence) return false;
+  return evidence.pressureEvidence.items.some(
+    (item) =>
+      isOutputShiShen(item.shiShen) &&
+      item.presence === "rooted-visible" &&
+      isEligibleSlot(item.slot, evidence.hourUnknown),
+  );
+}
+
+/**
+ * R4 CLEAR-grade — same criteria as deriveFinalCertainty.r4HasClearEvidence.
+ */
+function r4HasClearEvidence(
+  summary: StrengthSummary,
+  evidence: StrengthEvidence | undefined,
+): boolean {
+  const { wealth, officer } = summary.sourceBreakdown;
+  if (wealth.rootedVisible || officer.rootedVisible) return true;
+  if (!evidence) return false;
+  return evidence.pressureEvidence.items.some(
+    (item) =>
+      isControlShiShen(item.shiShen) &&
+      item.presence === "rooted-visible" &&
+      isEligibleSlot(item.slot, evidence.hourUnknown),
+  );
+}
+
+function axisIncomplete(axis: ClimateAxis): boolean {
+  if (axis.status === "unresolved") return true;
+  return (
+    axis.outcome === "partially-mitigated" ||
+    axis.outcome === "mitigation-reinforcement-conflict" ||
+    axis.outcome === "unresolved"
+  );
+}
+
+function climateAxesAllowClearR6(climate: AdjustedClimateSummary): boolean {
+  if (climate.conflicts.length > 0) return false;
+  return !axisIncomplete(climate.temperature) && !axisIncomplete(climate.moisture);
+}
+
+function hasContestedInheritedProvenance(
+  needResolution: NeedResolution | undefined,
+  element: Element | null,
+): boolean {
+  if (!needResolution || !element) return false;
+  if (needResolution.decisionBlockedBy.includes("climate-need-contested-inherited")) {
+    return true;
+  }
+  return [...needResolution.originalClimateCandidates, ...needResolution.climateOnlyElements].some(
+    (candidate) =>
+      candidate.element === element && candidate.boundary === "contested-inherited",
+  );
+}
+
+function bottleneckToBand(level: BottleneckLevel): HourRoleBand {
+  if (level === "CLEAR") return "CLEAR";
+  if (level === "POSSIBLE") return "POSSIBLE";
+  return "UNRESOLVED";
+}
+
+export type DeriveHourRoleBandInput = {
+  role: FinalRole | null;
+  status: "resolved" | "unresolved";
+  source: StructureVsClimateSource;
+  r2Bottleneck: BottleneckLevel;
+  r5Bottleneck: BottleneckLevel;
+  summary: StrengthSummary;
+  evidence: StrengthEvidence;
+  roleActivities: RoleActivityMap;
+  climate: AdjustedClimateSummary;
+  needResolution?: NeedResolution;
+  element: Element | null;
+};
+
+/**
+ * Grades the Final candidate role's certainty band for hour-stability comparison.
+ * Reuses existing bottleneck / CLEAR-grade evidence / climate clear policies — no new Final rules.
+ */
+export function deriveHourRoleBand(input: DeriveHourRoleBandInput): HourRoleBand {
+  const { role, status, r2Bottleneck, r5Bottleneck, summary, evidence, roleActivities } =
+    input;
+  void input.source;
+
+  if (status === "unresolved" || role === null || input.element === null) {
+    return "UNRESOLVED";
+  }
+
+  switch (role) {
+    case "R2":
+      return bottleneckToBand(r2Bottleneck);
+    case "R5":
+      return bottleneckToBand(r5Bottleneck);
+    case "R1": {
+      if (roleActivities.R1 === "C") return "UNRESOLVED";
+      return r1HasClearEvidence(summary, evidence) ? "CLEAR" : "POSSIBLE";
+    }
+    case "R3": {
+      if (roleActivities.R3 === "C") return "UNRESOLVED";
+      return r3HasClearEvidence(summary, evidence) ? "CLEAR" : "POSSIBLE";
+    }
+    case "R4": {
+      if (roleActivities.R4 === "C") return "UNRESOLVED";
+      return r4HasClearEvidence(summary, evidence) ? "CLEAR" : "POSSIBLE";
+    }
+    case "R6": {
+      const clear =
+        climateAxesAllowClearR6(input.climate) &&
+        !hasContestedInheritedProvenance(input.needResolution, input.element);
+      if (clear) return "CLEAR";
+      // Resolved but partial/contested climate path — POSSIBLE; incomplete axes also POSSIBLE.
+      return "POSSIBLE";
+    }
+    default:
+      return "UNRESOLVED";
+  }
 }
 
 /**
@@ -111,17 +293,26 @@ export function runHourFerSnapshot(pillars: FourPillars): HourFerSnapshot {
     needResolution,
   });
 
+  const roleBand = deriveHourRoleBand({
+    role: final.role,
+    status: final.status,
+    source: final.source,
+    r2Bottleneck,
+    r5Bottleneck,
+    summary,
+    evidence,
+    roleActivities,
+    climate,
+    needResolution,
+    element: final.element,
+  });
+
   return {
     element: final.element,
     role: final.role,
     status: final.status,
-    r2Bottleneck,
-    r5Bottleneck,
+    roleBand,
   };
-}
-
-function bandKey(snapshot: HourFerSnapshot): string {
-  return `${snapshot.r2Bottleneck}|${snapshot.r5Bottleneck}`;
 }
 
 function elementKey(snapshot: HourFerSnapshot): string {
@@ -134,9 +325,13 @@ function roleKey(snapshot: HourFerSnapshot): string {
   return snapshot.role;
 }
 
+function bandKey(snapshot: HourFerSnapshot): string {
+  return snapshot.roleBand;
+}
+
 /**
  * Pure A/B/C classifier over 12 (or more) hour snapshots.
- * No voting/averaging — set cardinality of element / role / band only.
+ * A/B require a single concrete Final element; all-null/unresolved is C.
  */
 export function classifyHourStability(snapshots: HourFerSnapshot[]): HourStability {
   if (snapshots.length === 0) return "C";
@@ -148,14 +343,13 @@ export function classifyHourStability(snapshots: HourFerSnapshot[]): HourStabili
   const hasNull = elements.has("∅");
   const concreteElements = [...elements].filter((key) => key !== "∅");
 
-  // C: multiple concrete elements, or concrete mixed with unresolved/null
+  // C: no concrete Final element (all unresolved/null), multiple elements, or mix
+  if (concreteElements.length === 0) return "C";
   if (concreteElements.length > 1) return "C";
-  if (hasNull && concreteElements.length === 1) return "C";
+  if (hasNull) return "C";
 
-  // Single stable element key (all ∅ or one concrete element)
-  const roleVaries = roles.size > 1;
-  const bandVaries = bands.size > 1;
-  if (roleVaries || bandVaries) return "B";
+  // Single concrete element across all hours — role/band variance → B, else A
+  if (roles.size > 1 || bands.size > 1) return "B";
   return "A";
 }
 
