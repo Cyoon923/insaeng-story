@@ -1044,6 +1044,36 @@ clash와 transform은 **서로를 import하지 않으며**, `effective/`도 두 
 > 이 계층은 **Natal Strength 판정을 다시 계산하는 엔진이 아니다.** 표시 좌표를 빌려
 > 확정 modifier를 얹는 **파생 Effective 계층**이며, Natal Level·Need·Core·Supplement를 바꾸지 않는다.
 
+
+###### 1.5.11.15 세운 orchestration 합류 (구현 완료)
+
+`resolveAnnualEffectiveStrength({ pillars, year })` — `luck/annual/`.
+
+**책임 분리 (이름 오해 방지):**
+
+| 층 | 출처 | 이번 범위 |
+|----|------|----------|
+| **Transform** | **원국(Natal) 전용** | 세운 간지는 합 participant가 **아니다** |
+| **Clash** | **세운(annual-year) source** | 세운 지지 ↔ 원국 지지 육충 |
+
+“annual effective”는 *세운 시점의* Effective라는 뜻이지 **세운이 Transform을 일으킨다는 뜻이 아니다.**
+세운·원국이 만드는 합(**Luck Transform**)은 **미구현**이다.
+
+**순서:** Natal Display 좌표 1회 산출 → (A) 원국 Transform L1→L4 → delta,
+(B) 세운 Clash → modifier → delta → (C) 공통 합성 → Internal / Display / Level.
+
+**중복 계산 제거:** `resolveAnnualClashEffective`가 내부에 갖고 있던 clash 하위 파이프라인을
+`buildAnnualClashModifiers`로 **추출**해 두 경로가 공유한다. 기존 함수는 이 헬퍼를 쓰도록만
+바뀌었고 **시그니처·반환 의미·테스트는 그대로**다. 상위 orchestrator는 Natal Display를
+**한 번만** 만든다(기존 함수를 호출하지 않는다).
+
+**결과 표면 최소화:** `{ target, clashRelations, transformModifiers, effectiveProfiles }`.
+transform relation·candidate·raw modifier, clash key·snapshot은 **노출하지 않는다**
+(`transformModifiers`의 `contentionStatus`·`modifierActive`가 필요한 진단을 이미 담는다).
+
+**미구현:** Luck Transform · Opening · 대운/월운/일운 · 앱/UI 연결.
+Need·Core·Supplement 축 분리는 그대로 유지된다.
+
 ---
 
 ### 1.6 충 (沖) — TBD-03 규칙 계약 (**구조 확정 · 수치 미정**)

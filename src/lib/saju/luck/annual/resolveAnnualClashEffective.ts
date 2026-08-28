@@ -24,6 +24,7 @@ import { buildNatalClashSnapshot } from "@/lib/saju/luck/clash/buildNatalClashSn
 import { collapseClashAttenuationKeys } from "@/lib/saju/luck/clash/collapseClashAttenuationKeys";
 import { detectLuckClashRelations } from "@/lib/saju/luck/clash/detectLuckClashRelations";
 import type {
+  ClashAttenuationModifier,
   ClashEffectiveProfile,
   ClashRelation,
   LuckClashTarget,
@@ -74,23 +75,43 @@ export type AnnualClashEffective = {
  * Natal Strength / Need / Core / Supplement를 **읽지도 바꾸지도 않는다**
  * (Display Score 좌표만 경계에서 빌려 쓴다). 순수 함수이며 입력을 변경하지 않는다.
  */
+/** 세운 충의 관계·감쇠 modifier까지. Natal Strength/Display를 읽지 않는다. */
+export type AnnualClashModifiers = {
+  target: LuckClashTarget;
+  relations: ClashRelation[];
+  modifiers: ClashAttenuationModifier[];
+};
+
+/**
+ * 세운 충 파이프라인의 modifier 단계까지만 수행한다.
+ *
+ * `resolveAnnualClashEffective`와 상위 orchestrator가 **공유**하는 경계다 —
+ * 이 부분을 각자 다시 돌리면 clash 하위 파이프라인이 중복 실행된다.
+ */
+export function buildAnnualClashModifiers(
+  input: ResolveAnnualClashEffectiveInput,
+): AnnualClashModifiers {
+  const snapshot = buildNatalClashSnapshot(input.pillars);
+  const target = toLuckClashTarget(buildAnnualTarget(input.year));
+  const relations = detectLuckClashRelations(snapshot, [target]);
+  const modifiers = buildClashAttenuationModifiers(
+    collapseClashAttenuationKeys(snapshot, relations),
+  );
+  return { target, relations, modifiers };
+}
+
 export function resolveAnnualClashEffective(
   input: ResolveAnnualClashEffectiveInput,
 ): AnnualClashEffective {
-  const { pillars, year } = input;
-
-  const displaySet = toElementStrengthDisplayProfiles(buildElementStrengthProfiles(pillars));
+  const displaySet = toElementStrengthDisplayProfiles(
+    buildElementStrengthProfiles(input.pillars),
+  );
   const natalScores: NatalElementScore[] = displaySet.profiles.map((profile) => ({
     element: profile.element,
     natalScore: profile.displayScore,
   }));
 
-  const snapshot = buildNatalClashSnapshot(pillars);
-  const target = toLuckClashTarget(buildAnnualTarget(year));
-
-  const relations = detectLuckClashRelations(snapshot, [target]);
-  const keys = collapseClashAttenuationKeys(snapshot, relations);
-  const modifiers = buildClashAttenuationModifiers(keys);
+  const { target, relations, modifiers } = buildAnnualClashModifiers(input);
   const profiles = buildClashEffectiveProfiles(
     buildClashEffectiveScores(natalScores, modifiers),
   );
