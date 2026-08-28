@@ -1463,7 +1463,7 @@ Effective = Natal(immutable) + Σ active modifiers
 | **δ=4를 Luck 충에 동일 적용** | **확정 가능 — 동일 δ=4 (수치 계층 한정)** · §1.6.8.9.5 |
 | severity 수치화 | **TBD** — L1-S는 source 집합만 보존, 등급·점수 금지 |
 | 대/세/월/일 **source 가중** | **TBD** — 근거 없음, **수치 생성 금지** |
-| Luck 충 탐지 배선 | **설계 조사 완료 (W3 권고) · 구현 미착수** — §1.6.8.10 |
+| Luck 충 탐지 배선 | **구현 완료 (W3) · 세운만 연결** — §1.6.8.10.9. 대운·월운·일운 미구현 |
 | 엔진 구현 | **없음** |
 
 **선행 과제 (순서 고정):**
@@ -1851,12 +1851,57 @@ detect (전 6쌍 공통)
 | generic luck target `{luckKind, branch, window}` | **설계 확정 가능** |
 | 3단 분리 (detect→collapse→modifier) | **설계 확정 가능** |
 | Opening = relation 공유 · 효과 분리 | **설계 확정 가능** |
-| 아키텍처 W3 (`luck/clash/`) | **권고** |
-| **엔진 구현 · 타입 추가** | **미착수 (본 단계 범위 밖)** |
+| 아키텍처 W3 (`luck/clash/`) | **채택 · 구현 완료** (§1.6.8.10.9) |
+| **엔진 구현 · 타입 추가** | **완료 — 세운(annual-year) 한정** (§1.6.8.10.9). 앱/UI 미연결 |
 | 대운·월운·일운 **간지 산출식** | **TBD** — §1.10 그대로. window 계산 주체는 각 kind |
 | natal 내부 충 detector와의 통합 | **TBD** — 본 조사는 Luck↔Natal 경로만 |
 
 시뮬: `clashAttenuationSim.test.ts` — `TBD-01c-wiring` describe 3개(6 test)
+
+###### 1.6.8.10.9 W3 구현 상태 — **annual-year production wiring 완료**
+
+설계(§1.6.8.10.7 W3)대로 `src/lib/saju/luck/clash/`를 신설하고 7단계까지 구현했다.
+**세운(annual-year)만 연결**했으며 나머지는 미구현이다.
+
+| 단계 | 모듈 | 상태 |
+|------|------|------|
+| 1 · Natal snapshot | `clash/buildNatalClashSnapshot.ts` · `clash/types.ts` | **완료** |
+| 2 · relation 탐지 | `clash/branchClashPairs.ts` · `clash/detectLuckClashRelations.ts` | **완료** |
+| 3 · collapse | `clash/collapseClashAttenuationKeys.ts` | **완료** |
+| 4 · δ modifier | `clash/constants.ts` · `clash/buildClashAttenuationModifiers.ts` | **완료** |
+| 5 · Internal Effective | `clash/buildClashEffectiveScores.ts` | **완료** |
+| 6 · Display + Level | `clash/resolveEffectiveStrengthLevel.ts` · `clash/buildClashEffectiveProfiles.ts` | **완료** |
+| 7 · **세운 연결** | `annual/resolveAnnualClashEffective.ts` | **완료** |
+
+**연결 경계:** `resolveAnnualClashEffective({ pillars, year })` — `annual/`이 generic `clash/`를
+**소비**하는 방향(§1.6.8.10.7)을 지킨다. 기존 `resolveAnnualSupplementFlowV2`에 넣지 **않았다**:
+그쪽은 Core/Supplement/Need 축이고 `FourPillars`를 받지 않으며 `coreBlocksAnnual` skip 경로가 있는데,
+충 감쇠는 Strength 축이며 Core 해석 성패와 무관하게 계산돼야 하기 때문이다.
+결과는 기존 annual evidence를 덮어쓰지 않는 **별도 파생 객체**다.
+
+**구현으로 확인된 계약** (통합 테스트):
+
+- 세운 지지가 원국과 충하지 않음 → relation 0 · 전 오행 attenuation 0
+- 원국 1슬롯 충 → 그 슬롯 `rootElements`만 δ=4
+- 같은 지지가 원국 여러 슬롯 충 → 슬롯별 key 생성 (예: 子 2슬롯 → 水 8)
+- 피격되지 않은 오행 → Natal 좌표·Level 그대로
+- **hour unknown** → snapshot에 hour 없음 → hour relation·attenuation 생성 불가
+- Natal Strength profile · Need 전후 **동일**
+- `FourPillars` · `AnnualTarget` window **비mutate** (Date 복사)
+- window 시작 포함 · 끝 배타 (다음 해 `windowStart` = 올해 `windowEnd`)
+
+###### 1.6.8.10.10 미구현 (본 연결에 **포함되지 않음**)
+
+| 항목 | 상태 |
+|------|------|
+| **대운 · 월운 · 일운** | **미구현** — 간지 산출식 TBD(§1.10). `LuckClashKind`에 자리만 있음 |
+| **Transform modifier 합성** | **미구현** — M2와의 합성 순서는 §1.5.9.4, 코드 미연결 |
+| **Opening(개고) 효과** | **미구현** — `clashPairId`로 라우팅만 가능. 수치는 TBD-03a-magnitude |
+| **source severity 수치화** | **금지 유지** — relation 기록만 (§1.6.8.9.5) |
+| **source 가중(L2)** | **근거 없음** — 미착수 |
+| **위치 가중** | **P0 유지** (§1.6.8.8) |
+| **앱/UI 연결** | **미착수** — lib 경계까지만. 페이지 미변경 |
+| **Need/Core/Supplement 연동** | **없음** — 축 분리 유지 |
 
 #### 1.6.9 TBD-03 상태
 
