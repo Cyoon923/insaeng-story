@@ -762,6 +762,125 @@ Display Score = clamp(Internal, 8..96)       ← 표시만
 
 ---
 
+#### 1.5.11 TBD-02g — Transform production wiring 조사 (**설계 조사 · 구현 없음**)
+
+목표: 확정된 M2 설계(§1.5.7~§1.5.10)를 production에 옮기기 전, **현재 코드 상태**를 조사하고
+wiring의 최소 아키텍처·경계를 확정한다. **본 절은 설계만 다룬다** — M2 수치·정책을 다시 서술하지 않는다.
+
+##### 1.5.11.1 현재 production 조사 결과
+
+| 조사 항목 | 실제 상태 |
+|-----------|----------|
+| 천간합 / 지지합 relation 계산 | **없음.** production 전체에 五合·삼합·방합·육합·반합 코드 0건 |
+| `transform-ok` 판정 | **없음** |
+| 합 종류·결과 타입 | **없음** |
+| 합 관련 테이블 | **없음.** 지지 쌍/삼자 테이블은 `luck/clash/branchClashPairs.ts`(육충)와 `constants/ganzhi.ts`(60갑자)뿐 |
+| `BranchRelationEvidence` | **합과 무관.** 지장간 각각의 **십신(support/pressure)** evidence다. 이름만 relation |
+| Strength 결과 타입 | `ElementStrengthProfile { element, strengthLevel, reasons, rawEvidence }` — **Level 기반, 연속 score 없음** |
+| Natal / Display 경계 | `buildElementStrengthProfiles` → `toElementStrengthDisplayProfiles`. Display는 **표시 전용 좌표** |
+| 경쟁 판정용 기존 정보 | **없음.** 슬롯 공유를 판정할 합 참여 구조 자체가 없음 |
+
+**Q1 답: `transform-ok` production 판정은 존재하지 않는다.** 합 relation 탐지부터 전무하다.
+따라서 **Q2는 해당 없음**(소비할 결과가 없다).
+
+##### 1.5.11.2 Q3 — 계층 분리 (§1.5.9.4 확정 순서에 정렬)
+
+확정 순서가 이미 modifier 생성을 **경합 게이트보다 앞**에 둔다. 이를 그대로 계층으로 옮긴다.
+
+| 계층 | 입력 → 출력 | 수치 인지 |
+|------|-----------|----------|
+| **L1 detect** | 四柱 → `TransformRelation[]` (**hit만**, 판정 없음) | 없음 |
+| **L2 evaluate** | relation + C-* 조건(§1.5.4.2) → `transform-ok` / `hit-no-transform` | 없음 |
+| **L3 modifier build** | `transform-ok` → `TransformModifier[]` (`modifierActive` 초기값 포함) | **pool 12/16** |
+| **L4 competition** | 슬롯 공유 경합 집합 → P1–P6(§1.5.10.6) → `contentionStatus` · `modifierActive` 갱신 | 없음 |
+| (후단) compose | active modifier만 → Effective | — |
+
+- **L4는 modifier를 삭제하지 않는다.** `modifierActive`만 뒤집고 relation·`transform-ok` 기록은 보존한다(§1.5.10.7).
+- 동률이면 집합 전체 `competition-unresolved` · 전원 비활성. **임의 승자 금지.**
+- 六合·반합은 **L2에서 종료**(transform path 없음) — L3에 도달하지 않는다.
+
+##### 1.5.11.3 Q4·Q5 — 최소 타입과 identity
+
+**핵심 발견:** 기존 M2 시뮬의 참여 표현은 `attenSlots: Element[]`(예: 申子辰 → `["金","水","土"]`)로
+**오행만 있고 슬롯이 없다.** 이대로는 ① 경합 집합(슬롯 공유, §1.5.10.8 C-중복)을 판정할 수 없고
+② clash의 `(element × natal slot)` 키와 대조할 수 없다. ⇒ **시뮬 타입을 그대로 승격하면 안 된다.**
+
+production 참여 단위는 **3요소**가 필요하다:
+
+```
+participant = { slot: PillarSlot, layer: "stem" | "branch", element: Element }
+```
+
+`layer`가 필수인 이유: 五合은 **천간**, 삼합·방합은 **지지**에서 성립하므로
+같은 `slot`이라도 층이 다르면 **슬롯 비공유**(S6 병존)다. layer 없이는 오탐한다.
+
+**경합 identity =** `layer:slot` 집합의 교집합 여부. (글자·오행이 아니라 **자리**로 판정 — §1.6.6 계열 원칙과 동일)
+
+최소 타입 골격(형태만, 구현 아님):
+
+| 타입 | 최소 필드 |
+|------|----------|
+| `TransformRelation` | `combineId` · `kind` · `participants[]` — **판정·목표 없음** |
+| `TransformCandidate` | relation + `status`(`transform-ok`/`hit-no-transform`) + `targetElement` |
+| `TransformModifier` | `combineId` · `attenuations[] {participant, amount}` · `boost {element, amount}` · `modifierActive` |
+| 경합 결과 | `contentionStatus`: `uncontested` / `won` / `lost` / `competition-unresolved` |
+
+`targetElement`는 **relation이 아니라 candidate**에 붙인다 — 화기 목표는 판정 결과이지 관계 사실이 아니다.
+
+##### 1.5.11.4 Q6 — 배치 후보 3안
+
+| 안 | 요지 | Natal 불변 | hit÷ok 분리 | 경합 독립 | clash 합성 | Luck 재사용 | 판정 |
+|----|------|:---:|:---:|:---:|:---:|:---:|------|
+| **T1** | `elements/` 안에 추가 | ✗ Strength와 동거 | △ | ✗ | △ | ✗ | **기각** |
+| **T2** | `luck/clash/`를 `luck/relations/`로 확장 | ○ | ○ | ○ | ○ | △ | **기각** — 합은 **원국 1차** 현상인데 `luck/` 아래로 들어간다 |
+| **T3** | **`src/lib/saju/transform/` 신설 (L1–L4 파일 분리)** | **○** | **○** | **○** | **○** | **○** | **권고** |
+
+**T3 권고 근거:** ① 합은 natal 우선 현상이라 `luck/` 종속이 부적절 ② L1–L4를 파일 경계로 강제해
+“hit ≠ transform ≠ modifier ≠ 경합”이 규율이 아닌 **타입 경계**가 된다 ③ Luck 합은 나중에 동일
+detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않으므로 불변이 구조적으로 보장.
+
+##### 1.5.11.5 Q7 — 시뮬에서 승격 가능한 것 / 불가능한 것
+
+| 항목 | 승격 |
+|------|------|
+| pool 12 / 16 | **가능** — 확정 수치. `transform/constants.ts`로 (clash의 `CLASH_ATTENUATION_DELTA` 선례) |
+| 五合 목표표 · 삼합/방합 목표표 | **가능** — §1.5.8 확정 표 |
+| 분배식 `per = pool / 참여수`, `boost = Σatten` | **가능** — 확정 규칙 |
+| `attenSlots: Element[]` 형태 | **불가** — 슬롯 identity 손실(§1.5.11.3) |
+| `synthesize()` 합성 함수 | **불가** — Natal score 직접 가감. 후단 Effective 계층으로 대체 |
+| A(8/12)·C(16/20) 후보 | **불가** — 기각된 비교 기록 |
+
+##### 1.5.11.6 Q8 — clash와의 공통 Effective 이음매
+
+두 층은 **오행별 부호 있는 델타**로 환원된다. 이것이 공통 좌표계다.
+
+| 층 | 델타 | Σ 보존 |
+|----|------|:---:|
+| clash | 오행별 **음수만** (`−4 × 피격 슬롯 수`) | ✗ 순손실 |
+| transform | 참여 오행 **음수** + 목표 오행 **양수** | ○ 보존 |
+
+합성은 **오행별 단순 합**이며, 비관련 오행은 키가 없다(전역 패널티 금지가 양쪽에서 유지).
+현행 `buildClashEffectiveScores`는 `ClashAttenuationModifier[]`를 직접 받으므로,
+합성 시점에 **“오행별 델타 목록”을 받는 형태로 일반화**하면 두 층이 같은 파이프라인을 탄다.
+(clamp·Level 재판정은 `clash/resolveEffectiveStrengthLevel.ts`를 **그대로 재사용** — 층과 무관하다.)
+
+##### 1.5.11.7 TBD-02g 상태
+
+| 항목 | 상태 |
+|------|------|
+| 계층 L1–L4 분리 (§1.5.9.4 정렬) | **설계 확정 가능** |
+| 참여 단위 `{slot, layer, element}` | **설계 확정 가능** |
+| 경합 identity = `layer:slot` 교집합 | **설계 확정 가능** |
+| 배치 T3 `src/lib/saju/transform/` | **권고** |
+| 승격 가능 상수·표 (pool 12/16, 목표표, 분배식) | **설계 확정 가능** |
+| clash 합성 이음매 = 오행별 델타 | **설계 확정 가능** |
+| **production 구현 · 타입 추가** | **미착수 (본 단계 범위 밖)** |
+| C-* 조건 평가기 구현 | **미착수** — 매트릭스는 §1.5.4.2 확정, 코드 없음 |
+| 六合·반합 hit 무효화 | **TBD-02b** 유지 |
+| Opening과의 상호작용 | **범위 밖** (TBD-03a) |
+
+---
+
 ### 1.6 충 (沖) — TBD-03 규칙 계약 (**구조 확정 · 수치 미정**)
 
 범위: **지지 육충**의 한정 영향·통근 상태·합 Transform modifier와의 계약.  
