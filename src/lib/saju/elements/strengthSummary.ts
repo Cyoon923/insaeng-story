@@ -226,8 +226,8 @@ function decideDirection(input: {
   }
 
   const substantialStrong = phase === "왕" || rootedRoot || rootedSupport;
-  const substantialWeak =
-    phase === "수" || phase === "사" || rootQuality === "absent" || rootedPressure;
+  // 수·사는 위 분기에서 모두 return되므로 이 지점의 phase는 왕|상이다.
+  const substantialWeak = rootQuality === "absent" || rootedPressure;
 
   if (substantialStrong && substantialWeak) {
     return { direction: "mixed", weakSeasonPattern: null };

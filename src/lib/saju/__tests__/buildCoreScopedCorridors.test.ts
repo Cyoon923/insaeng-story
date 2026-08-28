@@ -54,6 +54,8 @@ describe("buildCoreScopedCorridors — regression 辛酉/乙未/丙申/戊戌", 
     month: { stem: "乙", branch: "未" },
     day: { stem: "丙", branch: "申" },
     hour: { stem: "戊", branch: "戌" },
+    hourCertainty: "confirmed",
+    warnings: [],
   };
 
   it("Core=火 → incoming 水→木→火 and outgoing 火→土→金 only", () => {

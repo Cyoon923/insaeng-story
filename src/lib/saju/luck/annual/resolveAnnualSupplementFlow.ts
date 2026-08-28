@@ -93,15 +93,18 @@ export function resolveAnnualSupplementFlow(
     return skippedFlow(input, skipReason);
   }
 
+  // coreBlocksAnnual 가드가 null을 이미 걸러냈다 (V2 흐름과 동일한 non-null 계약).
+  const resolvedNatalCore = natalCoreElement!;
+
   const target = buildAnnualTarget(year);
   const evidence = buildAnnualLuckEvidence({
     target,
-    natalCoreElement,
+    natalCoreElement: resolvedNatalCore,
     natalSupplementElement,
   });
   const policies = deriveAnnualCandidatePolicyStates({
     evidence,
-    natalCoreElement,
+    natalCoreElement: resolvedNatalCore,
     natalSupplementElement,
     natalClimate,
   });

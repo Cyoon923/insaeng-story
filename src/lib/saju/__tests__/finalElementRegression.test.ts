@@ -7,12 +7,11 @@ import { resolveFinalElement } from "@/lib/saju/final/resolveFinalElement";
 import type { FinalResolution } from "@/lib/saju/final/types";
 import { buildStrengthObservations } from "@/lib/saju/observation/buildStrengthObservations";
 import type {
-  EarthlyBranch,
   FourPillars,
-  HeavenlyStem,
   HourPillar,
   Pillar,
 } from "@/lib/saju/types";
+import type { EarthlyBranch, HeavenlyStem } from "@/lib/saju/luck/annual/types";
 
 function parsePillar(s: string): Pillar {
   return { stem: s[0] as HeavenlyStem, branch: s[1] as EarthlyBranch };

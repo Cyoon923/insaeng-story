@@ -107,7 +107,11 @@ export type HiddenRelationValidationItem = BranchRelationItem & {
   overlapsRoot: boolean;
 };
 
-export type VisibleRelationValidationItem = StrengthEvidence["supportEvidence"]["items"][number] & {
+/** support·pressure 양쪽 배열에 쓰이므로 두 shiShen 종류를 모두 받는다. */
+export type VisibleRelationValidationItem = (
+  | StrengthEvidence["supportEvidence"]["items"][number]
+  | StrengthEvidence["pressureEvidence"]["items"][number]
+) & {
   relationSide: "support" | "pressure";
   element: Element;
 };

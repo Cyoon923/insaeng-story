@@ -174,7 +174,8 @@ function r3MeetsMin(
     return true;
   }
   // control already surface + output weak → D
-  return output !== "surface";
+  // output === "surface"는 위에서 이미 return false 되었다.
+  return true;
 }
 
 /**

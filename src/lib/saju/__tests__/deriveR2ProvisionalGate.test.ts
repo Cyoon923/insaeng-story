@@ -165,6 +165,8 @@ describe("deriveR2ProvisionalGate", () => {
               slot: "year",
               stem: "丁",
               shiShen: "겁재",
+              layer: "stem",
+              elementPhase: "휴",
               presence: "rooted-visible",
             },
           ],

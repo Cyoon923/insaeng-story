@@ -78,7 +78,8 @@ export function resolveSupplementFlow(
     };
   }
 
-  const core = finalResolution.finalElement;
+  // 위 가드에서 null을 이미 걸러냈다 (V2 흐름과 동일한 non-null 계약).
+  const core = finalResolution.finalElement!;
 
   const coreState = buildCoreElementState({
     pillars,

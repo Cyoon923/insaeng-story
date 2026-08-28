@@ -16,13 +16,12 @@ import type { AnnualSupplementFlowV2Resolution } from "@/lib/saju/luck/annual/re
 import type { AnnualSupplementFlowV2 } from "@/lib/saju/luck/annual/resolveAnnualSupplementFlowV2";
 import { buildStrengthObservations } from "@/lib/saju/observation/buildStrengthObservations";
 import type {
-  EarthlyBranch,
   Element,
   FourPillars,
-  HeavenlyStem,
   HourPillar,
   Pillar,
 } from "@/lib/saju/types";
+import type { EarthlyBranch, HeavenlyStem } from "@/lib/saju/luck/annual/types";
 
 const REP_PILLARS: FourPillars = {
   year: { stem: "辛", branch: "酉" },

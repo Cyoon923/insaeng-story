@@ -23,6 +23,8 @@ const REP_PILLARS: FourPillars = {
   month: { stem: "乙", branch: "未" },
   day: { stem: "丙", branch: "申" },
   hour: { stem: "戊", branch: "戌" },
+  hourCertainty: "confirmed",
+  warnings: [],
 };
 
 function emptyClimate(
@@ -233,7 +235,8 @@ describe("resolveAnnualSupplementFlowV2 — winner outcomes", () => {
             cautionFunctions: [],
             reasons: [],
           },
-        ] as SupplementCandidatePolicy[],
+        // 의도적으로 F-계열이 아닌 값을 넣어 '매칭되는 정책 없음'을 만든다.
+          ] as unknown as SupplementCandidatePolicy[],
       }),
     );
     const activeClean = flow.winnerInput!.candidates.filter(

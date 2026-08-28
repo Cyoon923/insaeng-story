@@ -23,9 +23,7 @@ function dayAt(year: number, month: number, day: number, hour = 12, minute = 0):
     isLeapMonth: false,
     time: { hour, minute },
   });
-  if (result.day === "unknown") {
-    throw new Error("day pillar missing");
-  }
+  // day 기둥은 "unknown"이 될 수 없다 (unknown은 hour 전용) — 가드 불필요.
   return result.day;
 }
 

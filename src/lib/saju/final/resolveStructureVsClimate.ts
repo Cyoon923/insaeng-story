@@ -222,7 +222,8 @@ export function resolveStructureVsClimate(
 
   // ——— C / B: structure resolved + clear R6 + different element ———
   if (structureResolved && r6Clear && structural.element !== climateElement) {
-    if (elementsOppose(structural.element, climateElement)) {
+    // structureResolved 가드가 element !== null을 이미 보장한다.
+    if (elementsOppose(structural.element!, climateElement)) {
       reasons.push("case-c:opposite-action-conflict");
       return unresolved(reasons, null);
     }

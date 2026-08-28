@@ -153,7 +153,11 @@ export type ResolutionCaseTrace = {
 };
 
 function fromResolution(
-  input: Omit<ResolutionCaseTrace, keyof ReturnType<typeof packResolution> | "triggeredRules">,
+  // 본문이 `notes: input.note`로 매핑하므로, 입력은 `notes`가 아니라 `note`를 받는다.
+  input: Omit<
+    ResolutionCaseTrace,
+    keyof ReturnType<typeof packResolution> | "triggeredRules" | "notes"
+  > & { note: string },
   resolution: NeedResolution,
 ): ResolutionCaseTrace {
   const packed = packResolution(resolution);

@@ -15,6 +15,8 @@ describe("buildSupplementCandidateStates — regression 辛酉/乙未/丙申/戊
     month: { stem: "乙", branch: "未" },
     day: { stem: "丙", branch: "申" },
     hour: { stem: "戊", branch: "戌" },
+    hourCertainty: "confirmed",
+    warnings: [],
   };
 
   it("returns all five candidates with Core=火 relation table", () => {

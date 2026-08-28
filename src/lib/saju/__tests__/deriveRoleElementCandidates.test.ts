@@ -15,8 +15,8 @@ import type {
   HourPillar,
   Pillar,
   StrengthEvidence,
-  StrengthObservations,
 } from "@/lib/saju/types";
+import type { StrengthObservations } from "@/lib/saju/observation/types";
 
 function chart(partial: {
   year: Pillar;
@@ -56,7 +56,7 @@ function pack(
     deriveR2Bottleneck({ pillars, summary, evidence, observations, roleActivities });
   const r5Bottleneck =
     options?.r5Bottleneck ??
-    deriveR5Bottleneck({ pillars, evidence, observations, roleActivities });
+    deriveR5Bottleneck({ evidence, observations, roleActivities });
   const candidates = deriveRoleElementCandidates({
     pillars,
     roleActivities,

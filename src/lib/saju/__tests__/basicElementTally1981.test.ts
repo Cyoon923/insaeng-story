@@ -15,6 +15,8 @@ const CHART_1981_DINGYOU: FourPillars = {
   month: { stem: "乙", branch: "未" },
   day: { stem: "丙", branch: "申" },
   hour: { stem: "丁", branch: "酉" },
+  hourCertainty: "confirmed",
+  warnings: [],
 };
 
 const EXPECTED_GLYPH_ELEMENTS: Array<{

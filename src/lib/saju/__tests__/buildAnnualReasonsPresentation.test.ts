@@ -557,7 +557,7 @@ describe("buildAnnualReasonsPresentation — generic winners", () => {
             targetElement: "火",
             sourceFunctions: ["F1_DIRECT"],
             sourceElement: "水",
-            methods: ["same"],
+            methods: ["direct"],
             reasons: [],
           },
         ],

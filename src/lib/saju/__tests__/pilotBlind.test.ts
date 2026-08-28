@@ -3,7 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildSajuValidationReport, emptyExpertReview } from "@/lib/saju/validation";
 import { emptyPilotExpertMapping, emptyPilotExpertRaw } from "@/lib/saju/validation/pilot";
-import type { BirthInput, PilotValidationCase } from "@/lib/saju/validation";
+import type { PilotValidationCase } from "@/lib/saju/validation";
+import type { BirthInput } from "@/lib/saju/types";
 
 const fixture = JSON.parse(
   readFileSync(path.join(__dirname, "../validation/pilot/cases.json"), "utf8"),

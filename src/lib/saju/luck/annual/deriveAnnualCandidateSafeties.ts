@@ -424,7 +424,7 @@ export function deriveAnnualCandidateSafeties(
 ): AnnualCandidateSafetyRecord[] {
   const protectedGoals = buildProtectedGoals(input);
   const climateOpen = climateGoalOpen(input);
-  const candidateRows =
+  const candidateRows: AnnualSafetyCandidateInput[] =
     input.candidates ?? ELEMENTS.map((element) => ({ element }));
 
   return candidateRows.map(({ element, addressedGoals: presetGoals }) => {

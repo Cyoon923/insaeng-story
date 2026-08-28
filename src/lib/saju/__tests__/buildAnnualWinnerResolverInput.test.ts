@@ -1,3 +1,4 @@
+import type { CoreLinkBand } from "@/lib/saju/final/coreGenerationLinkBand";
 import { describe, expect, it } from "vitest";
 import {
   buildAnnualWinnerResolverInput,
@@ -51,7 +52,7 @@ function policiesWith(
 
 function incomingCorridor(
   core: Element,
-  legs: { first: "surface" | "hidden"; second: "surface" | "hidden" },
+  legs: { first: CoreLinkBand; second: CoreLinkBand },
 ): CoreScopedCorridor {
   const mid = coreParentElement(core);
   const from = coreParentElement(mid);
@@ -141,7 +142,7 @@ describe("buildAnnualWinnerResolverInput — STRUCTURAL_MEDIATION", () => {
       goalSatisfactions: [{ goal: "INCOMING_MEDIATION", status: "not-met" }],
       unresolvedImbalances: [{ kind: "RESIDUAL_INCOMING_MEDIATION" }],
       policies: policiesWith({}),
-      corridors: [incomingCorridor(core, { first: "surface", second: "hidden" })],
+      corridors: [incomingCorridor(core, { first: "surface", second: "hidden-context" })],
       safeties: safetyRows({ [mid]: "clean" }),
     });
     const row = built.candidates.find((c) => c.element === mid)!;

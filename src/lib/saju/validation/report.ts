@@ -62,8 +62,8 @@ function rawInputOf(input: BirthInput): ValidationRawInput {
     year: input.year,
     month: input.month,
     day: input.day,
-    hour: timeUnknown ? null : input.time.hour,
-    minute: timeUnknown ? null : input.time.minute,
+    hour: input.time === "unknown" ? null : input.time.hour,
+    minute: input.time === "unknown" ? null : input.time.minute,
     timeUnknown,
     dayBoundary: input.dayBoundary ?? null,
     timezone: input.timezone ?? null,
@@ -72,7 +72,9 @@ function rawInputOf(input: BirthInput): ValidationRawInput {
 }
 
 function visibleRelation(
-  item: StrengthEvidence["supportEvidence"]["items"][number],
+  item:
+    | StrengthEvidence["supportEvidence"]["items"][number]
+    | StrengthEvidence["pressureEvidence"]["items"][number],
   relationSide: "support" | "pressure",
 ): VisibleRelationValidationItem {
   return {

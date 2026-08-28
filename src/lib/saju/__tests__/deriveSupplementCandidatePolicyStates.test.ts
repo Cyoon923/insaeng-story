@@ -105,6 +105,8 @@ describe("deriveSupplementCandidatePolicyStates — regression 辛酉/乙未/丙
     month: { stem: "乙", branch: "未" },
     day: { stem: "丙", branch: "申" },
     hour: { stem: "戊", branch: "戌" },
+    hourCertainty: "confirmed",
+    warnings: [],
   };
 
   it("classifies five candidates without asserting Supplement winner", () => {

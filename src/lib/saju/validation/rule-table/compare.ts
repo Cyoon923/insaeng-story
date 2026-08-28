@@ -79,7 +79,7 @@ function chart(partial: PillarInput): FourPillars {
 
 type StemCase = { id: string; stem: Stem; element: Element };
 type BranchCase = { id: string; branch: Branch; element: Element };
-type HiddenCase = { id?: string; branch: Branch; parts: HiddenStemPart[] };
+type HiddenCase = { id: string; branch: Branch; parts: HiddenStemPart[] };
 type ShiShenCase = { id: string; dayStem: Stem; targetStem: Stem; shiShen: string };
 type PhaseCase = { id: string; element: Element; monthBranch: Branch; phase: string };
 type StemPair = { yang: Stem; yin: Stem; element: Element };

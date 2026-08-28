@@ -1,3 +1,4 @@
+import type { CoreLinkBand } from "@/lib/saju/final/coreGenerationLinkBand";
 import { describe, expect, it } from "vitest";
 import { buildAdjustedClimateSummary } from "@/lib/saju/elements/adjustedClimate";
 import { collectStrengthEvidence } from "@/lib/saju/elements/strength";
@@ -31,6 +32,8 @@ const REP_PILLARS: FourPillars = {
   month: { stem: "乙", branch: "未" },
   day: { stem: "丙", branch: "申" },
   hour: { stem: "戊", branch: "戌" },
+  hourCertainty: "confirmed",
+  warnings: [],
 };
 
 function emptyClimate(
@@ -73,7 +76,7 @@ function evidenceFor(input: {
 
 function incomingCorridor(
   core: Element,
-  legs: { first: "surface" | "hidden"; second: "surface" | "hidden" },
+  legs: { first: CoreLinkBand; second: CoreLinkBand },
 ): CoreScopedCorridor {
   const mid = coreParentElement(core);
   return {
@@ -201,7 +204,7 @@ describe("deriveAnnualCandidateSafeties — generic A–J", () => {
       natalCoreState: { core: "火", presence: "rooted-visible" },
       natalClimate: emptyClimate(),
       evidence: evidenceFor({ core: "火" }),
-      corridors: [incomingCorridor("火", { first: "surface", second: "hidden" })],
+      corridors: [incomingCorridor("火", { first: "surface", second: "hidden-context" })],
     });
     expect(byElement(rows)[mid].safety).not.toBe("clean");
   });

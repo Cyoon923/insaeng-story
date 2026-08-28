@@ -181,12 +181,17 @@ describe("buildAnnualFlowSummaryPresentation — fixture diversity", () => {
     },
   ] as const;
 
+  /** `as const`가 만든 readonly warnings만 가변 배열로 되돌린다. */
+  const mutablePillars = (p: {
+    readonly warnings: readonly string[];
+  } & Omit<FourPillars, "warnings">): FourPillars => ({ ...p, warnings: [...p.warnings] });
+
   it("same 2026 丙午 but summaries differ by natal evidence", () => {
     const summaries = cases.map((fixture) => {
       const view =
         "birth" in fixture
           ? summaryFromBirth(fixture.birth)
-          : summaryFromPillars(fixture.pillars);
+          : summaryFromPillars(mutablePillars(fixture.pillars));
       return { id: fixture.id, joined: view.sentences.join("|") };
     });
 
@@ -201,7 +206,7 @@ describe("buildAnnualFlowSummaryPresentation — fixture diversity", () => {
 
   it("LW-bingo emphasizes distance from core/supplement", () => {
     const bingo = cases.find((row) => row.id === "LW-bingo")!;
-    const view = summaryFromPillars(bingo.pillars);
+    const view = summaryFromPillars(mutablePillars(bingo.pillars));
     const joined = view.sentences.join("\n");
     expect(joined).toMatch(/거리를 두|맞지 않아요/);
     assertCleanCopy(joined);
@@ -209,7 +214,7 @@ describe("buildAnnualFlowSummaryPresentation — fixture diversity", () => {
 
   it("lean-strong unresolved winner still yields summary from evidence", () => {
     const lean = cases.find((row) => row.id === "lean-strong")!;
-    const flow = annualFlowFromPillars(lean.pillars);
+    const flow = annualFlowFromPillars(mutablePillars(lean.pillars));
     expect(flow.resolution.annualSupplementElement).toBeNull();
 
     const view = buildAnnualFlowSummaryPresentation({

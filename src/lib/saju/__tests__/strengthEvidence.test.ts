@@ -85,7 +85,7 @@ describe("StrengthEvidence 사례", () => {
     ]);
     expect(evidence.supportEvidence.items.map((item) => item.stem)).toEqual(["甲", "甲"]);
     expect(evidence.supportEvidence.items.every((item) => item.shiShen === "비견")).toBe(true);
-    expect(evidence.supportEvidence.items.every((item) => item.slot !== "day")).toBe(true);
+    expect(evidence.supportEvidence.items.every((item) => (item.slot as string) !== "day")).toBe(true);
     expect(evidence.pressureEvidence.items).toEqual([]);
     expect(evidence.hourUnknown).toBe(true);
     expect(evidence.omittedSlots).toEqual(["hour"]);
@@ -266,8 +266,8 @@ describe("기존 16개 명식 StrengthEvidence", () => {
         expect(evidence.supportEvidence.items.every((item) => item.slot !== "hour")).toBe(true);
         expect(evidence.pressureEvidence.items.every((item) => item.slot !== "hour")).toBe(true);
       }
-      expect(evidence.supportEvidence.items.every((item) => item.slot !== "day")).toBe(true);
-      expect(evidence.pressureEvidence.items.every((item) => item.slot !== "day")).toBe(true);
+      expect(evidence.supportEvidence.items.every((item) => (item.slot as string) !== "day")).toBe(true);
+      expect(evidence.pressureEvidence.items.every((item) => (item.slot as string) !== "day")).toBe(true);
       expect(evidence.supportEvidence.items.every((item) => item.layer === "stem")).toBe(true);
       expect(evidence.pressureEvidence.items.every((item) => item.layer === "stem")).toBe(true);
       expect(evidence).not.toHaveProperty("score");

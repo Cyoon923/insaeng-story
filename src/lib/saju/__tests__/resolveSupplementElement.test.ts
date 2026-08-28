@@ -38,6 +38,8 @@ describe("resolveSupplementElement — regression 辛酉/乙未/丙申/戊戌", 
     month: { stem: "乙", branch: "未" },
     day: { stem: "丙", branch: "申" },
     hour: { stem: "戊", branch: "戌" },
+    hourCertainty: "confirmed",
+    warnings: [],
   };
 
   it("policy ACTIVE 木 alone → resolved 木", () => {

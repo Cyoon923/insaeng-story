@@ -68,6 +68,8 @@ function pillarsOf(partial: Partial<FourPillars> & Pick<FourPillars, "day">): Fo
     month: partial.month ?? { stem: "甲", branch: "子" },
     day: partial.day,
     hour: partial.hour ?? { stem: "甲", branch: "子" },
+    hourCertainty: partial.hourCertainty ?? "confirmed",
+    warnings: partial.warnings ?? [],
   };
 }
 
@@ -87,6 +89,8 @@ describe("buildCoreElementState — regression 辛酉/乙未/丙申/戊戌", () 
     month: { stem: "乙", branch: "未" },
     day: { stem: "丙", branch: "申" },
     hour: { stem: "戊", branch: "戌" },
+    hourCertainty: "confirmed",
+    warnings: [],
   };
 
   it("FER Core=火 then state matches presence/links/control bands", () => {
@@ -133,6 +137,8 @@ describe("buildCoreElementState — synthetic bands", () => {
       month: { stem: "甲", branch: "寅" },
       day: { stem: "丁", branch: "卯" },
       hour: { stem: "丙", branch: "子" },
+      hourCertainty: "confirmed",
+      warnings: [],
     });
     const state = buildCoreElementState({
       pillars,
@@ -208,6 +214,8 @@ describe("buildCoreElementState — synthetic bands", () => {
       month: { stem: "丁", branch: "巳" },
       day: { stem: "丙", branch: "午" },
       hour: { stem: "丁", branch: "巳" },
+      hourCertainty: "confirmed",
+      warnings: [],
     });
     // controller of 火 is 水 — absent on fire-heavy chart
     const state = buildCoreElementState({
@@ -226,6 +234,8 @@ describe("buildCoreElementState — synthetic bands", () => {
       month: { stem: "丁", branch: "巳" },
       day: { stem: "丙", branch: "申" },
       hour: { stem: "丁", branch: "巳" },
+      hourCertainty: "confirmed",
+      warnings: [],
     };
     const state = buildCoreElementState({
       pillars,
@@ -241,6 +251,8 @@ describe("buildCoreElementState — synthetic bands", () => {
       month: { stem: "丁", branch: "巳" },
       day: { stem: "丙", branch: "午" },
       hour: { stem: "丁", branch: "巳" },
+      hourCertainty: "confirmed",
+      warnings: [],
     };
     const state = buildCoreElementState({
       pillars,

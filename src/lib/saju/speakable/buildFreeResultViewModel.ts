@@ -36,8 +36,15 @@ export type FreeResultPresenceInput =
   | ReadonlyArray<ElementPresenceAnalysis>
   | Record<Element, ElementPresenceAnalysis>;
 
+/** `Array.isArray`는 `ReadonlyArray` 유니온을 좁히지 못하므로 타입 술어로 감싼다. */
+function isPresenceArray(
+  input: FreeResultPresenceInput,
+): input is ReadonlyArray<ElementPresenceAnalysis> {
+  return Array.isArray(input);
+}
+
 function presenceList(input: FreeResultPresenceInput): ElementPresenceAnalysis[] {
-  if (Array.isArray(input)) return [...input];
+  if (isPresenceArray(input)) return [...input];
   return ELEMENTS.map((element) => input[element]);
 }
 

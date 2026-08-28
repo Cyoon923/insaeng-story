@@ -17,9 +17,9 @@ import type {
   HourPillar,
   Pillar,
   StrengthEvidence,
-  StrengthObservations,
   StrengthSummary,
 } from "@/lib/saju/types";
+import type { StrengthObservations } from "@/lib/saju/observation/types";
 
 function chart(partial: {
   year: Pillar;
@@ -171,6 +171,8 @@ describe("resolveStructuralElement", () => {
       slot: "year",
       stem: "戊",
       shiShen: "편재",
+      layer: "stem",
+      elementPhase: "휴",
       presence: "rooted-visible",
     });
     const result = resolve({
@@ -191,6 +193,8 @@ describe("resolveStructuralElement", () => {
       slot: "month",
       stem: "庚",
       shiShen: "편관",
+      layer: "stem",
+      elementPhase: "휴",
       presence: "rooted-visible",
     });
     const result = resolve({
@@ -212,12 +216,16 @@ describe("resolveStructuralElement", () => {
         slot: "year",
         stem: "戊",
         shiShen: "편재",
+        layer: "stem",
+        elementPhase: "휴",
         presence: "rooted-visible",
       },
       {
         slot: "month",
         stem: "庚",
         shiShen: "편관",
+        layer: "stem",
+        elementPhase: "휴",
         presence: "rooted-visible",
       },
     );
