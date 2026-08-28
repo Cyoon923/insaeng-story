@@ -105,3 +105,16 @@ export type ClashRelation = {
   /** 운 충의 활성 구간. natal 내부 충은 `null`. */
   window: LuckClashWindow | null;
 };
+
+/**
+ * 감쇠 단위 1개 — 확정 계약 `(element × natal 지지슬롯)` (§1.6.8.9.4).
+ *
+ * 같은 키는 활성 relation 수·source와 **무관하게 1개**다.
+ * `source` · `window` · `clashPairId`는 relation 쪽에 남고 여기 오지 않는다
+ * (relation multiplicity ≠ attenuation multiplicity).
+ * `delta` · severity도 없다 — 수치는 다음 단계(modifier)에서만 붙는다.
+ */
+export type ClashAttenuationKey = {
+  element: Element;
+  natalSlot: PillarSlot;
+};
