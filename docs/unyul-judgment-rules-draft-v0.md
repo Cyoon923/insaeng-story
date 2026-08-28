@@ -874,10 +874,24 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 | 배치 T3 `src/lib/saju/transform/` | **권고** |
 | 승격 가능 상수·표 (pool 12/16, 목표표, 분배식) | **설계 확정 가능** |
 | clash 합성 이음매 = 오행별 델타 | **설계 확정 가능** |
-| **production 구현 · 타입 추가** | **미착수 (본 단계 범위 밖)** |
-| C-* 조건 평가기 구현 | **미착수** — 매트릭스는 §1.5.4.2 확정, 코드 없음 |
-| 六合·반합 hit 무효화 | **TBD-02b** 유지 |
+| **L1 relation detection** | **구현 완료** — `transform/{types,combinationTables,detectTransformRelations}.ts` |
+| L2 `transform-ok` 판정 · C-* 평가기 | **미착수** — 매트릭스는 §1.5.4.2 확정, 코드 없음 |
+| L3 modifier(pool 12/16) · L4 경합 | **미착수** |
+| 六合·반합 | **L1 범위 제외** — transform path 없음(TBD-02b). 표에도 넣지 않음 |
+| 반합(2자) · 미완성 삼합/방합 | **L1 미탐지** — 완성형 3자만 |
 | Opening과의 상호작용 | **범위 밖** (TBD-03a) |
+
+###### 1.5.11.8 L1 구현 메모 (구현 완료분만)
+
+| 항목 | 결정 |
+|------|------|
+| 탐지 범위 | 五合 5 · 삼합 완성형 4 · 방합 완성형 4 = **13종**. 六合·반합 제외 |
+| `combineId` | 표 순서 기반 canonical (예: `삼합-申子辰`). 자리 배치·순서와 무관하게 동일 |
+| multiplicity | **자리 조합마다 별개 relation**. 같은 `combineId`가 여러 건일 수 있고, 인스턴스 식별은 `combineId` + 참여 자리 |
+| branch participant element | **본기(정기) 오행**. `BRANCH_ELEMENT`가 12지지 전부에서 정기 지장간 오행과 **일치**함을 테스트로 잠금 → 기존 헬퍼 재사용, 값 복제 없음 |
+| hour unknown | `confirmedSlots` 경유로 시주 자동 제외 → 참여·relation 모두 생성 안 됨 |
+| 의존성 | `constants/elements` · `elements/slots`만. **Strength/Need/Core/Supplement/clash import 없음** |
+| 결정론 | 표 순서 → 자리 순서(year→month→day→hour). 정렬 없이 순회만으로 고정 |
 
 ---
 
