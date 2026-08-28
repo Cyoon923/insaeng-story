@@ -63,3 +63,45 @@ export type LuckClashTarget = {
   branch: Branch;
   window: LuckClashWindow;
 };
+
+/**
+ * 지지 육충 6쌍의 canonical id.
+ *
+ * 쌍은 무순서다 — 子午와 午子는 **같은 `clash-zi-wu`** 를 낸다.
+ * 개고(TBD-03a) 평가기는 `clash-chou-wei` · `clash-chen-xu` 만 보고 분기하면 되며,
+ * 본 계약은 개고 여부나 효과를 **판단하지 않는다.**
+ */
+export type ClashPairId =
+  | "clash-zi-wu"
+  | "clash-chou-wei"
+  | "clash-yin-shen"
+  | "clash-mao-you"
+  | "clash-chen-xu"
+  | "clash-si-hai";
+
+/**
+ * 충이 어디에서 왔는지. 수치에는 쓰이지 않는다(§1.6.8.9.5 — source 가중 없음).
+ * 기록 목적이며, 향후 natal 내부 충 detector도 같은 레코드를 쓸 수 있도록
+ * `"natal"`을 포함한다.
+ */
+export type ClashSource = "natal" | LuckClashKind;
+
+/**
+ * 육충 관계 1건.
+ *
+ * **relation은 '지지 대 지지'다.** `element`를 넣지 않는다 — 오행 축은
+ * collapse 단계에서 snapshot으로 붙인다. 여기에 넣으면 같은 충이 오행 수만큼
+ * 복제되어 attenuation 중복이 재발한다(§1.6.8.10.3).
+ *
+ * `delta` · severity 점수도 넣지 않는다. 수치는 modifier 단계에만 등장한다.
+ */
+export type ClashRelation = {
+  natalSlot: PillarSlot;
+  natalBranch: Branch;
+  /** 충 상대 지지 (운 또는 다른 natal 슬롯). */
+  otherBranch: Branch;
+  source: ClashSource;
+  clashPairId: ClashPairId;
+  /** 운 충의 활성 구간. natal 내부 충은 `null`. */
+  window: LuckClashWindow | null;
+};
