@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 import { stemElement } from "@/lib/saju/constants/elements";
 import { HIDDEN_STEMS } from "@/lib/saju/data/hiddenStems";
+import { CLASH_ATTENUATION_DELTA } from "@/lib/saju/luck/clash/constants";
 import type { ElementStrengthLevel } from "@/lib/saju/elements/buildElementStrengthProfiles";
 import { STRENGTH_DISPLAY_BANDS } from "@/lib/saju/elements/toElementStrengthDisplayProfiles";
 import type { Branch, Element } from "@/lib/saju/types";
@@ -59,10 +60,10 @@ const CANDIDATES: Candidate[] = [
 ];
 
 /**
- * TBD-01c 확정값 (§1.6.8.0) — A안. Engine NOT wired.
+ * TBD-01c 확정값 (§1.6.8.0) — A안. production 단일 상수를 참조한다.
  * B/C는 비교 기록으로만 CANDIDATES에 남긴다.
  */
-const CONFIRMED_DELTA = 4;
+const CONFIRMED_DELTA = CLASH_ATTENUATION_DELTA;
 
 const M2_PAIR = 12;
 

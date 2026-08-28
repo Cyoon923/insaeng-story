@@ -118,3 +118,20 @@ export type ClashAttenuationKey = {
   element: Element;
   natalSlot: PillarSlot;
 };
+
+/**
+ * 감쇠 단위 1건에 수치를 붙인 modifier (§1.6.8.0).
+ *
+ * `attenuation`은 **양수 크기**다. 소비자가 Natal에서 뺀다:
+ * `Internal Effective = Natal − Σattenuation` (§1.5.9.5의 `Natal − Σatten + Σboost` 형태).
+ * clamp·Level 재판정은 여기서 하지 않는다 — Internal은 unclamped다.
+ *
+ * `source` · `window` · `clashPairId` · severity는 relation 쪽에 남고 여기 오지 않는다.
+ * Opening 효과와 합산하지 않는다(§1.6.7.6 — 병존하되 별항).
+ */
+export type ClashAttenuationModifier = {
+  element: Element;
+  natalSlot: PillarSlot;
+  /** 감쇠 크기(양수). Natal에서 빼는 값. */
+  attenuation: number;
+};
