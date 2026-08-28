@@ -7,6 +7,7 @@
  * 설계 근거: docs/unyul-judgment-rules-draft-v0.md §1.6.8.10
  */
 
+import type { ElementStrengthLevel } from "@/lib/saju/elements/buildElementStrengthProfiles";
 import type { Branch, Element, PillarSlot } from "@/lib/saju/types";
 
 /**
@@ -166,4 +167,26 @@ export type ClashEffectiveScore = {
   /** 이 오행에 걸린 총 감쇠(양수). 피격 없으면 0. */
   attenuation: number;
   internalEffectiveScore: number;
+};
+
+/**
+ * 오행별 Effective 결과 (clamp · Level 재판정까지 포함).
+ *
+ * `internalEffectiveScore`는 **unclamped 그대로** 보존하고,
+ * `displayEffectiveScore`만 표시 구간으로 자른다.
+ * `effectiveStrengthLevel`은 **파생값**이며 Natal `strengthLevel`을 바꾸지 않는다.
+ *
+ * Need · Core · Supplement · certainty는 넣지 않는다.
+ * Transform · Opening modifier는 합성하지 않는다.
+ */
+export type ClashEffectiveProfile = {
+  element: Element;
+  natalScore: number;
+  /** 총 감쇠(양수). 피격 없으면 0. */
+  attenuation: number;
+  /** unclamped. 8 미만·음수 가능. */
+  internalEffectiveScore: number;
+  /** 표시 구간으로 clamp된 좌표. */
+  displayEffectiveScore: number;
+  effectiveStrengthLevel: ElementStrengthLevel;
 };
