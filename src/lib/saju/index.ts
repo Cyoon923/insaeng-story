@@ -1,5 +1,14 @@
 export { buildFourPillars } from "@/lib/saju/pillars/build";
 export { listHourCandidates } from "@/lib/saju/pillars/hour";
+export {
+  applyMinuteOffsetToClock,
+  longitudeOffsetMinutes,
+  resolveBirthLongitudeEast,
+  resolveHourCalcClock,
+  KOREA_STANDARD_MERIDIAN_EAST_DEG,
+} from "@/lib/saju/calendar/localMeanTime";
+export type { HourCalcClockResolution } from "@/lib/saju/calendar/localMeanTime";
+export { BIRTH_PLACE_LONGITUDE_EAST, longitudeEastForPlaceId } from "@/lib/saju/data/birthPlaces";
 export { collectElementMaterials } from "@/lib/saju/elements/materials";
 export { labelSeasonPhase, labelStemSeasonPhase, seasonOfBranch, seasonPhaseOf } from "@/lib/saju/elements/season";
 export { analyzeStemRoots } from "@/lib/saju/elements/roots";
@@ -67,6 +76,7 @@ export { HIDDEN_STEMS, hiddenStemsOf } from "@/lib/saju/data/hiddenStems";
 export type {
   BaseClimate,
   BirthInput,
+  BirthPlaceRef,
   BirthTime,
   Branch,
   BranchRelationEvidence,

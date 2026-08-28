@@ -18,9 +18,15 @@ export type FreeSajuBirthFormInput = {
   hour?: number;
   /** Required when timeUnknown is not true. 0–59 */
   minute?: number;
+  /**
+   * Optional birth region label (e.g. "서울").
+   * Kept for query/UI display only — Unyul v1 hour uses nationwide −30 (반시),
+   * not region → birthPlace → LMT.
+   */
+  region?: string;
 };
 
-function toBirthInput(input: FreeSajuBirthFormInput): BirthInput {
+export function toBirthInput(input: FreeSajuBirthFormInput): BirthInput {
   const timeUnknown = Boolean(input.timeUnknown);
 
   if (!timeUnknown) {

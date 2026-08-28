@@ -85,6 +85,68 @@ function resolved(
   return { role, element, status: "resolved", reasons };
 }
 
+function isResourceShiShen(shiShen: string): boolean {
+  return shiShen === "정인" || shiShen === "편인";
+}
+
+function isPeerShiShen(shiShen: string): boolean {
+  return shiShen === "비견" || shiShen === "겁재";
+}
+
+/** Day master is never peer evidence; hour omitted when unknown. */
+function isEligiblePeerSlot(slot: PillarSlot, hourUnknown: boolean): boolean {
+  if (slot === "day") return false;
+  if (hourUnknown && slot === "hour") return false;
+  return true;
+}
+
+function hasRootedVisibleResource(evidence: StrengthEvidence): boolean {
+  return evidence.supportEvidence.items.some(
+    (item) => isResourceShiShen(item.shiShen) && item.presence === "rooted-visible",
+  );
+}
+
+function hasRootedVisiblePeer(evidence: StrengthEvidence): boolean {
+  return evidence.supportEvidence.items.some(
+    (item) =>
+      isPeerShiShen(item.shiShen) &&
+      isEligiblePeerSlot(item.slot, evidence.hourUnknown) &&
+      item.presence === "rooted-visible",
+  );
+}
+
+/**
+ * foundation-established → Core candidate = dayElement.
+ * Does not alter R2 bottleneck / peerGap / Strength direction.
+ * Applies only when no higher structural primary already resolved.
+ */
+function tryFoundationEstablished(
+  input: ResolveStructuralElementInput,
+  reasons: string[],
+): StructuralElementResult | null {
+  if (input.r5Bottleneck === "CLEAR") {
+    reasons.push("foundation-established:blocked-by-r5-clear");
+    return null;
+  }
+  if (input.summary.rootQuality === "absent") {
+    reasons.push("foundation-established:blocked-by-root-absent");
+    return null;
+  }
+  if (!hasRootedVisibleResource(input.evidence)) {
+    reasons.push("foundation-established:blocked-by-no-rooted-resource");
+    return null;
+  }
+  if (!hasRootedVisiblePeer(input.evidence)) {
+    reasons.push("foundation-established:blocked-by-no-rooted-peer");
+    return null;
+  }
+
+  const dayElement = stemElement(input.evidence.dayStem);
+  reasons.push("foundation-established:day-element");
+  // Role label R2 = day-master axis element mapping; bottleneck/peerGap unchanged.
+  return resolved("R2", dayElement, reasons);
+}
+
 /** Direct wealth-axis evidence (not officer, not counts). */
 function hasWealthDirectEvidence(
   evidence: StrengthEvidence,
@@ -309,6 +371,7 @@ function resolveSingleRoleElement(
 /**
  * Derives one structural (R1–R5) Final element candidate or unresolved.
  * R6 and certainty are out of scope.
+ * Fallback: foundation-established → dayElement when root + rooted resource + rooted peer.
  */
 export function resolveStructuralElement(
   input: ResolveStructuralElementInput,
@@ -320,6 +383,8 @@ export function resolveStructuralElement(
 
   if (structuralPrimaries.length === 0) {
     reasons.push("no-structural-primary");
+    const foundation = tryFoundationEstablished(input, reasons);
+    if (foundation) return foundation;
     return unresolved(reasons);
   }
 
@@ -331,15 +396,21 @@ export function resolveStructuralElement(
   const role = structuralPrimaries[0];
   if (!role) {
     reasons.push("no-structural-primary");
+    const foundation = tryFoundationEstablished(input, reasons);
+    if (foundation) return foundation;
     return unresolved(reasons);
   }
 
   const candidates = input.roleElementCandidates[role];
   const element = resolveSingleRoleElement(role, candidates, input, reasons);
-  if (!element) {
-    return unresolved(reasons);
+  if (element) {
+    reasons.push("structural-resolved");
+    return resolved(role, element, reasons);
   }
 
-  reasons.push("structural-resolved");
-  return resolved(role, element, reasons);
+  // No resolved structural primary from existing roles — foundation may apply
+  // unless R5 CLEAR already owns the structural lane.
+  const foundation = tryFoundationEstablished(input, reasons);
+  if (foundation) return foundation;
+  return unresolved(reasons);
 }

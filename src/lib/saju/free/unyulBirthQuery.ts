@@ -1,4 +1,5 @@
 import type { FreeSajuBirthFormInput } from "@/lib/saju/free/buildFreeSajuPillars";
+import { normalizeRegionLabel } from "@/lib/saju/free/mapRegionToBirthPlace";
 import type { CalendarKind } from "@/lib/saju/types";
 
 export type FreeSajuBirthQueryParseResult =
@@ -19,7 +20,7 @@ function parseIntParam(raw: string | undefined, label: string): number | null {
   return n;
 }
 
-/** Serialize free birth input for /unyul/result query (no PII storage). */
+/** Serialize free birth input for /unyul query (no PII storage). */
 export function freeSajuBirthToQuery(input: FreeSajuBirthFormInput): string {
   const params = new URLSearchParams();
   params.set("calendar", input.calendar);
@@ -34,6 +35,10 @@ export function freeSajuBirthToQuery(input: FreeSajuBirthFormInput): string {
   } else {
     params.set("h", String(input.hour ?? 0));
     params.set("min", String(input.minute ?? 0));
+  }
+  const region = normalizeRegionLabel(input.region);
+  if (region) {
+    params.set("region", region);
   }
   return params.toString();
 }
@@ -58,11 +63,20 @@ export function freeSajuBirthFromSearchParams(
 
     const timeUnknown = first(searchParams.unknown) === "1";
     const isLeapMonth = calendar === "lunar" && first(searchParams.leap) === "1";
+    const region = normalizeRegionLabel(first(searchParams.region));
 
     if (timeUnknown) {
       return {
         ok: true,
-        input: { calendar, year, month, day, isLeapMonth, timeUnknown: true },
+        input: {
+          calendar,
+          year,
+          month,
+          day,
+          isLeapMonth,
+          timeUnknown: true,
+          ...(region ? { region } : {}),
+        },
       };
     }
 
@@ -74,7 +88,17 @@ export function freeSajuBirthFromSearchParams(
 
     return {
       ok: true,
-      input: { calendar, year, month, day, isLeapMonth, timeUnknown: false, hour, minute },
+      input: {
+        calendar,
+        year,
+        month,
+        day,
+        isLeapMonth,
+        timeUnknown: false,
+        hour,
+        minute,
+        ...(region ? { region } : {}),
+      },
     };
   } catch (error) {
     return {

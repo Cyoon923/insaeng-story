@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Suspense, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ChevronLeft } from "lucide-react";
 import { buildFreeSajuPillars } from "@/lib/saju/free/buildFreeSajuPillars";
 import type { FreeSajuBirthFormInput } from "@/lib/saju/free/buildFreeSajuPillars";
-import { freeSajuBirthToQuery } from "@/lib/saju/free/unyulBirthQuery";
+import {
+  freeSajuBirthFromSearchParams,
+  freeSajuBirthToQuery,
+} from "@/lib/saju/free/unyulBirthQuery";
 import type { CalendarKind } from "@/lib/saju/types";
 
 const inputClass =
@@ -23,6 +25,30 @@ function formatBirthDigits(raw: string): string {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
+function birthDateDisplay(input: FreeSajuBirthFormInput): string {
+  return formatBirthDigits(
+    `${input.year}${String(input.month).padStart(2, "0")}${String(input.day).padStart(2, "0")}`,
+  );
+}
+
+function readPrefillFromSearchParams(
+  searchParams: URLSearchParams,
+): FreeSajuBirthFormInput | null {
+  const parsed = freeSajuBirthFromSearchParams(
+    Object.fromEntries(searchParams.entries()),
+  );
+  if (!parsed.ok) return null;
+  return parsed.input;
+}
+
+/** Explicit back target — never history.back(). */
+function resolveInputBackHref(searchParams: URLSearchParams): string {
+  if (searchParams.get("from") !== "basic-info") return "/";
+  const prefill = readPrefillFromSearchParams(searchParams);
+  if (prefill) return `/unyul/basic-info?${freeSajuBirthToQuery(prefill)}`;
+  return "/unyul/basic-info";
+}
+
 function easyEngineError(message: string): string {
   if (message.includes("범위")) return "입력하신 연도는 아직 계산할 수 없어요. 다른 날짜를 확인해 주세요.";
   if (message.includes("윤달")) return "선택하신 해에는 그 윤달이 없어요. 윤달 여부를 다시 확인해 주세요.";
@@ -33,15 +59,33 @@ function easyEngineError(message: string): string {
   return "입력 내용을 다시 확인해 주세요.";
 }
 
-export default function UnyulInputPage() {
+function UnyulInputForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefill = useMemo(
+    () => readPrefillFromSearchParams(searchParams),
+    [searchParams],
+  );
+
   const datePickerRef = useRef<HTMLInputElement>(null);
-  const [calendar, setCalendar] = useState<CalendarKind>("solar");
-  const [birth, setBirth] = useState("");
-  const [isLeapMonth, setIsLeapMonth] = useState(false);
-  const [timeUnknown, setTimeUnknown] = useState(false);
-  const [hour, setHour] = useState<string>("");
-  const [minute, setMinute] = useState<string>("");
+  const [calendar, setCalendar] = useState<CalendarKind>(
+    () => prefill?.calendar ?? "solar",
+  );
+  const [birth, setBirth] = useState(() => (prefill ? birthDateDisplay(prefill) : ""));
+  const [isLeapMonth, setIsLeapMonth] = useState(
+    () => Boolean(prefill?.calendar === "lunar" && prefill.isLeapMonth),
+  );
+  const [timeUnknown, setTimeUnknown] = useState(() => Boolean(prefill?.timeUnknown));
+  const [hour, setHour] = useState(() =>
+    prefill && !prefill.timeUnknown && prefill.hour !== undefined
+      ? String(prefill.hour)
+      : "",
+  );
+  const [minute, setMinute] = useState(() =>
+    prefill && !prefill.timeUnknown && prefill.minute !== undefined
+      ? String(prefill.minute)
+      : "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const hours = useMemo(
@@ -106,19 +150,20 @@ export default function UnyulInputPage() {
       return;
     }
 
-    router.push(`/unyul/result?${freeSajuBirthToQuery(input)}`);
+    router.push(`/unyul?${freeSajuBirthToQuery(input)}`);
   };
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#FAF8F3] shadow-xl">
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-[#E5E2DA] bg-[#FAF8F3]/90 px-3 backdrop-blur">
-        <Link
-          href="/"
+        <button
+          type="button"
           aria-label="뒤로가기"
+          onClick={() => router.push(resolveInputBackHref(searchParams))}
           className="flex h-11 w-11 items-center justify-center rounded-full text-[#252823]"
         >
           <ChevronLeft className="h-6 w-6" />
-        </Link>
+        </button>
         <h1 className="font-serif text-[20px] font-bold text-[#5D4A72]">운율</h1>
       </header>
 
@@ -273,6 +318,32 @@ export default function UnyulInputPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function UnyulInputPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#FAF8F3] shadow-xl">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-[#E5E2DA] bg-[#FAF8F3]/90 px-3 backdrop-blur">
+            {/* Suspense fallback: no Link — href="/" caused home navigations while searchParams load. */}
+            <span
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[#252823]"
+              aria-hidden
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </span>
+            <h1 className="font-serif text-[20px] font-bold text-[#5D4A72]">운율</h1>
+          </header>
+          <div className="px-5 pb-10 pt-6">
+            <p className="text-[15px] leading-relaxed text-[#777A73]">불러오는 중이에요.</p>
+          </div>
+        </div>
+      }
+    >
+      <UnyulInputForm />
+    </Suspense>
   );
 }
 

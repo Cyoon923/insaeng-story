@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local app data
 /data/app-data.json
+
+# QA 임시 스크린샷
+/.tmp/unyul-qa/

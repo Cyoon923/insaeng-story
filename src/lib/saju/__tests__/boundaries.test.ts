@@ -117,11 +117,12 @@ describe("시진·일주 시각 경계 (현재 기본값 night_ja 동작)", () =
     expect(early.day).toEqual({ stem: "戊", branch: "午" });
   });
 
-  it("maps hour branches around 자/축", () => {
+  it("maps hour branches around 자/축 under ban-si (−30)", () => {
+    // Wall → calc: 22:59→22:29 亥, 23:00→22:30 亥, 00:59→00:29 子, 01:00→00:30 子
     expect(buildFourPillars(solar(2000, 1, 1, 22, 59)).hour).toMatchObject({ branch: "亥" });
-    expect(buildFourPillars(solar(2000, 1, 1, 23, 0)).hour).toMatchObject({ branch: "子" });
+    expect(buildFourPillars(solar(2000, 1, 1, 23, 0)).hour).toMatchObject({ branch: "亥" });
     expect(buildFourPillars(solar(2000, 1, 1, 0, 59)).hour).toMatchObject({ branch: "子" });
-    expect(buildFourPillars(solar(2000, 1, 1, 1, 0)).hour).toMatchObject({ branch: "丑" });
+    expect(buildFourPillars(solar(2000, 1, 1, 1, 0)).hour).toMatchObject({ branch: "子" });
   });
 });
 

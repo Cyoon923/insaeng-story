@@ -39,7 +39,7 @@ describe("unknown time", () => {
 });
 
 describe("야자시", () => {
-  it("changes day pillar at 23:00 and uses 자 hour", () => {
+  it("changes day pillar at 23:00; ban-si hour stays 亥 until wall 23:30", () => {
     const before = buildFourPillars(
       solarInput({ year: 2000, month: 1, day: 1, time: { hour: 22, minute: 59 } }),
     );
@@ -50,7 +50,7 @@ describe("야자시", () => {
     expect(after.day).not.toEqual(before.day);
     expect(after.day).toEqual({ stem: "己", branch: "未" });
     expect(before.hour).toEqual({ stem: "癸", branch: "亥" });
-    expect(after.hour).toEqual({ stem: "甲", branch: "子" });
+    expect(after.hour).toEqual({ stem: "乙", branch: "亥" });
   });
 });
 

@@ -1,10 +1,17 @@
 import { jieTermAt, lichunInstant } from "@/lib/saju/calendar/solarTerms";
+import {
+  applyMinuteOffsetToClock,
+  wallClockFromInstant,
+} from "@/lib/saju/calendar/localMeanTime";
 import { toSolarInstant } from "@/lib/saju/calendar/toSolar";
 import { dayPillar } from "@/lib/saju/pillars/day";
 import { hourPillar } from "@/lib/saju/pillars/hour";
 import { monthPillar } from "@/lib/saju/pillars/month";
 import { yearPillar } from "@/lib/saju/pillars/year";
 import type { BirthInput, FourPillars } from "@/lib/saju/types";
+
+/** Unyul v1 — Korea-wide half-hour (반시) offset for hour pillar only. */
+const KOREA_BAN_SI_OFFSET_MINUTES = -30;
 
 const DST_YEARS = new Set([
   1948, 1949, 1950, 1951, 1955, 1956, 1957, 1958, 1959, 1960, 1987, 1988,
@@ -32,6 +39,7 @@ export function buildFourPillars(input: BirthInput): FourPillars {
     }
   }
 
+  // Year / month / day: always wall-clock civil instant (no hour offset).
   const year = yearPillar(instant);
   const month = monthPillar(instant);
   const day = dayPillar(instant, dayBoundary, timeUnknown);
@@ -48,11 +56,22 @@ export function buildFourPillars(input: BirthInput): FourPillars {
     };
   }
 
+  // Hour pillar only: Korea v1 uses nationwide −30 min (반시).
+  // BirthInput.birthPlace / resolveHourCalcClock (LMT) are not consulted here.
+  // hourBranchIndex 2-hour blocks are unchanged; only the hour input may shift.
+  const wallClock = wallClockFromInstant(instant);
+  const hourCalcClock = applyMinuteOffsetToClock(wallClock, KOREA_BAN_SI_OFFSET_MINUTES);
+  warnings.push(
+    `시주: 대한민국 공통 −30분 보정 적용 (반시). ` +
+      `wall=${String(wallClock.hour).padStart(2, "0")}:${String(wallClock.minute).padStart(2, "0")} ` +
+      `→ calc=${String(hourCalcClock.hour).padStart(2, "0")}:${String(hourCalcClock.minute).padStart(2, "0")}`,
+  );
+
   return {
     year,
     month,
     day,
-    hour: hourPillar(day.stem, instant.hour),
+    hour: hourPillar(day.stem, hourCalcClock.hour),
     hourCertainty: "confirmed",
     warnings,
   };

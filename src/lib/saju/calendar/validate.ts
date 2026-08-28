@@ -50,4 +50,11 @@ export function validateBirthInput(input: BirthInput): void {
       throw new Error("분은 0–59여야 합니다.");
     }
   }
+
+  if (input.birthPlace?.longitudeEast !== undefined) {
+    const lon = input.birthPlace.longitudeEast;
+    if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
+      throw new Error("출생지 경도가 올바르지 않습니다.");
+    }
+  }
 }

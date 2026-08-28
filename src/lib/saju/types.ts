@@ -16,6 +16,24 @@ export type ClockTime = {
 
 export type BirthTime = ClockTime | "unknown";
 
+/**
+ * Optional birth-place ref for hour-pillar **local mean time (LMT)**.
+ * Year/month/day pillars continue to use wall-clock (timezone) civil time.
+ *
+ * LMT ≠ true solar time (진태양시). EOT is not applied.
+ *
+ * Minimal v1:
+ * - `longitudeEast` if known, or
+ * - `id` resolved from a small seeded place table (e.g. "seoul")
+ * Full region DB / equation-of-time are out of scope.
+ */
+export type BirthPlaceRef = {
+  /** Seeded place id (e.g. "seoul"). Ignored when longitudeEast is set. */
+  id?: string;
+  /** East longitude in degrees (e.g. Seoul ≈ 126.978). */
+  longitudeEast?: number;
+};
+
 export type BirthInput = {
   calendar: CalendarKind;
   year: number;
@@ -25,6 +43,11 @@ export type BirthInput = {
   time: BirthTime;
   timezone?: TimezoneId;
   dayBoundary?: DayBoundary;
+  /**
+   * Optional place ref for the LMT helper (`resolveHourCalcClock`).
+   * Unyul v1 `buildFourPillars` ignores this and uses nationwide −30 min (반시) for hour.
+   */
+  birthPlace?: BirthPlaceRef;
 };
 
 export type SolarInstant = {
