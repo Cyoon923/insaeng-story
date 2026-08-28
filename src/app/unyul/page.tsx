@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, User } from "lucide-react";
+import { ChevronLeft, Menu, User } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import {
   freeSajuBirthFromSearchParams,
@@ -85,15 +85,24 @@ function HubHeader({
   return (
     <header className="px-5 pt-5 pb-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#3d2b1f]">
-            운율
-          </h1>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[#8a735a]">
-            사주로 만나는
-            <br />
-            오늘의 흐름, 더 좋은 내일
-          </p>
+        <div className="flex min-w-0 flex-1 items-start gap-0.5">
+          <Link
+            href={`/unyul/input${querySuffix}`}
+            aria-label="뒤로가기"
+            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#5c3d2e]"
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={1.8} aria-hidden />
+          </Link>
+          <div className="min-w-0 pt-0.5">
+            <h1 className="font-serif text-[22px] font-bold tracking-tight text-[#3d2b1f]">
+              운율
+            </h1>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[#8a735a]">
+              사주로 만나는
+              <br />
+              오늘의 흐름, 더 좋은 내일
+            </p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Link
