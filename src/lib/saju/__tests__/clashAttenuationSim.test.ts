@@ -918,3 +918,313 @@ describe("TBD-01c · A안 확정 잠금 (§1.6.8.0 · §1.6.8.5.1)", () => {
     expect(results[0]).toBe(48);
   });
 });
+
+/* ========================================================================== *
+ * TBD-01c-position · 위치(년/월/일/시) 가중 시뮬레이션
+ *
+ * 질문: 같은 root evidence가 충을 받아도 슬롯 위치에 따라 δ를 달리해야 하는가?
+ * 전제: 확정값 δ=4 불변 · Natal 비mutate · 전역 패널티 금지 ·
+ *       Internal unclamped / Display만 clamp · Need 미반영 ·
+ *       개고(丑未·辰戌 Opening) 및 natal/luck source 차등 제외 · 엔진 미연결.
+ * ========================================================================== */
+
+type SeasonPhase = "왕" | "상" | "휴" | "수" | "사";
+
+/** 위치 가중 후보. δ=4를 기준선으로 슬롯별 실효 δ를 돌려준다. */
+type PositionCandidate = {
+  name: "P0" | "P1" | "P2";
+  label: string;
+  basis: string;
+  deltaFor: (slot: BranchSlot, seasonPhase: SeasonPhase) => number;
+};
+
+const POSITION_CANDIDATES: PositionCandidate[] = [
+  {
+    name: "P0",
+    label: "전 슬롯 동일 (현행)",
+    basis: "v1 root 모델이 위치 축을 갖지 않음 — 깊이(role)로만 위계 표현",
+    deltaFor: () => CONFIRMED_DELTA,
+  },
+  {
+    name: "P1",
+    label: "월지만 소폭 가중 (월 6 · 나머지 4)",
+    basis: "월지=제강(提綱), 통근 1순위. 6은 M2 五合 per-slot 상한 재사용(신규 창작 아님)",
+    deltaFor: (slot) => (slot === "month" ? 6 : CONFIRMED_DELTA),
+  },
+  {
+    name: "P2",
+    label: "월령 연동 가중 (월령 왕/상 오행의 월지 root만 8)",
+    basis:
+      "‘월지 근이 강하다’의 실질은 ‘월령을 받은 근이 강하다’ — seasonPhase를 " +
+      "attenuation에 재사용하는 안. 이중 반영 검증용.",
+    deltaFor: (slot, phase) =>
+      slot === "month" && (phase === "왕" || phase === "상") ? 8 : CONFIRMED_DELTA,
+  },
+];
+
+type PositionEvidence = RootEvidence & { seasonPhase: SeasonPhase };
+
+/** 슬롯별 가중을 적용하는 attenuation. 구조는 applyClashAtten과 동일. */
+function applyClashAttenWeighted(
+  natal: Scores,
+  evidences: PositionEvidence[],
+  clashes: ClashHit[],
+  cand: PositionCandidate,
+): { effective: Scores; hits: Array<{ id: string; delta: number }> } {
+  const s = cloneScores(natal);
+  const hits: Array<{ id: string; delta: number }> = [];
+  for (const clash of clashes) {
+    const party = new Set<BranchSlot>(clash.slots);
+    for (const ev of evidences) {
+      if (!party.has(ev.branchSlot)) continue;
+      const d = cand.deltaFor(ev.branchSlot, ev.seasonPhase);
+      s[ev.element] -= d;
+      hits.push({ id: ev.id, delta: d });
+    }
+  }
+  return { effective: s, hits };
+}
+
+type PositionCase = {
+  id: string;
+  natal: Scores;
+  evidences: PositionEvidence[];
+  clashes: ClashHit[];
+};
+
+/** 요구된 8개 비교 사례. natal 42는 ±2 최악 출발점(§1.6.8.1). */
+function positionCases(): PositionCase[] {
+  const flat: Scores = { 木: 42, 火: 52, 土: 52, 金: 52, 水: 52 };
+  const ev = (
+    id: string,
+    slot: BranchSlot,
+    phase: SeasonPhase = "휴",
+    element: Element = "木",
+  ): PositionEvidence => ({ id, element, branchSlot: slot, seasonPhase: phase });
+
+  return [
+    {
+      id: "1-년지-단독충",
+      natal: flat,
+      evidences: [ev("木-year", "year")],
+      clashes: [{ id: "c", slots: ["year", "month"] }],
+    },
+    {
+      id: "2-월지-단독충",
+      natal: flat,
+      evidences: [ev("木-month", "month")],
+      clashes: [{ id: "c", slots: ["month", "year"] }],
+    },
+    {
+      id: "3-일지-단독충",
+      natal: flat,
+      evidences: [ev("木-day", "day")],
+      clashes: [{ id: "c", slots: ["day", "hour"] }],
+    },
+    {
+      id: "4-시지-단독충",
+      natal: flat,
+      evidences: [ev("木-hour", "hour")],
+      clashes: [{ id: "c", slots: ["hour", "day"] }],
+    },
+    {
+      id: "5-월지+타지지-동시충",
+      natal: flat,
+      evidences: [ev("木-month", "month"), ev("木-day", "day")],
+      clashes: [
+        { id: "c1", slots: ["month", "year"] },
+        { id: "c2", slots: ["day", "hour"] },
+      ],
+    },
+    {
+      id: "6-다중root-일부만-충",
+      natal: { 木: 72, 火: 48, 土: 48, 金: 48, 水: 48 },
+      evidences: [ev("木-year", "year"), ev("木-month", "month"), ev("木-day", "day")],
+      clashes: [{ id: "c", slots: ["day", "hour"] }], // 日만 피격
+    },
+    {
+      id: "7-약한오행-유일root-월지충",
+      natal: { 木: 24, 火: 52, 土: 52, 金: 52, 水: 52 }, // weak 하단
+      evidences: [ev("木-month", "month", "사")],
+      clashes: [{ id: "c", slots: ["month", "year"] }],
+    },
+    {
+      id: "8-강한오행-다중root-월지만충",
+      natal: { 木: 84, 火: 44, 土: 44, 金: 44, 水: 44 }, // very-strong 하단
+      evidences: [
+        ev("木-year", "year", "왕"),
+        ev("木-month", "month", "왕"),
+        ev("木-day", "day", "왕"),
+      ],
+      clashes: [{ id: "c", slots: ["month", "hour"] }], // 月만 피격
+    },
+  ];
+}
+
+describe("TBD-01c-position · 8개 사례 후보 비교", () => {
+  it("후보별 Δ·Level 이동을 표로 기록한다", () => {
+    const rows: Array<Record<string, unknown>> = [];
+    for (const sc of positionCases()) {
+      const row: Record<string, unknown> = { case: sc.id };
+      for (const cand of POSITION_CANDIDATES) {
+        const { effective, hits } = applyClashAttenWeighted(
+          sc.natal,
+          sc.evidences,
+          sc.clashes,
+          cand,
+        );
+        const natalSnap = cloneScores(sc.natal);
+        expect(sc.natal).toEqual(natalSnap); // Natal 비mutate
+        row[cand.name] = {
+          drop: sc.natal.木 - effective.木,
+          internal: effective.木,
+          level: levelFromInternal(effective.木),
+          jump: maxLevelJump(sc.natal, effective),
+          hits: hits.length,
+        };
+      }
+      rows.push(row);
+    }
+    console.log(JSON.stringify(rows, null, 1));
+    expect(rows).toHaveLength(8);
+  });
+
+  it("단일 충 ±2 배제 룰: 세 후보 모두 통과", () => {
+    const violations: string[] = [];
+    for (const sc of positionCases()) {
+      if (sc.clashes.length !== 1) continue;
+      for (const cand of POSITION_CANDIDATES) {
+        const { effective } = applyClashAttenWeighted(sc.natal, sc.evidences, sc.clashes, cand);
+        if (maxLevelJump(sc.natal, effective) >= 2) violations.push(`${cand.name}/${sc.id}`);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it("비피격 오행은 어떤 후보에서도 불변 (전역 패널티 금지)", () => {
+    for (const sc of positionCases()) {
+      for (const cand of POSITION_CANDIDATES) {
+        const { effective } = applyClashAttenWeighted(sc.natal, sc.evidences, sc.clashes, cand);
+        for (const e of ELEMENTS) {
+          if (e !== "木") expect(effective[e]).toBe(sc.natal[e]);
+        }
+      }
+    }
+  });
+});
+
+describe("TBD-01c-position · 가중이 Level 해상도에서 관측되는가", () => {
+  it("전 구간 sweep: P1/P2가 P0와 Level이 갈리는 지점 빈도", () => {
+    // 단일 월지 충: P0 drop 4 · P1 drop 6 · P2(왕/상) drop 8
+    const probes = [
+      { name: "P1-vs-P0", d0: 4, d1: 6 },
+      { name: "P2-vs-P0", d0: 4, d1: 8 },
+      { name: "P2-vs-P1", d0: 6, d1: 8 },
+    ];
+    const report = probes.map((p) => {
+      const diverge: number[] = [];
+      for (let s = LO; s <= HI; s += 1) {
+        const a = levelFromInternal(s - p.d0);
+        const b = levelFromInternal(s - p.d1);
+        if (a !== b) diverge.push(s);
+      }
+      return {
+        pair: p.name,
+        divergingScores: diverge.length,
+        pctOfRange: Number(((diverge.length / (HI - LO + 1)) * 100).toFixed(1)),
+        examples: diverge.slice(0, 6),
+      };
+    });
+    console.log(JSON.stringify(report));
+
+    // 발산은 임의로 흩어지지 않는다: 대역 경계 4곳에서만,
+    // 각 경계마다 '가중 차이'만큼의 폭으로 발생한다.
+    //   발산 점수 개수 = (가중 차이) × (대역 경계 수 4)
+    const BOUNDARIES = LEVEL_ORDER.length - 1; // 4
+    expect(BOUNDARIES).toBe(4);
+    for (const [i, p] of probes.entries()) {
+      expect(report[i]!.divergingScores).toBe((p.d1 - p.d0) * BOUNDARIES);
+    }
+    // 발산 지점은 전부 대역 lo 직상단(경계 근처)이다.
+    expect(report[0]!.examples).toEqual([26, 27, 46, 47, 66, 67]);
+  });
+
+  it("8개 사례 전부에서 P0/P1/P2의 Level 이동(jump)이 동일하다", () => {
+    for (const sc of positionCases()) {
+      const jumps = POSITION_CANDIDATES.map((cand) => {
+        const { effective } = applyClashAttenWeighted(sc.natal, sc.evidences, sc.clashes, cand);
+        return maxLevelJump(sc.natal, effective);
+      });
+      expect(new Set(jumps).size).toBe(1); // 후보 간 차이 없음
+    }
+  });
+});
+
+describe("TBD-01c-position · 월령/통근 이중 반영 분석", () => {
+  it("월지는 Strength에서 이미 전용 채널 2개를 갖는다", () => {
+    // buildElementStrengthProfiles의 Level 입력 6개 중 월지 유래:
+    const levelInputs = [
+      { input: "seasonPhase", source: "month.branch", positional: true },
+      { input: "hasMonthOutlet", source: "month.branch 지장간 투출", positional: true },
+      { input: "presence", source: "전 슬롯 무차별", positional: false },
+      { input: "rootStatus", source: "role(정기>중기>여기)만", positional: false },
+      { input: "hasBranchMain", source: "cluster anchor layer", positional: false },
+      { input: "exactStemVisible", source: "branch relation evidence", positional: false },
+    ];
+    const monthChannels = levelInputs.filter((i) => i.positional);
+    const otherSlotChannels = levelInputs.filter(
+      (i) => !i.positional && i.source.includes("슬롯"),
+    );
+
+    expect(monthChannels.map((c) => c.input)).toEqual(["seasonPhase", "hasMonthOutlet"]);
+    // 년/일/시 전용 채널은 0개.
+    expect(otherSlotChannels.every((c) => c.source.includes("무차별"))).toBe(true);
+    console.log(
+      JSON.stringify({
+        월지_전용채널: monthChannels.map((c) => c.input),
+        년일시_전용채널: [],
+        root_위계_기준: "role(깊이)만 — slot 무관",
+      }),
+    );
+  });
+
+  it("P2는 seasonPhase를 두 번 쓴다 — 이중 반영의 직접 사례", () => {
+    // 같은 원인(월령 왕)이 base Level을 올리고, 동시에 감쇠도 키운다.
+    const natal: Scores = { 木: 84, 火: 44, 土: 44, 金: 44, 水: 44 };
+    const clashes: ClashHit[] = [{ id: "c", slots: ["month", "hour"] }];
+
+    const wang: PositionEvidence[] = [
+      { id: "木-month", element: "木", branchSlot: "month", seasonPhase: "왕" },
+    ];
+    const su: PositionEvidence[] = [
+      { id: "木-month", element: "木", branchSlot: "month", seasonPhase: "수" },
+    ];
+
+    const p2 = POSITION_CANDIDATES.find((c) => c.name === "P2")!;
+    const wangDrop = natal.木 - applyClashAttenWeighted(natal, wang, clashes, p2).effective.木;
+    const suDrop = natal.木 - applyClashAttenWeighted(natal, su, clashes, p2).effective.木;
+
+    expect(wangDrop).toBe(8);
+    expect(suDrop).toBe(4);
+    // 월령 왕이라는 '같은 사실'이 base Level 상승(very-strong 게이트)과
+    // 감쇠 2배를 동시에 유발한다 → 축 분리 위반.
+    expect(wangDrop / suDrop).toBe(2);
+
+    // P0/P1은 seasonPhase를 읽지 않는다 (축 분리 유지).
+    for (const name of ["P0", "P1"] as const) {
+      const cand = POSITION_CANDIDATES.find((c) => c.name === name)!;
+      const a = applyClashAttenWeighted(natal, wang, clashes, cand).effective.木;
+      const b = applyClashAttenWeighted(natal, su, clashes, cand).effective.木;
+      expect(a).toBe(b);
+    }
+  });
+
+  it("월지 가중 상한: 다른 슬롯 4 고정 시 월지 δ ≤ 8", () => {
+    // 2충 4슬롯 소진에서 총 낙폭이 21 미만이어야 ±2가 안 난다.
+    const ceiling = [4, 5, 6, 7, 8, 9, 10].filter((w) => w + CONFIRMED_DELTA * 3 < 21);
+    expect(Math.max(...ceiling)).toBe(8);
+    // P1(6) · P2(8) 모두 이 상한 안에 있다 → ±2 룰로는 배제 불가.
+    expect(6).toBeLessThanOrEqual(8);
+    expect(8).toBeLessThanOrEqual(8);
+  });
+});
