@@ -135,3 +135,35 @@ export type ClashAttenuationModifier = {
   /** 감쇠 크기(양수). Natal에서 빼는 값. */
   attenuation: number;
 };
+
+/**
+ * Effective 계산에 **빌려 쓰는** natal 오행 좌표 1건.
+ *
+ * Natal 판단 Strength의 본선은 **Level(5단)** 이고 단일 연속 score는 없다.
+ * Display Score는 `toElementStrengthDisplayProfiles`의 **표시 전용 좌표**이며,
+ * 문서 §1.6.8 스케일 전제대로 그 좌표를 **빌려 쓸 뿐**이다.
+ *
+ * 그래서 `ElementStrengthDisplayProfile`을 그대로 받지 않는다 — `strengthLevel` ·
+ * `certainty`가 수치 계층으로 넘어오면 “Level을 다시 판정하지 않는다”는 경계가
+ * 흐려진다. 호출자가 경계에서 좌표만 뽑아 넘긴다.
+ */
+export type NatalElementScore = {
+  element: Element;
+  /** 빌려 온 Display Score 좌표. */
+  natalScore: number;
+};
+
+/**
+ * 오행별 Internal Effective Score.
+ *
+ * `internalEffectiveScore = natalScore − attenuation` — **unclamped**.
+ * 8~96 clamp와 Level 재판정은 여기서 하지 않는다(§1.5.9.10.2 정책 D).
+ * Need · Core · Supplement와 무관하다.
+ */
+export type ClashEffectiveScore = {
+  element: Element;
+  natalScore: number;
+  /** 이 오행에 걸린 총 감쇠(양수). 피격 없으면 0. */
+  attenuation: number;
+  internalEffectiveScore: number;
+};
