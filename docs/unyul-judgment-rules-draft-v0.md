@@ -1463,14 +1463,14 @@ Effective = Natal(immutable) + Σ active modifiers
 | **δ=4를 Luck 충에 동일 적용** | **확정 가능 — 동일 δ=4 (수치 계층 한정)** · §1.6.8.9.5 |
 | severity 수치화 | **TBD** — L1-S는 source 집합만 보존, 등급·점수 금지 |
 | 대/세/월/일 **source 가중** | **TBD** — 근거 없음, **수치 생성 금지** |
-| Luck 충 탐지 배선 | **미착수** — Luck이 natal 지지/지장간에 접근 불가 |
+| Luck 충 탐지 배선 | **설계 조사 완료 (W3 권고) · 구현 미착수** — §1.6.8.10 |
 | 엔진 구현 | **없음** |
 
 **선행 과제 (순서 고정):**
 
 1. ~~**Q4 붕괴 규칙 확정**~~ → **완료. L1 numeric collapse / 구조 L1-S** (§1.6.8.9.4)
 2. ~~**δ 동일 적용 여부**~~ → **완료. δ=4 동일 (수치 계층 한정)** (§1.6.8.9.5)
-3. **배선**: Luck 레이어가 natal 지지 슬롯·root evidence를 볼 수 있게 한다 (현재 Element 2개만 받음). **남은 유일한 구현 선행 과제.**
+3. ~~**배선 설계**~~ → **완료. W3 (`luck/clash/`, 최소 snapshot, 3단 분리)** (§1.6.8.10). **구현은 미착수.**
 4. source 가중·severity 수치화는 **별도 근거가 생기기 전까지 착수하지 않는다.**
 
 시뮬: `src/lib/saju/__tests__/clashAttenuationSim.test.ts` — `TBD-01c-source` describe (5 test)
@@ -1594,7 +1594,7 @@ Effective는 **활성 relation 집합만의 함수**다.
 - **Luck 충에 δ=4를 쓸지 여부** — 붕괴 규칙과 **독립된 질문**이며 §1.6.8.9.2 Q1대로 미정
 - **severity의 수치화** — L1-S는 집합만 보존. 등급·점수는 근거 생길 때까지 금지
 - **source 가중(L2)** — 근거 없음, 수치 생성 금지
-- **Luck 충 탐지 배선** — 미착수(Luck이 natal 지지/지장간 미접근)
+- **Luck 충 탐지 배선** — **설계 완료 (W3, §1.6.8.10) · 구현 미착수**
 
 시뮬: `clashAttenuationSim.test.ts` — `TBD-01c-source · Q4-*` describe 4개(9 test)
 
@@ -1697,11 +1697,166 @@ collapse가 (오행 × 슬롯) 1회이므로, 한 슬롯이 natal·luck 양쪽�
 
 - **source severity의 수치화** — 근거 생길 때까지 금지 (L1-S 집합 보존만)
 - **source 가중(L2)** — 근거 없음
-- **Luck 충 탐지 배선** — 미착수. Luck 레이어가 natal 지지·지장간에 접근 불가(§1.6.8.9.1)
+- **Luck 충 탐지 배선** — **설계 완료 (W3, §1.6.8.10) · 구현 미착수**
 - **개고 병존 시 총량 상한** — Opening 별도(§1.6.7.6)
 - **엔진 구현** — 없음
 
 시뮬: `clashAttenuationSim.test.ts` — `TBD-01c-source · Q5-*` describe 3개(7 test, 2²⁰ 전수 포함)
+
+##### 1.6.8.10 TBD-01c-wiring — Luck↔Natal clash detection 배선 (**설계 조사 · 미구현**)
+
+목표: Luck layer가 natal 지지와 generic 육충을 탐지하고, 확정된 **L1-S** 정책에 필요한 정보를 얻기 위한
+**최소 데이터 계약**을 설계한다. **본선 엔진 미수정 · 프로덕션 타입 미추가 · 구현 없음.**
+
+###### 1.6.8.10.1 코드 조사 결과
+
+| 조사 항목 | 실제 상태 |
+|-----------|----------|
+| `FourPillars` | `{ year, month, day, hour: Pillar\|"unknown", hourCertainty, dayBoundaryNote?, warnings[] }` |
+| `Pillar` | `{ stem, branch }` — 충 판정에는 **branch만** 필요 |
+| `PillarSlot` | `"year"\|"month"\|"day"\|"hour"` — 감쇠 키의 슬롯 축과 동일 |
+| `RootHit` | `{ slot, branch, hiddenStem, role, polarity }`. dedupe 키에 **polarity 포함** |
+| `analyzeElementPresence(...).rootedSlots` | **(오행 × 슬롯) 단위, 중복 없음** — `hiddenStemsOf(branch).some(...)` 기반 |
+| `AnnualTarget` | `{ luckKind:"annual-year", year, stem, branch, stemElement, branchMainElement, boundaryBasis:"lichun-kst", windowStart, windowEnd }` |
+| Luck의 natal 접근 | `{ target, natalCoreElement, natalSupplementElement }` — **Element 2개뿐** |
+| Luck 소비자 | 앱 페이지(`unyul/2026/*` 등)는 호출부에서 **이미 `pillars`를 보유** |
+| 확장성 | `luckKind`는 단일 리터럴이나 **union 확장 가능**. `window`/`stem`/`branch`는 kind 무관 generic. `year`·`boundaryBasis`는 annual 전용 |
+
+**결정적 실측 (Q3 답):**
+
+```
+네 기둥 모두 甲寅일 때, 오행 木
+  analyzeElementPresence(...).rootedSlots → ["year","month","day","hour"]  = 4   ✅ 확정 키와 일치
+  RootHit 레코드 수                        → 8 (비견/겁재 중복)              ❌ 2배
+  hour unknown  → rootedSlots            → ["year","month","day"]         = 3   ✅ 자동 축소
+```
+
+⇒ **`rootedSlots`가 이미 확정 감쇠 키 `(element × natal slot)`와 정확히 같은 모양이다.**
+⇒ **`RootHit`을 감쇠 키 생성에 직접 쓰면 안 된다** — δ가 2배가 되어 §1.6.8.9.4 계약이 깨진다.
+⇒ **hour unknown 처리도 `confirmedSlots` 경유로 이미 올바르다** (상한이 4→3으로 자동 축소).
+
+###### 1.6.8.10.2 Q1·Q2 — `FourPillars` 전체 vs 최소 snapshot → **최소 snapshot**
+
+`FourPillars`를 Luck 엔진에 넘기면 안 되는 이유:
+
+1. **축 오염.** Luck이 natal 원본을 쥐면 "Luck이 Natal을 덮어쓰지 않는다"(§2.1·§1.10)가 **타입으로 보장되지 않고 규율에 의존**하게 된다. 현재는 Element 2개만 넘겨 **구조적으로 불가능**한 상태다 — 이 성질을 잃지 않아야 한다.
+2. **불필요 정보 과다.** `stem` · `hourCertainty` · `warnings` · `dayBoundaryNote`는 충 판정에 **전혀 쓰이지 않는다.**
+3. **호출부가 이미 `pillars`를 갖고 있다.** snapshot은 **경계에서 1회 생성**하면 되므로 추가 배관 비용이 없다.
+
+**최소 snapshot 계약 (필요/불필요 구분):**
+
+| 필드 | 필요? | 사유 |
+|------|-------|------|
+| `slot` (year/month/day/hour) | **필수** | 감쇠 키의 슬롯 축 |
+| `branch` | **필수** | 육충 짝 판정의 유일 입력 |
+| `rootElements: Element[]` | **필수** | 감쇠 키의 오행 축. **`rootedSlots`의 역방향** |
+| hour unknown | **필수(암묵)** | 해당 슬롯을 **배열에서 제외**하는 방식. 별도 플래그 불필요 |
+| `stem` | **불필요** | 지지 육충과 무관 (천간 충은 TBD-03 범위 밖, §1.6.1) |
+| `hourCertainty` | **불필요** | 슬롯 제외로 이미 표현됨 |
+| `warnings` / `dayBoundaryNote` | **불필요** | 판정과 무관 |
+| `role`(정기/중기/여기) | **불필요** | 감쇠는 깊이를 쓰지 않는다(δ 단일 상수). **깊이 enum은 충이 덮어쓰지 않음**(§1.6.4) |
+| `polarity` | **불필요·유해** | 중복의 원인 |
+
+⇒ snapshot은 **슬롯당 `{ slot, branch, rootElements }`** 3필드, 최대 4개(hour unknown이면 3개).
+
+###### 1.6.8.10.3 Q4 — clash relation record 최소 필드
+
+| 필드 | 채택 | 사유 |
+|------|------|------|
+| `natalSlot` | **필수** | 감쇠 키 |
+| `natalBranch` | **필수** | 근거 표시·검증 |
+| `otherBranch` | **필수** | 상대 지지 (luck 또는 natal) |
+| `source` | **필수** | L1-S severity 보존(§1.6.8.9.5). 수치엔 미사용 |
+| `clashPairId` | **필수** | Opening 라우팅(§1.6.8.10.6)·근거 추적 |
+| `window` | **필수(luck만)** | 활성 판정. natal source는 `null` |
+| ~~`element`~~ | **불채택** | relation은 지지 관계다. 오행은 collapse 단계에서 snapshot으로 붙인다 — relation에 넣으면 **같은 충이 오행 수만큼 복제**되어 §1.6.8.9.4의 중복 위험이 재발한다 |
+| ~~`delta`/severity 점수~~ | **불채택** | 수치는 3단계에서만. severity 수치화 금지 |
+
+> **`element`를 relation에서 뺀 것이 핵심 설계 결정이다.** relation은 **지지 대 지지**,
+> 감쇠 키는 **오행 × 슬롯**. 두 축을 한 레코드에 섞으면 collapse 이전에 이미 곱집합이 생긴다.
+
+###### 1.6.8.10.4 Q5 — annual 전용 vs generic luck 계약 → **generic 필요**
+
+현행 `AnnualTarget`은 `year: number` · `boundaryBasis: "lichun-kst"` 등 **annual 전용 필드**를 갖는다.
+반면 clash 탐지가 실제로 쓰는 것은 **`branch`와 `window`뿐**이다.
+
+| 필드 | clash 탐지에 필요? |
+|------|-------------------|
+| `branch` | **필수** |
+| `windowStart` / `windowEnd` | **필수** |
+| `stem` · `stemElement` · `branchMainElement` | 불필요 (지지 육충과 무관) |
+| `year` · `boundaryBasis` | 불필요 (kind 전용 식별자) |
+
+⇒ **detector는 `{ luckKind, branch, window }` 형태의 generic target만 받아야 한다.**
+대운(교운 시각) · 월운(절입) · 일운(일 경계)은 **`boundaryBasis`가 서로 다르지만 window 계산 결과는 동일 형태**이므로,
+경계 산출은 각 kind가 책임지고 detector는 결과 window만 소비한다.
+`AnnualTarget`을 그대로 받으면 대운·월운·일운 추가 시 **detector를 다시 써야 한다.**
+
+###### 1.6.8.10.5 Q6 — 3단 분리 (**detect → collapse → modifier**)
+
+| 단계 | 입력 → 출력 | δ 인지 |
+|------|-----------|--------|
+| **1. detect** | (natal snapshot, generic luck targets) → `ClashRelation[]` | **모름** |
+| **2. collapse** | (snapshot, relations) → `{element, slot}[]` (중복 제거) | **모름** |
+| **3. modifier** | keys → `{element, slot, delta}[]` | **여기서만 δ=4** |
+
+**분리해야 하는 이유:** 한 함수에 합치면 §1.6.8.9.4의 "relation multiplicity ≠ attenuation multiplicity" 분리가
+**호출 순서에 의존하는 규율**이 된다. 3단 분리는 그 분리를 **타입 경계로 강제**한다.
+또한 Opening(2단계 우회)·transform 해제(relation만 소비)가 **1단계 산출물을 공유**할 수 있다.
+
+**측정 확인:** 1·2단계 산출물에 `delta` 필드가 존재하지 않으며,
+4개 layer 전부 활성이어도 relation 8건 → key 4건 → 火 낙폭 8로 **단일 세운일 때와 동일**하다.
+
+###### 1.6.8.10.6 Q7 — Opening은 relation 공유 · 효과 분리 (**가능**)
+
+generic detector가 `clashPairId`를 실으므로, 丑未·辰戌도 **동일 경로로 탐지**된다.
+
+```
+detect (전 6쌍 공통)
+  ├─ collapse → modifier   … generic 감쇠 (δ=4)         ← 본 경로
+  └─ clashPairId ∈ {clash-chou-wei, clash-chen-xu}
+        → Opening 평가 (TBD-03a)                        ← 별도 경로
+```
+
+- **병존**은 §1.6.7.6에서 이미 확정 — 개고 대상 쌍도 generic 감쇠를 **정상적으로 받는다.**
+- detector는 **라우팅만** 하고 Opening 효과를 계산하지 않는다 (측정 확인).
+- ⇒ Opening 때문에 generic detector를 분기시킬 필요가 **없다.**
+
+###### 1.6.8.10.7 아키텍처 후보 3안
+
+| 안 | 요지 | Natal 불변 타입 보장 | 확장성 | 계약 보존 | 판정 |
+|----|------|:---:|:---:|:---:|------|
+| **W1** | Luck 엔진에 `FourPillars` 전달 | ✗ 규율 의존 | △ | ✗ `RootHit` 오용 위험 노출 | **기각** |
+| **W2** | `annual/` 안에 clash 모듈 추가, `AnnualTarget` 소비 | ○ | ✗ 대운·월운·일운마다 재작성 | △ | **기각** |
+| **W3** | **`luck/clash/` 신설 · 최소 snapshot + generic target · 3단 분리** | **○ 타입으로 차단** | **○ kind 추가만** | **○** | **권고** |
+
+**W3 권고 근거 (변경량이 아니라 계약 보존 기준):**
+
+1. **Natal 불변이 타입으로 보장된다.** snapshot에 `stem`·`warnings`가 없어 Luck이 natal을 **되쓸 수단 자체가 없다.**
+2. **감쇠 키 오용이 구조적으로 차단된다.** snapshot이 `rootElements`(= `rootedSlots` 역방향)만 노출하므로 `RootHit` polarity 중복에 **접근할 수 없다.**
+3. **relation/attenuation 분리가 타입 경계로 강제된다** (§1.6.8.10.5).
+4. **대운·월운·일운 확장 시 detector 재작성이 없다** — `luckKind` union과 window 산출만 추가.
+5. **Opening 분기 불필요** (§1.6.8.10.6).
+
+**배치안:** `src/lib/saju/luck/clash/` (annual과 형제). `annual/`은 clash를 **소비만** 하고 소유하지 않는다.
+
+###### 1.6.8.10.8 TBD-01c-wiring 상태
+
+| 항목 | 상태 |
+|------|------|
+| 최소 snapshot = `{slot, branch, rootElements}` | **설계 확정 가능** |
+| snapshot 원천 = `rootedSlots` (RootHit **금지**) | **설계 확정 가능** |
+| hour unknown = 슬롯 제외 (플래그 불필요) | **설계 확정 가능** |
+| relation 필드 6개 (`element` 제외) | **설계 확정 가능** |
+| generic luck target `{luckKind, branch, window}` | **설계 확정 가능** |
+| 3단 분리 (detect→collapse→modifier) | **설계 확정 가능** |
+| Opening = relation 공유 · 효과 분리 | **설계 확정 가능** |
+| 아키텍처 W3 (`luck/clash/`) | **권고** |
+| **엔진 구현 · 타입 추가** | **미착수 (본 단계 범위 밖)** |
+| 대운·월운·일운 **간지 산출식** | **TBD** — §1.10 그대로. window 계산 주체는 각 kind |
+| natal 내부 충 detector와의 통합 | **TBD** — 본 조사는 Luck↔Natal 경로만 |
+
+시뮬: `clashAttenuationSim.test.ts` — `TBD-01c-wiring` describe 3개(6 test)
 
 #### 1.6.9 TBD-03 상태
 

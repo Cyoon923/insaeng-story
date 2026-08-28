@@ -1847,3 +1847,222 @@ describe("TBD-01c-source · Q5-5 · 별도 δ_luck 도입의 구조적 비용", 
     expect(totalDrop(rels)).toBe(CONFIRMED_DELTA); // 수치층은 불변
   });
 });
+
+/* ========================================================================== *
+ * TBD-01c-wiring · Luck↔Natal clash detection 배선 설계 조사
+ *
+ * 본선 엔진 미수정 · 프로덕션 타입 미추가 · 실제 구현 없음.
+ * 아래는 '설계 계약'을 고정하기 위한 시뮬레이션이다.
+ * ========================================================================== */
+
+/** 설계안: clash 판정에 필요한 최소 Natal snapshot (테스트 로컬 스케치). */
+type NatalClashSnapshotSlot = {
+  slot: BranchSlot;
+  branch: Branch;
+  /** 이 슬롯이 root를 제공하는 오행 집합. (오행 × 슬롯) 키의 원천. */
+  rootElements: Element[];
+};
+type NatalClashSnapshot = {
+  slots: NatalClashSnapshotSlot[]; // hour unknown이면 3개
+};
+
+/** 설계안: source 비의존 generic luck target (테스트 로컬 스케치). */
+type GenericLuckKind = "decade" | "annual-year" | "month" | "day";
+type GenericLuckTarget = {
+  luckKind: GenericLuckKind;
+  branch: Branch;
+  windowStart: Date;
+  windowEnd: Date;
+};
+
+/** 설계안: clash relation record 최소 필드. */
+type DesignClashRelation = {
+  natalSlot: BranchSlot;
+  natalBranch: Branch;
+  otherBranch: Branch;
+  source: ClashSource;
+  clashPairId: string;
+  window: { start: Date; end: Date } | null; // natal source는 null
+};
+
+describe("TBD-01c-wiring · Q3 · attenuation key의 올바른 원천", () => {
+  it("rootedSlots는 (오행 × 슬롯)과 일치하고 rootHits는 polarity로 2배가 된다", () => {
+    // 엔진 실측(네 기둥 모두 甲寅):
+    //   analyzeElementPresence(...).rootedSlots → 木: 4 (슬롯 단위, 중복 없음)
+    //   collectRootHitsForElement 계열 RootHit → 木: 8 (비견/겁재 2배)
+    const ROOTED_SLOTS_YIN_ALL_FOUR = 4;
+    const ROOT_HITS_YIN_ALL_FOUR = 8;
+
+    expect(ROOTED_SLOTS_YIN_ALL_FOUR).toBe(4);
+    expect(ROOT_HITS_YIN_ALL_FOUR).toBe(ROOTED_SLOTS_YIN_ALL_FOUR * 2);
+
+    // 확정 계약(§1.6.8.9.4): 감쇠 단위는 (오행 × natal 슬롯)
+    expect(ROOTED_SLOTS_YIN_ALL_FOUR * CONFIRMED_DELTA).toBe(16); // 안전
+    expect(ROOT_HITS_YIN_ALL_FOUR * CONFIRMED_DELTA).toBe(32); // 계약 위반
+    expect(ROOT_HITS_YIN_ALL_FOUR * CONFIRMED_DELTA).toBeGreaterThanOrEqual(21);
+  });
+
+  it("hour unknown이면 슬롯이 자동으로 빠져 상한이 3으로 내려간다", () => {
+    // 엔진 실측: hour "unknown" → rootedSlots = ["year","month","day"]
+    const snapshot: NatalClashSnapshot = {
+      slots: [
+        { slot: "year", branch: "寅", rootElements: ["木", "火", "土"] },
+        { slot: "month", branch: "寅", rootElements: ["木", "火", "土"] },
+        { slot: "day", branch: "寅", rootElements: ["木", "火", "土"] },
+      ],
+    };
+    expect(snapshot.slots).toHaveLength(3);
+    const maxUnits = snapshot.slots.filter((s) => s.rootElements.includes("木")).length;
+    expect(maxUnits).toBe(3);
+    expect(maxUnits * CONFIRMED_DELTA).toBe(12);
+    expect(maxUnits * CONFIRMED_DELTA).toBeLessThan(21);
+  });
+});
+
+/** 1단계: relation 탐지 (수치 없음). */
+function detectClashRelations(
+  natal: NatalClashSnapshot,
+  luck: Array<{ target: GenericLuckTarget; source: ClashSource }>,
+): DesignClashRelation[] {
+  const out: DesignClashRelation[] = [];
+  for (const slot of natal.slots) {
+    const partner = clashPartnerOf(slot.branch);
+    if (partner === null) continue;
+    for (const { target, source } of luck) {
+      if (target.branch !== partner) continue;
+      const pair = CLASH_PAIRS.find(
+        (c) => c.pair.includes(slot.branch) && c.pair.includes(target.branch),
+      )!;
+      out.push({
+        natalSlot: slot.slot,
+        natalBranch: slot.branch,
+        otherBranch: target.branch,
+        source,
+        clashPairId: pair.id,
+        window: { start: target.windowStart, end: target.windowEnd },
+      });
+    }
+  }
+  return out;
+}
+
+/** 2단계: (오행 × 슬롯) 키로 collapse (수치 없음). */
+function collapseRelationsToKeys(
+  natal: NatalClashSnapshot,
+  relations: DesignClashRelation[],
+): Array<{ element: Element; slot: BranchSlot }> {
+  const bySlot = new Map(natal.slots.map((s) => [s.slot, s]));
+  const seen = new Set<string>();
+  const keys: Array<{ element: Element; slot: BranchSlot }> = [];
+  for (const r of relations) {
+    const slot = bySlot.get(r.natalSlot);
+    if (!slot) continue;
+    for (const element of slot.rootElements) {
+      const k = `${element}:${r.natalSlot}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      keys.push({ element, slot: r.natalSlot });
+    }
+  }
+  return keys;
+}
+
+/** 3단계: modifier 산출 (여기서만 δ 등장). */
+function keysToModifiers(
+  keys: Array<{ element: Element; slot: BranchSlot }>,
+): Array<{ element: Element; slot: BranchSlot; delta: number }> {
+  return keys.map((k) => ({ ...k, delta: CONFIRMED_DELTA }));
+}
+
+describe("TBD-01c-wiring · Q6 · 3단 분리 (detect → collapse → modifier)", () => {
+  const natal: NatalClashSnapshot = {
+    slots: [
+      { slot: "year", branch: "子", rootElements: ["水"] },
+      { slot: "month", branch: "午", rootElements: ["火", "土"] },
+      { slot: "day", branch: "午", rootElements: ["火", "土"] },
+      { slot: "hour", branch: "卯", rootElements: ["木"] },
+    ],
+  };
+  const win = (k: GenericLuckKind): GenericLuckTarget => ({
+    luckKind: k,
+    branch: "子",
+    windowStart: new Date("2026-02-04T00:00:00Z"),
+    windowEnd: new Date("2027-02-04T00:00:00Z"),
+  });
+
+  it("한 Luck 지지가 여러 natal 슬롯을 치고, 슬롯당 오행별 1키로 붕괴한다", () => {
+    const relations = detectClashRelations(natal, [
+      { target: win("annual-year"), source: "seun" },
+    ]);
+    // 세운 子 → natal 午(month·day) 2건. natal 子(year)는 자기 짝이 午이므로 무관.
+    expect(relations).toHaveLength(2);
+    expect(relations.map((r) => r.natalSlot).sort()).toEqual(["day", "month"]);
+    expect(new Set(relations.map((r) => r.clashPairId))).toEqual(new Set(["clash-zi-wu"]));
+
+    const keys = collapseRelationsToKeys(natal, relations);
+    // 午는 火·土 2오행 root → 슬롯 2개 × 오행 2개 = 4키
+    expect(keys).toHaveLength(4);
+    const mods = keysToModifiers(keys);
+    const fireDrop = mods.filter((m) => m.element === "火").reduce((a, m) => a + m.delta, 0);
+    expect(fireDrop).toBe(8); // 2슬롯 × 4
+    expect(fireDrop).toBeLessThan(21);
+  });
+
+  it("4개 layer가 전부 활성이어도 키·수치는 불변 (source 무관 멱등)", () => {
+    const all = LUCK_SOURCES.map((source) => ({
+      target: win(source === "daeun" ? "decade" : "annual-year"),
+      source,
+    }));
+    const relations = detectClashRelations(natal, all);
+    expect(relations).toHaveLength(8); // 4 source × 2 슬롯 — relation은 전량 기록
+
+    const keys = collapseRelationsToKeys(natal, relations);
+    expect(keys).toHaveLength(4); // 붕괴 후 동일
+    const fireDrop = keysToModifiers(keys)
+      .filter((m) => m.element === "火")
+      .reduce((a, m) => a + m.delta, 0);
+    expect(fireDrop).toBe(8); // 단일 세운일 때와 동일
+  });
+
+  it("δ는 3단계에서만 등장한다 — detect/collapse는 수치를 모른다", () => {
+    const relations = detectClashRelations(natal, [
+      { target: win("annual-year"), source: "seun" },
+    ]);
+    const keys = collapseRelationsToKeys(natal, relations);
+    // relation·key 어디에도 delta 필드가 없다.
+    for (const r of relations) expect("delta" in r).toBe(false);
+    for (const k of keys) expect("delta" in k).toBe(false);
+    for (const m of keysToModifiers(keys)) expect(m.delta).toBe(CONFIRMED_DELTA);
+  });
+});
+
+describe("TBD-01c-wiring · Q7 · Opening은 relation만 공유하고 효과는 분리", () => {
+  it("丑未·辰戌도 generic relation으로 탐지되며 Opening 경로로만 분기한다", () => {
+    const natal: NatalClashSnapshot = {
+      slots: [
+        { slot: "year", branch: "丑", rootElements: ["水", "金", "土"] },
+        { slot: "month", branch: "卯", rootElements: ["木"] },
+        { slot: "day", branch: "辰", rootElements: ["木", "水", "土"] },
+        { slot: "hour", branch: "巳", rootElements: ["土", "金", "火"] },
+      ],
+    };
+    const target: GenericLuckTarget = {
+      luckKind: "annual-year",
+      branch: "未",
+      windowStart: new Date("2027-02-04T00:00:00Z"),
+      windowEnd: new Date("2028-02-04T00:00:00Z"),
+    };
+    const relations = detectClashRelations(natal, [{ target, source: "seun" }]);
+    expect(relations).toHaveLength(1);
+    expect(relations[0]!.clashPairId).toBe("clash-chou-wei");
+
+    // generic 감쇠는 정상 적용된다 (§1.6.7.6 병존).
+    const keys = collapseRelationsToKeys(natal, relations);
+    expect(keys).toHaveLength(3); // 丑의 水·金·土
+    // Opening 여부는 pairId로만 분기 — 본 detector는 효과를 계산하지 않는다.
+    const openingCandidates = relations.filter((r) => OPENING_PAIR_IDS.has(r.clashPairId));
+    expect(openingCandidates).toHaveLength(1);
+    // Opening 효과 계산은 별도 경로(TBD-03a). 여기서는 라우팅만.
+    expect(OPENING_PAIR_IDS.has("clash-zi-wu")).toBe(false);
+  });
+});
