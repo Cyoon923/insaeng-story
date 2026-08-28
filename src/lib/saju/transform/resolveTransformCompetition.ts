@@ -10,6 +10,7 @@
  * 경합 집합은 **연결 요소**로 묶는다(§1.5.10.6): A–B 공유, B–C 공유면 A·B·C가 한 집합.
  */
 
+import { participantKey } from "@/lib/saju/transform/participantIdentity";
 import type {
   TransformCandidate,
   TransformConditionState,
@@ -17,9 +18,9 @@ import type {
   TransformResolvedModifier,
 } from "@/lib/saju/transform/types";
 
-/** 참여 자리 키 — 경합 판정의 유일 기준. */
+/** 참여 자리 키 — 경합 판정의 유일 기준. 원국 궁위와 운 간지를 구분한다. */
 function slotKeysOf(modifier: TransformRawModifier): string[] {
-  return modifier.attenuations.map((row) => `${row.layer}:${row.slot}`);
+  return modifier.attenuations.map(participantKey);
 }
 
 /** relation 인스턴스 식별자 — 같은 combineId가 여러 자리 조합으로 존재할 수 있다. */
@@ -30,7 +31,7 @@ function instanceKeyOf(combineId: string, slotKeys: readonly string[]): string {
 function candidateInstanceKey(candidate: TransformCandidate): string {
   return instanceKeyOf(
     candidate.relation.combineId,
-    candidate.relation.participants.map((p) => `${p.layer}:${p.slot}`),
+    candidate.relation.participants.map(participantKey),
   );
 }
 
@@ -79,7 +80,7 @@ function preferBranchCompleteCombine(modifier: TransformRawModifier): boolean {
 
 /** P2 — 월지(지지합) / 월간(천간합)이 구성에 포함. 둘 다 `slot === "month"`로 표현된다. */
 function includesMonthSlot(modifier: TransformRawModifier): boolean {
-  return modifier.attenuations.some((row) => row.slot === "month");
+  return modifier.attenuations.some((row) => row.origin === "natal" && row.slot === "month");
 }
 
 /** P6 — 삼합 ≻ 방합 ≻ 五合. */

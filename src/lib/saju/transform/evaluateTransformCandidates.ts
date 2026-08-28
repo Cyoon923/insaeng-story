@@ -26,7 +26,7 @@ import type {
   TransformConditionState,
   TransformRelation,
 } from "@/lib/saju/transform/types";
-import type { Element, FourPillars, PillarSlot } from "@/lib/saju/types";
+import type { Branch, Element, FourPillars, PillarSlot } from "@/lib/saju/types";
 
 const SLOT_ORDER: Record<PillarSlot, number> = {
   year: 0,
@@ -46,8 +46,12 @@ function evaluateMonthCommand(
   relation: TransformRelation,
   target: Element,
 ): Verdict {
+  // '월지가 합국 구성원'은 **원국 월지**만 해당한다. 운 지지는 궁위가 아니다.
   const monthIsMember = relation.participants.some(
-    (participant) => participant.slot === "month" && participant.layer === "branch",
+    (participant) =>
+      participant.origin === "natal" &&
+      participant.slot === "month" &&
+      participant.layer === "branch",
   );
   if (monthIsMember) {
     return { state: "satisfied", reason: "month-branch-is-member" };
@@ -76,7 +80,11 @@ function evaluateStemExposure(pillars: FourPillars, target: Element): Verdict {
  * - 천간 참여(五合): 천간 충은 TBD-03 **범위 밖**(§1.6.1)이고 §1.5.4.3의
  *   "연계 지지"도 확정 정의가 없다 → **unknown**
  */
-function evaluateObstruction(pillars: FourPillars, relation: TransformRelation): Verdict {
+function evaluateObstruction(
+  pillars: FourPillars,
+  relation: TransformRelation,
+  luckBranchByOrigin: ReadonlyMap<string, Branch>,
+): Verdict {
   const branchParticipants = relation.participants.filter(
     (participant) => participant.layer === "branch",
   );
@@ -90,6 +98,22 @@ function evaluateObstruction(pillars: FourPillars, relation: TransformRelation):
   const slots = confirmedSlots(pillars);
   const hits: string[] = [];
   for (const participant of branchParticipants) {
+    if (participant.origin !== "natal") {
+      // 운 지지도 확정 육충 표로 판정 가능하다 — 글자만 알면 된다.
+      const luckBranch = luckBranchByOrigin.get(participant.origin);
+      if (luckBranch === undefined) {
+        return {
+          state: "unknown",
+          reason: `luck-participant(${participant.origin}): 운 지지 글자 미제공`,
+        };
+      }
+      for (const other of slots) {
+        if (resolveBranchClashPairId(luckBranch, other.pillar.branch) !== null) {
+          hits.push(`${participant.origin}:${luckBranch}x${other.pillar.branch}`);
+        }
+      }
+      continue;
+    }
     const own = slots.find(({ slot }) => slot === participant.slot);
     if (own === undefined) continue;
     for (const other of slots) {
@@ -106,7 +130,13 @@ function evaluateObstruction(pillars: FourPillars, relation: TransformRelation):
 
 /** C-거리: "지정 슬롯 쌍이 인접 기둥(연-월·월-일·일-시)"(§1.5.4.5). 五合에서만 R. */
 function evaluateDistance(relation: TransformRelation): Verdict {
-  const indices = relation.participants.map((participant) => SLOT_ORDER[participant.slot]);
+  // 운 간지는 궁위가 없어 '인접 기둥' 판정 자체가 정의되지 않는다 → unknown.
+  if (relation.participants.some((participant) => participant.origin !== "natal")) {
+    return { state: "unknown", reason: "luck-participant: 궁위가 없어 거리 판정 불가" };
+  }
+  const indices = relation.participants.map(
+    (participant) => SLOT_ORDER[participant.slot as PillarSlot],
+  );
   const min = Math.min(...indices);
   const max = Math.max(...indices);
   return max - min === 1
@@ -147,6 +177,7 @@ function evaluateCondition(
   pillars: FourPillars,
   relation: TransformRelation,
   target: Element,
+  luckBranchByOrigin: ReadonlyMap<string, Branch>,
 ): Verdict {
   if (role === "not-applicable") {
     return { state: "not-applicable", reason: `role=not-applicable (${relation.kind})` };
@@ -157,7 +188,7 @@ function evaluateCondition(
     case "stemExposure":
       return evaluateStemExposure(pillars, target);
     case "obstruction":
-      return evaluateObstruction(pillars, relation);
+      return evaluateObstruction(pillars, relation, luckBranchByOrigin);
     case "distance":
       return evaluateDistance(relation);
     default:
@@ -196,14 +227,19 @@ function decideStatus(conditions: readonly TransformConditionEvidence[]): Transf
 export function evaluateTransformCandidates(
   pillars: FourPillars,
   relations: readonly TransformRelation[],
+  /** 운 참여자의 지지 글자. C-방해 판정에만 쓰인다. */
+  luckSources: ReadonlyArray<{ origin: string; branch: Branch }> = [],
 ): TransformCandidate[] {
+  const luckBranchByOrigin = new Map(
+    luckSources.map((source) => [source.origin, source.branch]),
+  );
   return relations.map((relation) => {
     const target = transformTargetOf(relation.combineId);
     const roles = TRANSFORM_CONDITION_ROLES[relation.kind];
 
     const conditions: TransformConditionEvidence[] = TRANSFORM_CONDITION_ORDER.map((key) => {
       const role = roles[key];
-      const verdict = evaluateCondition(key, role, pillars, relation, target);
+      const verdict = evaluateCondition(key, role, pillars, relation, target, luckBranchByOrigin);
       return { key, role, state: verdict.state, reason: verdict.reason };
     });
 

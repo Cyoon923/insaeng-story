@@ -63,9 +63,9 @@ function resolvedModifier(
     combineId: "삼합-申子辰",
     kind: "삼합",
     attenuations: [
-      { slot: "year", layer: "branch", element: "金", attenuation: 16 / 3 },
-      { slot: "month", layer: "branch", element: "水", attenuation: 16 / 3 },
-      { slot: "day", layer: "branch", element: "土", attenuation: 16 / 3 },
+      { origin: "natal", slot: "year", layer: "branch", element: "金", attenuation: 16 / 3 },
+      { origin: "natal", slot: "month", layer: "branch", element: "水", attenuation: 16 / 3 },
+      { origin: "natal", slot: "day", layer: "branch", element: "土", attenuation: 16 / 3 },
     ],
     targetElement: "水",
     boost: 16 / 3 + 16 / 3 + 16 / 3,
@@ -120,7 +120,7 @@ describe("층 합성", () => {
     // 木: clash −4, transform participant −16/3
     const transform: TransformResolvedModifier = {
       ...resolvedModifier(true, "uncontested"),
-      attenuations: [{ slot: "year", layer: "branch", element: "木", attenuation: 16 / 3 }],
+      attenuations: [{ origin: "natal", slot: "year", layer: "branch", element: "木", attenuation: 16 / 3 }],
       targetElement: "火",
       boost: 16 / 3,
     };
@@ -137,7 +137,7 @@ describe("층 합성", () => {
   it("서로 다른 오행이면 독립 적용된다", () => {
     const transform: TransformResolvedModifier = {
       ...resolvedModifier(true, "uncontested"),
-      attenuations: [{ slot: "year", layer: "branch", element: "火", attenuation: 6 }],
+      attenuations: [{ origin: "natal", slot: "year", layer: "branch", element: "火", attenuation: 6 }],
       targetElement: "土",
       boost: 6,
     };
@@ -158,7 +158,7 @@ describe("층 합성", () => {
     const a: TransformResolvedModifier = {
       ...resolvedModifier(true, "uncontested"),
       combineId: "삼합-申子辰",
-      attenuations: [{ slot: "year", layer: "branch", element: "金", attenuation: 6 }],
+      attenuations: [{ origin: "natal", slot: "year", layer: "branch", element: "金", attenuation: 6 }],
       targetElement: "水",
       boost: 6,
     };
@@ -166,7 +166,7 @@ describe("층 합성", () => {
       ...resolvedModifier(true, "uncontested"),
       combineId: "방합-亥子丑",
       kind: "방합",
-      attenuations: [{ slot: "hour", layer: "branch", element: "土", attenuation: 6 }],
+      attenuations: [{ origin: "natal", slot: "hour", layer: "branch", element: "土", attenuation: 6 }],
       targetElement: "水",
       boost: 6,
     };
@@ -181,9 +181,9 @@ describe("층 합성", () => {
       combineId: "방합-寅卯辰",
       kind: "방합",
       attenuations: [
-        { slot: "year", layer: "branch", element: "木", attenuation: 16 / 3 },
-        { slot: "month", layer: "branch", element: "木", attenuation: 16 / 3 },
-        { slot: "day", layer: "branch", element: "土", attenuation: 16 / 3 },
+        { origin: "natal", slot: "year", layer: "branch", element: "木", attenuation: 16 / 3 },
+        { origin: "natal", slot: "month", layer: "branch", element: "木", attenuation: 16 / 3 },
+        { origin: "natal", slot: "day", layer: "branch", element: "土", attenuation: 16 / 3 },
       ],
       targetElement: "木",
       boost: 16,

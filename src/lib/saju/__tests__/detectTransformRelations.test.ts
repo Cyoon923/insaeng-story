@@ -87,8 +87,8 @@ describe("detectTransformRelations · 五合", () => {
       (r) => r.combineId === "五合-甲己",
     )!;
     expect(relation.participants).toEqual([
-      { slot: "year", layer: "stem", element: stemElement("甲") },
-      { slot: "month", layer: "stem", element: stemElement("己") },
+      { origin: "natal", slot: "year", layer: "stem", element: stemElement("甲") },
+      { origin: "natal", slot: "month", layer: "stem", element: stemElement("己") },
     ]);
     expect(relation.participants.every((p) => p.layer === "stem")).toBe(true);
   });
@@ -148,9 +148,9 @@ describe("detectTransformRelations · 삼합 / 방합", () => {
       (r) => r.combineId === "삼합-申子辰",
     )!;
     expect(relation.participants).toEqual([
-      { slot: "year", layer: "branch", element: branchElement("申") },
-      { slot: "month", layer: "branch", element: branchElement("子") },
-      { slot: "day", layer: "branch", element: branchElement("辰") },
+      { origin: "natal", slot: "year", layer: "branch", element: branchElement("申") },
+      { origin: "natal", slot: "month", layer: "branch", element: branchElement("子") },
+      { origin: "natal", slot: "day", layer: "branch", element: branchElement("辰") },
     ]);
     expect(relation.participants.every((p) => p.layer === "branch")).toBe(true);
   });
@@ -215,7 +215,8 @@ describe("detectTransformRelations · 필드 범위·불변성·결정론", () =
         expect(relation).not.toHaveProperty(forbidden);
       }
       for (const participant of relation.participants) {
-        expect(Object.keys(participant).sort()).toEqual(["element", "layer", "slot"]);
+        expect(Object.keys(participant).sort()).toEqual(["element", "layer", "origin", "slot"]);
+        expect(participant.origin).toBe("natal");
       }
     }
   });

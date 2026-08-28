@@ -37,7 +37,8 @@ export function buildTransformRawModifiers(
 
     const attenuations: TransformParticipantAttenuation[] = relation.participants.map(
       (participant) => ({
-        slot: participant.slot,
+        origin: participant.origin,
+        ...(participant.slot === undefined ? {} : { slot: participant.slot }),
         layer: participant.layer,
         element: participant.element,
         attenuation: perParticipant,

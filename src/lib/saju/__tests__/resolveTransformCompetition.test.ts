@@ -50,11 +50,13 @@ function pack(...candidates: TransformCandidate[]) {
 }
 
 const branchP = (slot: TransformParticipant["slot"], element: Element): TransformParticipant => ({
+  origin: "natal",
   slot,
   layer: "branch",
   element,
 });
 const stemP = (slot: TransformParticipant["slot"], element: Element): TransformParticipant => ({
+  origin: "natal",
   slot,
   layer: "stem",
   element,

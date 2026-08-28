@@ -48,8 +48,8 @@ const WU_HE = candidate(
   "五合-甲己",
   "五合",
   [
-    { slot: "year", layer: "stem", element: "木" },
-    { slot: "month", layer: "stem", element: "土" },
+    { origin: "natal", slot: "year", layer: "stem", element: "木" },
+    { origin: "natal", slot: "month", layer: "stem", element: "土" },
   ],
   "土",
 );
@@ -58,9 +58,9 @@ const SAN_HE = candidate(
   "삼합-申子辰",
   "삼합",
   [
-    { slot: "year", layer: "branch", element: "金" },
-    { slot: "month", layer: "branch", element: "水" },
-    { slot: "day", layer: "branch", element: "土" },
+    { origin: "natal", slot: "year", layer: "branch", element: "金" },
+    { origin: "natal", slot: "month", layer: "branch", element: "水" },
+    { origin: "natal", slot: "day", layer: "branch", element: "土" },
   ],
   "水",
 );
@@ -69,9 +69,9 @@ const FANG_HE = candidate(
   "방합-寅卯辰",
   "방합",
   [
-    { slot: "year", layer: "branch", element: "木" },
-    { slot: "month", layer: "branch", element: "木" },
-    { slot: "day", layer: "branch", element: "土" },
+    { origin: "natal", slot: "year", layer: "branch", element: "木" },
+    { origin: "natal", slot: "month", layer: "branch", element: "木" },
+    { origin: "natal", slot: "day", layer: "branch", element: "土" },
   ],
   "木",
 );
@@ -137,8 +137,14 @@ describe("modifier 생성 규칙", () => {
 
   it("participant identity(slot/layer/element)를 보존한다", () => {
     const [modifier] = buildTransformRawModifiers([SAN_HE]);
-    expect(modifier!.attenuations.map(({ slot, layer, element }) => ({ slot, layer, element })))
-      .toEqual(SAN_HE.relation.participants);
+    expect(
+      modifier!.attenuations.map(({ origin, slot, layer, element }) => ({
+        origin,
+        slot,
+        layer,
+        element,
+      })),
+    ).toEqual(SAN_HE.relation.participants);
   });
 
   it("targetElement는 candidate 값을 그대로 전달한다", () => {
@@ -182,7 +188,7 @@ describe("raw 계층 경계 · 불변성 · 결정론", () => {
         expect(modifier).not.toHaveProperty(forbidden);
       }
       for (const row of modifier.attenuations) {
-        expect(Object.keys(row).sort()).toEqual(["attenuation", "element", "layer", "slot"]);
+        expect(Object.keys(row).sort()).toEqual(["attenuation", "element", "layer", "origin", "slot"]);
       }
     }
   });

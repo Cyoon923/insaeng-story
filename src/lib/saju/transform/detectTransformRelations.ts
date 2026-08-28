@@ -43,8 +43,8 @@ export function detectTransformRelations(pillars: FourPillars): TransformRelatio
     for (const firstSlot of slotsWithStem(firstStem)) {
       for (const secondSlot of slotsWithStem(secondStem)) {
         const participants: TransformParticipant[] = [
-          { slot: firstSlot, layer: "stem", element: stemElement(firstStem) },
-          { slot: secondSlot, layer: "stem", element: stemElement(secondStem) },
+          { origin: "natal", slot: firstSlot, layer: "stem", element: stemElement(firstStem) },
+          { origin: "natal", slot: secondSlot, layer: "stem", element: stemElement(secondStem) },
         ];
         relations.push({ combineId: combination.id, kind: combination.kind, participants });
       }
@@ -64,9 +64,9 @@ export function detectTransformRelations(pillars: FourPillars): TransformRelatio
           const participants: TransformParticipant[] = [
             // branch layer의 element는 지지 **본기(정기)** 오행이다 (§1.5.9.10.1).
             // BRANCH_ELEMENT는 12지지 전부에서 정기 지장간의 오행과 일치한다.
-            { slot: firstSlot, layer: "branch", element: branchElement(firstBranch) },
-            { slot: secondSlot, layer: "branch", element: branchElement(secondBranch) },
-            { slot: thirdSlot, layer: "branch", element: branchElement(thirdBranch) },
+            { origin: "natal", slot: firstSlot, layer: "branch", element: branchElement(firstBranch) },
+            { origin: "natal", slot: secondSlot, layer: "branch", element: branchElement(secondBranch) },
+            { origin: "natal", slot: thirdSlot, layer: "branch", element: branchElement(thirdBranch) },
           ];
           relations.push({ combineId: combination.id, kind: combination.kind, participants });
         }

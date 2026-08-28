@@ -25,8 +25,16 @@ export type TransformParticipantLayer = "stem" | "branch";
  * - `stem` layer → 해당 천간의 오행
  * - `branch` layer → 해당 지지의 **본기(정기 지장간)** 오행 (§1.5.9.10.1)
  */
+/**
+ * 참여 출처. 원국 궁위와 운 간지를 **명시적으로 구분**한다.
+ * 운은 궁위가 없으므로 natal `slot` 값과 절대 섞이지 않는다.
+ */
+export type TransformParticipantOrigin = "natal" | "annual-year" | "decade";
+
 export type TransformParticipant = {
-  slot: PillarSlot;
+  origin: TransformParticipantOrigin;
+  /** `origin === "natal"`일 때만 존재한다. 운 간지에는 궁위가 없다. */
+  slot?: PillarSlot;
   layer: TransformParticipantLayer;
   element: Element;
 };
@@ -99,7 +107,9 @@ export type TransformCandidate = {
  * 오행 합산은 후단 compose의 몫이다.
  */
 export type TransformParticipantAttenuation = {
-  slot: PillarSlot;
+  origin: TransformParticipantOrigin;
+  /** `origin === "natal"`일 때만 존재한다. */
+  slot?: PillarSlot;
   layer: TransformParticipantLayer;
   element: Element;
   /** 감쇠 크기(양수). pool / 참여 자리 수. 반올림하지 않는다. */

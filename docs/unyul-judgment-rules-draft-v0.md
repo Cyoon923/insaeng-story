@@ -1057,7 +1057,14 @@ clash와 transform은 **서로를 import하지 않으며**, `effective/`도 두 
 | **Clash** | **세운(annual-year) source** | 세운 지지 ↔ 원국 지지 육충 |
 
 “annual effective”는 *세운 시점의* Effective라는 뜻이지 **세운이 Transform을 일으킨다는 뜻이 아니다.**
-세운·원국이 만드는 합(**Luck Transform**)은 **미구현**이다.
+세운·원국이 만드는 합(**Luck Transform**)은 `transform/resolveTransformWithLuck.ts`에 **별도 구현**돼 있으며
+이 orchestrator에는 아직 합류하지 않았다.
+
+> **Luck Transform (annual-year · decade 지원):** 참여자 identity를 `origin`으로 확장했다 —
+> 원국은 `natal:{layer}:{slot}`, 운은 `origin:{layer}`(운 간지에는 궁위가 없다).
+> `month`가 PillarSlot과 LuckClashKind 양쪽에 있어 origin 없이는 키가 충돌한다.
+> 원국·운 합은 **같은 경합 집합**에서 해소하고(자리 공유 시 S1) 반환할 때만 나눈다.
+> C-월령의 "월지 구성원"은 **원국 월지만** 인정하고, C-거리는 운 간지에 궁위가 없어 **unknown**이다.
 
 **순서:** Natal Display 좌표 1회 산출 → (A) 원국 Transform L1→L4 → delta,
 (B) 세운 Clash → modifier → delta → (C) 공통 합성 → Internal / Display / Level.
