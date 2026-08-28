@@ -876,7 +876,8 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 | clash 합성 이음매 = 오행별 델타 | **설계 확정 가능** |
 | **L1 relation detection** | **구현 완료** — `transform/{types,combinationTables,detectTransformRelations}.ts` |
 | **L2 조건 평가 · `transform-ok` 판정** | **구현 완료** — `transform/{conditionRoles,transformTargetTables,evaluateTransformCandidates}.ts` |
-| L3 modifier(pool 12/16) · L4 경합 | **미착수** |
+| **L3 raw modifier 생성** | **구현 완료** — `transform/{constants,buildTransformRawModifiers}.ts` |
+| L4 경합 게이트 | **미착수** |
 | 六合·반합 | **L1 범위 제외** — transform path 없음(TBD-02b). 표에도 넣지 않음 |
 | 반합(2자) · 미완성 삼합/방합 | **L1 미탐지** — 완성형 3자만 |
 | Opening과의 상호작용 | **범위 밖** (TBD-03a) |
@@ -926,6 +927,38 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 
 ⇒ **五合을 열려면** TBD-05(C-통근 대상 확정)와 천간 충/연계 지지 정의가 **선행**되어야 한다.
 현재 상태에서 五合에 `transform-ok`를 주려면 임의 규칙이 필요하므로 **열지 않는다.**
+
+
+###### 1.5.11.11 L3 구현 메모 — raw modifier
+
+**production에 승격된 수치는 五合 12 · 삼합 16 · 방합 16 뿐이다.**
+기각된 A(8/12) · C(16/20)는 문서 비교 기록으로만 남고 코드에 없다.
+`kind → pool` 매핑은 `transform/constants.ts` **한 곳에만** 존재한다.
+
+| 항목 | 결정 |
+|------|------|
+| 생성 대상 | `status === "transform-ok"` **만**. `relation-hit` · `hit-no-transform`은 생성 안 함 |
+| 분배 | pool ÷ **참여 자리 수**. 반올림하지 않음 (삼합·방합 = 16/3) |
+| `boost` | **`attenuations` 합에서 유도**. pool을 하드코딩하지 않는다 |
+| 총량 보존 | 합에서 유도하므로 `Σatten === boost`가 **부동소수점과 무관하게 정확히** 성립 |
+| participant 보존 | `{slot, layer, element}` identity 유지. **오행별로 합치지 않음** (방합 寅卯辰 → 木 행 2건) |
+| `targetElement` | L2 후보 값을 그대로 소비. L3에서 목표 표를 **재조회하지 않음** |
+| 입력 | `TransformCandidate[]`만. **`FourPillars` 불필요**, C-* 재평가 없음 |
+
+**타입 계층 분리 (raw / resolved):** §1.5.10.3이 `modifierActive`·`contentionStatus`를
+**게이트 출력**으로 정의하므로, L3 산출물 `TransformRawModifier`에는 두 필드를 **넣지 않는다**.
+L4가 이 raw를 소비해 resolved 타입을 만든다. 새 상태값(`pending` 등)을 창작하지 않았다.
+
+**예시:**
+
+| 합 | pool | 참여 자리 | 자리당 atten | boost |
+|----|------|----------|-------------|-------|
+| 五合 甲己→土 | 12 | 2 (天干) | **6** · 6 | **12** |
+| 삼합 申子辰→水 | 16 | 3 (地支) | **16/3** ×3 | Σ = 16 (≈15.999999999999998) |
+| 방합 寅卯辰→木 | 16 | 3 (地支) | **16/3** ×3 | Σ = 16 |
+
+방합 寅卯辰의 참여 오행은 `[木, 木, 土]`이며 木 두 자리는 **별도 행**으로 남는다 —
+오행 합산은 후단 compose의 몫이다.
 
 ---
 

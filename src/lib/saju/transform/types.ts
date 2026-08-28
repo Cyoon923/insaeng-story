@@ -91,3 +91,34 @@ export type TransformCandidate = {
   targetElement: Element;
   conditions: TransformConditionEvidence[];
 };
+
+/**
+ * 참여 자리 1개의 감쇠량. L1 participant identity `{slot, layer, element}`를 **그대로 유지**한다.
+ *
+ * 오행별로 미리 합치지 않는다 — 예를 들어 방합 寅卯辰(木·木·土)은 木 행이 **2건**으로 남는다.
+ * 오행 합산은 후단 compose의 몫이다.
+ */
+export type TransformParticipantAttenuation = {
+  slot: PillarSlot;
+  layer: TransformParticipantLayer;
+  element: Element;
+  /** 감쇠 크기(양수). pool / 참여 자리 수. 반올림하지 않는다. */
+  attenuation: number;
+};
+
+/**
+ * L3 산출물 — **경합 이전(raw)** modifier.
+ *
+ * `modifierActive` · `contentionStatus`는 §1.5.10.3이 **게이트 출력**으로 정의하므로
+ * 여기 넣지 않는다. L4가 이 raw modifier를 소비해 resolved 타입을 만든다.
+ *
+ * 이 객체는 **변화량 설명**일 뿐 Natal을 직접 수정하지 않는다.
+ */
+export type TransformRawModifier = {
+  combineId: string;
+  kind: TransformCombineKind;
+  attenuations: TransformParticipantAttenuation[];
+  targetElement: Element;
+  /** 목표 오행 가산량. `attenuations` 합에서 유도된다(총량 보존). */
+  boost: number;
+};
