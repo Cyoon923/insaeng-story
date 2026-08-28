@@ -1228,3 +1228,622 @@ describe("TBD-01c-position · 월령/통근 이중 반영 분석", () => {
     expect(8).toBeLessThanOrEqual(8);
   });
 });
+
+/* ========================================================================== *
+ * TBD-01c-source · Natal 충 vs Luck 충 설계 조사 (구조 시뮬)
+ *
+ * 질문: Luck(대/세/월/일)에서 들어온 충에도 δ=4를 그대로 쓸 수 있는가?
+ * 전제: δ=4 불변 · Natal immutable · Strength≠Need · Luck이 Natal Strength를
+ *       덮어쓰지 않음 · 전역 패널티 금지 · 개고 제외 · 위치 가중 미사용 ·
+ *       transform 제거와 root attenuation 분리 · 엔진 미연결.
+ * ========================================================================== */
+
+/** 충 source. Natal 내부 vs 각 Luck layer. */
+type ClashSource = "natal" | "daeun" | "seun" | "wolun" | "ilun";
+
+const LUCK_SOURCES: ClashSource[] = ["daeun", "seun", "wolun", "ilun"];
+
+/** Luck 충 hit: 어떤 source가 어떤 natal 슬롯의 root를 때리는가. */
+type SourcedHit = {
+  source: ClashSource;
+  natalSlot: BranchSlot;
+  element: Element;
+};
+
+/** 중복 감쇠 붕괴 정책 (Q4). 숫자가 아니라 구조 후보. */
+type SourcePolicy = {
+  name: "L0" | "L1";
+  label: string;
+  /** 감쇠 횟수로 셀 hit 집합을 고른다. δ 자체는 건드리지 않는다. */
+  collapse: (hits: SourcedHit[]) => SourcedHit[];
+};
+
+const SOURCE_POLICIES: SourcePolicy[] = [
+  {
+    name: "L0",
+    label: "source 무차등 · per-hit 누적 (현행 규칙 단순 확장)",
+    collapse: (hits) => hits,
+  },
+  {
+    name: "L1",
+    label: "source 무차등 · natal 슬롯당 1회 붕괴 (§1.6.6 상태 합집합과 정합)",
+    collapse: (hits) => {
+      const seen = new Set<string>();
+      const out: SourcedHit[] = [];
+      for (const h of hits) {
+        const key = `${h.element}:${h.natalSlot}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(h);
+      }
+      return out;
+    },
+  },
+];
+
+function applySourcedAtten(
+  natal: Scores,
+  hits: SourcedHit[],
+  policy: SourcePolicy,
+): { effective: Scores; counted: number } {
+  const s = cloneScores(natal);
+  const counted = policy.collapse(hits);
+  for (const h of counted) s[h.element] -= CONFIRMED_DELTA;
+  return { effective: s, counted: counted.length };
+}
+
+describe("TBD-01c-source · Luck 충 admission이 ±1 불변식에 미치는 영향", () => {
+  it("Luck을 허용하면 동일 오행 hit 상한이 natal-only 4를 넘는다", () => {
+    // 시나리오: natal 午가 month·day 두 슬롯에 있고 (火 root 각 1),
+    // 대/세/월/일운이 모두 子로 들어와 두 슬롯을 각각 충한다.
+    const natalSlotsWithRoot: BranchSlot[] = ["month", "day"];
+    const hits: SourcedHit[] = [];
+    for (const source of LUCK_SOURCES) {
+      for (const natalSlot of natalSlotsWithRoot) {
+        hits.push({ source, natalSlot, element: "火" });
+      }
+    }
+    // 4 layer × 2 slot = 8 hit — natal 단독 구조 상한(4)의 2배.
+    expect(hits).toHaveLength(8);
+    expect(hits.length).toBeGreaterThan(4);
+  });
+
+  it("L0(누적)는 ±1 불변식을 깨고 L1(슬롯 붕괴)은 보존한다", () => {
+    const natal: Scores = { 木: 52, 火: 42, 土: 52, 金: 52, 水: 52 };
+    const natalSlotsWithRoot: BranchSlot[] = ["month", "day"];
+    const hits: SourcedHit[] = LUCK_SOURCES.flatMap((source) =>
+      natalSlotsWithRoot.map((natalSlot) => ({ source, natalSlot, element: "火" as Element })),
+    );
+
+    const rows = SOURCE_POLICIES.map((p) => {
+      const { effective, counted } = applySourcedAtten(natal, hits, p);
+      return {
+        policy: p.name,
+        countedHits: counted,
+        drop: natal.火 - effective.火,
+        internal: effective.火,
+        jump: maxLevelJump(natal, effective),
+      };
+    });
+    console.log(JSON.stringify(rows));
+
+    const l0 = rows.find((r) => r.policy === "L0")!;
+    const l1 = rows.find((r) => r.policy === "L1")!;
+
+    // L0: 8 hit × 4 = 32 ≥ 21 → Level 2단 이동. §1.6.8.5.1 불변식 파괴.
+    expect(l0.countedHits).toBe(8);
+    expect(l0.drop).toBe(32);
+    expect(l0.jump).toBe(2);
+
+    // L1: natal 슬롯 2개로 붕괴 → 8 ≤ 16 < 21 → ±1 유지.
+    expect(l1.countedHits).toBe(2);
+    expect(l1.drop).toBe(8);
+    expect(l1.jump).toBe(1);
+  });
+
+  it("L1의 상한은 natal-only 구조 상한과 정확히 같다", () => {
+    // 최악: 4개 natal 슬롯 전부가 같은 오행 root이고 전부 피격.
+    const allSlots: BranchSlot[] = ["year", "month", "day", "hour"];
+    const saturated: SourcedHit[] = [];
+    for (const source of ["natal", ...LUCK_SOURCES] as ClashSource[]) {
+      for (const natalSlot of allSlots) {
+        saturated.push({ source, natalSlot, element: "土" });
+      }
+    }
+    const l1 = SOURCE_POLICIES.find((p) => p.name === "L1")!;
+    const counted = l1.collapse(saturated).length;
+
+    expect(saturated).toHaveLength(20); // 5 source × 4 slot
+    expect(counted).toBe(4); // natal 슬롯 수로 붕괴
+    expect(counted * CONFIRMED_DELTA).toBe(16); // = §1.6.8.5.1의 2충 상한과 동일
+    expect(counted * CONFIRMED_DELTA).toBeLessThan(21); // ±2 임계 미만
+  });
+
+  it("Luck modifier 제거 시 Natal로 완전 복귀한다 (Q5 계약)", () => {
+    const natal: Scores = { 木: 52, 火: 42, 土: 52, 金: 52, 水: 52 };
+    const natalSnap = cloneScores(natal);
+    const hits: SourcedHit[] = [{ source: "seun", natalSlot: "month", element: "火" }];
+    const l1 = SOURCE_POLICIES.find((p) => p.name === "L1")!;
+
+    const during = applySourcedAtten(natal, hits, l1).effective;
+    expect(during.火).toBe(38);
+
+    // window 종료 → hit 목록에서 제거 = modifier 제거. 스냅샷 복원 불필요.
+    const after = applySourcedAtten(natal, [], l1).effective;
+    expect(after).toEqual(natalSnap);
+    expect(natal).toEqual(natalSnap); // Natal 자체는 한 번도 변하지 않음
+  });
+
+  it("source 가중은 근거가 없어 시뮬 대상이 아니다 — 무차등만 검증", () => {
+    // 대/세/월/일 어느 source든 같은 natal 슬롯이면 결과가 같아야 한다.
+    const natal: Scores = { 木: 52, 火: 42, 土: 52, 金: 52, 水: 52 };
+    const l1 = SOURCE_POLICIES.find((p) => p.name === "L1")!;
+    const perSource = LUCK_SOURCES.map(
+      (source) =>
+        applySourcedAtten(natal, [{ source, natalSlot: "day", element: "火" }], l1).effective.火,
+    );
+    expect(new Set(perSource).size).toBe(1);
+    expect(perSource[0]).toBe(38);
+  });
+});
+
+/* ========================================================================== *
+ * TBD-01c-source · Q4 — 중복 감쇠 collapse 검증
+ *
+ * 질문: 동일 natal root가 여러 Luck 충을 동시에 받을 때 δ를 몇 번 적용하는가?
+ * 전제: δ=4 불변 · Natal immutable · Luck은 Effective modifier only ·
+ *       전역 패널티 금지 · 개고 제외 · 위치 가중 없음(P0) · source 수치 생성 금지.
+ * ========================================================================== */
+
+/** 육충 relation 1건. natal 슬롯 하나에 대한 '관계'이지 '감쇠 횟수'가 아니다. */
+type ClashRelation = {
+  source: ClashSource;
+  natalSlot: BranchSlot;
+  natalBranch: Branch;
+  /** 충 상대 지지 — 육충은 1:1이므로 natalBranch가 정하면 유일하다. */
+  partner: Branch;
+};
+
+/** 육충 짝 조회 (완전 매칭). */
+function clashPartnerOf(branch: Branch): Branch | null {
+  for (const { pair } of CLASH_PAIRS) {
+    if (pair[0] === branch) return pair[1];
+    if (pair[1] === branch) return pair[0];
+  }
+  return null;
+}
+
+describe("TBD-01c-source · Q4-2 · 육충은 완전 매칭이므로 충 상대가 유일하다", () => {
+  it("모든 지지의 충 상대는 정확히 1개", () => {
+    const all: Branch[] = CLASH_PAIRS.flatMap((c) => c.pair);
+    expect(new Set(all).size).toBe(12); // 12지지 전부, 중복 없음
+    for (const b of all) {
+      const partners = CLASH_PAIRS.filter((c) => c.pair.includes(b));
+      expect(partners).toHaveLength(1); // 완전 매칭 = 짝이 유일
+      expect(clashPartnerOf(b)).not.toBeNull();
+    }
+  });
+
+  it("한 natal 지지에 걸리는 충은 전부 '같은 관계의 반복'이다", () => {
+    // natal day = 午. 대/세/월/일운이 전부 子 → 4개 relation.
+    const natalSlot: BranchSlot = "day";
+    const natalBranch: Branch = "午";
+    const partner = clashPartnerOf(natalBranch)!;
+    expect(partner).toBe("子");
+
+    const relations: ClashRelation[] = LUCK_SOURCES.map((source) => ({
+      source,
+      natalSlot,
+      natalBranch,
+      partner,
+    }));
+
+    // source만 다를 뿐 relation의 종류는 하나다 — 다른 종류의 손상이 아니다.
+    expect(new Set(relations.map((r) => `${r.natalBranch}-${r.partner}`)).size).toBe(1);
+    expect(new Set(relations.map((r) => r.source)).size).toBe(4);
+  });
+});
+
+describe("TBD-01c-source · Q4-6 · collapse 단위: RootHit vs (오행 × 지지슬롯)", () => {
+  it("RootHit 리스트는 같은 물리적 근을 비견/겁재로 2번 담는다", () => {
+    // 실측(엔진): 寅 한 지지에서 木 RootHit이 2건 —
+    //   {寅, 甲, 정기, 비견} · {寅, 甲, 정기, 겁재}
+    // dedupeRootHits의 키에 polarity가 들어가므로 붕괴되지 않는다.
+    // 지장간 자체는 1개(§1.6.8.2)지만 RootHit 레코드는 2개다.
+    const hiddenStemsOfYin = rootHitsByElement("寅");
+    expect(hiddenStemsOfYin["木"]).toBe(1); // 지장간 사실: 1
+    const ROOTHIT_RECORDS_PER_BRANCH_ELEMENT = 2; // 엔진 실측: 비견 + 겁재
+    expect(ROOTHIT_RECORDS_PER_BRANCH_ELEMENT).toBe(2);
+  });
+
+  it("RootHit 단위로 감쇠하면 δ=4의 ±1 불변식이 natal-only에서도 깨진다", () => {
+    // §1.6.8.5.1은 '지지 1개 = 1단위'를 암묵 전제로 계산됐다.
+    const PER_BRANCH_UNITS_ASSUMED = 1;
+    const PER_BRANCH_UNITS_ROOTHIT = 2;
+
+    const natalTwoClashBranches = 4; // 2충이 4슬롯 소진
+    const dropAssumed = natalTwoClashBranches * PER_BRANCH_UNITS_ASSUMED * CONFIRMED_DELTA;
+    const dropRootHit = natalTwoClashBranches * PER_BRANCH_UNITS_ROOTHIT * CONFIRMED_DELTA;
+
+    expect(dropAssumed).toBe(16);
+    expect(dropRootHit).toBe(32);
+
+    // 21 = ±2 임계(§1.6.8.1)
+    expect(dropAssumed).toBeLessThan(21); // 기존 확정 유지
+    expect(dropRootHit).toBeGreaterThanOrEqual(21); // 확정 붕괴
+
+    const natal: Scores = { 木: 42, 火: 52, 土: 52, 金: 52, 水: 52 };
+    const byBranch = { ...natal, 木: natal.木 - dropAssumed };
+    const byRootHit = { ...natal, 木: natal.木 - dropRootHit };
+    expect(maxLevelJump(natal, byBranch)).toBe(1);
+    expect(maxLevelJump(natal, byRootHit)).toBe(2);
+  });
+});
+
+/** relation은 전부 기록하고, 감쇠는 (오행 × natal 슬롯) 1회로 붕괴한다. */
+function collapseToAttenuationUnits(
+  relations: ClashRelation[],
+  element: Element,
+): Array<{ element: Element; natalSlot: BranchSlot }> {
+  const seen = new Set<string>();
+  const units: Array<{ element: Element; natalSlot: BranchSlot }> = [];
+  for (const r of relations) {
+    const key = `${element}:${r.natalSlot}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    units.push({ element, natalSlot: r.natalSlot });
+  }
+  return units;
+}
+
+describe("TBD-01c-source · Q4-3·4 · relation multiplicity vs attenuation multiplicity", () => {
+  it("relation은 전부 남고 감쇠만 1회로 붕괴한다", () => {
+    const partner = clashPartnerOf("午")!;
+    const relations: ClashRelation[] = LUCK_SOURCES.map((source) => ({
+      source,
+      natalSlot: "day",
+      natalBranch: "午",
+      partner,
+    }));
+
+    const units = collapseToAttenuationUnits(relations, "火");
+
+    // relation multiplicity = 4 (기록 보존)
+    expect(relations).toHaveLength(4);
+    expect(relations.map((r) => r.source)).toEqual(["daeun", "seun", "wolun", "ilun"]);
+    // attenuation multiplicity = 1 (수치 붕괴)
+    expect(units).toHaveLength(1);
+  });
+
+  it("추가 충은 '무의미'가 아니다 — 수치 외 효과는 유지된다", () => {
+    // 서로 다른 source의 충이 각각 다른 transform modifier를 해제할 수 있다.
+    const seunRelation: ClashRelation = {
+      source: "seun",
+      natalSlot: "day",
+      natalBranch: "午",
+      partner: "子",
+    };
+    const wolunRelation: ClashRelation = {
+      source: "wolun",
+      natalSlot: "month",
+      natalBranch: "寅",
+      partner: "申",
+    };
+
+    const heOnDay: TransformMod = {
+      id: "he-day",
+      kind: "삼합",
+      attenElements: ["火", "火", "木"],
+      target: "火",
+      branchSlots: ["day", "year"],
+      modifierActive: true,
+    };
+    const heOnMonth: TransformMod = {
+      id: "he-month",
+      kind: "五合",
+      attenElements: ["木", "土"],
+      target: "土",
+      branchSlots: ["month", "hour"],
+      modifierActive: true,
+    };
+
+    const released = releaseTransformsOnClash(
+      [heOnDay, heOnMonth],
+      [
+        { id: "c-seun", slots: [seunRelation.natalSlot, "year"] },
+        { id: "c-wolun", slots: [wolunRelation.natalSlot, "hour"] },
+      ],
+    );
+    // 두 충이 각각 다른 modifier를 해제 — 감쇠가 1회로 붕괴돼도 이 효과는 별개다.
+    expect(released.every((m) => m.modifierActive === false)).toBe(true);
+  });
+
+  it("일부 Luck이 종료돼도 남은 충이 있으면 conflicted가 유지된다", () => {
+    const partner = clashPartnerOf("午")!;
+    const all: ClashRelation[] = LUCK_SOURCES.map((source) => ({
+      source,
+      natalSlot: "day",
+      natalBranch: "午",
+      partner,
+    }));
+
+    // 월운·일운 창 종료 → 대운·세운만 남음
+    const remaining = all.filter((r) => r.source === "daeun" || r.source === "seun");
+    expect(collapseToAttenuationUnits(remaining, "火")).toHaveLength(1); // 여전히 1회 감쇠
+    // 전부 종료 → 감쇠 0회
+    expect(collapseToAttenuationUnits([], "火")).toHaveLength(0);
+  });
+});
+
+describe("TBD-01c-source · Q4-7 · Luck 생성/소멸에 대한 결정론적 복원", () => {
+  it("활성 집합만으로 Effective가 결정된다 (경로 무관)", () => {
+    const natal: Scores = { 木: 52, 火: 42, 土: 52, 金: 52, 水: 52 };
+    const partner = clashPartnerOf("午")!;
+    const rel = (source: ClashSource): ClashRelation => ({
+      source,
+      natalSlot: "day",
+      natalBranch: "午",
+      partner,
+    });
+
+    const effectiveFor = (sources: ClashSource[]): Scores => {
+      const units = collapseToAttenuationUnits(sources.map(rel), "火");
+      const s = cloneScores(natal);
+      for (const u of units) s[u.element] -= CONFIRMED_DELTA;
+      return s;
+    };
+
+    // 경로 A: 대운 → +세운 → +월운 → −월운 → −세운
+    const pathA = effectiveFor(["daeun"]);
+    // 경로 B: 세운만 (다른 순서로 도달)
+    const pathB = effectiveFor(["seun"]);
+    // 같은 '활성 집합 크기 1' → 같은 Effective
+    expect(pathA).toEqual(pathB);
+
+    // 활성 집합이 커져도 동일 슬롯이면 Effective 불변 (멱등)
+    expect(effectiveFor(["daeun", "seun", "wolun", "ilun"])).toEqual(pathA);
+
+    // 전부 소멸 → Natal 복귀
+    expect(effectiveFor([])).toEqual(natal);
+    expect(natal.火).toBe(42); // Natal 자체 불변
+  });
+
+  it("멱등성: 같은 활성 집합을 두 번 평가해도 결과가 같다", () => {
+    const natal: Scores = { 木: 52, 火: 42, 土: 52, 金: 52, 水: 52 };
+    const partner = clashPartnerOf("午")!;
+    const relations: ClashRelation[] = ["seun", "wolun"].map((source) => ({
+      source: source as ClashSource,
+      natalSlot: "day",
+      natalBranch: "午",
+      partner,
+    }));
+    const run = () => {
+      const units = collapseToAttenuationUnits(relations, "火");
+      const s = cloneScores(natal);
+      for (const u of units) s[u.element] -= CONFIRMED_DELTA;
+      return s;
+    };
+    expect(run()).toEqual(run());
+    expect(run().火).toBe(38);
+  });
+});
+
+/* ========================================================================== *
+ * TBD-01c-source · Q5 — Luck 충에 δ=4 동일 적용 가능성 검증
+ *
+ * 전제(기잠금): attenuation 단위 = (오행 × natal 지지슬롯) 1회 ·
+ *   source/활성 충 개수 무관 · relation 전량 기록 · Natal immutable ·
+ *   Luck은 Effective modifier only · 활성 집합에서 매번 재계산 ·
+ *   누적/차감 금지 · position weighting 없음 · Opening 제외 · source 가중 없음.
+ * 신규 상수 생성 금지 — CONFIRMED_DELTA(4)만 사용.
+ * ========================================================================== */
+
+const NATAL_BRANCH_SLOTS: BranchSlot[] = ["year", "month", "day", "hour"];
+const ALL_CLASH_SOURCES: ClashSource[] = ["natal", "daeun", "seun", "wolun", "ilun"];
+
+/** (source, natalSlot) 관계 하나. 감쇠 단위가 아니라 relation이다. */
+type SourcedRelation = { source: ClashSource; natalSlot: BranchSlot };
+
+/**
+ * L1-S collapse: relation 집합 → 감쇠 단위 집합.
+ * 키는 natal 슬롯뿐. source는 키에 들어가지 않는다(= source 무관 1회).
+ */
+function collapseUnits(relations: SourcedRelation[]): BranchSlot[] {
+  return [...new Set(relations.map((r) => r.natalSlot))];
+}
+
+/** 한 오행에 대한 총 낙폭. δ는 CONFIRMED_DELTA 하나뿐. */
+function totalDrop(relations: SourcedRelation[]): number {
+  return collapseUnits(relations).length * CONFIRMED_DELTA;
+}
+
+describe("TBD-01c-source · Q5-1·3 · collapse가 hit 상한을 구조적으로 고정한다", () => {
+  it("감쇠 단위 상한은 natal 지지 슬롯 수(4)이며 Luck이 이를 넘길 수 없다", () => {
+    // collapse 키가 natal 슬롯이므로 상한 = |{year,month,day,hour}| = 4.
+    // Luck 지지는 '충 상대'일 뿐 natal 슬롯이 아니다 → 키를 늘리지 못한다.
+    const everySourceEverySlot: SourcedRelation[] = ALL_CLASH_SOURCES.flatMap((source) =>
+      NATAL_BRANCH_SLOTS.map((natalSlot) => ({ source, natalSlot })),
+    );
+    expect(everySourceEverySlot).toHaveLength(20); // 5 source × 4 slot
+    expect(collapseUnits(everySourceEverySlot)).toHaveLength(4); // 상한 고정
+    expect(totalDrop(everySourceEverySlot)).toBe(16);
+    expect(totalDrop(everySourceEverySlot)).toBeLessThan(21); // ±2 임계 미만
+  });
+
+  it("exhaustive: (source × slot) 20개 관계의 모든 부분집합 2^20에서 상한 검증", () => {
+    const rels: SourcedRelation[] = ALL_CLASH_SOURCES.flatMap((source) =>
+      NATAL_BRANCH_SLOTS.map((natalSlot) => ({ source, natalSlot })),
+    );
+    const n = rels.length;
+    expect(n).toBe(20);
+
+    let maxUnits = 0;
+    let maxDrop = 0;
+    let violations = 0;
+    const dropHistogram = new Map<number, number>();
+
+    for (let mask = 0; mask < 1 << n; mask += 1) {
+      const active: SourcedRelation[] = [];
+      for (let i = 0; i < n; i += 1) {
+        if (mask & (1 << i)) active.push(rels[i]!);
+      }
+      const units = collapseUnits(active).length;
+      const drop = units * CONFIRMED_DELTA;
+      if (units > maxUnits) maxUnits = units;
+      if (drop > maxDrop) maxDrop = drop;
+      if (drop >= 21) violations += 1; // ±2 임계 도달
+      dropHistogram.set(drop, (dropHistogram.get(drop) ?? 0) + 1);
+    }
+
+    console.log(
+      JSON.stringify({
+        subsets: 1 << n,
+        maxUnits,
+        maxDrop,
+        thresholdViolations: violations,
+        dropHistogram: [...dropHistogram.entries()].sort((a, b) => a[0] - b[0]),
+      }),
+    );
+
+    expect(maxUnits).toBe(4); // 어떤 조합에서도 4를 못 넘음
+    expect(maxDrop).toBe(16);
+    expect(violations).toBe(0); // ±2 도달 조합 0개
+  });
+
+  it("모든 낙폭 값에서 Level 이동이 ≤1 (전 구간 8~96 교차 검증)", () => {
+    const possibleDrops = [0, 1, 2, 3, 4].map((u) => u * CONFIRMED_DELTA); // 0,4,8,12,16
+    let worst = 0;
+    for (const drop of possibleDrops) {
+      for (let s = LO; s <= HI; s += 1) {
+        worst = Math.max(worst, levelJump(levelFromInternal(s), levelFromInternal(s - drop)));
+      }
+    }
+    expect(worst).toBe(1); // ±1 불변식 유지
+  });
+});
+
+describe("TBD-01c-source · Q5-2·4 · 요구된 8개 사례", () => {
+  const natal: Scores = { 木: 42, 火: 52, 土: 52, 金: 52, 水: 52 };
+  const drop = (rels: SourcedRelation[]) => totalDrop(rels);
+  const eff = (rels: SourcedRelation[]): Scores => ({ ...natal, 木: natal.木 - drop(rels) });
+
+  it("8개 사례의 collapse 결과와 Level 이동", () => {
+    const cases: Array<{ id: string; rels: SourcedRelation[] }> = [
+      { id: "1-natal 내부 충만", rels: [{ source: "natal", natalSlot: "day" }] },
+      { id: "2-luck 충만", rels: [{ source: "seun", natalSlot: "day" }] },
+      {
+        id: "3-natal+luck 같은 슬롯",
+        rels: [
+          { source: "natal", natalSlot: "day" },
+          { source: "seun", natalSlot: "day" },
+        ],
+      },
+      {
+        id: "4-natal+luck 다른 슬롯",
+        rels: [
+          { source: "natal", natalSlot: "day" },
+          { source: "seun", natalSlot: "month" },
+        ],
+      },
+      {
+        id: "5-natal 4슬롯 전부 충",
+        rels: NATAL_BRANCH_SLOTS.map((natalSlot) => ({ source: "natal" as ClashSource, natalSlot })),
+      },
+      {
+        id: "6-대+세+월+일 동시 활성",
+        rels: LUCK_SOURCES.flatMap((source) =>
+          NATAL_BRANCH_SLOTS.map((natalSlot) => ({ source, natalSlot })),
+        ),
+      },
+      {
+        id: "7-일부 luck window 종료 후",
+        rels: [
+          { source: "daeun", natalSlot: "day" },
+          { source: "seun", natalSlot: "day" },
+        ],
+      },
+      { id: "8-모든 luck 종료", rels: [] },
+    ];
+
+    const rows = cases.map((c) => ({
+      case: c.id,
+      relations: c.rels.length,
+      units: collapseUnits(c.rels).length,
+      drop: drop(c.rels),
+      internal: eff(c.rels).木,
+      level: levelFromInternal(eff(c.rels).木),
+      jump: maxLevelJump(natal, eff(c.rels)),
+    }));
+    console.log(JSON.stringify(rows, null, 1));
+
+    // 3: natal+luck 같은 슬롯 → 2 relation이지만 1 unit
+    expect(rows[2]!.relations).toBe(2);
+    expect(rows[2]!.units).toBe(1);
+    expect(rows[2]!.drop).toBe(4);
+    // 2와 3이 동일 — source 조합이 수치에 영향 없음
+    expect(rows[2]!.drop).toBe(rows[1]!.drop);
+
+    // 4: 서로 다른 슬롯 → 2 unit
+    expect(rows[3]!.units).toBe(2);
+    expect(rows[3]!.drop).toBe(8);
+
+    // 5와 6이 동일 — natal 단독 4슬롯 = 4 layer 전부 활성
+    expect(rows[4]!.drop).toBe(16);
+    expect(rows[5]!.drop).toBe(16);
+    expect(rows[5]!.relations).toBe(16); // relation은 16건
+    expect(rows[5]!.units).toBe(4); // 감쇠는 4회
+
+    // 8: 전부 종료 → Natal 복귀
+    expect(rows[7]!.drop).toBe(0);
+    expect(eff([])).toEqual(natal);
+
+    // 전 사례 Level 이동 ≤1
+    for (const r of rows) expect(r.jump).toBeLessThanOrEqual(1);
+  });
+
+  it("7 → 8 재계산: window 종료가 결정론적으로 복원된다", () => {
+    const full: SourcedRelation[] = LUCK_SOURCES.map((source) => ({
+      source,
+      natalSlot: "day" as BranchSlot,
+    }));
+    expect(totalDrop(full)).toBe(4); // 4 relation → 1 unit
+
+    const afterWolunIlunEnd = full.filter(
+      (r) => r.source === "daeun" || r.source === "seun",
+    );
+    expect(totalDrop(afterWolunIlunEnd)).toBe(4); // 여전히 1 unit — 값 불변
+
+    const afterAllEnd: SourcedRelation[] = [];
+    expect(totalDrop(afterAllEnd)).toBe(0);
+    expect(eff(afterAllEnd)).toEqual(natal);
+    expect(natal.木).toBe(42); // Natal 자체 불변
+  });
+});
+
+describe("TBD-01c-source · Q5-5 · 별도 δ_luck 도입의 구조적 비용", () => {
+  it("δ_luck ≠ δ_natal이면 혼합 슬롯에 우선순위 규칙이 새로 필요해진다", () => {
+    // collapse가 (오행 × 슬롯) 1회이므로, 한 슬롯이 natal·luck 양쪽에서
+    // 충을 받으면 '어느 δ를 쓸지' 정해야 한다 — 현재 근거 없는 새 규칙.
+    const mixed: SourcedRelation[] = [
+      { source: "natal", natalSlot: "day" },
+      { source: "seun", natalSlot: "day" },
+    ];
+    expect(collapseUnits(mixed)).toHaveLength(1); // 단위는 1개
+    expect(new Set(mixed.map((r) => r.source)).size).toBe(2); // 그런데 source는 2종
+
+    // 단일 상수(δ=4)를 쓰면 이 선택 자체가 발생하지 않는다.
+    expect(totalDrop(mixed)).toBe(CONFIRMED_DELTA);
+  });
+
+  it("source별 severity는 relation 기록으로 이미 보존된다 (수치화 없이)", () => {
+    const rels: SourcedRelation[] = [
+      { source: "natal", natalSlot: "day" },
+      { source: "daeun", natalSlot: "day" },
+      { source: "seun", natalSlot: "day" },
+    ];
+    // 수치는 1회지만 기여 source 집합은 온전히 남는다 → 미래 계층에서 사용 가능.
+    const contributingSources = [...new Set(rels.map((r) => r.source))];
+    expect(contributingSources).toEqual(["natal", "daeun", "seun"]);
+    expect(totalDrop(rels)).toBe(CONFIRMED_DELTA); // 수치층은 불변
+  });
+});
