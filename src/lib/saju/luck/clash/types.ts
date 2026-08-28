@@ -148,11 +148,7 @@ export type ClashAttenuationModifier = {
  * `certainty`가 수치 계층으로 넘어오면 “Level을 다시 판정하지 않는다”는 경계가
  * 흐려진다. 호출자가 경계에서 좌표만 뽑아 넘긴다.
  */
-export type NatalElementScore = {
-  element: Element;
-  /** 빌려 온 Display Score 좌표. */
-  natalScore: number;
-};
+export type { NatalElementScore } from "@/lib/saju/effective/types";
 
 /**
  * 오행별 Internal Effective Score.

@@ -1000,6 +1000,50 @@ L2 candidate evidence를 **참조**한다. raw↔candidate 매칭은 `combineId 
 
 (현재는 五合이 L2에서 `transform-ok`에 도달하지도 못하므로(§1.5.11.10) 五合 modifier 자체가 생성되지 않는다.)
 
+
+###### 1.5.11.14 Clash + Transform 공통 Effective 합성 (구현 완료)
+
+Transform **L1–L4 완료** 이후, clash와 transform을 **오행별 signed delta**라는 하나의
+좌표계로 만나게 하는 공통 계층을 `src/lib/saju/effective/`에 두었다.
+
+**합성 공식** (§1.5.9.5 형태 유지):
+
+```
+Internal Effective(element) = Natal displayScore + Σ delta     ← unclamped
+Display Effective           = clamp(Internal, 8..96)
+Effective Strength Level    = nearest band (중점 → upper)
+```
+
+| 층 | delta 규칙 | Σ |
+|----|-----------|---|
+| **clash** | 오행별 총 감쇠를 **음수**로. collapse가 끝난 modifier만 소비하며 relation multiplicity를 다시 세지 않는다 | 순손실 |
+| **transform** | **`modifierActive === true`만**. 참여 자리 attenuation 음수 + 목표 boost 양수, 같은 오행 여러 자리는 전부 합산 | 보존(0) |
+
+- `lost` · `competition-unresolved`는 delta **0**. `contentionStatus` 문자열이 아니라
+  **`modifierActive`가 최종 게이트**다(§1.5.10.3).
+- 전체 delta 합은 **clash 손실만큼만 음수**가 된다(transform은 보존) — 측정 확인.
+- **Natal immutable**: Natal Strength profile·Need가 합성 전후 동일함을 통합 테스트로 확인.
+- **Opening은 아직 합성하지 않는다**(TBD-03a magnitude 미정).
+
+**계층 소유·경계**
+
+| 모듈 | 책임 |
+|------|------|
+| `effective/types.ts` | `ElementEffectiveDelta` · `ElementEffectiveScore` · `ElementEffectiveProfile` · `NatalElementScore`(소유 이관) |
+| `effective/composeElementEffectiveScores.ts` | delta 합성 → Internal → Display → Level. **clash·transform을 모른다** |
+| `effective/resolveEffectiveStrengthLevel.ts` | clamp + nearest band (clash에서 **승격**. 기존 경로는 재수출로 호환 유지) |
+| `luck/clash/buildClashElementDeltas.ts` | clash modifier → delta (`sumClashAttenuationByElement` 재사용) |
+| `transform/buildTransformElementDeltas.ts` | active transform modifier → delta |
+
+clash와 transform은 **서로를 import하지 않으며**, `effective/`도 두 모듈을 import하지 않는다 —
+각 층이 자기 delta를 만들어 공통 계층에 넣는 구조다.
+
+기존 `buildClashEffectiveScores` / `buildClashEffectiveProfiles`는 **그대로 유지**했다
+(`attenuation` 필드를 쓰는 clash 고유 계약이고 세운 wiring이 소비 중). 삭제·rename 없음.
+
+> 이 계층은 **Natal Strength 판정을 다시 계산하는 엔진이 아니다.** 표시 좌표를 빌려
+> 확정 modifier를 얹는 **파생 Effective 계층**이며, Natal Level·Need·Core·Supplement를 바꾸지 않는다.
+
 ---
 
 ### 1.6 충 (沖) — TBD-03 규칙 계약 (**구조 확정 · 수치 미정**)
