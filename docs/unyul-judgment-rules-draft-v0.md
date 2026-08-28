@@ -875,7 +875,7 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 | 승격 가능 상수·표 (pool 12/16, 목표표, 분배식) | **설계 확정 가능** |
 | clash 합성 이음매 = 오행별 델타 | **설계 확정 가능** |
 | **L1 relation detection** | **구현 완료** — `transform/{types,combinationTables,detectTransformRelations}.ts` |
-| L2 `transform-ok` 판정 · C-* 평가기 | **미착수** — 매트릭스는 §1.5.4.2 확정, 코드 없음 |
+| **L2 조건 평가 · `transform-ok` 판정** | **구현 완료** — `transform/{conditionRoles,transformTargetTables,evaluateTransformCandidates}.ts` |
 | L3 modifier(pool 12/16) · L4 경합 | **미착수** |
 | 六合·반합 | **L1 범위 제외** — transform path 없음(TBD-02b). 표에도 넣지 않음 |
 | 반합(2자) · 미완성 삼합/방합 | **L1 미탐지** — 완성형 3자만 |
@@ -892,6 +892,40 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 | hour unknown | `confirmedSlots` 경유로 시주 자동 제외 → 참여·relation 모두 생성 안 됨 |
 | 의존성 | `constants/elements` · `elements/slots`만. **Strength/Need/Core/Supplement/clash import 없음** |
 | 결정론 | 표 순서 → 자리 순서(year→month→day→hour). 정렬 없이 순회만으로 고정 |
+
+
+###### 1.5.11.9 L2 구현 메모 — C-* 항목별 production 가능 여부
+
+각 조건이 **확정 정의(§1.5.4.5)만으로** 평가 가능한지 분류했다. **새 명리 규칙은 추가하지 않았다.**
+
+| C-* | 키 | production 상태 | 근거 |
+|-----|-----|----------------|------|
+| C-월령 | `monthCommand` | **구현 가능** · 기존 evidence 재사용 | "월지가 합국 구성원" = participants에 month/branch 포함. "득시"는 문서가 명시한 **왕·상**으로 읽고 기존 `seasonPhaseOf` 테이블을 **그대로** 사용(값 변경 없음) |
+| C-투간 | `stemExposure` | **구현 가능** | "化神이 천간에 투출" — `confirmedSlots` + `stemElement`로 직접 판정 |
+| C-방해 | `obstruction` | **부분 구현** | 지지 참여(삼합·방합)는 육충 표(§1.6.1)로 판정 가능. **五合은 unknown** — 천간 충이 TBD-03 범위 밖(§1.6.1)이고 §1.5.4.3의 "연계 지지"에 확정 정의가 없음 |
+| C-거리 | `distance` | **구현 가능**(五合만 R) | "인접 기둥(연-월·월-일·일-시)" 열거가 확정적 → 슬롯 인접 판정 |
+| C-세력 | `force` | **unknown** | "본기 밀도 등 — 라벨만". 임계값 없음. S라 차단하지 않음 |
+| C-통근 | `root` | **unknown** | "참여/결과 관련 천간의 rootStatus" — 대상 천간이 참여인지 결과인지 미확정, 세부는 **TBD-05** |
+| C-경쟁 | `competition` | **unknown** | "화기를 깨는 극·설 재료" — 판정 기준 없음. S라 차단하지 않음 |
+| C-중복 | `duplicate` | **게이트 · L2 미평가** | R/S/B가 아니라 §1.5.10.8 경합 집합 입력. `not-applicable`로 기록만 하고 **차단하지 않음** |
+
+**기존 Strength evidence와의 관계 (억지 재사용 금지 확인):**
+
+- `seasonPhaseOf` = C-월령의 득시 판정과 **의미 일치** → 재사용
+- `rootStatus`/`rootedSlots` ≠ C-통근 — Strength의 root는 *해당 오행*의 통근이고, C-통근은 *참여/결과 천간* 기준이라 **대상이 다르다**. 이름이 비슷하다는 이유로 쓰지 않고 `unknown` 유지
+- `hasMonthOutlet` ≠ C-투간 — 전자는 *월지 지장간*의 투출, 후자는 *화신*의 투출. **다른 개념** → 별도 판정
+- `presence`/`exactStemVisible` ≠ C-세력 — 세력은 "밀도 등"으로 임계가 없어 매핑 불가
+
+###### 1.5.11.10 현재 `transform-ok` 도달 가능성 (측정)
+
+| 합 종류 | required | 도달 | 막는 조건 |
+|---------|----------|------|-----------|
+| **삼합(완합)** | C-월령 · C-투간 | **가능** | — (blocking C-방해도 지지 육충으로 판정 가능) |
+| **방합** | C-월령 · C-투간 | **가능** | — |
+| **五合** | C-월령 · C-통근 · C-투간 · C-거리 | **불가(닫힘)** | `root` **required unknown** + `obstruction` **blocking unknown** → §1.5.4.1.4 보수 원칙으로 자동 금지 |
+
+⇒ **五合을 열려면** TBD-05(C-통근 대상 확정)와 천간 충/연계 지지 정의가 **선행**되어야 한다.
+현재 상태에서 五合에 `transform-ok`를 주려면 임의 규칙이 필요하므로 **열지 않는다.**
 
 ---
 

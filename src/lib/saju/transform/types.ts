@@ -45,3 +45,49 @@ export type TransformRelation = {
   /** 표 순서(예: 申子辰)를 따른다. */
   participants: TransformParticipant[];
 };
+
+/** C-* 조건 키. 문서 §1.5.4.5의 후보 ID에 대응. */
+export type TransformConditionKey =
+  | "monthCommand" // C-월령
+  | "force" // C-세력
+  | "root" // C-통근
+  | "stemExposure" // C-투간
+  | "obstruction" // C-방해
+  | "distance" // C-거리
+  | "duplicate" // C-중복
+  | "competition"; // C-경쟁
+
+/**
+ * 조건 역할 (§1.5.4.2).
+ * `gate`는 C-중복 전용 — R/S/B 점수가 아니라 §1.5.10 경합 집합 입력이므로
+ * L2 판정에서 승격·차단 어느 쪽으로도 쓰지 않는다.
+ */
+export type TransformConditionRole =
+  | "required"
+  | "supporting"
+  | "blocking"
+  | "not-applicable"
+  | "gate";
+
+export type TransformConditionState = "satisfied" | "failed" | "unknown" | "not-applicable";
+
+/** 조건 1건의 평가 근거. 판정에 쓰인 것과 쓰이지 않은 것 모두 보존한다. */
+export type TransformConditionEvidence = {
+  key: TransformConditionKey;
+  role: TransformConditionRole;
+  state: TransformConditionState;
+  reason: string;
+};
+
+export type TransformCandidateStatus = "hit-no-transform" | "transform-ok";
+
+/**
+ * L2 판정 결과. `targetElement`는 **여기서 처음 부여**된다
+ * (관계 사실이 아니라 판정 후보의 결과이므로 `TransformRelation`에는 없다).
+ */
+export type TransformCandidate = {
+  relation: TransformRelation;
+  status: TransformCandidateStatus;
+  targetElement: Element;
+  conditions: TransformConditionEvidence[];
+};
