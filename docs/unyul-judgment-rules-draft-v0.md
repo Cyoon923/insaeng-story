@@ -877,7 +877,7 @@ detect에 target만 추가해 재사용 ④ Natal Strength를 import하지 않�
 | **L1 relation detection** | **구현 완료** — `transform/{types,combinationTables,detectTransformRelations}.ts` |
 | **L2 조건 평가 · `transform-ok` 판정** | **구현 완료** — `transform/{conditionRoles,transformTargetTables,evaluateTransformCandidates}.ts` |
 | **L3 raw modifier 생성** | **구현 완료** — `transform/{constants,buildTransformRawModifiers}.ts` |
-| L4 경합 게이트 | **미착수** |
+| **L4 경합 게이트** | **구현 완료** — `transform/resolveTransformCompetition.ts` |
 | 六合·반합 | **L1 범위 제외** — transform path 없음(TBD-02b). 표에도 넣지 않음 |
 | 반합(2자) · 미완성 삼합/방합 | **L1 미탐지** — 완성형 3자만 |
 | Opening과의 상호작용 | **범위 밖** (TBD-03a) |
@@ -959,6 +959,46 @@ L4가 이 raw를 소비해 resolved 타입을 만든다. 새 상태값(`pending`
 
 방합 寅卯辰의 참여 오행은 `[木, 木, 土]`이며 木 두 자리는 **별도 행**으로 남는다 —
 오행 합산은 후단 compose의 몫이다.
+
+
+###### 1.5.11.12 L4 구현 메모 — 경합 게이트
+
+**경합 identity = `(layer × slot)`.** 같은 `slot`이라도 layer가 다르면 공유가 아니다.
+경합 집합은 §1.5.10.6대로 **연결 요소**로 묶는다 (A–B 공유, B–C 공유 ⇒ A·B·C 한 집합).
+
+**API:** `resolveTransformCompetition(rawModifiers, candidates)`
+`FourPillars`를 받지 않으며 C-*를 **재평가하지 않는다** — P4에 필요한 C-통근 상태는
+L2 candidate evidence를 **참조**한다. raw↔candidate 매칭은 `combineId + 자리 서명`
+(같은 `combineId`가 여러 자리 조합으로 존재할 수 있으므로 combineId 단독으로는 모호).
+
+**P1–P6 감사 — 구현 가능 / 발동 가능 여부**
+
+| 키 | 구현 | 실제 발동 | 비고 |
+|----|------|----------|------|
+| **P1** 완전 구조 (지지 완합 ≻ 五合) | 구현 | **발동 불가** | 한 경합 집합은 layer가 동일하므로 지지합·五合이 같은 집합에 들어오지 않는다 (아래 감사) |
+| **P2** 월령 자리 포함 | 구현 | **발동** | 지지합=월지 · 천간합=월간, 둘 다 `slot === "month"`로 표현됨 |
+| **P3** C-투간 | 스킵 | — | 문서가 "이미 required pass … 추가 신호 없음이면 P4로"로 **설계상 무신호** |
+| **P4** C-통근 | 구현 | **현재 미발동** | L2에서 C-통근이 전 종류 `unknown`(§1.5.11.9) → "unknown이면 우위 주장 불가"에 걸림. TBD-05 해소 시 자동 발동 |
+| **P5** C-거리 | 부분 | **미발동** | "지지 완합은 N → 스킵" 확정분만 반영. "인접 충족이 **더 좁은 쌍…**"은 문장이 미완이라 **미구현**(동률 처리) |
+| **P6** 종류 타이브레이크 (삼합 ≻ 방합 ≻ 五合) | 구현 | **발동** | 지지합 집합의 실질 결정자 |
+
+점수·가중치를 만들지 않았다. **lexicographic 좁히기**만 사용하며, 각 단계에서 아무도
+만족하지 않거나 전원 만족이면 좁히지 않는다(동률). 단수 승자가 없으면 §1.5.10.7대로
+집합 **전원** `competition-unresolved` · `modifierActive: false`.
+
+###### 1.5.11.13 감사 — 五合(stem) vs 지지합(branch) 직접 경합
+
+**결론: 설계 불일치 없음. 문서가 이미 이 경우를 규정하고 있다.**
+
+- §1.5.10.2 **S6** = "천간합 + 지지합 동시 → **기본 병존**(참여 영역 다름). 경합으로 올리지 않음. 초안·확정: **독립 병존**."
+- §1.5.10.6 P1 주석 = "삼합·방합 완합이 五合과 슬롯을 공유하면(**실제로는 글자 종류가 달라 S6**) — **지지끼리만 S1**."
+
+⇒ `(layer × slot)` 공유 원칙과 S6는 **같은 결론**이다. 五合(stem)과 지지합(branch)은
+물리적 자리를 공유할 수 없으므로 L4의 shared-slot 경합에서 **절대 같은 집합에 들어오지 않는다.**
+따라서 **P1과 P6의 "≻ 五合" 항은 현재 구조에서 발동하지 않는다** — 방어적 잔여 표기다.
+문서를 임의로 고치지 않고 이 사실만 기록한다.
+
+(현재는 五合이 L2에서 `transform-ok`에 도달하지도 못하므로(§1.5.11.10) 五合 modifier 자체가 생성되지 않는다.)
 
 ---
 

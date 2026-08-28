@@ -122,3 +122,24 @@ export type TransformRawModifier = {
   /** 목표 오행 가산량. `attenuations` 합에서 유도된다(총량 보존). */
   boost: number;
 };
+
+/** 경합 게이트 출력 (§1.5.10.3). 새 상태값을 추가하지 않는다. */
+export type TransformContentionStatus =
+  | "uncontested"
+  | "won"
+  | "lost"
+  | "competition-unresolved";
+
+/**
+ * L4 산출물 — 경합 게이트를 통과한 modifier.
+ *
+ * raw 정보를 **전부 보존**하고 게이트 출력 2개만 더한다(§1.5.10.3).
+ * 게이트는 modifier를 **삭제하지 않는다** — 탈락·미해소도 행으로 남는다(§1.5.10.1).
+ *
+ * `modifierActive === true` ⇔ Effective 합성 입력.
+ * `lost` · `competition-unresolved` ⇒ `modifierActive: false`.
+ */
+export type TransformResolvedModifier = TransformRawModifier & {
+  modifierActive: boolean;
+  contentionStatus: TransformContentionStatus;
+};
