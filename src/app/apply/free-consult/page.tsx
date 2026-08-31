@@ -187,10 +187,10 @@ export default function FreeConsultPage() {
       <AppHeader variant="page" title="무료 상담 신청" backHref="/" showActions={false} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#3d2b1f]">
+        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
           연락처만 남겨 주세요
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
           어떤 상품이 맞을지 고민되시면, 이름과 연락처를 남겨 주세요. 카카오톡 또는 전화로 안내해 드립니다.
         </p>
       </section>
@@ -297,7 +297,7 @@ export default function FreeConsultPage() {
 
         <div>
           <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">하고 싶은 말</label>
-          <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mb-2 text-[14px] leading-relaxed text-[#6B6570]">
             글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
           </p>
           <textarea
@@ -324,13 +324,13 @@ export default function FreeConsultPage() {
               지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
             </p>
           ) : null}
-          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+          <p className="mt-1 text-right text-[12px] text-[#6B6570]">
             {shownMessage.length} / {MESSAGE_MAX}
           </p>
         </div>
 
         <div className="rounded-2xl bg-[#f5efe6] p-4">
-          <p className="text-[15px] font-bold text-[#3d2b1f]">개인정보 수집·이용 안내</p>
+          <p className="text-[15px] font-bold text-[#403A49]">개인정보 수집·이용 안내</p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
             받는 정보: 이름, 연락처
             <br />
@@ -360,7 +360,7 @@ export default function FreeConsultPage() {
           type="button"
           onClick={submit}
           disabled={loading}
-          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white disabled:opacity-40"
         >
           {loading ? "보내는 중..." : "무료 상담 신청하기"}
         </button>

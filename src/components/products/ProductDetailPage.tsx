@@ -54,9 +54,9 @@ function DetailProcessCard({ step, fullWidth = false }: { step: ProcessStep; ful
     <div
       className={`rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8] ${fullWidth ? "w-full" : "flex-1"}`}
     >
-      <p className="text-[11px] font-bold text-[#8b6f5c]">{step.num}</p>
+      <p className="text-[11px] font-bold text-[#6B6570]">{step.num}</p>
       <p className="mt-1 break-keep text-[14px] font-bold leading-snug text-[#3d2b1f]">{step.title}</p>
-      <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">{step.desc}</p>
+      <p className="mt-1 text-[12px] leading-snug text-[#6B6570]">{step.desc}</p>
     </div>
   );
 }
@@ -111,7 +111,7 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
                 {config.badge}
               </span>
             )}
-            <h2 className="font-[family-name:var(--font-noto-serif-kr)] text-3xl font-bold">{config.title}</h2>
+            <h2 className="font-serif text-3xl font-bold">{config.title}</h2>
             <p className="mt-2 max-w-[240px] text-sm leading-relaxed text-white/90">{config.description}</p>
           </div>
         </div>
@@ -125,14 +125,14 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
               {f.icon}
             </div>
             <span className="text-[11px] font-semibold text-brown-dark">{f.label}</span>
-            <span className="text-[10px] text-brown-light">{f.sub}</span>
+            <span className="text-[10px] text-[#6B6570]">{f.sub}</span>
           </div>
         ))}
       </section>
 
       {/* Price + CTA */}
       <section className="flex items-center justify-between gap-3 px-5 py-4">
-        <p className="text-lg font-bold text-brown-dark">{formatPriceFrom(config.priceFrom)}</p>
+        <p className="text-lg font-bold text-[#403A49]">{formatPriceFrom(config.priceFrom)}</p>
         <Button href={config.applyHref} size="lg">
           신청하기 <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
@@ -140,7 +140,7 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
 
       {/* Recommend */}
       <section className="px-4 py-6">
-        <h3 className="mb-4 text-base font-bold text-brown-dark">이런 분께 추천드려요</h3>
+        <h3 className="mb-4 text-base font-bold text-[#403A49]">이런 분께 추천드려요</h3>
         <div className="grid grid-cols-2 gap-3">
           {config.recommends.map((item, i) => (
             <div key={i} className="overflow-hidden rounded-2xl bg-card ring-1 ring-border">
@@ -155,13 +155,13 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
 
       {reviews.length > 0 ? (
         <section className="px-4 pb-6">
-          <h3 className="mb-1 text-base font-bold text-brown-dark">이 상품을 받으신 분</h3>
-          <p className="mb-4 text-[13px] text-brown-light">완성 후 남겨 주신 후기입니다.</p>
+          <h3 className="mb-1 text-base font-bold text-[#403A49]">이 상품을 받으신 분</h3>
+          <p className="mb-4 text-[13px] text-[#6B6570]">완성 후 남겨 주신 후기입니다.</p>
           <div className="space-y-3">
             {reviews.map((review) => (
               <div key={review.id} className="rounded-2xl bg-card p-4 ring-1 ring-border">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[15px] font-bold text-brown-dark">{review.name}</p>
+                  <p className="text-[15px] font-bold text-[#403A49]">{review.name}</p>
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: review.rating }).map((_, i) => (
                       <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
@@ -177,13 +177,13 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
 
       {/* Process */}
       <section className="bg-ivory px-4 py-6">
-        <h3 className="mb-4 text-base font-bold text-brown-dark">제작 과정</h3>
+        <h3 className="mb-4 text-base font-bold text-[#403A49]">제작 과정</h3>
         <DetailProcessFlow steps={config.process} />
       </section>
 
       {/* FAQ */}
       <section className="px-4 py-6">
-        <h3 className="mb-4 text-base font-bold text-brown-dark">자주 묻는 질문</h3>
+        <h3 className="mb-4 text-base font-bold text-[#403A49]">자주 묻는 질문</h3>
         <div className="space-y-2">
           {config.faqs.map((faq, i) => (
             <details key={i} className="group rounded-xl bg-card ring-1 ring-border">
@@ -191,7 +191,7 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
                 {faq.question}
                 <ChevronRight className="h-4 w-4 shrink-0 text-brown-light transition group-open:rotate-90" />
               </summary>
-              <p className="border-t border-border px-4 pb-4 pt-2 text-sm leading-relaxed text-brown-light">
+              <p className="border-t border-border px-4 pb-4 pt-2 text-sm leading-relaxed text-[#6B6570]">
                 {faq.answer}
               </p>
             </details>

@@ -101,8 +101,8 @@ export function PaySubmit({
     <div className="mt-6">
       {usableCoupons.length > 0 ? (
         <div className="mb-6">
-          <p className="text-[16px] font-bold text-[#3d2b1f]">무료 쿠폰</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">있으면 골라 주세요. 없으면 넘어가도 됩니다.</p>
+          <p className="text-[16px] font-bold text-[#403A49]">무료 쿠폰</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">있으면 골라 주세요. 없으면 넘어가도 됩니다.</p>
           <div className="mt-2 space-y-2">
             {usableCoupons.map((item) => {
               const active = couponId === item.id;
@@ -119,7 +119,7 @@ export function PaySubmit({
                   }`}
                 >
                   <p className="text-[15px] font-semibold">{item.title}</p>
-                  <p className={`mt-1 text-[13px] ${active ? "text-white/80" : "text-[#8b6f5c]"}`}>
+                  <p className={`mt-1 text-[13px] ${active ? "text-white/80" : "text-[#6B6570]"}`}>
                     {active ? "이 쿠폰으로 무료 신청합니다" : "누르면 무료로 신청됩니다"}
                   </p>
                 </button>
@@ -131,10 +131,10 @@ export function PaySubmit({
 
       {!usingCoupon ? (
         <>
-          <label className="block text-[16px] font-bold text-[#3d2b1f]" htmlFor="referral-code">
+          <label className="block text-[16px] font-bold text-[#403A49]" htmlFor="referral-code">
             추천인 코드
           </label>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">없으면 비워 두세요.</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">없으면 비워 두세요.</p>
           <input
             id="referral-code"
             value={referralCode}
@@ -164,8 +164,8 @@ export function PaySubmit({
 
       {!usingCoupon && points > 0 ? (
         <div className="mt-6">
-          <p className="text-[16px] font-bold text-[#3d2b1f]">적립금</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-[16px] font-bold text-[#403A49]">적립금</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">
             보유 {formatPrice(points)} · 누르면 결제 금액에서 깎입니다.
           </p>
           <button
@@ -178,7 +178,7 @@ export function PaySubmit({
             <p className="text-[15px] font-semibold">
               {usePoints ? `${formatPrice(pointsToUse)} 사용` : "적립금 쓰기"}
             </p>
-            <p className={`mt-1 text-[13px] ${usePoints ? "text-white/80" : "text-[#8b6f5c]"}`}>
+            <p className={`mt-1 text-[13px] ${usePoints ? "text-white/80" : "text-[#6B6570]"}`}>
               {usePoints
                 ? `결제 금액 ${formatPrice(payAmount)}`
                 : "결제 금액에서 적립금만큼 깎습니다"}
@@ -191,7 +191,7 @@ export function PaySubmit({
         type="button"
         onClick={submit}
         disabled={loading}
-        className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+        className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white disabled:opacity-40"
       >
         {loading
           ? "처리 중..."
@@ -203,7 +203,7 @@ export function PaySubmit({
               ? "신청하고 입금 안내받기"
               : label}
       </button>
-      <p className="mt-2 text-center text-[13px] leading-relaxed text-[#8b6f5c]">
+      <p className="mt-2 text-center text-[13px] leading-relaxed text-[#6B6570]">
         {usingCoupon
           ? "쿠폰으로 신청만 접수됩니다. 결제는 하지 않습니다."
           : payAmount === 0 && pointsToUse > 0

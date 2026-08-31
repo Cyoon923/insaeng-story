@@ -6,7 +6,7 @@ const NOTICES = [
   {
     date: "2026.08.15",
     title: "인생곡 이용 및 저작권 안내",
-    body: "인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수 있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.",
+    body: "인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수 있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.",
   },
   {
     date: "2026.08.15",
@@ -33,9 +33,9 @@ export default async function NoticePage({
       <AppHeader variant="page" title="공지사항" backHref={backHref} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">공지사항</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
-          인생스토리의 소식을 확인하세요.
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">공지사항</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
+          사주로그의 소식을 확인하세요.
         </p>
       </section>
 
@@ -44,12 +44,12 @@ export default async function NoticePage({
           <details key={notice.title} className="group rounded-2xl bg-white ring-1 ring-[#ebe3d8]">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
               <div className="min-w-0 text-left">
-                <p className="text-[13px] text-[#8b6f5c]">{notice.date}</p>
-                <p className="mt-1 text-[16px] font-semibold leading-snug text-[#3d2b1f]">{notice.title}</p>
+                <p className="text-[13px] text-[#6B6570]">{notice.date}</p>
+                <p className="mt-1 text-[16px] font-semibold leading-snug text-[#403A49]">{notice.title}</p>
               </div>
               <ChevronRight className="h-5 w-5 shrink-0 text-[#8b6f5c] transition group-open:rotate-90" />
             </summary>
-            <p className="border-t border-[#ebe3d8] px-4 py-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+            <p className="border-t border-[#ebe3d8] px-4 py-3 text-[15px] leading-relaxed text-[#6B6570]">
               {notice.body}
             </p>
           </details>

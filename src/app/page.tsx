@@ -37,11 +37,11 @@ export default function HomePage() {
   };
 
   return (
-    <MobileShell>
+    <MobileShell bgClass="bg-[#FFFFFF]">
       <AppHeader variant="home" />
       {easyMode ? (
         <section className="px-4 py-6">
-          <p className="text-center text-[18px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-center text-[18px] leading-relaxed text-[#6B6570]">
             글씨가 큰 쉬운 화면입니다
           </p>
           <div className="mt-5 flex flex-col gap-3">
@@ -49,7 +49,7 @@ export default function HomePage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex h-16 items-center justify-center rounded-xl bg-[#5c3d2e] text-[18px] font-semibold text-white"
+                className="flex h-16 items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-semibold text-white"
               >
                 {item.label}
               </Link>
@@ -58,7 +58,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={turnOffEasyMode}
-            className="mt-5 flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+            className="mt-5 flex h-14 w-full items-center justify-center rounded-xl border border-[#403A49] bg-[#fffdf9] text-[17px] font-semibold text-[#403A49]"
           >
             일반 화면으로
           </button>
@@ -70,7 +70,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={turnOnEasyMode}
-              className="flex h-16 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[20px] font-semibold text-white"
+              className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[20px] font-semibold text-white"
             >
               어르신 쉬운 화면
             </button>

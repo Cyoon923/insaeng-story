@@ -28,19 +28,52 @@ export const CONSULT_STEPS = [
   { num: 4, label: "확인 및 결제" },
 ];
 
+/**
+ * 스텝퍼 강조 배색. 기본값은 기존 브라운이며, 테마를 넘기지 않은 신청 플로우는
+ * 지금까지와 완전히 동일하게 렌더된다.
+ */
+export type ApplyStepperTheme = {
+  activeBg: string;
+  doneBg: string;
+  doneText: string;
+  lineBg: string;
+  labelText: string;
+  containerBg: string;
+};
+
+export const BROWN_STEPPER: ApplyStepperTheme = {
+  activeBg: "bg-brown",
+  doneBg: "bg-brown/20",
+  doneText: "text-brown",
+  lineBg: "bg-brown",
+  labelText: "text-brown",
+  containerBg: "bg-cream",
+};
+
+export const CHARCOAL_STEPPER: ApplyStepperTheme = {
+  activeBg: "bg-[#403A49]",
+  doneBg: "bg-[#403A49]/20",
+  doneText: "text-[#403A49]",
+  lineBg: "bg-[#403A49]",
+  labelText: "text-[#403A49]",
+  containerBg: "bg-[#F7F6F8]",
+};
+
 interface ApplyStepperProps {
   currentStep: number;
   basePath?: string;
   steps?: { num: number; label: string }[];
+  theme?: ApplyStepperTheme;
 }
 
 export function ApplyStepper({
   currentStep,
   basePath = "/apply/story-song",
   steps = STORY_STEPS,
+  theme = BROWN_STEPPER,
 }: ApplyStepperProps) {
   return (
-    <div className="border-b border-border bg-cream px-2 py-4">
+    <div className={cn("border-b border-border px-2 py-4", theme.containerBg)}>
       <div className="flex items-start justify-between">
         {steps.map((step, i) => {
           const isActive = step.num === currentStep;
@@ -49,27 +82,27 @@ export function ApplyStepper({
             <div key={step.num} className="flex flex-1 flex-col items-center">
               <div className="flex w-full items-center">
                 {i > 0 && (
-                  <div className={cn("h-px flex-1", isDone || isActive ? "bg-brown" : "bg-border")} />
+                  <div className={cn("h-px flex-1", isDone || isActive ? theme.lineBg : "bg-border")} />
                 )}
                 <Link
                   href={step.num <= currentStep ? `${basePath}/${step.num}` : "#"}
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                    isActive && "bg-brown text-white",
-                    isDone && "bg-brown/20 text-brown",
-                    !isActive && !isDone && "bg-ivory text-brown-light"
+                    isActive && cn(theme.activeBg, "text-white"),
+                    isDone && cn(theme.doneBg, theme.doneText),
+                    !isActive && !isDone && "bg-ivory text-[#6B6570]"
                   )}
                 >
                   {step.num}
                 </Link>
                 {i < steps.length - 1 && (
-                  <div className={cn("h-px flex-1", isDone ? "bg-brown" : "bg-border")} />
+                  <div className={cn("h-px flex-1", isDone ? theme.lineBg : "bg-border")} />
                 )}
               </div>
               <span
                 className={cn(
                   "mt-1.5 text-center text-[9px] leading-tight",
-                  isActive ? "font-semibold text-brown" : "text-brown-light"
+                  isActive ? cn("font-semibold", theme.labelText) : "text-[#6B6570]"
                 )}
               >
                 {step.label}
@@ -119,7 +152,7 @@ export function ApplyNavButtons({
       {prevHref ? (
         <Link
           href={prevHref}
-          className="flex flex-1 items-center justify-center rounded-full border-2 border-brown py-3.5 text-sm font-semibold text-brown"
+          className="flex flex-1 items-center justify-center rounded-full border-2 border-[#403A49] py-3.5 text-sm font-semibold text-[#403A49]"
         >
           &lt; 이전 단계
         </Link>
@@ -129,7 +162,7 @@ export function ApplyNavButtons({
       <Link
         href={nextHref}
         onClick={goNext}
-        className="flex flex-[2] items-center justify-center rounded-full bg-brown py-3.5 text-sm font-semibold text-white"
+        className="flex flex-[2] items-center justify-center rounded-full bg-[#403A49] py-3.5 text-sm font-semibold text-white"
       >
         {nextLabel}
       </Link>

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { SAJU_STEPS } from "@/components/apply/ApplyStepper";
+import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { saveDraft } from "@/lib/client/api";
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]";
 
 export default function SajuStep1Page() {
   const [gender, setGender] = useState<"male" | "female">("male");
@@ -23,9 +23,12 @@ export default function SajuStep1Page() {
       nextHref="/apply/saju-song/2"
       requireContactFlow="saju-song"
       heroText={"상담 없이 사주 정보로\n하나뿐인 인생곡을 만듭니다"}
+    
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 사주 정보를 입력해주세요</h2>
-      <p className="mt-2 text-[14px] text-[#8b6f5c]">정확한 사주 흐름을 위해 아래 정보를 입력해 주세요.</p>
+      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">1. 사주 정보를 입력해주세요</h2>
+      <p className="mt-2 text-[14px] text-[#6B6570]">정확한 사주 흐름을 위해 아래 정보를 입력해 주세요.</p>
 
       <div className="mt-5 space-y-5">
         <div>
@@ -110,7 +113,7 @@ export default function SajuStep1Page() {
                 setUnknownTime(e.target.checked);
                 saveDraft("saju-song", { unknownTime: e.target.checked ? "1" : "" });
               }}
-              className="h-5 w-5 accent-[#5c3d2e]"
+              className="h-5 w-5 accent-[#403A49]"
             />
             태어난 시간을 몰라요
           </label>
@@ -164,7 +167,7 @@ function Toggle({ active, onClick, label }: { active: boolean; onClick: () => vo
       type="button"
       onClick={onClick}
       className={`h-12 rounded-xl text-[15px] font-semibold ${
-        active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+        active ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"
       }`}
     >
       {label}

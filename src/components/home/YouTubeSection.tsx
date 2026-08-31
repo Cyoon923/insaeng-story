@@ -24,16 +24,16 @@ export function YouTubeSection() {
   };
 
   return (
-    <section className="bg-[#faf8f5] px-4 pb-5 pt-3">
+    <section className="bg-[#FFFFFF] px-4 pb-5 pt-3">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-[#ff0000] text-[8px] font-bold text-white">
               ▶
             </span>
-            <h2 className="text-[17px] font-bold text-[#3d2b1f]">인생스토리 공식 유튜브</h2>
+            <h2 className="text-[17px] font-bold text-[#403A49]">사주로그 공식 유튜브</h2>
           </div>
-          <p className="mt-1 pl-[22px] text-[13px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-1 pl-[22px] text-[13px] leading-relaxed text-[#6B6570]">
             실제 고객님의 이야기를 완성 작품으로 만나보세요.
           </p>
         </div>
@@ -87,10 +87,10 @@ export function YouTubeSection() {
                   </span>
                 ) : null}
               </div>
-              <h3 className="mt-2 line-clamp-2 text-[11px] font-bold leading-snug text-[#3d2b1f]">
+              <h3 className="mt-2 line-clamp-2 text-[11px] font-bold leading-snug text-[#403A49]">
                 {video.title}
               </h3>
-              <p className="mt-0.5 text-[10px] text-[#8b6f5c]">{video.views}</p>
+              <p className="mt-0.5 text-[10px] text-[#6B6570]">{video.views}</p>
             </a>
           ))}
         </div>
@@ -98,7 +98,7 @@ export function YouTubeSection() {
 
       <Link
         href="/cases"
-        className="mt-3.5 flex w-full items-center justify-center gap-1 rounded-xl border border-[#d4c8ba] bg-white py-3 text-[13px] font-medium text-[#5c3d2e]"
+        className="mt-3.5 flex w-full items-center justify-center gap-1 rounded-xl border border-[#403A49] bg-[#fffdf9] py-3 text-[13px] font-semibold text-[#403A49]"
       >
         유튜브 더 보기 <ChevronRight className="h-4 w-4" />
       </Link>

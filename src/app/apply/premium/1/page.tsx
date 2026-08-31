@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { STORY_STEPS } from "@/components/apply/ApplyStepper";
+import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { saveDraft } from "@/lib/client/api";
 
 export default function PremiumStep1Page() {
@@ -19,9 +19,12 @@ export default function PremiumStep1Page() {
       nextHref="/apply/premium/2"
       requireContactFlow="premium"
       heroText={"당신의 인생을 깊이 이해하고,\n하나뿐인 인생곡으로 남겨드립니다"}
+    
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 기본정보</h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">프리미엄 인생곡 제작을 위한 기본 정보를 입력해 주세요.</p>
+      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">1. 기본정보</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">프리미엄 인생곡 제작을 위한 기본 정보를 입력해 주세요.</p>
 
       <div className="mt-5 space-y-5">
         <Field label="이름" required>
@@ -124,7 +127,7 @@ export default function PremiumStep1Page() {
 }
 
 const inputClass =
-  "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]";
+  "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#403A49]";
 
 function Field({
   label,
@@ -151,7 +154,7 @@ function Choice({ active, onClick, label }: { active: boolean; onClick: () => vo
       type="button"
       onClick={onClick}
       className={`min-h-14 rounded-xl text-[17px] font-semibold ${
-        active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+        active ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"
       }`}
     >
       {label}

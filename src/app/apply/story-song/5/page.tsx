@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
+import { CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice } from "@/lib/constants/products";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
@@ -23,9 +24,9 @@ const VIDEO_STYLES = [
     image: "/images/video-style-animation.png",
   },
   {
-    name: "시네마풍",
-    desc: "영화 한 장면처럼 크고 드라마틱한 느낌",
-    image: "/images/video-style-cinematic.png",
+    name: "스타일 상담 후 결정",
+    desc: "어떤 스타일이 어울릴지 모르시겠다면 전화 상담을 통해 함께 결정해드립니다.",
+    image: "/images/photo-video-style-consultation.png",
   },
 ];
 
@@ -98,9 +99,12 @@ export default function ApplyStep5Page() {
   );
 
   return (
-    <ApplyLayout step={5} prevHref="/apply/story-song/4" nextHref="/apply/story-song/6">
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">5. 추가 옵션을 선택해주세요</h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">여러 개를 함께 선택하실 수 있습니다.</p>
+    <ApplyLayout step={5} prevHref="/apply/story-song/4" nextHref="/apply/story-song/6"
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
+    >
+      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">5. 추가 옵션을 선택해주세요</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
 
       <div className="mt-5 space-y-3">
         {OPTIONS.map((opt) => {
@@ -109,21 +113,21 @@ export default function ApplyStep5Page() {
             <div
               key={opt.id}
               className={`rounded-2xl border p-4 ${
-                active ? "border-[#5c3d2e] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
+                active ? "border-[#403A49] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
               }`}
             >
               <button type="button" onClick={() => toggle(opt.id)} className="flex w-full items-start gap-3 text-left">
                 <span
                   className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-[16px] ${
-                    active ? "border-[#5c3d2e] bg-[#5c3d2e] text-white" : "border-[#d4c8ba] bg-white"
+                    active ? "border-[#403A49] bg-[#403A49] text-white" : "border-[#d4c8ba] bg-white"
                   }`}
                 >
                   {active ? "✓" : ""}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[18px] font-bold text-[#3d2b1f]">{opt.title}</p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-[#8b6f5c]">{opt.desc}</p>
-                  <p className="mt-2 text-[16px] font-bold text-[#5c3d2e]">
+                  <p className="text-[18px] font-bold text-[#403A49]">{opt.title}</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-[#6B6570]">{opt.desc}</p>
+                  <p className="mt-2 text-[16px] font-bold text-[#403A49]">
                     {opt.price !== null ? `+ ${formatPrice(opt.price)}` : "가격 별도 문의"}
                   </p>
                 </div>
@@ -131,10 +135,10 @@ export default function ApplyStep5Page() {
 
               {opt.id === "ai-mv" && active ? (
                 <div className="mt-4 border-t border-[#ebe3d8] pt-4">
-                  <p className="text-[17px] font-semibold text-[#3d2b1f]">
+                  <p className="text-[17px] font-semibold text-[#403A49]">
                     영상 스타일 <span className="text-red-500">*</span>
                   </p>
-                  <p className="mt-1 text-[14px] text-[#8b6f5c]">사진을 보고 1개를 골라 주세요.</p>
+                  <p className="mt-1 text-[14px] text-[#6B6570]">사진을 보고 1개를 골라 주세요.</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     {VIDEO_STYLES.map((style) => {
                       const styleActive = videoStyle === style.name;
@@ -147,7 +151,7 @@ export default function ApplyStep5Page() {
                             persist(selected, style.name);
                           }}
                           className={`overflow-hidden rounded-2xl bg-white text-left ${
-                            styleActive ? "ring-2 ring-[#5c3d2e]" : "ring-1 ring-[#ebe3d8]"
+                            styleActive ? "ring-2 ring-[#403A49]" : "ring-1 ring-[#ebe3d8]"
                           }`}
                         >
                           <div className="relative h-[88px] w-full bg-[#f5efe6]">
@@ -155,7 +159,7 @@ export default function ApplyStep5Page() {
                           </div>
                           <div className="px-2 py-2.5">
                             <p className="text-[14px] font-bold leading-snug text-[#3d2b1f]">{style.name}</p>
-                            <p className="mt-1 text-[12px] leading-snug text-[#8b6f5c]">{style.desc}</p>
+                            <p className="mt-1 text-[12px] leading-snug text-[#6B6570]">{style.desc}</p>
                           </div>
                         </button>
                       );
@@ -170,9 +174,9 @@ export default function ApplyStep5Page() {
 
       <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#f5efe6] p-4">
         <span className="text-[15px] text-[#3d2b1f]">선택한 추가 옵션 금액</span>
-        <span className="text-[20px] font-bold text-[#5c3d2e]">{formatPrice(total)}</span>
+        <span className="text-[20px] font-bold text-[#403A49]">{formatPrice(total)}</span>
       </div>
-      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         기본 상품 금액과 합산된 최종 금액은 다음 단계에서 확인하실 수 있습니다.
       </p>
     </ApplyLayout>

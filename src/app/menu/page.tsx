@@ -40,14 +40,14 @@ export default function MenuPage() {
       <AppHeader variant="page" title="메뉴" backHref="/" showActions={false} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">메뉴</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">원하시는 화면으로 이동하세요.</p>
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">메뉴</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">원하시는 화면으로 이동하세요.</p>
       </section>
 
       <div className="px-4 pb-8">
         {GROUPS.map((group) => (
           <section key={group.title} className="mb-6">
-            <h3 className="mb-2 text-[15px] font-bold text-[#8b6f5c]">{group.title}</h3>
+            <h3 className="mb-2 text-[15px] font-bold text-[#6B6570]">{group.title}</h3>
             <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#ebe3d8]">
               {group.items.map((item) => (
                 <Link
@@ -64,7 +64,7 @@ export default function MenuPage() {
         ))}
         <Link
           href="/signup"
-          className="mt-2 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white"
+          className="mt-2 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
         >
           회원가입
         </Link>

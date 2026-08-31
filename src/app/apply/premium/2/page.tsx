@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Pencil } from "lucide-react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { STORY_STEPS } from "@/components/apply/ApplyStepper";
+import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
 const PROTAGONISTS = [
@@ -51,9 +51,12 @@ export default function PremiumStep2Page() {
       prevHref="/apply/premium/1"
       nextHref="/apply/premium/3"
       heroText={"사주상담과 스토리상담을 바탕으로\n하나뿐인 인생곡을 만듭니다"}
+    
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">2. 누구를 위한 노래인가요?</h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">선택한 주인공을 기준으로 사주상담과 스토리상담이 진행됩니다.</p>
+      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">2. 누구를 위한 노래인가요?</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">선택한 주인공을 기준으로 사주상담과 스토리상담이 진행됩니다.</p>
       <div className="mt-5 grid grid-cols-2 gap-3">
         {PROTAGONISTS.map((item) => {
           const active = selected === item.id;
@@ -62,20 +65,20 @@ export default function PremiumStep2Page() {
               key={item.id}
               type="button"
               onClick={() => choose(item.id, item.label)}
-              className={`overflow-hidden rounded-2xl bg-white text-left ${active ? "ring-2 ring-[#5c3d2e]" : "ring-1 ring-[#ebe3d8]"}`}
+              className={`overflow-hidden rounded-2xl bg-white text-left ${active ? "ring-2 ring-[#403A49]" : "ring-1 ring-[#ebe3d8]"}`}
             >
               <div className="relative h-[100px] bg-[#f5efe6]">
                 {item.image ? (
                   <Image src={item.image} alt="" fill className="object-cover" sizes="180px" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-[#5c3d2e]">
+                  <div className="flex h-full items-center justify-center text-[#403A49]">
                     <Pencil className="h-8 w-8" />
                   </div>
                 )}
               </div>
               <div className="px-3 py-2.5">
-                <p className="text-[15px] font-bold text-[#3d2b1f]">{item.label}</p>
-                {"hint" in item && item.hint ? <p className="mt-0.5 text-[12px] text-[#8b6f5c]">{item.hint}</p> : null}
+                <p className="text-[15px] font-bold text-[#403A49]">{item.label}</p>
+                {"hint" in item && item.hint ? <p className="mt-0.5 text-[12px] text-[#6B6570]">{item.hint}</p> : null}
               </div>
             </button>
           );
@@ -91,7 +94,7 @@ export default function PremiumStep2Page() {
             saveDraft("premium", { protagonistId: "other", protagonist: e.target.value || "기타" });
           }}
           placeholder="예) 친구, 스승님"
-          className="mt-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#5c3d2e]"
+          className="mt-3 h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#403A49]"
         />
       ) : null}
     </ApplyLayout>

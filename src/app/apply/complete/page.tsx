@@ -30,10 +30,10 @@ export default async function ApplyCompletePage({
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#5c3d2e] text-[28px] text-white">
           ✓
         </div>
-        <h2 className="mt-5 font-serif text-[24px] font-bold leading-snug text-[#3d2b1f]">
+        <h2 className="mt-5 font-serif text-[24px] font-bold leading-snug text-[#403A49]">
           {isEvent ? "신청이 완료되었습니다" : "신청이 접수되었습니다"}
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
           {isEvent ? (
             isSubscribeEvent ? (
               <>
@@ -71,8 +71,8 @@ export default async function ApplyCompletePage({
       </div>
 
       <div className="mx-4 rounded-2xl bg-white p-5 ring-1 ring-[#ebe3d8]">
-        <p className="text-[13px] text-[#8b6f5c]">현재 진행 상태</p>
-        <p className="mt-1 text-[18px] font-bold text-[#5c3d2e]">신청접수</p>
+        <p className="text-[13px] text-[#6B6570]">현재 진행 상태</p>
+        <p className="mt-1 text-[18px] font-bold text-[#403A49]">신청접수</p>
         <p className="mt-3 text-[14px] leading-relaxed text-[#3d2b1f]">
           {isEvent
             ? isSubscribeEvent
@@ -84,7 +84,7 @@ export default async function ApplyCompletePage({
                 ? "상담 신청 → 사주정보 입력 → 선생님과 1:1 상담 → 상담 완료"
                 : "신청접수 → 상담진행 → 제작중 → 완성/전달 → 완료"}
         </p>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+        <p className="mt-2 text-[13px] leading-relaxed text-[#6B6570]">
           {isEvent
             ? "유료 1:1 사주상담이 아닙니다. 이벤트 신청입니다."
             : isInquiry
@@ -96,14 +96,14 @@ export default async function ApplyCompletePage({
       <div className="mt-8 px-4 pb-8">
         <Link
           href={detailHref}
-          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white"
+          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
         >
           {isInquiry || isEvent ? "홈으로" : isConsult ? "상담 상세 보기" : "주문 상세 보기"}
         </Link>
         {isInquiry || isEvent ? null : (
           <Link
             href="/"
-            className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#5c3d2e] text-[16px] font-semibold text-[#5c3d2e]"
+            className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#403A49] text-[16px] font-semibold text-[#403A49]"
           >
             홈으로
           </Link>

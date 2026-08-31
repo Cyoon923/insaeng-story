@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { CONSULT_STEPS } from "@/components/apply/ApplyStepper";
+import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
 type SlotStatus = "available" | "booked" | "blocked";
@@ -151,37 +151,39 @@ export default function ConsultationStep1Page() {
   return (
     <ApplyLayout
       step={1}
-      title="1:1 사주상담 시작하기"
+      title="사주 분석 시작하기"
       basePath="/apply/consultation"
       steps={CONSULT_STEPS}
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
       backHref="/consultation"
       nextHref={extraPerson ? "/apply/consultation/2?extra=1" : "/apply/consultation/2"}
       heroText={"혼자 고민했던 이야기를\n편안하게 들려주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 상담 예약</h2>
-      <p className="mt-2 text-[14px] text-[#8b6f5c]">선생님, 날짜, 시간, 상담 목적과 옵션을 선택해 주세요.</p>
+      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">1. 상담 예약</h2>
+      <p className="mt-2 text-[14px] text-[#6B6570]">선생님, 날짜, 시간, 상담 목적과 옵션을 선택해 주세요.</p>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <p className="text-[16px] font-bold text-[#3d2b1f]">선생님</p>
-        <p className="mt-2 text-[15px] font-semibold text-[#5c3d2e]">{TEACHER}</p>
-        <p className="mt-1 text-[13px] text-[#8b6f5c]">인생스토리 전담 선생 · 5.0 (후기 128개)</p>
+        <p className="text-[16px] font-bold text-[#403A49]">선생님</p>
+        <p className="mt-2 text-[15px] font-semibold text-[#403A49]">{TEACHER}</p>
+        <p className="mt-1 text-[13px] text-[#6B6570]">사주로그 전담 선생 · 5.0 (후기 128개)</p>
       </section>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <div className="flex items-end justify-between gap-2">
           <div>
-            <p className="text-[15px] font-bold text-[#3d2b1f]">상담 날짜 · 시간</p>
-            <p className="mt-1 text-[12px] text-[#8b6f5c]">오전 10시 ~ 오후 6시 · 50분 상담</p>
+            <p className="text-[15px] font-bold text-[#403A49]">상담 날짜 · 시간</p>
+            <p className="mt-1 text-[12px] text-[#6B6570]">오전 10시 ~ 오후 6시 · 50분 상담</p>
           </div>
           {date && time ? (
-            <p className="text-right text-[12px] font-semibold text-[#5c3d2e]">
+            <p className="text-right text-[12px] font-semibold text-[#403A49]">
               {parseConsultDate(date)?.day}일 {time}
             </p>
           ) : null}
         </div>
 
-        <p className="mt-4 text-center text-[17px] font-bold text-[#3d2b1f]">{monthLabel}월</p>
-        <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-[#8b6f5c]">
+        <p className="mt-4 text-center text-[17px] font-bold text-[#403A49]">{monthLabel}월</p>
+        <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-[#6B6570]">
           {WEEKDAYS.map((item) => (
             <span key={item}>{item}</span>
           ))}
@@ -196,7 +198,7 @@ export default function ConsultationStep1Page() {
                 type="button"
                 onClick={() => setDate(cell.date)}
                 className={`flex aspect-square items-center justify-center rounded-full text-[14px] font-bold ${
-                  date === cell.date ? "bg-[#5c3d2e] text-white" : "bg-[#f5efe6] text-[#3d2b1f]"
+                  date === cell.date ? "bg-[#403A49] text-white" : "bg-[#f5efe6] text-[#3d2b1f]"
                 }`}
               >
                 {cell.day}
@@ -224,7 +226,7 @@ export default function ConsultationStep1Page() {
                   disabled
                     ? "cursor-not-allowed bg-[#f0ebe3] text-[#b0a090]"
                     : active
-                      ? "bg-[#5c3d2e] text-white"
+                      ? "bg-[#403A49] text-white"
                       : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
                 }`}
               >
@@ -244,7 +246,7 @@ export default function ConsultationStep1Page() {
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="mb-2 text-[14px] font-bold text-[#3d2b1f]">
-          상담 목적 <span className="text-[12px] font-normal text-[#8b6f5c]">복수 선택</span>
+          상담 목적 <span className="text-[12px] font-normal text-[#6B6570]">복수 선택</span>
         </p>
         <div className="grid grid-cols-2 gap-1.5">
           {PURPOSES.map((item) => {
@@ -255,7 +257,7 @@ export default function ConsultationStep1Page() {
                 type="button"
                 onClick={() => togglePurpose(item)}
                 className={`min-h-11 rounded-lg px-2 py-2 text-[12px] font-semibold leading-snug break-keep ${
-                  active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-[#faf6f1] text-[#3d2b1f]"
+                  active ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-[#faf6f1] text-[#3d2b1f]"
                 }`}
               >
                 {item}
@@ -266,7 +268,7 @@ export default function ConsultationStep1Page() {
       </section>
 
       <section className="mt-5 space-y-3">
-        <p className="text-[16px] font-bold text-[#3d2b1f]">상담 옵션</p>
+        <p className="text-[16px] font-bold text-[#403A49]">상담 옵션</p>
         <button
           type="button"
           onClick={() => {
@@ -276,14 +278,14 @@ export default function ConsultationStep1Page() {
             });
           }}
           className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left ${
-            report ? "border-[#5c3d2e] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
+            report ? "border-[#403A49] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
           }`}
         >
           <div>
-            <p className="text-[15px] font-bold text-[#3d2b1f]">상담 기록 요약 리포트</p>
-            <p className="mt-1 text-[14px] font-semibold text-[#5c3d2e]">+20,000원</p>
+            <p className="text-[15px] font-bold text-[#403A49]">상담 기록 요약 리포트</p>
+            <p className="mt-1 text-[14px] font-semibold text-[#403A49]">+20,000원</p>
           </div>
-          <span className="text-[14px] text-[#5c3d2e]">{report ? "선택됨" : "선택"}</span>
+          <span className="text-[14px] text-[#403A49]">{report ? "선택됨" : "선택"}</span>
         </button>
         <button
           type="button"
@@ -294,15 +296,15 @@ export default function ConsultationStep1Page() {
             });
           }}
           className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left ${
-            extraPerson ? "border-[#5c3d2e] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
+            extraPerson ? "border-[#403A49] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
           }`}
         >
           <div>
-            <p className="text-[15px] font-bold text-[#3d2b1f]">추가 인원 1명 (궁합)</p>
-            <p className="mt-1 text-[13px] text-[#8b6f5c]">궁합·가족·관계 상담 시 상대방의 사주를 함께 살펴봅니다.</p>
-            <p className="mt-1 text-[14px] font-semibold text-[#5c3d2e]">+50,000원</p>
+            <p className="text-[15px] font-bold text-[#403A49]">추가 인원 1명 (궁합)</p>
+            <p className="mt-1 text-[13px] text-[#6B6570]">궁합·가족·관계 상담 시 상대방의 사주를 함께 살펴봅니다.</p>
+            <p className="mt-1 text-[14px] font-semibold text-[#403A49]">+50,000원</p>
           </div>
-          <span className="text-[14px] text-[#5c3d2e]">{extraPerson ? "선택됨" : "선택"}</span>
+          <span className="text-[14px] text-[#403A49]">{extraPerson ? "선택됨" : "선택"}</span>
         </button>
       </section>
     </ApplyLayout>

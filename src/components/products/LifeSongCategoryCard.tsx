@@ -45,8 +45,8 @@ export function LifeSongCategoryCard({ product, large = false }: LifeSongCategor
         )}
       </div>
       <div className="p-4">
-        <h3 className="text-base font-bold text-brown-dark">{product.title}</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-brown-light">{product.description}</p>
+        <h3 className="text-base font-bold text-[#403A49]">{product.title}</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-[#6B6570]">{product.description}</p>
         <div className="mt-3 flex items-center justify-between">
           <span className="text-sm font-bold text-brown">{formatPriceFrom(product.priceFrom)}</span>
           <span className="flex items-center text-sm font-medium text-brown">

@@ -33,84 +33,84 @@ export default async function GuidePage({
       <AppHeader variant="page" title="이용 안내" backHref={backHref} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">이용 안내</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
-          인생스토리 서비스를 처음 이용하실 때 참고해 주세요.
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">이용 안내</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
+          사주로그 서비스를 처음 이용하실 때 참고해 주세요.
         </p>
       </section>
 
       <section className="px-4 pb-6">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">서비스 안내</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">서비스 안내</h3>
         <div className="space-y-3">
           {SERVICES.map((item) => (
             <div key={item.title} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-              <p className="text-[16px] font-bold text-[#3d2b1f]">{item.title}</p>
-              <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">{item.desc}</p>
+              <p className="text-[16px] font-bold text-[#403A49]">{item.title}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       <section className="px-4 pb-6">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">진행 과정</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">진행 과정</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
             신청접수 → 상담진행 → 제작중 → 완성/전달 → 완료
           </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             진행 상황은 MY에서 확인하실 수 있습니다.
           </p>
         </div>
       </section>
 
       <section className="px-4 pb-6">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">상담 방식</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">상담 방식</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[15px] leading-relaxed text-[#3d2b1f]">카카오톡 상담 또는 전화 상담</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             화상 상담은 하지 않습니다. 1:1 사주상담은 약 50분입니다.
           </p>
         </div>
       </section>
 
       <section className="px-4 pb-6">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">취소·환불</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">취소·환불</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
             제작이나 상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다.
           </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             제작이 시작된 뒤, 또는 상담 시간이 지난 뒤에는 환불이 어려울 수 있습니다.
           </p>
         </div>
       </section>
 
       <section className="px-4 pb-6">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">사업자 정보</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">사업자 정보</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 인생스토리</p>
+          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 비앤비 어드바이저리</p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: 등록 후 적어 주세요</p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
             사업자등록번호: 등록 후 적어 주세요
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">연락처: 등록 후 적어 주세요</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             사업자 정보는 등록이 끝나면 여기에 넣습니다.
           </p>
         </div>
       </section>
 
       <section className="px-4 pb-8">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">저작권 안내</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">저작권 안내</h3>
         <div className="rounded-2xl bg-[#f5efe6] p-4">
           <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
-            인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
+            인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
             있습니다.
           </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.
           </p>
-          <p className="mt-3 text-[13px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
             이 문구는 서비스 안내입니다. 출시 전 법률 검토가 필요하며, 변호사 확인 전까지 최종 약관으로 쓰지
             않습니다.
           </p>

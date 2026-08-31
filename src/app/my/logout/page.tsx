@@ -26,27 +26,27 @@ export default function LogoutPage() {
       <div className="px-5 py-10 text-center">
         {done ? (
           <>
-            <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">로그아웃되었습니다</h2>
-            <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+            <h2 className="font-serif text-[24px] font-bold text-[#403A49]">로그아웃되었습니다</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
               홈에서 서비스를 계속 이용하실 수 있습니다.
             </p>
             <Link
               href="/login"
-              className="mt-8 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white"
+              className="mt-8 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
             >
               로그인하기
             </Link>
             <Link
               href="/"
-              className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#5c3d2e] text-[16px] font-semibold text-[#5c3d2e]"
+              className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#403A49] text-[16px] font-semibold text-[#403A49]"
             >
               홈으로
             </Link>
           </>
         ) : (
           <>
-            <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">로그아웃 하시겠어요?</h2>
-            <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+            <h2 className="font-serif text-[24px] font-bold text-[#403A49]">로그아웃 하시겠어요?</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
               로그아웃하면 MY의 진행 현황은
               <br />
               다시 로그인해야 확인할 수 있습니다.
@@ -55,13 +55,13 @@ export default function LogoutPage() {
             <button
               type="button"
               onClick={logout}
-              className="mt-8 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white"
+              className="mt-8 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
             >
               로그아웃
             </button>
             <Link
               href="/my"
-              className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#5c3d2e] text-[16px] font-semibold text-[#5c3d2e]"
+              className="mt-3 flex h-14 w-full items-center justify-center rounded-full border-2 border-[#403A49] text-[16px] font-semibold text-[#403A49]"
             >
               취소
             </Link>

@@ -16,6 +16,10 @@ export interface User {
   bloodType: string;
   points: number;
   createdAt: string;
+  /** scrypt 해시(`salt:hash`). 가입 시에만 설정되며 기존 회원에는 없다. */
+  passwordHash?: string;
+  /** 마케팅 정보 수신 동의(선택 항목). */
+  marketingAgreed?: boolean;
 }
 
 export interface Order {

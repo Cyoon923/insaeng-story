@@ -20,10 +20,10 @@ export default async function ConsultationDetailPage({
       <MobileShell>
         <AppHeader variant="page" title="상담 상세" backHref="/my/consultations" />
         <div className="px-4 py-10 text-center">
-          <p className="text-[15px] text-[#8b6f5c]">로그인하면 상담 상세를 볼 수 있습니다.</p>
+          <p className="text-[15px] text-[#6B6570]">로그인하면 상담 상세를 볼 수 있습니다.</p>
           <Link
             href="/login"
-            className="mt-4 inline-flex h-12 items-center justify-center rounded-full bg-[#5c3d2e] px-6 text-[15px] font-semibold text-white"
+            className="mt-4 inline-flex h-12 items-center justify-center rounded-full bg-[#403A49] px-6 text-[15px] font-semibold text-white"
           >
             로그인하기
           </Link>
@@ -50,8 +50,8 @@ export default async function ConsultationDetailPage({
       <section className="px-4 py-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">{item.teacher}</h2>
-            <p className="mt-1 text-[15px] text-[#5c3d2e]">{item.datetime}</p>
+            <h2 className="font-serif text-[22px] font-bold text-[#403A49]">{item.teacher}</h2>
+            <p className="mt-1 text-[15px] text-[#403A49]">{item.datetime}</p>
           </div>
           <span className="shrink-0 rounded-full bg-[#e8f3ea] px-2.5 py-0.5 text-[12px] font-medium text-[#3d6b45]">
             {item.status}
@@ -60,7 +60,7 @@ export default async function ConsultationDetailPage({
       </section>
 
       <section className="px-4 pb-5">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">진행 상황</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">진행 상황</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <ol className="space-y-3">
             {STEPS.map((step, i) => {
@@ -71,15 +71,15 @@ export default async function ConsultationDetailPage({
                   <span
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold ${
                       active
-                        ? "bg-[#5c3d2e] text-white"
+                        ? "bg-[#403A49] text-white"
                         : done
-                          ? "bg-[#5c3d2e]/20 text-[#5c3d2e]"
-                          : "bg-[#f5efe6] text-[#8b6f5c]"
+                          ? "bg-[#403A49]/20 text-[#403A49]"
+                          : "bg-[#f5efe6] text-[#6B6570]"
                     }`}
                   >
                     {i + 1}
                   </span>
-                  <span className={`text-[15px] ${active ? "font-bold text-[#5c3d2e]" : "text-[#3d2b1f]"}`}>
+                  <span className={`text-[15px] ${active ? "font-bold text-[#403A49]" : "text-[#403A49]"}`}>
                     {step}
                   </span>
                 </li>
@@ -90,7 +90,7 @@ export default async function ConsultationDetailPage({
       </section>
 
       <section className="px-4 pb-5">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">상담 정보</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">상담 정보</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <div className="space-y-3">
             <Row label="선생님" value={item.teacher} />
@@ -107,8 +107,8 @@ export default async function ConsultationDetailPage({
 
       <section className="px-4 pb-8">
         <div className="rounded-2xl bg-[#f5efe6] p-4 text-center">
-          <p className="text-[13px] text-[#8b6f5c]">결제 금액</p>
-          <p className="mt-1 text-[22px] font-bold text-[#5c3d2e]">{formatPrice(item.amount)}</p>
+          <p className="text-[13px] text-[#6B6570]">결제 금액</p>
+          <p className="mt-1 text-[22px] font-bold text-[#403A49]">{formatPrice(item.amount)}</p>
         </div>
       </section>
     </MobileShell>
@@ -118,7 +118,7 @@ export default async function ConsultationDetailPage({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[13px] text-[#8b6f5c]">{label}</p>
+      <p className="text-[13px] text-[#6B6570]">{label}</p>
       <p className="whitespace-pre-wrap text-[15px] text-[#3d2b1f]">{value}</p>
     </div>
   );
