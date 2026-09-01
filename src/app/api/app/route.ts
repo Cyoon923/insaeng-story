@@ -275,7 +275,17 @@ export async function POST(request: Request) {
     if (IS_PRODUCTION && channel !== "email") {
       try {
         await sendVerificationSms(String(body.phone ?? ""), code);
-      } catch {
+      } catch (error) {
+        // 임시 진단용 로그. 원인 파악이 끝나면 제거한다.
+        // 에러 종류와 메시지만 남기고, SOLAPI 메시지에 수신번호가 섞여 들어오는
+        // 경우를 대비해 9자리 이상 숫자열은 마스킹한다.
+        if (IS_PRODUCTION && error instanceof Error) {
+          console.error(
+            "[sendCode] SMS 발송 실패",
+            error.name,
+            error.message.replace(/\d{9,}/g, "[redacted]"),
+          );
+        }
         // 발송 실패 시 방금 저장한 코드를 폐기해 쿨다운·시도 횟수가 남지 않게 한다.
         // 단, 그 사이 다른 요청이 같은 key에 새 코드를 저장했을 수 있으므로
         // code와 sentAt이 모두 이번 요청이 저장한 값일 때만 삭제한다.
