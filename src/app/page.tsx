@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { UserRound, ChevronRight } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { HeroSection } from "@/components/home/HeroSection";
@@ -70,9 +71,20 @@ export default function HomePage() {
             <button
               type="button"
               onClick={turnOnEasyMode}
-              className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[20px] font-semibold text-white"
+              className="flex w-full items-center gap-4 rounded-2xl border border-[#ded5f0] bg-[#f4f0fb] px-4 py-5 text-left"
             >
-              어르신 쉬운 화면
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#6b5aa5]">
+                <UserRound className="h-7 w-7" strokeWidth={1.75} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-[19px] font-bold text-[#403A49]">
+                  쉬운 화면으로 보기
+                </span>
+                <span className="mt-1 block text-[15px] leading-relaxed text-[#5d5570]">
+                  큰 글씨와 간단한 메뉴로 편하게 이용해요.
+                </span>
+              </span>
+              <ChevronRight className="h-6 w-6 shrink-0 text-[#6b5aa5]" />
             </button>
           </div>
           <ProgramGrid />
