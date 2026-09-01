@@ -128,20 +128,28 @@ export function ApplyNavButtons({
   nextHref,
   nextLabel = "다음 단계로 >",
   requireContactFlow,
+  validateNext,
 }: {
   prevHref?: string;
   nextHref: string;
   nextLabel?: string;
   requireContactFlow?: string;
+  /** 비어 있으면 통과, 문구를 돌려주면 그 단계에서 막는다. */
+  validateNext?: () => string;
 }) {
   const router = useRouter();
 
   const goNext = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!requireContactFlow) return;
+    if (!requireContactFlow && !validateNext) return;
     event.preventDefault();
-    const message = contactMissingMessage(requireContactFlow);
+    const message = requireContactFlow ? contactMissingMessage(requireContactFlow) : "";
     if (message) {
       window.alert(message);
+      return;
+    }
+    const stepMessage = validateNext?.() ?? "";
+    if (stepMessage) {
+      window.alert(stepMessage);
       return;
     }
     router.push(nextHref);

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Mic } from "lucide-react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
@@ -172,6 +173,13 @@ export default function ApplyStep3Page() {
     recognition.start();
   };
 
+  // 질문 3개와 자유작성란을 통틀어 최소 한 곳에는 내용이 있어야 한다.
+  const validateNext = () => {
+    const written = Object.values(answers).some((item) => item.trim());
+    if (!written) return "이야기를 한 가지 이상 작성해 주세요.";
+    return "";
+  };
+
   return (
     <ApplyLayout
       step={3}
@@ -180,6 +188,7 @@ export default function ApplyStep3Page() {
       steps={STORY_STEPS}
       prevHref="/apply/premium/2"
       nextHref="/apply/premium/4"
+      validateNext={validateNext}
       heroText={"선생님과 나눈 이야기가\n노래가 됩니다"}
     
       stepperTheme={CHARCOAL_STEPPER}
@@ -206,7 +215,7 @@ export default function ApplyStep3Page() {
         </Link>
       </div>
 
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">3. 당신의 이야기를 들려주세요</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">3. 당신의 이야기를 들려주세요</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
       </p>
@@ -235,16 +244,20 @@ export default function ApplyStep3Page() {
                   : "border border-[#d4c8ba] bg-white text-[#403A49]"
               }`}
             >
-              {listeningKey === item.key ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+              <Mic className="mr-2 h-5 w-5" />
+              {listeningKey === item.key ? "말씀해 주세요…" : "누르고 말하기"}
             </button>
             {listeningKey === item.key ? (
               <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#403A49]">
                 지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
               </p>
             ) : null}
-            <p className="mt-1 text-right text-[12px] text-[#6B6570]">
-              {shownText(item.key).length} / {item.max}
-            </p>
+            <div className="mt-1 flex items-center justify-between gap-3 text-[13px] text-[#6B6570]">
+              <span>버튼을 누른 후 편하게 말씀해 주세요.</span>
+              <span className="shrink-0">
+                {shownText(item.key).length} / {item.max}
+              </span>
+            </div>
           </div>
         ))}
 
@@ -270,14 +283,18 @@ export default function ApplyStep3Page() {
                 : "border border-[#d4c8ba] bg-white text-[#403A49]"
             }`}
           >
-            {listeningKey === "free" ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
+            <Mic className="mr-2 h-5 w-5" />
+            {listeningKey === "free" ? "말씀해 주세요…" : "누르고 말하기"}
           </button>
           {listeningKey === "free" ? (
             <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#403A49]">
               지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
             </p>
           ) : null}
-          <p className="mt-1 text-right text-[12px] text-[#6B6570]">{shownText("free").length} / 1000</p>
+          <div className="mt-1 flex items-center justify-between gap-3 text-[13px] text-[#6B6570]">
+            <span>버튼을 누른 후 편하게 말씀해 주세요.</span>
+            <span className="shrink-0">{shownText("free").length} / 1000</span>
+          </div>
         </div>
       </div>
 

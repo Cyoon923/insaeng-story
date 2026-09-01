@@ -160,7 +160,7 @@ export default function ConsultationStep1Page() {
       nextHref={extraPerson ? "/apply/consultation/2?extra=1" : "/apply/consultation/2"}
       heroText={"혼자 고민했던 이야기를\n편안하게 들려주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">1. 상담 예약</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">1. 상담 예약</h2>
       <p className="mt-2 text-[14px] text-[#6B6570]">선생님, 날짜, 시간, 상담 목적과 옵션을 선택해 주세요.</p>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">

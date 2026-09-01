@@ -145,6 +145,14 @@ export default function SajuStep2Page() {
     recognition.start();
   };
 
+  // 참고곡과 당신의 이야기는 화면에 필수(*)로 표시되어 있다.
+  const validateNext = () => {
+    const filled = songs.filter((item) => item.trim()).length;
+    if (filled < 3) return "참고하고 싶은 가수와 노래를 3곡 이상 적어 주세요.";
+    if (!story.trim()) return "당신의 이야기를 적어 주세요.";
+    return "";
+  };
+
   return (
     <ApplyLayout
       step={2}
@@ -153,12 +161,13 @@ export default function SajuStep2Page() {
       steps={SAJU_STEPS}
       prevHref="/apply/saju-song/1"
       nextHref="/apply/saju-song/3"
+      validateNext={validateNext}
       heroText={"노래 스타일과 당신의 이야기를\n함께 알려주세요"}
     
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">2. 노래 스타일 + 당신의 이야기</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">2. 노래 스타일 + 당신의 이야기</h2>
       <p className="mt-2 text-[14px] text-[#6B6570]">사주 정보와 함께 이야기, 음악 취향을 반영합니다.</p>
 
       <div className="mt-6">

@@ -22,6 +22,8 @@ interface ApplyLayoutProps {
   heroText?: string;
   heroImage?: string;
   requireContactFlow?: string;
+  /** 이 단계의 필수 입력 검사. 문구를 돌려주면 다음 단계로 가지 않는다. */
+  validateNext?: () => string;
   /** 스텝퍼 강조 배색. 넘기지 않으면 기존 브라운 그대로다. */
   stepperTheme?: ApplyStepperTheme;
   /** 셸 배경. 넘기지 않으면 기존 아이보리 그대로다. */
@@ -42,6 +44,7 @@ export function ApplyLayout({
   heroText = "당신의 이야기가\n세상에 단 하나뿐인 노래가 됩니다",
   heroImage,
   requireContactFlow,
+  validateNext,
   stepperTheme,
   shellBg,
 }: ApplyLayoutProps) {
@@ -80,6 +83,7 @@ export function ApplyLayout({
           nextHref={nextHref}
           nextLabel={nextLabel}
           requireContactFlow={requireContactFlow}
+          validateNext={validateNext}
         />
       )}
     </MobileShell>

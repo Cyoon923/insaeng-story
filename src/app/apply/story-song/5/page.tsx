@@ -103,7 +103,7 @@ export default function ApplyStep5Page() {
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">5. 추가 옵션을 선택해주세요</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">5. 추가 옵션을 선택해주세요</h2>
       <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
 
       <div className="mt-5 space-y-3">

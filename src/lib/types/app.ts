@@ -50,7 +50,8 @@ export interface Consultation {
 
 export interface Inquiry {
   id: string;
-  userId: string;
+  /** 비회원 문의도 접수할 수 있어 회원 문의에만 채워진다. */
+  userId?: string;
   name: string;
   phone: string;
   method: string;

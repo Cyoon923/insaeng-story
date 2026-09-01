@@ -26,7 +26,7 @@ export default async function NoticePage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const backHref = from === "my" ? "/my" : "/";
+  const backHref = from === "menu" ? "/menu" : from === "my" ? "/my" : "/";
 
   return (
     <MobileShell>

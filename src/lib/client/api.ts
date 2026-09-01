@@ -28,6 +28,18 @@ export function saveDraft(flow: string, values: Record<string, string>) {
   localStorage.setItem(DRAFT_KEY, JSON.stringify(all));
 }
 
+/** 신청이 서버에서 정상 접수된 뒤에만 해당 플로우 draft를 지운다. 다른 플로우는 그대로 둔다. */
+export function clearDraft(flow: string) {
+  if (typeof window === "undefined") return;
+  const all = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<
+    string,
+    Record<string, string>
+  >;
+  if (!(flow in all)) return;
+  delete all[flow];
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(all));
+}
+
 export function getDraft(flow: string): Record<string, string> {
   if (typeof window === "undefined") return {};
   const all = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as Record<

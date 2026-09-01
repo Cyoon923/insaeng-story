@@ -165,7 +165,6 @@ export default function FreeConsultPage() {
     stopListening();
     setLoading(true);
     try {
-      await postApp({ action: "ensureUser", phone, name });
       await postApp({
         action: "createInquiry",
         name,

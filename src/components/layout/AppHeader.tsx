@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import Link from "next/link";
 import { Menu, Bell, ChevronLeft, Share2, User } from "lucide-react";
 import { fetchMe } from "@/lib/client/api";
@@ -134,23 +135,27 @@ export function AppHeader({
 
   return (
     <header className={`sticky top-0 z-40 border-b border-[#ebe3d8] ${bgClass} backdrop-blur-sm`}>
-      <div className={`flex items-center justify-between px-4 ${compact ? "h-12" : "h-[52px]"}`}>
-        <div className={`flex ${showUser ? "w-[68px]" : "w-10"} items-center justify-start`}>
+      <div
+        className={`flex items-center justify-between px-4 ${
+          compact ? "h-12" : variant === "home" ? "h-[62px]" : "h-[52px]"
+        }`}
+      >
+        <div className={`flex ${showUser ? "w-[76px]" : "w-10"} shrink-0 items-center justify-start`}>
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
-              className="rounded-lg p-2 text-brown hover:bg-ivory"
+              className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
               aria-label="뒤로"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
           ) : backHref ? (
-            <Link href={backHref} className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="뒤로">
+            <Link href={backHref} className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="뒤로">
               <ChevronLeft className="h-5 w-5" />
             </Link>
           ) : showMenu ? (
-            <Link href="/menu" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
+            <Link href="/menu" className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
               <Menu className="h-5 w-5" />
             </Link>
           ) : (
@@ -158,26 +163,46 @@ export function AppHeader({
           )}
         </div>
 
-        <div className="flex flex-1 flex-col items-center text-center">
-          <h1 className={`font-bold text-[#403A49] ${compact ? "text-sm" : "text-[15px]"}`}>
-            {variant === "home" ? "사주로그" : title}
-          </h1>
-          <p className={`text-[#6B6570] ${compact ? "text-[10px]" : "text-[10px]"}`}>{subtitle}</p>
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center">
+          {variant === "home" ? (
+            <span className="flex items-center justify-center gap-0.5">
+              <Image
+                src="/images/symbol-sajulog-compass.png"
+                alt=""
+                width={72}
+                height={48}
+                priority
+                className="h-[22px] w-auto object-contain"
+              />
+              <h1 className="text-[18px] font-bold leading-none text-[#403A49]">사주로그</h1>
+            </span>
+          ) : (
+            <h1 className={`font-bold text-[#403A49] ${compact ? "text-sm" : "text-[15px]"}`}>
+              {title}
+            </h1>
+          )}
+          <p
+            className={`text-[#6B6570] ${
+              compact ? "text-[10px]" : variant === "home" ? "mt-1 text-[11px]" : "text-[10px]"
+            }`}
+          >
+            {subtitle}
+          </p>
         </div>
 
-        <div className={`flex ${showUser ? "w-[68px]" : "w-10"} items-center justify-end gap-1`}>
+        <div className={`flex ${showUser ? "w-[76px]" : "w-10"} shrink-0 items-center justify-end gap-1`}>
           {showBell && (
-            <Link href="/my/notifications" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
+            <Link href="/my/notifications" className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
               <Bell className="h-5 w-5" />
             </Link>
           )}
           {showUser &&
             (loggedIn === null ? (
-              <span className="block h-9 w-9" aria-hidden />
+              <span className="block h-9 w-9 shrink-0" aria-hidden />
             ) : (
               <Link
                 href={loggedIn ? "/my" : "/login"}
-                className="rounded-lg p-2 text-brown hover:bg-ivory"
+                className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
                 aria-label={loggedIn ? "내 정보" : "로그인"}
               >
                 <User className="h-5 w-5" />
@@ -187,7 +212,7 @@ export function AppHeader({
             <button
               type="button"
               onClick={() => setShareOpen(true)}
-              className="rounded-lg p-2 text-brown hover:bg-ivory"
+              className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
               aria-label="공유"
             >
               <Share2 className="h-4 w-4" />

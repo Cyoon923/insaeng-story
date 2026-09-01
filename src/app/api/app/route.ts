@@ -445,27 +445,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  if (action === "ensureUser") {
-    const phone = normalizePhone(String(body.phone ?? ""));
-    const name = String(body.name ?? "");
-    if (phone.length < 10) {
+
+  if (action === "createInquiry") {
+    // 무료 상담·이벤트는 비회원도 접수한다. 계정을 만들지 않고 문의만 저장한다.
+    const sessionUserId = await getUserId();
+    const member = sessionUserId
+      ? (data.users.find((item) => item.id === sessionUserId) ?? null)
+      : null;
+    const name = String(body.name ?? member?.name ?? "").trim();
+    const phone = String(body.phone ?? member?.phone ?? "").trim();
+    if (!name) {
+      return NextResponse.json({ error: "이름을 입력해 주세요." }, { status: 400 });
+    }
+    if (normalizePhone(phone).length < 10) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
-    let user = data.users.find((item) => normalizePhone(item.phone) === phone);
-    if (!user) {
-      user = emptyUser(phone, name);
-      data.users.push(user);
-      data.coupons[user.id] = [welcomeCoupon()];
-      data.wishlists[user.id] = [];
-      data.notifications[user.id] = [];
-      data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
-    } else if (name && !user.name) {
-      user = { ...user, name };
-      data.users = data.users.map((item) => (item.id === user!.id ? user! : item));
+    const item: Inquiry = {
+      id: nowId(),
+      name,
+      phone,
+      method: String(body.method ?? "카카오톡 상담"),
+      product: String(body.product ?? ""),
+      message: String(body.message ?? ""),
+      createdAt: new Date().toISOString(),
+    };
+    if (member) {
+      item.userId = member.id;
+    }
+    data.inquiries = [item, ...(data.inquiries ?? [])];
+    // 알림은 로그인한 회원에게만 보낸다.
+    if (member && data.notificationSettings[member.id]?.consult !== false) {
+      data.notifications[member.id] = [
+        {
+          id: nowId(),
+          title: item.product.startsWith("이벤트")
+            ? "이벤트 신청이 접수되었습니다"
+            : "무료 상담 문의가 접수되었습니다",
+          body: `${item.method}으로 연락드리겠습니다.`,
+          createdAt: new Date().toISOString(),
+          read: false,
+        },
+        ...(data.notifications[member.id] ?? []),
+      ];
     }
     await writeData(data);
-    await setUserId(user.id);
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true, inquiry: item });
   }
 
   const userId = await getUserId();
@@ -591,35 +615,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, consultation: item });
   }
 
-  if (action === "createInquiry") {
-    const item: Inquiry = {
-      id: nowId(),
-      userId,
-      name: String(body.name ?? user.name),
-      phone: String(body.phone ?? user.phone),
-      method: String(body.method ?? "카카오톡 상담"),
-      product: String(body.product ?? ""),
-      message: String(body.message ?? ""),
-      createdAt: new Date().toISOString(),
-    };
-    data.inquiries = [item, ...(data.inquiries ?? [])];
-    if (data.notificationSettings[userId]?.consult !== false) {
-      data.notifications[userId] = [
-        {
-          id: nowId(),
-          title: item.product.startsWith("이벤트")
-            ? "이벤트 신청이 접수되었습니다"
-            : "무료 상담 문의가 접수되었습니다",
-          body: `${item.method}으로 연락드리겠습니다.`,
-          createdAt: new Date().toISOString(),
-          read: false,
-        },
-        ...(data.notifications[userId] ?? []),
-      ];
-    }
-    await writeData(data);
-    return NextResponse.json({ ok: true, inquiry: item });
-  }
 
   if (action === "createReview") {
     const title = String(body.title ?? "").trim();

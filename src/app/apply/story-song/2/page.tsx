@@ -47,7 +47,7 @@ export default function ApplyStep2Page() {
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">2. 누구를 위한 노래인가요?</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">2. 누구를 위한 노래인가요?</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         노래의 주인공을 선택하시면, 더 잘 어울리는 질문을 드릴게요.
       </p>

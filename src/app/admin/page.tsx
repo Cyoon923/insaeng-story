@@ -793,7 +793,7 @@ export default function AdminPage() {
               </p>
             ) : (
               codeUses.map((item) => {
-                const member = userMap.get(item.userId);
+                const member = userMap.get(item.userId ?? "");
                 const isCurrent = item.code === adminPromo?.code;
                 return (
                   <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
@@ -864,7 +864,7 @@ export default function AdminPage() {
 
         {tab === "consultations"
           ? consultations.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
@@ -938,7 +938,7 @@ export default function AdminPage() {
 
         {tab === "events"
           ? eventItems.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
@@ -963,7 +963,7 @@ export default function AdminPage() {
 
         {tab === "inquiries"
           ? inquiryItems.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>

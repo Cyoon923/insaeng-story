@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { UserRound, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { Star, ChevronRight } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { HeroSection } from "@/components/home/HeroSection";
@@ -71,20 +72,38 @@ export default function HomePage() {
             <button
               type="button"
               onClick={turnOnEasyMode}
-              className="flex w-full items-center gap-4 rounded-2xl border border-[#ded5f0] bg-[#f4f0fb] px-4 py-5 text-left"
+              className="relative flex w-full items-center gap-4 overflow-hidden rounded-[20px] border border-[#d9cdf2] bg-[#f6f2fd] px-5 py-5 text-left shadow-[0_2px_10px_rgba(90,70,150,0.10)]"
             >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#6b5aa5]">
-                <UserRound className="h-7 w-7" strokeWidth={1.75} />
+              {/* 오른쪽 위 리본 */}
+              <span
+                aria-hidden
+                className="absolute -right-[34px] top-[14px] flex w-[110px] rotate-45 items-center justify-center gap-0.5 bg-[#7c5cd6] py-1 text-[12px] font-bold tracking-[0.08em] text-white shadow-[0_1px_3px_rgba(90,70,150,0.35)]"
+              >
+                <Star className="h-3 w-3 fill-[#ffd54a] text-[#ffd54a]" strokeWidth={0} />
+                추천
               </span>
+
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#ece4fb]">
+                <Image
+                  src="/images/icon-easy-mode-seniors.png"
+                  alt=""
+                  width={128}
+                  height={128}
+                  className="h-[52px] w-[52px] object-contain"
+                />
+              </span>
+
               <span className="flex-1">
-                <span className="block text-[19px] font-bold text-[#403A49]">
-                  쉬운 화면으로 보기
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[20px] font-bold text-[#403A49]">쉬운 화면으로 보기</span>
+                  <ChevronRight className="h-5 w-5 text-[#403A49]" strokeWidth={2.5} />
                 </span>
-                <span className="mt-1 block text-[15px] leading-relaxed text-[#5d5570]">
-                  큰 글씨와 간단한 메뉴로 편하게 이용해요.
+                <span className="mt-1.5 block text-[15px] leading-[1.5] text-[#5d5570]">
+                  큰 글씨와 간단한 메뉴로
+                  <br />
+                  편하게 이용해요.
                 </span>
               </span>
-              <ChevronRight className="h-6 w-6 shrink-0 text-[#6b5aa5]" />
             </button>
           </div>
           <ProgramGrid />

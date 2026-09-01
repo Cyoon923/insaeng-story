@@ -154,7 +154,7 @@ export default function ProductsPage() {
     <MobileShell>
       <AppHeader variant="page" title="인생곡" backHref="/" />
 
-      <section className="relative h-44 overflow-hidden">
+      <section className="relative h-[255px] overflow-hidden">
         <Image src="/images/photo-products-hero.png" alt="" fill className="object-cover object-center" priority />
         <div className="absolute inset-0 bg-[#faf8f5]/70" />
         <div className="relative z-10 flex h-full flex-col justify-end px-5 pb-5">

@@ -4,11 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { BirthTimeField } from "@/components/apply/BirthTimeField";
 import { fetchMe, postApp } from "@/lib/client/api";
 import type { User } from "@/lib/types/app";
 
 const inputClass =
   "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+/** ▼ 목록은 10분 단위. 직접 타이핑은 00~59 모두 가능하다. */
+const MINUTE_OPTIONS = ["00", "10", "20", "30", "40", "50"];
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -119,28 +124,26 @@ export default function ProfilePage() {
           <div>
             <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">태어난 시간</label>
             <div className="grid grid-cols-2 gap-3">
-              <select
-                className={inputClass}
+              <BirthTimeField
+                label="시"
+                value={hour}
+                onChange={setHour}
+                max={23}
+                options={HOURS}
+                placeholder="시 (00~23)"
                 disabled={unknownTime}
-                value={hour ? `${hour}시` : ""}
-                onChange={(e) => setHour(e.target.value.replace("시", ""))}
-              >
-                <option value="">시 선택</option>
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i}>{`${i}시`}</option>
-                ))}
-              </select>
-              <select
-                className={inputClass}
+                inputClass={inputClass}
+              />
+              <BirthTimeField
+                label="분"
+                value={minute}
+                onChange={setMinute}
+                max={59}
+                options={MINUTE_OPTIONS}
+                placeholder="분 (00~59)"
                 disabled={unknownTime}
-                value={minute ? `${minute}분` : ""}
-                onChange={(e) => setMinute(e.target.value.replace("분", ""))}
-              >
-                <option value="">분 선택</option>
-                {["00", "10", "20", "30", "40", "50"].map((m) => (
-                  <option key={m}>{`${m}분`}</option>
-                ))}
-              </select>
+                inputClass={inputClass}
+              />
             </div>
             <label className="mt-3 flex items-center gap-2 text-[14px] text-[#3d2b1f]">
               <input

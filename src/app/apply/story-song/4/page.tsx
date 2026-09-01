@@ -61,12 +61,19 @@ export default function ApplyStep4Page() {
     persist(next, customMood, songs);
   };
 
+  // 참고곡은 화면에 필수(*)로 표시되어 있고 최소 3곡을 받는다.
+  const validateNext = () => {
+    const filled = songs.filter((item) => item.trim()).length;
+    if (filled < 3) return "참고하고 싶은 가수와 노래를 3곡 이상 적어 주세요.";
+    return "";
+  };
+
   return (
-    <ApplyLayout step={4} prevHref="/apply/story-song/3" nextHref="/apply/story-song/5"
+    <ApplyLayout step={4} prevHref="/apply/story-song/3" nextHref="/apply/story-song/5" validateNext={validateNext}
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">4. 어떤 노래로 만들어드릴까요?</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">4. 어떤 노래로 만들어드릴까요?</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         원하시는 가사 분위기와 참고곡을 알려주세요. 여러 개를 선택하시면 더 잘 반영됩니다.
       </p>

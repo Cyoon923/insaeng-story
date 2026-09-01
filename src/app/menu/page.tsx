@@ -1,7 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { fetchMe } from "@/lib/client/api";
 
 const GROUPS = [
   {
@@ -17,24 +21,42 @@ const GROUPS = [
   {
     title: "안내",
     items: [
-      { label: "이벤트", href: "/events" },
-      { label: "자주 묻는 질문", href: "/faq" },
-      { label: "공지사항", href: "/notice" },
-      { label: "이용 안내", href: "/guide" },
-      { label: "이용약관", href: "/terms" },
-      { label: "개인정보 처리방침", href: "/privacy" },
-    ],
-  },
-  {
-    title: "계정",
-    items: [
-      { label: "로그인", href: "/login" },
-      { label: "로그아웃", href: "/my/logout" },
+      { label: "이벤트", href: "/events?from=menu" },
+      { label: "자주 묻는 질문", href: "/faq?from=menu" },
+      { label: "공지사항", href: "/notice?from=menu" },
+      { label: "이용 안내", href: "/guide?from=menu" },
+      { label: "이용약관", href: "/terms?from=menu" },
+      { label: "개인정보 처리방침", href: "/privacy?from=menu" },
     ],
   },
 ];
 
+/** 계정 그룹은 로그인 상태에 따라 달라진다. */
+function accountGroup(loggedIn: boolean) {
+  return {
+    title: "계정",
+    items: loggedIn
+      ? [{ label: "로그아웃", href: "/my/logout" }]
+      : [{ label: "로그인", href: "/login" }],
+  };
+}
+
 export default function MenuPage() {
+  // 로그인 여부는 MY 화면과 같은 방식(GET /api/app 의 user)을 그대로 쓴다.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetchMe()
+      .then((data) => {
+        setLoggedIn(Boolean(data.user));
+      })
+      .catch(() => {
+        setLoggedIn(false);
+      });
+  }, []);
+
+  const groups = loggedIn === null ? GROUPS : [...GROUPS, accountGroup(loggedIn)];
+
   return (
     <MobileShell>
       <AppHeader variant="page" title="메뉴" backHref="/" showActions={false} />
@@ -45,7 +67,7 @@ export default function MenuPage() {
       </section>
 
       <div className="px-4 pb-8">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <section key={group.title} className="mb-6">
             <h3 className="mb-2 text-[15px] font-bold text-[#6B6570]">{group.title}</h3>
             <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#ebe3d8]">
@@ -62,12 +84,14 @@ export default function MenuPage() {
             </div>
           </section>
         ))}
-        <Link
-          href="/signup"
-          className="mt-2 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
-        >
-          회원가입
-        </Link>
+        {loggedIn === false ? (
+          <Link
+            href="/signup"
+            className="mt-2 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
+          >
+            회원가입
+          </Link>
+        ) : null}
       </div>
     </MobileShell>
   );

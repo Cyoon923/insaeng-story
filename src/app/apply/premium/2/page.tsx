@@ -55,7 +55,7 @@ export default function PremiumStep2Page() {
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">2. 누구를 위한 노래인가요?</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">2. 누구를 위한 노래인가요?</h2>
       <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">선택한 주인공을 기준으로 사주상담과 스토리상담이 진행됩니다.</p>
       <div className="mt-5 grid grid-cols-2 gap-3">
         {PROTAGONISTS.map((item) => {

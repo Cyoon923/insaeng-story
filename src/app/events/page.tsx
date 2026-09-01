@@ -3,10 +3,17 @@ import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 
-export default function EventsPage() {
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
+  const backHref = from === "menu" ? "/menu" : from === "my" ? "/my" : "/";
+
   return (
     <MobileShell>
-      <AppHeader variant="page" title="이벤트" backHref="/" />
+      <AppHeader variant="page" title="이벤트" backHref={backHref} />
 
       <section className="px-4 py-5">
         <h2 className="font-serif text-[24px] font-bold text-[#403A49]">이벤트</h2>

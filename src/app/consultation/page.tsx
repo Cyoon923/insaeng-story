@@ -94,15 +94,12 @@ export default function ConsultationPage() {
       />
 
       <section className="relative overflow-hidden bg-[#FFFFFF] pb-4">
-        <div className="relative flex min-h-[268px] items-stretch overflow-hidden">
+        <div className="relative flex min-h-[208px] items-stretch overflow-hidden">
           <div className="relative z-10 flex w-[60%] flex-col justify-center px-5 pt-4 pb-4">
             <p className="text-[13px] font-medium text-[#5c3d2e]">혼자 고민하지 마세요</p>
             <h2 className="mt-3 break-keep font-serif text-[20px] font-bold leading-[1.4] text-[#403A49]">
               지금의 흐름을 이해하면 앞으로의 방향이 보입니다
             </h2>
-            <p className="mt-4 break-keep text-[13px] leading-relaxed text-[#6B6570]">
-              사주를 바탕으로 현재의 고민과 흐름을 살펴보고 방향을 찾습니다.
-            </p>
             <p className="mt-4 text-[18px] font-bold text-[#403A49]">100,000원~</p>
             <Link
               href="/apply/consultation/1"

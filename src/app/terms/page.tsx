@@ -8,7 +8,8 @@ export default async function TermsPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const backHref = from === "signup" ? "/signup" : from === "my" ? "/my" : "/";
+  const backHref =
+    from === "signup" ? "/signup" : from === "menu" ? "/menu" : from === "my" ? "/my" : "/";
 
   return (
     <MobileShell>

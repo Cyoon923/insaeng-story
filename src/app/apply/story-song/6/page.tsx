@@ -59,7 +59,7 @@ export default function ApplyStep6Page() {
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">6. 확인 및 결제</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">6. 확인 및 결제</h2>
       <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
         입력하신 정보를 확인하고 결제를 진행해 주세요. 주문 완료 후 제작이 시작됩니다.
       </p>

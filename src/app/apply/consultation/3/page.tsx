@@ -141,6 +141,12 @@ export default function ConsultationStep3Page() {
     recognition.start();
   };
 
+  // 상담 내용은 화면에 필수(*)로 표시되어 있다. 상담 방법은 기본값이 늘 선택되어 있다.
+  const validateNext = () => {
+    if (!content.trim()) return "가장 궁금한 내용을 적어 주세요.";
+    return "";
+  };
+
   return (
     <ApplyLayout
       step={3}
@@ -151,9 +157,10 @@ export default function ConsultationStep3Page() {
       shellBg="bg-[#FFFFFF]"
       prevHref="/apply/consultation/2"
       nextHref="/apply/consultation/4"
+      validateNext={validateNext}
       heroText={"가장 궁금한 내용을\n편하게 적어주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">3. 상담 내용</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">3. 상담 내용</h2>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
         <div className="flex items-center justify-between">

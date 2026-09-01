@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
-import { saveDraft } from "@/lib/client/api";
+import { getDraft, saveDraft } from "@/lib/client/api";
 
 const EXAMPLES = [
   { title: "부모님께 전하고 싶은 마음", image: "/images/photo-parents.jpg" },
@@ -17,6 +17,15 @@ export default function ApplyStep1Page() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
+
+  // 이전 단계에서 돌아왔을 때 이미 입력한 값을 되살린다.
+  useEffect(() => {
+    const draft = getDraft("story");
+    if (draft.name) setName(draft.name);
+    if (draft.phone) setPhone(draft.phone);
+    if (draft.method === "전화 상담") setMethod("phone");
+    else if (draft.method === "카카오톡 상담") setMethod("kakao");
+  }, []);
 
   const persist = (next: { name?: string; phone?: string; method?: string }) => {
     saveDraft("story", {
@@ -31,7 +40,7 @@ export default function ApplyStep1Page() {
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">1. 기본정보</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">1. 기본정보</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         신청에 필요한 기본 정보를 입력해 주세요.
       </p>

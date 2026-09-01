@@ -44,7 +44,7 @@ export default function ConsultationStep4Page() {
       hideNav
       heroText={"선택한 상담 내용을 확인하고\n결제를 진행해 주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#403A49]">4. 확인 및 결제</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">4. 확인 및 결제</h2>
 
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <h3 className="text-[16px] font-bold text-[#403A49]">상담 정보</h3>
