@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { saveDraft } from "@/lib/client/api";
+import { CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
+import { getDraft, saveDraft } from "@/lib/client/api";
 
 const EXAMPLES = [
   { title: "부모님께 전하고 싶은 마음", image: "/images/photo-parents.jpg" },
@@ -17,6 +18,15 @@ export default function ApplyStep1Page() {
   const [phone, setPhone] = useState("");
   const [method, setMethod] = useState<"kakao" | "phone">("kakao");
 
+  // 이전 단계에서 돌아왔을 때 이미 입력한 값을 되살린다.
+  useEffect(() => {
+    const draft = getDraft("story");
+    if (draft.name) setName(draft.name);
+    if (draft.phone) setPhone(draft.phone);
+    if (draft.method === "전화 상담") setMethod("phone");
+    else if (draft.method === "카카오톡 상담") setMethod("kakao");
+  }, []);
+
   const persist = (next: { name?: string; phone?: string; method?: string }) => {
     saveDraft("story", {
       name: next.name ?? name,
@@ -26,9 +36,12 @@ export default function ApplyStep1Page() {
   };
 
   return (
-    <ApplyLayout step={1} nextHref="/apply/story-song/2" requireContactFlow="story">
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">1. 기본정보</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+    <ApplyLayout step={1} nextHref="/apply/story-song/2" requireContactFlow="story"
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
+    >
+      <h2 className="text-[22px] font-bold text-[#403A49]">1. 기본정보</h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         신청에 필요한 기본 정보를 입력해 주세요.
       </p>
 
@@ -45,7 +58,7 @@ export default function ApplyStep1Page() {
               persist({ name: e.target.value });
             }}
             placeholder="실명을 입력해주세요"
-            className="h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
+            className="h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]"
           />
         </div>
 
@@ -61,7 +74,7 @@ export default function ApplyStep1Page() {
               persist({ phone: e.target.value });
             }}
             placeholder="예) 010-1234-5678"
-            className="h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]"
+            className="h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]"
           />
         </div>
 
@@ -78,8 +91,8 @@ export default function ApplyStep1Page() {
               }}
               className={`h-12 rounded-xl text-[15px] font-semibold ${
                 method === "kakao"
-                  ? "bg-[#5c3d2e] text-white"
-                  : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+                  ? "bg-[#403A49] text-white"
+                  : "border border-[#e8dfd4] bg-white text-[#403A49]"
               }`}
             >
               카카오톡 상담
@@ -92,8 +105,8 @@ export default function ApplyStep1Page() {
               }}
               className={`h-12 rounded-xl text-[15px] font-semibold ${
                 method === "phone"
-                  ? "bg-[#5c3d2e] text-white"
-                  : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+                  ? "bg-[#403A49] text-white"
+                  : "border border-[#e8dfd4] bg-white text-[#403A49]"
               }`}
             >
               전화 상담
@@ -101,13 +114,13 @@ export default function ApplyStep1Page() {
           </div>
         </div>
 
-        <p className="text-[13px] leading-relaxed text-[#8b6f5c]">
+        <p className="text-[13px] leading-relaxed text-[#6B6570]">
           정확한 연락처를 남겨주셔야 원활한 상담이 가능합니다.
         </p>
       </div>
 
       <section className="mt-8">
-        <h3 className="text-[17px] font-bold text-[#3d2b1f]">이런 이야기를 노래로 만들 수 있어요</h3>
+        <h3 className="text-[17px] font-bold text-[#403A49]">이런 이야기를 노래로 만들 수 있어요</h3>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {EXAMPLES.map((item) => (
             <div key={item.title}>
@@ -118,7 +131,7 @@ export default function ApplyStep1Page() {
             </div>
           ))}
         </div>
-        <p className="mt-4 rounded-xl bg-[#f5efe6] px-4 py-3 text-[13px] leading-relaxed text-[#5c3d2e]">
+        <p className="mt-4 rounded-xl bg-[#f5efe6] px-4 py-3 text-[13px] leading-relaxed text-[#403A49]">
           정해진 형식은 없어요. 당신의 진심을 자유롭게 들려주세요.
         </p>
       </section>

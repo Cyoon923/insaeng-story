@@ -30,7 +30,7 @@ export function WishButton({ productId }: { productId: string }) {
     <button
       type="button"
       onClick={toggle}
-      className="flex h-12 items-center justify-center rounded-full border-2 border-[#5c3d2e] px-4 text-[#5c3d2e]"
+      className="flex h-12 items-center justify-center rounded-full border-2 border-[#403A49] px-4 font-semibold text-[#403A49]"
       aria-pressed={on}
       aria-label={on ? "찜 해제" : "찜하기"}
     >

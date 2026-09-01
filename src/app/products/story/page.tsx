@@ -84,22 +84,22 @@ export default function StoryProductPage() {
       <MobileShell>
         <AppHeader variant="page" title="이야기 인생곡" backHref="/products" />
         <section className="px-4 py-6">
-          <p className="text-center text-[20px] font-bold leading-relaxed text-[#3d2b1f]">
+          <p className="text-center text-[20px] font-bold leading-relaxed text-[#403A49]">
             이야기를 적거나 말하면
             <br />
             노래를 만들어 드립니다
           </p>
-          <p className="mt-4 text-center text-[22px] font-bold text-[#5c3d2e]">
+          <p className="mt-4 text-center text-[22px] font-bold text-[#403A49]">
             {formatPriceFrom(config.priceFrom)}
           </p>
           <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
-            <p className="text-[17px] font-bold text-[#3d2b1f]">이렇게 진행됩니다</p>
+            <p className="text-[17px] font-bold text-[#403A49]">이렇게 진행됩니다</p>
             <ul className="mt-3 space-y-3">
               {EASY_STEPS.map((step) => (
                 <li key={step.title}>
                   <p className="text-[16px] leading-relaxed text-[#5c3d2e]">{step.title}</p>
                   {step.note ? (
-                    <p className="mt-0.5 text-[14px] leading-relaxed text-[#8b6f5c]">{step.note}</p>
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-[#6B6570]">{step.note}</p>
                   ) : null}
                 </li>
               ))}
@@ -107,7 +107,7 @@ export default function StoryProductPage() {
           </div>
           <Link
             href={config.applyHref}
-            className="mt-6 flex h-16 items-center justify-center rounded-xl bg-[#5c3d2e] text-[20px] font-semibold text-white"
+            className="mt-6 flex h-16 items-center justify-center rounded-xl bg-[#403A49] text-[20px] font-semibold text-white"
           >
             신청하기
           </Link>

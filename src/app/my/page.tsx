@@ -101,32 +101,32 @@ export default function MyPage() {
 
       <div className="mx-4 mt-4 rounded-2xl bg-[#f5efe6] p-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#5c3d2e]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#403A49]">
             👤
           </div>
           <div className="min-w-0 flex-1">
             {user ? (
               <>
-                <p className="text-[18px] font-bold text-[#3d2b1f]">{user.name || "회원"}님</p>
-                <p className="text-[13px] text-[#8b6f5c]">{user.phone}</p>
-                <Link href="/my/profile" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 text-[12px] text-[#5c3d2e]">
+                <p className="text-[18px] font-bold text-[#403A49]">{user.name || "회원"}님</p>
+                <p className="text-[13px] text-[#6B6570]">{user.phone}</p>
+                <Link href="/my/profile" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 text-[12px] text-[#403A49]">
                   회원정보 수정 &gt;
                 </Link>
               </>
             ) : (
               <>
-                <p className="text-[18px] font-bold text-[#3d2b1f]">로그인이 필요합니다</p>
-                <p className="text-[13px] text-[#8b6f5c]">주문과 상담을 확인하세요.</p>
-                <Link href="/login" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 text-[12px] text-[#5c3d2e]">
+                <p className="text-[18px] font-bold text-[#403A49]">로그인이 필요합니다</p>
+                <p className="text-[13px] text-[#6B6570]">주문과 상담을 확인하세요.</p>
+                <Link href="/login" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 text-[12px] text-[#403A49]">
                   로그인하기 &gt;
                 </Link>
               </>
             )}
           </div>
           <Link href="/my/orders" className="border-l border-[#d4c8ba] pl-4 text-center">
-            <Music className="mx-auto h-5 w-5 text-[#5c3d2e]" />
-            <p className="mt-1 text-[11px] text-[#8b6f5c]">나의 인생곡</p>
-            <p className="text-[16px] font-bold text-[#3d2b1f]">
+            <Music className="mx-auto h-5 w-5 text-[#403A49]" />
+            <p className="mt-1 text-[11px] text-[#6B6570]">나의 인생곡</p>
+            <p className="text-[16px] font-bold text-[#403A49]">
               {orders.length}곡 <ChevronRight className="inline h-4 w-4" />
             </p>
           </Link>
@@ -137,19 +137,19 @@ export default function MyPage() {
         <section className="px-4 pt-4">
           <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#ebe3d8]">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[15px] font-bold text-[#3d2b1f]">추천인 코드</p>
-              <p className="text-[15px] font-bold text-[#3d2b1f]">
+              <p className="text-[15px] font-bold text-[#403A49]">추천인 코드</p>
+              <p className="text-[15px] font-bold text-[#403A49]">
                 적립금 {(user.points ?? 0).toLocaleString("ko-KR")}원
               </p>
             </div>
             <div className="mt-2 flex items-center gap-2">
-              <p className="min-w-0 flex-1 text-[16px] font-semibold tracking-wide text-[#5c3d2e]">
+              <p className="min-w-0 flex-1 text-[16px] font-semibold tracking-wide text-[#403A49]">
                 {referralCode}
               </p>
               <button
                 type="button"
                 onClick={copyReferralCode}
-                className="h-9 shrink-0 rounded-lg bg-[#5c3d2e] px-3 text-[13px] font-semibold text-white"
+                className="h-9 shrink-0 rounded-lg bg-[#403A49] px-3 text-[13px] font-semibold text-white"
               >
                 {copied ? "복사됨" : "복사"}
               </button>
@@ -160,8 +160,8 @@ export default function MyPage() {
 
       <section className="px-4 py-6">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-[17px] font-bold text-[#3d2b1f]">주문 및 제작 현황</h3>
-          <Link href="/my/orders" className="text-[13px] text-[#5c3d2e]">
+          <h3 className="text-[17px] font-bold text-[#403A49]">주문 및 제작 현황</h3>
+          <Link href="/my/orders" className="text-[13px] text-[#403A49]">
             전체보기 &gt;
           </Link>
         </div>
@@ -174,12 +174,12 @@ export default function MyPage() {
                 <div className="flex flex-1 flex-col items-center text-center">
                   <div
                     className={`flex h-11 w-11 items-center justify-center rounded-full ${
-                      active ? "bg-[#5c3d2e] text-white" : "bg-[#f5efe6] text-[#8b6f5c]"
+                      active ? "bg-[#403A49] text-white" : "bg-[#f5efe6] text-[#6B6570]"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className="mt-1.5 text-[11px] font-medium text-[#5c3d2e]">{step.label}</span>
+                  <span className="mt-1.5 text-[11px] font-medium text-[#403A49]">{step.label}</span>
                 </div>
                 {i < PROCESS.length - 1 ? (
                   <ChevronRight className="mt-3 h-4 w-4 shrink-0 text-[#d4c8ba]" />
@@ -192,12 +192,12 @@ export default function MyPage() {
 
       <section className="px-4 pb-4">
         <Link href="/my/orders" className="mb-3 flex items-center justify-between">
-          <h3 className="text-[17px] font-bold text-[#3d2b1f]">나의 주문 내역</h3>
+          <h3 className="text-[17px] font-bold text-[#403A49]">나의 주문 내역</h3>
           <ChevronRight className="h-5 w-5 text-[#8b6f5c]" />
         </Link>
         <div className="space-y-3">
           {loaded && orders.length === 0 ? (
-            <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#8b6f5c] ring-1 ring-[#ebe3d8]">
+            <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
               아직 신청한 주문이 없습니다.
             </p>
           ) : null}
@@ -212,21 +212,21 @@ export default function MyPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-semibold text-[#3d2b1f]">{order.title}</span>
-                  <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#5c3d2e]">
+                  <span className="text-[15px] font-semibold text-[#403A49]">{order.title}</span>
+                  <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#403A49]">
                     {order.status}
                   </span>
                 </div>
-                <p className="mt-1 text-[12px] text-[#8b6f5c]">신청일 {formatDate(order.createdAt)}</p>
+                <p className="mt-1 text-[12px] text-[#6B6570]">신청일 {formatDate(order.createdAt)}</p>
               </div>
-              <span className="text-[12px] text-[#5c3d2e]">상세보기 &gt;</span>
+              <span className="text-[12px] text-[#403A49]">상세보기 &gt;</span>
             </Link>
           ))}
         </div>
       </section>
 
       <section className="px-4 py-4">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">편리한 메뉴</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">편리한 메뉴</h3>
         <div className="grid grid-cols-3 gap-3">
           {MENU_GRID.map(({ icon: Icon, label, href }) => (
             <Link
@@ -234,7 +234,7 @@ export default function MyPage() {
               href={href}
               className="flex flex-col items-center rounded-2xl bg-white py-4 ring-1 ring-[#ebe3d8]"
             >
-              <Icon className="mb-2 h-6 w-6 text-[#5c3d2e]" />
+              <Icon className="mb-2 h-6 w-6 text-[#403A49]" />
               <span className="text-[12px] font-medium text-[#3d2b1f]">{label}</span>
             </Link>
           ))}

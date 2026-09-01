@@ -421,7 +421,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <MobileShell>
-        <div className="flex min-h-[60vh] items-center justify-center px-4 text-[15px] text-[#8b6f5c]">
+        <div className="flex min-h-[60vh] items-center justify-center px-4 text-[15px] text-[#6B6570]">
           불러오는 중...
         </div>
       </MobileShell>
@@ -432,8 +432,8 @@ export default function AdminPage() {
     return (
       <MobileShell>
         <div className="px-4 py-8">
-          <h1 className="font-serif text-[26px] font-bold text-[#3d2b1f]">관리자</h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <h1 className="font-serif text-[26px] font-bold text-[#403A49]">관리자</h1>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
             회원, 주문, 상담, 후기, 이벤트, 문의 현황을 확인합니다.
           </p>
           <form onSubmit={handleLogin} className="mt-8 space-y-4">
@@ -454,7 +454,7 @@ export default function AdminPage() {
             {error ? <p className="text-[14px] text-[#b42318]">{error}</p> : null}
             <button
               type="submit"
-              className="flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white"
             >
               로그인
             </button>
@@ -485,13 +485,13 @@ export default function AdminPage() {
       <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 px-4 py-4 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-[18px] font-bold text-[#3d2b1f]">관리자</h1>
-            <p className="text-[12px] text-[#8b6f5c]">인생스토리 운영 현황</p>
+            <h1 className="text-[18px] font-bold text-[#403A49]">관리자</h1>
+            <p className="text-[12px] text-[#6B6570]">사주로그 운영 현황</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="h-10 rounded-full border border-[#d4c8ba] px-4 text-[13px] font-medium text-[#5c3d2e]"
+            className="h-10 rounded-full border border-[#403A49] px-4 text-[13px] font-semibold text-[#403A49]"
           >
             로그아웃
           </button>
@@ -519,10 +519,10 @@ export default function AdminPage() {
         {tab === "users"
           ? users.map((user) => (
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
                 <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
-                <p className="mt-2 text-[13px] text-[#8b6f5c]">추천인 코드 {referralCodeFor(user)}</p>
-                <p className="mt-1 text-[13px] text-[#8b6f5c]">가입일 {formatDate(user.createdAt)}</p>
+                <p className="mt-2 text-[13px] text-[#6B6570]">추천인 코드 {referralCodeFor(user)}</p>
+                <p className="mt-1 text-[13px] text-[#6B6570]">가입일 {formatDate(user.createdAt)}</p>
               </article>
             ))
           : null}
@@ -533,12 +533,12 @@ export default function AdminPage() {
               const canAdjust = Number.isFinite(amount) && amount >= 1;
               return (
                 <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                  <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
                   <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
-                  <p className="mt-2 text-[15px] font-semibold text-[#3d2b1f]">
+                  <p className="mt-2 text-[15px] font-semibold text-[#403A49]">
                     적립금 {(user.points ?? 0).toLocaleString("ko-KR")}원
                   </p>
-                  <label htmlFor={`points-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                  <label htmlFor={`points-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
                     금액
                   </label>
                   <input
@@ -557,7 +557,7 @@ export default function AdminPage() {
                       type="button"
                       onClick={() => handleAdjustPoints(user.id, "add")}
                       disabled={!canAdjust}
-                      className="h-12 rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                      className="h-12 rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
                     >
                       지급
                     </button>
@@ -565,7 +565,7 @@ export default function AdminPage() {
                       type="button"
                       onClick={() => handleAdjustPoints(user.id, "subtract")}
                       disabled={!canAdjust}
-                      className="h-12 rounded-xl border border-[#d4c8ba] bg-white text-[15px] font-semibold text-[#5c3d2e] disabled:opacity-40"
+                      className="h-12 rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] disabled:opacity-40"
                     >
                       차감
                     </button>
@@ -578,10 +578,10 @@ export default function AdminPage() {
         {tab === "coupons" ? (
           <>
             <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-              <label htmlFor="coupon-name" className="block text-[15px] font-bold text-[#3d2b1f]">
+              <label htmlFor="coupon-name" className="block text-[15px] font-bold text-[#403A49]">
                 회원 이름
               </label>
-              <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">
+              <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
                 쿠폰을 줄 회원 이름을 적고 찾아 주세요.
               </p>
               <input
@@ -595,7 +595,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={handleFindCouponUser}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white"
               >
                 회원 찾기
               </button>
@@ -615,7 +615,7 @@ export default function AdminPage() {
                     onClick={() => setCouponTarget(user)}
                     className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-[#ebe3d8]"
                   >
-                    <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                    <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
                     <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
                   </button>
                 ))
@@ -623,21 +623,21 @@ export default function AdminPage() {
 
             {couponTarget ? (
               <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                <p className="text-[16px] font-bold text-[#3d2b1f]">{userLabel(couponTarget)}</p>
+                <p className="text-[16px] font-bold text-[#403A49]">{userLabel(couponTarget)}</p>
                 <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(couponTarget)}</p>
                 {(userCoupons[couponTarget.id] ?? []).length === 0 ? (
-                  <p className="mt-2 text-[14px] text-[#8b6f5c]">보유 쿠폰 없음</p>
+                  <p className="mt-2 text-[14px] text-[#6B6570]">보유 쿠폰 없음</p>
                 ) : (
                   <div className="mt-2 space-y-2">
                     {(userCoupons[couponTarget.id] ?? []).map((coupon) => (
                       <div key={coupon.id} className="rounded-xl bg-[#f5efe6] px-3 py-2">
                         <p className="text-[14px] font-semibold text-[#3d2b1f]">{coupon.title}</p>
-                        <p className="mt-1 text-[13px] text-[#8b6f5c]">{coupon.usedAt ? "사용함" : "사용 전"}</p>
+                        <p className="mt-1 text-[13px] text-[#6B6570]">{coupon.usedAt ? "사용함" : "사용 전"}</p>
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">무료로 줄 상품</p>
+                <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">무료로 줄 상품</p>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {FREE_COUPON_PRODUCTS.map((item) => (
                     <button
@@ -658,7 +658,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={handleGiveCoupon}
                   disabled={!couponProduct}
-                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
                 >
                   무료 쿠폰 지급
                 </button>
@@ -673,15 +673,15 @@ export default function AdminPage() {
         {tab === "codes" ? (
           <>
             <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-              <p className="text-[13px] font-semibold text-[#8b6f5c]">관리자 전용 코드</p>
+              <p className="text-[13px] font-semibold text-[#6B6570]">관리자 전용 코드</p>
               {adminPromo ? (
                 <>
                   <div className="mt-2 flex items-center gap-2">
-                    <p className="min-w-0 flex-1 text-[22px] font-bold tracking-wide text-[#3d2b1f]">{adminPromo.code}</p>
+                    <p className="min-w-0 flex-1 text-[22px] font-bold tracking-wide text-[#403A49]">{adminPromo.code}</p>
                     <button
                       type="button"
                       onClick={copyAdminPromo}
-                      className="h-10 shrink-0 rounded-lg bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white"
+                      className="h-10 shrink-0 rounded-lg bg-[#403A49] px-4 text-[14px] font-semibold text-white"
                     >
                       {promoCopied ? "복사됨" : "복사"}
                     </button>
@@ -696,11 +696,11 @@ export default function AdminPage() {
                   </p>
                 </>
               ) : (
-                <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+                <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
                   아직 코드가 없습니다. 아래에서 만들어 주세요.
                 </p>
               )}
-              <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+              <label htmlFor="promo-percent" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
                 할인율
               </label>
               <div className="mt-2 flex items-center gap-2">
@@ -714,13 +714,13 @@ export default function AdminPage() {
                   onChange={(event) => setPromoPercent(Number(event.target.value))}
                   className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
                 />
-                <span className="shrink-0 text-[16px] font-semibold text-[#3d2b1f]">%</span>
+                <span className="shrink-0 text-[16px] font-semibold text-[#403A49]">%</span>
               </div>
               <button
                 type="button"
                 onClick={handleGeneratePromo}
                 disabled={!Number.isFinite(promoPercent) || promoPercent < 1 || promoPercent > 90}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white disabled:opacity-40"
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
               >
                 {promoPercent}% 코드 만들기
               </button>
@@ -728,11 +728,11 @@ export default function AdminPage() {
 
             {adminPromo ? (
               <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                <p className="text-[15px] font-bold text-[#3d2b1f]">회원에게 알리기</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-[#8b6f5c]">
+                <p className="text-[15px] font-bold text-[#403A49]">회원에게 알리기</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
                   코드를 받은 회원 이름을 적으면, 그 회원 화면에 알림이 뜹니다.
                 </p>
-                <label htmlFor="code-notify-name" className="mt-3 block text-[13px] font-semibold text-[#8b6f5c]">
+                <label htmlFor="code-notify-name" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
                   회원 이름
                 </label>
                 <input
@@ -746,12 +746,12 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleFindCodeUser}
-                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[15px] font-semibold text-[#5c3d2e]"
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49]"
                 >
                   회원 찾기
                 </button>
                 {codeNotifySearched && codeNotifyMatches.length === 0 ? (
-                  <p className="mt-3 text-[14px] text-[#8b6f5c]">그 이름의 회원을 찾을 수 없습니다.</p>
+                  <p className="mt-3 text-[14px] text-[#6B6570]">그 이름의 회원을 찾을 수 없습니다.</p>
                 ) : null}
                 {codeNotifyMatches.length > 1 && !codeNotifyTarget
                   ? codeNotifyMatches.map((user) => (
@@ -761,20 +761,20 @@ export default function AdminPage() {
                         onClick={() => setCodeNotifyTarget(user)}
                         className="mt-2 w-full rounded-xl bg-[#f5efe6] px-4 py-3 text-left"
                       >
-                        <p className="text-[15px] font-bold text-[#3d2b1f]">{userLabel(user)}</p>
+                        <p className="text-[15px] font-bold text-[#403A49]">{userLabel(user)}</p>
                         <p className="mt-1 text-[13px] text-[#5c3d2e]">{contactLabel(user)}</p>
                       </button>
                     ))
                   : null}
                 {codeNotifyTarget ? (
                   <>
-                    <p className="mt-3 text-[15px] font-semibold text-[#3d2b1f]">
+                    <p className="mt-3 text-[15px] font-semibold text-[#403A49]">
                       {userLabel(codeNotifyTarget)} · {contactLabel(codeNotifyTarget)}
                     </p>
                     <button
                       type="button"
                       onClick={handleNotifyPromo}
-                      className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+                      className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white"
                     >
                       이 코드 알리기
                     </button>
@@ -786,19 +786,19 @@ export default function AdminPage() {
               </article>
             ) : null}
 
-            <p className="pt-2 text-[15px] font-bold text-[#3d2b1f]">사용 내역</p>
+            <p className="pt-2 text-[15px] font-bold text-[#403A49]">사용 내역</p>
             {codeUses.length === 0 ? (
               <p className="rounded-2xl bg-[#f5efe6] px-4 py-8 text-center text-[15px] text-[#8b6f5c]">
                 아직 코드를 사용한 신청이 없습니다.
               </p>
             ) : (
               codeUses.map((item) => {
-                const member = userMap.get(item.userId);
+                const member = userMap.get(item.userId ?? "");
                 const isCurrent = item.code === adminPromo?.code;
                 return (
                   <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-[16px] font-bold text-[#3d2b1f]">
+                      <p className="text-[16px] font-bold text-[#403A49]">
                         {member ? userLabel(member) : "회원 정보 없음"}
                       </p>
                       <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
@@ -806,13 +806,13 @@ export default function AdminPage() {
                       </span>
                     </div>
                     <p className="mt-2 text-[14px] text-[#5c3d2e]">{item.title}</p>
-                    <p className="mt-1 text-[13px] text-[#8b6f5c]">
+                    <p className="mt-1 text-[13px] text-[#6B6570]">
                       {item.code}
                       {item.percent ? ` · ${item.percent}%` : ""}
                       {item.discount ? ` · ${formatAmount(Number(item.discount))}` : ""}
                     </p>
-                    {member ? <p className="mt-1 text-[13px] text-[#8b6f5c]">{contactLabel(member)}</p> : null}
-                    <p className="mt-1 text-[13px] text-[#8b6f5c]">{formatDate(item.createdAt)}</p>
+                    {member ? <p className="mt-1 text-[13px] text-[#6B6570]">{contactLabel(member)}</p> : null}
+                    <p className="mt-1 text-[13px] text-[#6B6570]">{formatDate(item.createdAt)}</p>
                   </article>
                 );
               })
@@ -826,7 +826,7 @@ export default function AdminPage() {
               return (
                 <article key={order.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[16px] font-bold text-[#3d2b1f]">{order.title}</p>
+                    <p className="text-[16px] font-bold text-[#403A49]">{order.title}</p>
                     <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                       {order.status}
                     </span>
@@ -834,10 +834,10 @@ export default function AdminPage() {
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {member ? userLabel(member) : "회원 정보 없음"} · {formatAmount(order.amount)}
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
                     {order.payment} · {formatDate(order.createdAt)}
                   </p>
-                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">진행 상태</p>
+                  <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">진행 상태</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {ORDER_STATUSES.map((status) => {
                       const active = order.status === status;
@@ -864,11 +864,11 @@ export default function AdminPage() {
 
         {tab === "consultations"
           ? consultations.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[16px] font-bold text-[#3d2b1f]">{item.teacher}</p>
+                    <p className="text-[16px] font-bold text-[#403A49]">{item.teacher}</p>
                     <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                       {item.status}
                     </span>
@@ -876,11 +876,11 @@ export default function AdminPage() {
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {member ? userLabel(member) : "회원 정보 없음"} · {formatAmount(item.amount)}
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
                     {item.datetime} · {item.method}
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">{item.purpose}</p>
-                  <p className="mt-3 text-[13px] font-semibold text-[#8b6f5c]">진행 상태</p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">{item.purpose}</p>
+                  <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">진행 상태</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {CONSULT_STATUSES.map((status) => {
                       const active = item.status === status;
@@ -909,7 +909,7 @@ export default function AdminPage() {
           ? reviews.map((item) => (
               <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-[16px] font-bold text-[#3d2b1f]">{item.title || "후기"}</p>
+                  <p className="text-[16px] font-bold text-[#403A49]">{item.title || "후기"}</p>
                   <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                     {item.visible ? "공개" : "대기"}
                   </span>
@@ -918,9 +918,9 @@ export default function AdminPage() {
                   {item.name || "이름 없음"} · 별점 {item.rating}점
                 </p>
                 {item.text ? (
-                  <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#8b6f5c]">{item.text}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#6B6570]">{item.text}</p>
                 ) : null}
-                <p className="mt-2 text-[13px] text-[#8b6f5c]">{formatDate(item.createdAt)}</p>
+                <p className="mt-2 text-[13px] text-[#6B6570]">{formatDate(item.createdAt)}</p>
                 <button
                   type="button"
                   onClick={() => handleToggleReviewVisible(item.id, !item.visible)}
@@ -938,11 +938,11 @@ export default function AdminPage() {
 
         {tab === "events"
           ? eventItems.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[16px] font-bold text-[#3d2b1f]">{eventTitle(item)}</p>
+                    <p className="text-[16px] font-bold text-[#403A49]">{eventTitle(item)}</p>
                     <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                       신청접수
                     </span>
@@ -950,12 +950,12 @@ export default function AdminPage() {
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {item.name || member?.name || "이름 없음"} · {item.phone || member?.phone || "-"}
                   </p>
-                  <p className="mt-1 text-[13px] text-[#8b6f5c]">{item.method}</p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">{item.method}</p>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">{item.product}</p>
                   {item.message ? (
-                    <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#8b6f5c]">{item.message}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#6B6570]">{item.message}</p>
                   ) : null}
-                  <p className="mt-2 text-[13px] text-[#8b6f5c]">{formatDate(item.createdAt)}</p>
+                  <p className="mt-2 text-[13px] text-[#6B6570]">{formatDate(item.createdAt)}</p>
                 </article>
               );
             })
@@ -963,15 +963,15 @@ export default function AdminPage() {
 
         {tab === "inquiries"
           ? inquiryItems.map((item) => {
-              const member = userMap.get(item.userId);
+              const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#3d2b1f]">{item.name || member?.name || "이름 없음"}</p>
+                  <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>
                   <p className="mt-1 text-[14px] text-[#5c3d2e]">
                     {item.phone || member?.phone || "-"} · {item.method}
                   </p>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">{item.message}</p>
-                  <p className="mt-2 text-[13px] text-[#8b6f5c]">
+                  <p className="mt-2 text-[13px] text-[#6B6570]">
                     {item.product} · {formatDate(item.createdAt)}
                   </p>
                 </article>
@@ -981,18 +981,18 @@ export default function AdminPage() {
 
         {tab === "schedule" ? (
           <>
-            <p className="text-[15px] font-bold text-[#3d2b1f]">{teacher} 상담 일정</p>
-            <p className="mt-1 text-[13px] text-[#8b6f5c]">
+            <p className="text-[15px] font-bold text-[#403A49]">{teacher} 상담 일정</p>
+            <p className="mt-1 text-[13px] text-[#6B6570]">
               예약된 시간은 자동으로 막힙니다. 선생님 개인 일정은 아래에서 막거나 열 수 있습니다.
             </p>
             <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-              <p className="text-center text-[17px] font-bold text-[#3d2b1f]">
+              <p className="text-center text-[17px] font-bold text-[#403A49]">
                 {parseConsultDate(scheduleDate)?.month ?? parseConsultDate(scheduleDates[0] ?? "")?.month ?? ""}월
               </p>
               {scheduleDate ? (
                 <p className="mt-1 text-center text-[13px] font-semibold text-[#5c3d2e]">{scheduleDate}</p>
               ) : null}
-              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[12px] font-semibold text-[#8b6f5c]">
+              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[12px] font-semibold text-[#6B6570]">
                 {WEEKDAYS.map((item) => (
                   <span key={item}>{item}</span>
                 ))}
@@ -1023,11 +1023,11 @@ export default function AdminPage() {
                   className="flex items-center justify-between rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]"
                 >
                   <div>
-                    <p className="text-[15px] font-bold text-[#3d2b1f]">{item.time}</p>
-                    <p className="mt-1 text-[13px] text-[#8b6f5c]">{scheduleStatusLabel(item.status)}</p>
+                    <p className="text-[15px] font-bold text-[#403A49]">{item.time}</p>
+                    <p className="mt-1 text-[13px] text-[#6B6570]">{scheduleStatusLabel(item.status)}</p>
                   </div>
                   {item.status === "booked" ? (
-                    <span className="text-[13px] text-[#8b6f5c]">변경 불가</span>
+                    <span className="text-[13px] text-[#6B6570]">변경 불가</span>
                   ) : (
                     <button
                       type="button"

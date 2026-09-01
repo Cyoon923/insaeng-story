@@ -1,7 +1,12 @@
 import Image from "next/image";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { ApplyStepper, ApplyNavButtons, STORY_STEPS } from "@/components/apply/ApplyStepper";
+import {
+  ApplyStepper,
+  ApplyNavButtons,
+  STORY_STEPS,
+  type ApplyStepperTheme,
+} from "@/components/apply/ApplyStepper";
 
 interface ApplyLayoutProps {
   step: number;
@@ -17,6 +22,12 @@ interface ApplyLayoutProps {
   heroText?: string;
   heroImage?: string;
   requireContactFlow?: string;
+  /** 이 단계의 필수 입력 검사. 문구를 돌려주면 다음 단계로 가지 않는다. */
+  validateNext?: () => string;
+  /** 스텝퍼 강조 배색. 넘기지 않으면 기존 브라운 그대로다. */
+  stepperTheme?: ApplyStepperTheme;
+  /** 셸 배경. 넘기지 않으면 기존 아이보리 그대로다. */
+  shellBg?: string;
 }
 
 export function ApplyLayout({
@@ -33,6 +44,9 @@ export function ApplyLayout({
   heroText = "당신의 이야기가\n세상에 단 하나뿐인 노래가 됩니다",
   heroImage,
   requireContactFlow,
+  validateNext,
+  stepperTheme,
+  shellBg,
 }: ApplyLayoutProps) {
   const isConsultation = basePath.startsWith("/apply/consultation");
   const heroSrc =
@@ -42,7 +56,7 @@ export function ApplyLayout({
       : "/images/photo-hero.jpg");
 
   return (
-    <MobileShell>
+    <MobileShell bgClass={shellBg}>
       <AppHeader
         variant="apply"
         title={title}
@@ -61,7 +75,7 @@ export function ApplyLayout({
           <p className="text-[15px] font-bold leading-snug whitespace-pre-line">{heroText}</p>
         </div>
       </div>
-      <ApplyStepper currentStep={step} basePath={basePath} steps={steps} />
+      <ApplyStepper currentStep={step} basePath={basePath} steps={steps} theme={stepperTheme} />
       <div className="px-4 py-5">{children}</div>
       {!hideNav && nextHref && (
         <ApplyNavButtons
@@ -69,6 +83,7 @@ export function ApplyLayout({
           nextHref={nextHref}
           nextLabel={nextLabel}
           requireContactFlow={requireContactFlow}
+          validateNext={validateNext}
         />
       )}
     </MobileShell>

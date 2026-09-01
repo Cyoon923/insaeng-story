@@ -40,7 +40,7 @@ const FAQS = [
   {
     question: "완성된 노래는 어떻게 사용할 수 있나요?",
     answer:
-      "인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수 있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.",
+      "인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수 있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.",
   },
 ];
 
@@ -50,25 +50,25 @@ export default async function FaqPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const backHref = from === "my" ? "/my" : "/";
+  const backHref = from === "menu" ? "/menu" : from === "my" ? "/my" : "/";
 
   return (
     <MobileShell>
       <AppHeader variant="page" title="자주 묻는 질문" backHref={backHref} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">자주 묻는 질문</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">궁금한 내용을 확인해 보세요.</p>
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">자주 묻는 질문</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">궁금한 내용을 확인해 보세요.</p>
       </section>
 
       <div className="space-y-3 px-4 pb-8">
         {FAQS.map((faq) => (
           <details key={faq.question} className="group rounded-2xl bg-white ring-1 ring-[#ebe3d8]">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-[16px] font-semibold leading-snug text-[#3d2b1f]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-[16px] font-semibold leading-snug text-[#403A49]">
               {faq.question}
               <ChevronRight className="h-5 w-5 shrink-0 text-[#8b6f5c] transition group-open:rotate-90" />
             </summary>
-            <p className="border-t border-[#ebe3d8] px-4 py-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+            <p className="border-t border-[#ebe3d8] px-4 py-3 text-[15px] leading-relaxed text-[#6B6570]">
               {faq.answer}
             </p>
           </details>

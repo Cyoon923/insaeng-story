@@ -15,15 +15,15 @@ export default async function CasesPage() {
       <AppHeader variant="page" title="유튜브" backHref="/" />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">유튜브</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">유튜브</h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
           인생곡 창작소 유튜브의 완성 작품입니다.
         </p>
         <a
           href={YOUTUBE_CHANNEL_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-[#5c3d2e] text-[15px] font-semibold text-white"
+          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white"
         >
           유튜브 바로가기
         </a>
@@ -52,7 +52,7 @@ export default async function CasesPage() {
                 </div>
               </div>
             </div>
-            <h3 className="mt-2 line-clamp-2 text-[13px] font-bold leading-snug text-[#3d2b1f]">
+            <h3 className="mt-2 line-clamp-2 text-[13px] font-bold leading-snug text-[#403A49]">
               {video.title}
             </h3>
           </a>

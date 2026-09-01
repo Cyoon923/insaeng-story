@@ -1,3 +1,4 @@
+import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
@@ -128,4 +129,21 @@ export function isValidEmail(email: string): boolean {
 
 export function emailCodeKey(email: string): string {
   return `email:${normalizeEmail(email)}`;
+}
+
+/**
+ * 비밀번호 해시. Node 내장 scrypt만 사용하며 외부 의존성을 추가하지 않는다.
+ * 평문을 저장하지 않기 위한 최소 조치이고, 운영 전에 정책 재검토가 필요하다.
+ */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const expected = Buffer.from(hash, "hex");
+  const actual = scryptSync(password, salt, 64);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }

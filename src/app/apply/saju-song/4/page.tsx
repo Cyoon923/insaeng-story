@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { PaySubmit } from "@/components/apply/PaySubmit";
-import { SAJU_STEPS } from "@/components/apply/ApplyStepper";
+import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
 import { getDraft } from "@/lib/client/api";
 
@@ -72,23 +72,26 @@ export default function ApplyStep6Page() {
       prevHref="/apply/saju-song/3"
       hideNav
       heroText={"입력하신 내용을 확인하고\n결제를 진행해 주세요"}
+    
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">4. 확인 및 결제</h2>
-      <p className="mt-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+      <h2 className="text-[22px] font-bold text-[#403A49]">4. 확인 및 결제</h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
         입력하신 정보를 확인하고 결제를 진행해 주세요. 주문 완료 후 제작이 시작됩니다.
       </p>
 
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <h3 className="text-[16px] font-bold text-[#3d2b1f]">주문 정보 확인</h3>
+        <h3 className="text-[16px] font-bold text-[#403A49]">주문 정보 확인</h3>
         <div className="mt-2">
           {rows.map((row) => (
             <div key={row.label} className="flex items-start justify-between border-b border-[#ebe3d8] py-3 last:border-0">
               <div>
-                <p className="text-[13px] text-[#8b6f5c]">{row.label}</p>
+                <p className="text-[13px] text-[#6B6570]">{row.label}</p>
                 <p className="mt-0.5 text-[15px] font-medium text-[#3d2b1f]">{row.value}</p>
               </div>
               {row.href ? (
-                <Link href={row.href} className="text-[13px] font-medium text-[#5c3d2e]">
+                <Link href={row.href} className="text-[13px] font-medium text-[#403A49]">
                   수정
                 </Link>
               ) : null}
@@ -98,43 +101,43 @@ export default function ApplyStep6Page() {
       </div>
 
       <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <h3 className="text-[16px] font-bold text-[#3d2b1f]">결제 금액 확인</h3>
+        <h3 className="text-[16px] font-bold text-[#403A49]">결제 금액 확인</h3>
         <div className="mt-3 space-y-2 text-[14px]">
           <div className="flex justify-between">
-            <span className="text-[#8b6f5c]">사주 인생곡</span>
+            <span className="text-[#6B6570]">사주 인생곡</span>
             <span className="text-[#3d2b1f]">{formatPrice(BASE_PRICE)}</span>
           </div>
           {options.map((opt) => (
             <div key={opt.name} className="flex justify-between">
-              <span className="text-[#8b6f5c]">{opt.name}</span>
+              <span className="text-[#6B6570]">{opt.name}</span>
               <span className="text-[#3d2b1f]">+ {formatPrice(opt.price)}</span>
             </div>
           ))}
           {hasGift ? (
             <div className="flex justify-between">
-              <span className="text-[#8b6f5c]">선물 패키지</span>
+              <span className="text-[#6B6570]">선물 패키지</span>
               <span className="text-[#3d2b1f]">별도 문의</span>
             </div>
           ) : null}
         </div>
         <div className="mt-4 rounded-xl bg-[#f5efe6] p-4 text-center">
-          <p className="text-[13px] text-[#8b6f5c]">최종 결제 금액</p>
-          <p className="mt-1 text-[24px] font-bold text-[#5c3d2e]">{formatPrice(finalPrice)}</p>
+          <p className="text-[13px] text-[#6B6570]">최종 결제 금액</p>
+          <p className="mt-1 text-[24px] font-bold text-[#403A49]">{formatPrice(finalPrice)}</p>
         </div>
       </div>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
-        <h3 className="text-[16px] font-bold text-[#3d2b1f]">사진 안내</h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+        <h3 className="text-[16px] font-bold text-[#403A49]">사진 안내</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
           얼굴 사진, 추억 사진은 지금 올리지 않으셔도 됩니다. 결제 후 카카오톡으로 연락드려 사진을
           받겠습니다.
         </p>
       </div>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
-        <h3 className="text-[16px] font-bold text-[#3d2b1f]">저작권 및 이용 안내 [필수]</h3>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
-          인생곡 제작물의 저작권은 인생스토리가 보유합니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
+        <h3 className="text-[16px] font-bold text-[#403A49]">저작권 및 이용 안내 [필수]</h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
+          인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
           있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.
         </p>
         <label className="mt-3 flex cursor-pointer items-start gap-3">
@@ -142,7 +145,7 @@ export default function ApplyStep6Page() {
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 h-5 w-5 accent-[#5c3d2e]"
+            className="mt-1 h-5 w-5 accent-[#403A49]"
           />
           <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
             저작권 및 창작물 이용 안내를 확인했으며 동의합니다. [필수]
@@ -151,7 +154,7 @@ export default function ApplyStep6Page() {
       </div>
 
       <div className="mt-5">
-        <h3 className="mb-3 text-[16px] font-bold text-[#3d2b1f]">결제 방법 선택</h3>
+        <h3 className="mb-3 text-[16px] font-bold text-[#403A49]">결제 방법 선택</h3>
         <div className="grid grid-cols-2 gap-2">
           {PAYMENT_METHODS.map((method) => (
             <button
@@ -160,7 +163,7 @@ export default function ApplyStep6Page() {
               onClick={() => setPayment(method)}
               className={`h-12 rounded-xl text-[14px] font-medium ${
                 payment === method
-                  ? "bg-[#5c3d2e] text-white"
+                  ? "bg-[#403A49] text-white"
                   : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
               }`}
             >
@@ -189,12 +192,12 @@ export default function ApplyStep6Page() {
         <button
           type="button"
           disabled
-          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white opacity-40"
+          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white opacity-40"
         >
           {formatPrice(finalPrice)} 결제하기
         </button>
       )}
-      <p className="mt-2 text-center text-[12px] text-[#8b6f5c]">
+      <p className="mt-2 text-center text-[12px] text-[#6B6570]">
         모든 결제 정보는 안전하게 암호화되어 처리됩니다.
       </p>
     </ApplyLayout>

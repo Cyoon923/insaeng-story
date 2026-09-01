@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { fetchMe, getDraft, postApp } from "@/lib/client/api";
+import { clearDraft, fetchMe, getDraft, postApp } from "@/lib/client/api";
 import { formatPrice } from "@/lib/constants/products";
 import type { Coupon, CouponProduct } from "@/lib/types/app";
 
@@ -27,6 +28,8 @@ export function PaySubmit({
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  // 로그인 여부는 기존 세션 판별(GET /api/app 의 user)을 그대로 쓴다.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -43,10 +46,15 @@ export function PaySubmit({
   const payAmount = Math.max(0, afterDiscount - pointsToUse);
 
   useEffect(() => {
-    fetchMe().then((data) => {
-      setCoupons((data.coupons ?? []) as Coupon[]);
-      setPoints(Number(data.user?.points ?? 0) || 0);
-    });
+    fetchMe()
+      .then((data) => {
+        setLoggedIn(Boolean(data.user));
+        setCoupons((data.coupons ?? []) as Coupon[]);
+        setPoints(Number(data.user?.points ?? 0) || 0);
+      })
+      .catch(() => {
+        setLoggedIn(false);
+      });
   }, []);
 
   const submit = async () => {
@@ -57,6 +65,10 @@ export function PaySubmit({
       if (!draft.phone) {
         throw new Error("1단계에서 이름과 연락처를 입력해 주세요.");
       }
+      if (!loggedIn) {
+        // 연락처만으로 계정을 만들지 않는다. 비밀번호 없는 회원이 생기기 때문이다.
+        throw new Error("신청을 접수하려면 먼저 로그인해 주세요.");
+      }
       const merged: Record<string, string> = {
         ...details,
         ...draft,
@@ -64,7 +76,6 @@ export function PaySubmit({
         couponId,
         usePoints: !usingCoupon && usePoints ? "1" : "",
       };
-      await postApp({ action: "ensureUser", phone: draft.phone, name: draft.name ?? "" });
       if (kind === "order") {
         const result = await postApp({
           action: "createOrder",
@@ -74,6 +85,8 @@ export function PaySubmit({
           payment,
           details: merged,
         });
+        // 서버가 주문을 만든 뒤에만 이 플로우 draft를 비운다.
+        clearDraft(flow);
         router.push(`/apply/complete?type=order&id=${result.order.id}`);
       } else {
         const result = await postApp({
@@ -88,6 +101,8 @@ export function PaySubmit({
           option: merged.option ?? "없음",
           details: merged,
         });
+        // 서버가 상담을 만든 뒤에만 이 플로우 draft를 비운다.
+        clearDraft(flow);
         router.push(`/apply/complete?type=consult&id=${result.consultation.id}`);
       }
     } catch (err) {
@@ -101,8 +116,8 @@ export function PaySubmit({
     <div className="mt-6">
       {usableCoupons.length > 0 ? (
         <div className="mb-6">
-          <p className="text-[16px] font-bold text-[#3d2b1f]">무료 쿠폰</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">있으면 골라 주세요. 없으면 넘어가도 됩니다.</p>
+          <p className="text-[16px] font-bold text-[#403A49]">무료 쿠폰</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">있으면 골라 주세요. 없으면 넘어가도 됩니다.</p>
           <div className="mt-2 space-y-2">
             {usableCoupons.map((item) => {
               const active = couponId === item.id;
@@ -119,7 +134,7 @@ export function PaySubmit({
                   }`}
                 >
                   <p className="text-[15px] font-semibold">{item.title}</p>
-                  <p className={`mt-1 text-[13px] ${active ? "text-white/80" : "text-[#8b6f5c]"}`}>
+                  <p className={`mt-1 text-[13px] ${active ? "text-white/80" : "text-[#6B6570]"}`}>
                     {active ? "이 쿠폰으로 무료 신청합니다" : "누르면 무료로 신청됩니다"}
                   </p>
                 </button>
@@ -131,10 +146,10 @@ export function PaySubmit({
 
       {!usingCoupon ? (
         <>
-          <label className="block text-[16px] font-bold text-[#3d2b1f]" htmlFor="referral-code">
+          <label className="block text-[16px] font-bold text-[#403A49]" htmlFor="referral-code">
             추천인 코드
           </label>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">없으면 비워 두세요.</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">없으면 비워 두세요.</p>
           <input
             id="referral-code"
             value={referralCode}
@@ -164,8 +179,8 @@ export function PaySubmit({
 
       {!usingCoupon && points > 0 ? (
         <div className="mt-6">
-          <p className="text-[16px] font-bold text-[#3d2b1f]">적립금</p>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-[16px] font-bold text-[#403A49]">적립금</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">
             보유 {formatPrice(points)} · 누르면 결제 금액에서 깎입니다.
           </p>
           <button
@@ -178,7 +193,7 @@ export function PaySubmit({
             <p className="text-[15px] font-semibold">
               {usePoints ? `${formatPrice(pointsToUse)} 사용` : "적립금 쓰기"}
             </p>
-            <p className={`mt-1 text-[13px] ${usePoints ? "text-white/80" : "text-[#8b6f5c]"}`}>
+            <p className={`mt-1 text-[13px] ${usePoints ? "text-white/80" : "text-[#6B6570]"}`}>
               {usePoints
                 ? `결제 금액 ${formatPrice(payAmount)}`
                 : "결제 금액에서 적립금만큼 깎습니다"}
@@ -186,12 +201,33 @@ export function PaySubmit({
           </button>
         </div>
       ) : null}
+      {loggedIn === false ? (
+        <div className="mt-4 rounded-xl bg-[#F7F6F8] p-4">
+          <p className="text-[15px] font-semibold text-[#403A49]">로그인 후 신청할 수 있습니다</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">
+            지금까지 입력하신 내용은 그대로 저장되어 있습니다. 로그인하신 뒤 이 화면으로 돌아오시면
+            이어서 신청하실 수 있습니다.
+          </p>
+          <Link
+            href="/login"
+            className="mt-3 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
+          >
+            로그인하러 가기
+          </Link>
+          <Link
+            href="/signup"
+            className="mt-2 flex h-12 w-full items-center justify-center rounded-lg border border-[#403A49] bg-white text-[15px] font-semibold text-[#403A49]"
+          >
+            회원가입
+          </Link>
+        </div>
+      ) : null}
       {error ? <p className="mt-3 text-center text-[14px] text-red-600">{error}</p> : null}
       <button
         type="button"
         onClick={submit}
-        disabled={loading}
-        className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+        disabled={loading || loggedIn !== true}
+        className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white disabled:opacity-40"
       >
         {loading
           ? "처리 중..."
@@ -203,7 +239,7 @@ export function PaySubmit({
               ? "신청하고 입금 안내받기"
               : label}
       </button>
-      <p className="mt-2 text-center text-[13px] leading-relaxed text-[#8b6f5c]">
+      <p className="mt-2 text-center text-[13px] leading-relaxed text-[#6B6570]">
         {usingCoupon
           ? "쿠폰으로 신청만 접수됩니다. 결제는 하지 않습니다."
           : payAmount === 0 && pointsToUse > 0

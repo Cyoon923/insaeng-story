@@ -61,8 +61,8 @@ export default function NotificationsPage() {
       <AppHeader variant="page" title="알림 설정" backHref="/my" />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">알림 설정</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">알림 설정</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
           받고 싶은 알림만 켜 두세요. 신청·상담이 접수되면 MY 알림 목록에 남습니다.
         </p>
       </section>
@@ -73,8 +73,8 @@ export default function NotificationsPage() {
           return (
             <div key={item.id} className="flex items-center gap-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-bold text-[#3d2b1f]">{item.title}</p>
-                <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">{item.desc}</p>
+                <p className="text-[16px] font-bold text-[#403A49]">{item.title}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">{item.desc}</p>
               </div>
               <button
                 type="button"
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
                 aria-label={item.title}
                 onClick={() => toggle(item.id)}
                 className={`relative h-8 w-14 shrink-0 rounded-full ${
-                  active ? "bg-[#5c3d2e]" : "bg-[#d4c8ba]"
+                  active ? "bg-[#403A49]" : "bg-[#d4c8ba]"
                 }`}
               >
                 <span
@@ -96,9 +96,9 @@ export default function NotificationsPage() {
           );
         })}
         {loaded && !loggedIn ? (
-          <p className="text-center text-[13px] text-[#8b6f5c]">
+          <p className="text-center text-[13px] text-[#6B6570]">
             알림 기록은 로그인 후 저장됩니다.{" "}
-            <Link href="/login" className="font-semibold text-[#5c3d2e]">
+            <Link href="/login" className="font-semibold text-[#403A49]">
               로그인하기
             </Link>
           </p>
@@ -106,18 +106,18 @@ export default function NotificationsPage() {
       </div>
 
       <section className="px-4 pb-8">
-        <h3 className="mb-3 text-[17px] font-bold text-[#3d2b1f]">알림 기록</h3>
+        <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">알림 기록</h3>
         {notes.length === 0 ? (
-          <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#8b6f5c] ring-1 ring-[#ebe3d8]">
+          <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
             아직 받은 알림이 없습니다.
           </p>
         ) : (
           <div className="space-y-3">
             {notes.map((note) => (
               <div key={note.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                <p className="text-[16px] font-bold text-[#3d2b1f]">{note.title}</p>
-                <p className="mt-1 text-[14px] leading-relaxed text-[#8b6f5c]">{note.body}</p>
-                <p className="mt-2 text-[12px] text-[#8b6f5c]">{formatDate(note.createdAt)}</p>
+                <p className="text-[16px] font-bold text-[#403A49]">{note.title}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">{note.body}</p>
+                <p className="mt-2 text-[12px] text-[#6B6570]">{formatDate(note.createdAt)}</p>
               </div>
             ))}
           </div>

@@ -28,11 +28,11 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
-                  isActive ? "font-bold text-[#5c3d2e]" : "font-medium text-[#8b6f5c]"
+                  isActive ? "font-bold text-[#5c3d2e]" : "font-medium text-[#6B6570]"
                 }`}
               >
                 <Icon
-                  className={`h-[22px] w-[22px] ${isActive ? "text-[#5c3d2e]" : "text-[#8b6f5c]"}`}
+                  className={`h-[22px] w-[22px] ${isActive ? "text-[#5c3d2e]" : "text-[#6B6570]"}`}
                   strokeWidth={isActive ? 2.2 : 1.6}
                 />
                 {item.label}

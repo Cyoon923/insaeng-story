@@ -19,7 +19,7 @@ const TABS = [
   { id: "story", label: "인생곡 제작" },
   { id: "premium", label: "프리미엄" },
   { id: "saju-song", label: "사주 인생곡" },
-  { id: "consultation", label: "사주상담" },
+  { id: "consultation", label: "사주 분석" },
 ] as const;
 
 const ITEMS = [
@@ -53,7 +53,7 @@ const ITEMS = [
   {
     id: "consultation",
     href: CONSULTATION.href,
-    title: CONSULTATION.title,
+    title: "사주 분석",
     description: CONSULTATION.description,
     price: formatPriceFrom(CONSULTATION.priceFrom),
     image: "/images/photo-yubi-teacher.png",
@@ -107,7 +107,7 @@ function ProcessStep({ step, className = "" }: { step: (typeof PROCESS)[number];
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold text-[#8b6f5c]">{step.num}</p>
+          <p className="text-[10px] font-bold text-[#6B6570]">{step.num}</p>
           <p className="break-keep text-[13px] font-bold leading-snug text-[#3d2b1f]">{step.label}</p>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function ProductsPage() {
       <MobileShell>
         <AppHeader variant="page" title="인생곡" backHref="/" />
         <section className="px-4 py-6">
-          <p className="text-center text-[20px] font-bold leading-relaxed text-[#3d2b1f]">
+          <p className="text-center text-[20px] font-bold leading-relaxed text-[#403A49]">
             어떤 노래를 만들까요?
           </p>
           <div className="mt-6 flex flex-col gap-4">
@@ -137,7 +137,7 @@ export default function ProductsPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex min-h-[88px] flex-col items-center justify-center rounded-xl bg-[#5c3d2e] px-4 py-5 text-center"
+                className="flex min-h-[88px] flex-col items-center justify-center rounded-xl bg-[#403A49] px-4 py-5 text-center"
               >
                 <span className="text-[22px] font-bold text-white">{item.title}</span>
                 <span className="mt-1 text-[15px] leading-relaxed text-white/90">{item.description}</span>
@@ -154,15 +154,15 @@ export default function ProductsPage() {
     <MobileShell>
       <AppHeader variant="page" title="인생곡" backHref="/" />
 
-      <section className="relative h-44 overflow-hidden">
+      <section className="relative h-[255px] overflow-hidden">
         <Image src="/images/photo-products-hero.png" alt="" fill className="object-cover object-center" priority />
         <div className="absolute inset-0 bg-[#faf8f5]/70" />
         <div className="relative z-10 flex h-full flex-col justify-end px-5 pb-5">
-          <h2 className="font-serif text-[28px] font-bold text-[#3d2b1f]">상품</h2>
+          <h2 className="font-serif text-[28px] font-bold text-[#403A49]">상품</h2>
           <p className="mt-1 text-[14px] leading-relaxed text-[#5c3d2e]">
             당신의 이야기에 가장 어울리는
             <br />
-            인생스토리를 선택하세요.
+            사주로그를 선택하세요.
           </p>
         </div>
       </section>
@@ -177,8 +177,8 @@ export default function ProductsPage() {
               onClick={() => setTab(item.id)}
               className={`h-10 min-w-[30%] flex-1 rounded-full px-2 text-[13px] font-semibold ${
                 active
-                  ? "bg-[#5c3d2e] text-white"
-                  : "border border-[#d4c8ba] bg-[#faf6f1] text-[#5c3d2e]"
+                  ? "bg-[#403A49] text-white"
+                  : "border border-[#403A49] bg-[#faf6f1] text-[#403A49]"
               }`}
             >
               {item.label}
@@ -197,14 +197,14 @@ export default function ProductsPage() {
               <Image src={item.image} alt="" fill className="object-cover" sizes="92px" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-[15px] font-bold leading-snug text-[#3d2b1f]">{item.title}</h3>
-              <p className="mt-1 text-[12px] leading-relaxed text-[#8b6f5c]">{item.description}</p>
-              <p className="mt-1.5 text-[11px] text-[#8b6f5c]">{item.features.join(" · ")}</p>
+              <h3 className="text-[15px] font-bold leading-snug text-[#403A49]">{item.title}</h3>
+              <p className="mt-1 text-[12px] leading-relaxed text-[#6B6570]">{item.description}</p>
+              <p className="mt-1.5 text-[11px] text-[#6B6570]">{item.features.join(" · ")}</p>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-[14px] font-bold text-[#5c3d2e]">{item.price}</span>
                 <Link
                   href={item.href}
-                  className="inline-flex h-8 items-center rounded-full border border-[#d4c8ba] bg-white px-3 text-[12px] font-medium text-[#5c3d2e]"
+                  className="inline-flex h-8 items-center rounded-full border border-[#403A49] bg-[#fffdf9] px-3 text-[12px] font-semibold text-[#403A49]"
                 >
                   자세히 보기 <ChevronRight className="h-3.5 w-3.5" />
                 </Link>
@@ -216,8 +216,8 @@ export default function ProductsPage() {
 
       {tab === "saju-song" ? (
         <section className="px-4 pb-6">
-          <h3 className="text-[17px] font-bold text-[#3d2b1f]">사주 인생곡 제작 과정</h3>
-          <p className="mt-1 text-[13px] text-[#8b6f5c]">
+          <h3 className="text-[17px] font-bold text-[#403A49]">사주 인생곡 제작 과정</h3>
+          <p className="mt-1 text-[13px] text-[#6B6570]">
             상담은 하지 않습니다. 사주 정보와 이야기로 노래를 만듭니다.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -228,8 +228,8 @@ export default function ProductsPage() {
         </section>
       ) : tab === "story" || tab === "premium" ? (
         <section className="px-4 pb-6">
-          <h3 className="text-[17px] font-bold text-[#3d2b1f]">인생곡 제작 과정</h3>
-          <p className="mt-1 text-[13px] text-[#8b6f5c]">
+          <h3 className="text-[17px] font-bold text-[#403A49]">인생곡 제작 과정</h3>
+          <p className="mt-1 text-[13px] text-[#6B6570]">
             당신의 이야기가 노래가 되는 과정입니다. 기본 가사 수정 1회가 포함됩니다.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -242,17 +242,17 @@ export default function ProductsPage() {
 
       <section className="px-4 pb-8">
         <div className="rounded-2xl bg-[#f5efe6] px-4 py-5">
-          <p className="text-[15px] font-bold leading-snug text-[#3d2b1f]">
+          <p className="text-[15px] font-bold leading-snug text-[#403A49]">
             어떤 상품이 나에게 맞을지
             <br />
             고민되시나요?
           </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-2 text-[13px] leading-relaxed text-[#6B6570]">
             무료 상담을 통해 자세히 안내해드릴게요.
           </p>
           <Link
             href="/apply/free-consult"
-            className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#5c3d2e] px-5 text-[14px] font-semibold text-white"
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#403A49] px-5 text-[14px] font-semibold text-white"
           >
             무료 상담 신청 <ChevronRight className="ml-0.5 h-4 w-4" />
           </Link>

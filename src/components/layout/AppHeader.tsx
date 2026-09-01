@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import Link from "next/link";
-import { Menu, Bell, ChevronLeft, Share2 } from "lucide-react";
+import { Menu, Bell, ChevronLeft, Share2, User } from "lucide-react";
+import { fetchMe } from "@/lib/client/api";
 
 async function copyLink(url: string): Promise<boolean> {
   try {
@@ -36,29 +38,55 @@ interface AppHeaderProps {
   title?: string;
   subtitle?: string;
   backHref?: string;
+  /** 단계별 화면에서 한 단계만 뒤로 갈 때 사용한다. backHref 대신 버튼으로 그린다. */
+  onBack?: () => void;
   showMenu?: boolean;
   showBell?: boolean;
+  /** 사람 아이콘. 홈에서만 기본으로 보여준다. */
+  showUser?: boolean;
   showActions?: boolean;
   compact?: boolean;
+  /** 헤더 배경. 기본값은 기존 아이보리이며, 넘기지 않은 화면은 그대로 유지된다. */
+  bgClass?: string;
 }
 
 export function AppHeader({
   variant = "home",
   title,
-  subtitle = "당신의 이야기를 노래로",
+  subtitle = "사주로 이야기하고, 노래로 남기다",
   backHref,
+  onBack,
   showMenu = variant === "home",
   showBell = variant === "home",
+  showUser = variant === "home",
   showActions = variant === "page" || variant === "apply",
   compact = false,
+  bgClass = "bg-[#fffdf9]/95",
 }: AppHeaderProps) {
   const [mounted, setMounted] = useState(false);
+  // 로그인 여부는 기존 세션 판별(GET /api/app 의 user)을 그대로 사용한다.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!showUser) return;
+    let alive = true;
+    fetchMe()
+      .then((data) => {
+        if (alive) setLoggedIn(Boolean(data.user));
+      })
+      .catch(() => {
+        if (alive) setLoggedIn(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [showUser]);
 
   const pageUrl = () => window.location.href;
   const pageTitle = () => document.title;
@@ -106,15 +134,28 @@ export function AppHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#ebe3d8] bg-[#fffdf9]/95 backdrop-blur-sm">
-      <div className={`flex items-center justify-between px-4 ${compact ? "h-12" : "h-[52px]"}`}>
-        <div className="flex w-10 items-center justify-start">
-          {backHref ? (
-            <Link href={backHref} className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="뒤로">
+    <header className={`sticky top-0 z-40 border-b border-[#ebe3d8] ${bgClass} backdrop-blur-sm`}>
+      <div
+        className={`flex items-center justify-between px-4 ${
+          compact ? "h-12" : variant === "home" ? "h-[62px]" : "h-[52px]"
+        }`}
+      >
+        <div className={`flex ${showUser ? "w-[76px]" : "w-10"} shrink-0 items-center justify-start`}>
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
+              aria-label="뒤로"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          ) : backHref ? (
+            <Link href={backHref} className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="뒤로">
               <ChevronLeft className="h-5 w-5" />
             </Link>
           ) : showMenu ? (
-            <Link href="/menu" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
+            <Link href="/menu" className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="메뉴">
               <Menu className="h-5 w-5" />
             </Link>
           ) : (
@@ -122,30 +163,62 @@ export function AppHeader({
           )}
         </div>
 
-        <div className="flex flex-1 flex-col items-center text-center">
-          <h1 className={`font-bold text-[#3d2b1f] ${compact ? "text-sm" : "text-[15px]"}`}>
-            {variant === "home" ? "인생스토리" : title}
-          </h1>
-          <p className={`text-[#8b6f5c] ${compact ? "text-[10px]" : "text-[10px]"}`}>{subtitle}</p>
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center">
+          {variant === "home" ? (
+            <span className="flex items-center justify-center gap-0.5">
+              <Image
+                src="/images/symbol-sajulog-compass.png"
+                alt=""
+                width={72}
+                height={48}
+                priority
+                className="h-[22px] w-auto object-contain"
+              />
+              <h1 className="text-[18px] font-bold leading-none text-[#403A49]">사주로그</h1>
+            </span>
+          ) : (
+            <h1 className={`font-bold text-[#403A49] ${compact ? "text-sm" : "text-[15px]"}`}>
+              {title}
+            </h1>
+          )}
+          <p
+            className={`text-[#6B6570] ${
+              compact ? "text-[10px]" : variant === "home" ? "mt-1 text-[11px]" : "text-[10px]"
+            }`}
+          >
+            {subtitle}
+          </p>
         </div>
 
-        <div className="flex w-10 items-center justify-end gap-1">
+        <div className={`flex ${showUser ? "w-[76px]" : "w-10"} shrink-0 items-center justify-end gap-1`}>
           {showBell && (
-            <Link href="/my/notifications" className="rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
+            <Link href="/my/notifications" className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
               <Bell className="h-5 w-5" />
             </Link>
           )}
+          {showUser &&
+            (loggedIn === null ? (
+              <span className="block h-9 w-9 shrink-0" aria-hidden />
+            ) : (
+              <Link
+                href={loggedIn ? "/my" : "/login"}
+                className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
+                aria-label={loggedIn ? "내 정보" : "로그인"}
+              >
+                <User className="h-5 w-5" />
+              </Link>
+            ))}
           {showActions && (
             <button
               type="button"
               onClick={() => setShareOpen(true)}
-              className="rounded-lg p-2 text-brown hover:bg-ivory"
+              className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
               aria-label="공유"
             >
               <Share2 className="h-4 w-4" />
             </button>
           )}
-          {!showBell && !showActions && <span className="w-5" />}
+          {!showBell && !showActions && !showUser && <span className="w-5" />}
         </div>
       </div>
       {shareMessage ? (
@@ -165,7 +238,7 @@ export function AppHeader({
                   onClick={() => setShareOpen(false)}
                 />
                 <div className="relative w-full rounded-t-2xl bg-[#fffdf9] px-4 pb-24 pt-5">
-                  <p className="text-center text-[18px] font-bold text-[#3d2b1f]">공유하기</p>
+                  <p className="text-center text-[18px] font-bold text-[#403A49]">공유하기</p>
                   <div className="mt-4 space-y-3">
                     <button
                       type="button"
@@ -192,7 +265,7 @@ export function AppHeader({
                   <button
                     type="button"
                     onClick={() => setShareOpen(false)}
-                    className="mt-4 flex h-12 w-full items-center justify-center text-[16px] font-medium text-[#8b6f5c]"
+                    className="mt-4 flex h-12 w-full items-center justify-center text-[16px] font-medium text-[#6B6570]"
                   >
                     닫기
                   </button>

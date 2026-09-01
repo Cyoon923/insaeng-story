@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
-import { CONSULT_STEPS } from "@/components/apply/ApplyStepper";
+import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { getDraft, saveDraft } from "@/lib/client/api";
 
 const CONTENT_MAX = 500;
@@ -141,26 +141,35 @@ export default function ConsultationStep3Page() {
     recognition.start();
   };
 
+  // 상담 내용은 화면에 필수(*)로 표시되어 있다. 상담 방법은 기본값이 늘 선택되어 있다.
+  const validateNext = () => {
+    if (!content.trim()) return "가장 궁금한 내용을 적어 주세요.";
+    return "";
+  };
+
   return (
     <ApplyLayout
       step={3}
-      title="1:1 사주상담 시작하기"
+      title="사주 분석 시작하기"
       basePath="/apply/consultation"
       steps={CONSULT_STEPS}
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
       prevHref="/apply/consultation/2"
       nextHref="/apply/consultation/4"
+      validateNext={validateNext}
       heroText={"가장 궁금한 내용을\n편하게 적어주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">3. 상담 내용</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">3. 상담 내용</h2>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
         <div className="flex items-center justify-between">
-          <p className="text-[16px] font-bold text-[#3d2b1f]">선택한 상담 정보</p>
-          <Link href="/apply/consultation/1" className="text-[13px] font-medium text-[#5c3d2e]">
+          <p className="text-[16px] font-bold text-[#403A49]">선택한 상담 정보</p>
+          <Link href="/apply/consultation/1" className="text-[13px] font-medium text-[#403A49]">
             변경하기
           </Link>
         </div>
-        <ul className="mt-3 space-y-1 text-[14px] leading-relaxed text-[#5c3d2e]">
+        <ul className="mt-3 space-y-1 text-[14px] leading-relaxed text-[#403A49]">
           <li>{summary.datetime}</li>
           <li>{summary.teacher}</li>
           <li>{summary.purpose}</li>
@@ -169,10 +178,10 @@ export default function ConsultationStep3Page() {
       </div>
 
       <div className="mt-6">
-        <label className="mb-2 block text-[16px] font-semibold text-[#3d2b1f]">
+        <label className="mb-2 block text-[16px] font-semibold text-[#403A49]">
           가장 궁금한 내용을 적어주세요 <span className="text-red-500">*</span>
         </label>
-        <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+        <p className="mb-2 text-[14px] leading-relaxed text-[#6B6570]">
           글로 쓰거나, 말로 하셔도 됩니다. 말하는 동안 글자가 바로 나타납니다.
         </p>
         <textarea
@@ -184,31 +193,31 @@ export default function ConsultationStep3Page() {
             persist(e.target.value, method);
           }}
           placeholder="지금 가장 고민되는 부분이나 궁금한 내용을 자세히 적어주시면 더 정확한 상담이 가능합니다."
-          className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#5c3d2e]"
+          className="w-full resize-none rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] outline-none focus:border-[#403A49]"
         />
         <button
           type="button"
           onClick={startListening}
           className={`mt-2 flex h-12 w-full items-center justify-center rounded-xl text-[16px] font-semibold ${
             listening
-              ? "bg-[#5c3d2e] text-white"
-              : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+              ? "bg-[#403A49] text-white"
+              : "border border-[#d4c8ba] bg-white text-[#403A49]"
           }`}
         >
           {listening ? "듣고 있어요. 다시 누르면 멈춰요" : "말로 말하기"}
         </button>
         {listening ? (
-          <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#5c3d2e]">
+          <p className="mt-2 rounded-xl bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#403A49]">
             지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
           </p>
         ) : null}
-        <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+        <p className="mt-1 text-right text-[12px] text-[#6B6570]">
           {shownContent.length} / {CONTENT_MAX}
         </p>
       </div>
 
       <div className="mt-6">
-        <p className="mb-2 text-[16px] font-semibold text-[#3d2b1f]">
+        <p className="mb-2 text-[16px] font-semibold text-[#403A49]">
           상담 방법 <span className="text-red-500">*</span>
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -219,7 +228,7 @@ export default function ConsultationStep3Page() {
               persist(content, "kakao");
             }}
             className={`h-14 rounded-xl text-[15px] font-semibold ${
-              method === "kakao" ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+              method === "kakao" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"
             }`}
           >
             카카오톡 상담
@@ -231,7 +240,7 @@ export default function ConsultationStep3Page() {
               persist(content, "phone");
             }}
             className={`h-14 rounded-xl text-[15px] font-semibold ${
-              method === "phone" ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+              method === "phone" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"
             }`}
           >
             전화 상담

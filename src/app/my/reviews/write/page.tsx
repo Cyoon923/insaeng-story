@@ -10,7 +10,7 @@ import { fetchMe, postApp } from "@/lib/client/api";
 import type { Consultation, Order } from "@/lib/types/app";
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]";
 
 const MESSAGE_MAX = 300;
 
@@ -129,25 +129,25 @@ function ReviewWriteForm() {
       <AppHeader variant="page" title="후기 작성" backHref="/my" />
 
       {!loaded ? (
-        <p className="px-4 py-10 text-center text-[15px] text-[#8b6f5c]">불러오는 중...</p>
+        <p className="px-4 py-10 text-center text-[15px] text-[#6B6570]">불러오는 중...</p>
       ) : !loggedIn ? (
         <section className="px-4 py-10 text-center">
-          <p className="text-[16px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-[16px] leading-relaxed text-[#6B6570]">
             로그인하면
             <br />
             받으신 상품의 후기를 남길 수 있습니다.
           </p>
           <Link
             href="/login"
-            className="mt-6 inline-flex h-14 items-center justify-center rounded-xl bg-[#5c3d2e] px-8 text-[17px] font-semibold text-white"
+            className="mt-6 inline-flex h-14 items-center justify-center rounded-xl bg-[#403A49] px-8 text-[17px] font-semibold text-white"
           >
             로그인하기
           </Link>
         </section>
       ) : done ? (
         <section className="px-4 py-10 text-center">
-          <p className="text-[22px] font-bold text-[#3d2b1f]">적어 주셔서 감사합니다</p>
-          <p className="mt-3 text-[16px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-[22px] font-bold text-[#403A49]">적어 주셔서 감사합니다</p>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
             후기를 잘 받아 두었습니다.
             <br />
             확인 후 화면에 보여 드리겠습니다.
@@ -155,8 +155,8 @@ function ReviewWriteForm() {
         </section>
       ) : targets.length === 0 ? (
         <section className="px-4 py-10 text-center">
-          <p className="text-[20px] font-bold text-[#3d2b1f]">아직 후기를 남길 수 없습니다</p>
-          <p className="mt-3 text-[16px] leading-relaxed text-[#8b6f5c]">
+          <p className="text-[20px] font-bold text-[#403A49]">아직 후기를 남길 수 없습니다</p>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
             결제하고 상품을 받으신 뒤,
             <br />
             또는 사주상담이 끝난 뒤에
@@ -166,17 +166,17 @@ function ReviewWriteForm() {
         </section>
       ) : (
         <section className="px-4 py-5">
-          <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">후기 작성</h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
+          <h2 className="font-serif text-[24px] font-bold text-[#403A49]">후기 작성</h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
             받으신 상품에 대한 마음을 남겨 주세요.
           </p>
 
-          <p className="mt-6 text-[16px] font-bold text-[#3d2b1f]">받으신 상품</p>
+          <p className="mt-6 text-[16px] font-bold text-[#403A49]">받으신 상품</p>
           {targets.length === 1 ? (
             <div className="mt-3 rounded-xl bg-white px-4 py-4 ring-1 ring-[#ebe3d8]">
-              <p className="text-[16px] font-semibold text-[#3d2b1f]">{selected?.title}</p>
+              <p className="text-[16px] font-semibold text-[#403A49]">{selected?.title}</p>
               {selected?.subtitle ? (
-                <p className="mt-1 text-[14px] text-[#8b6f5c]">{selected.subtitle}</p>
+                <p className="mt-1 text-[14px] text-[#6B6570]">{selected.subtitle}</p>
               ) : null}
             </div>
           ) : (
@@ -188,14 +188,14 @@ function ReviewWriteForm() {
                   onClick={() => setSelectedKey(item.key)}
                   className={`flex min-h-16 w-full flex-col items-start justify-center rounded-xl px-4 py-3 text-left ${
                     selectedKey === item.key
-                      ? "bg-[#5c3d2e] text-white"
-                      : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                      ? "bg-[#403A49] text-white"
+                      : "border border-[#d4c8ba] bg-white text-[#403A49]"
                   }`}
                 >
                   <span className="text-[16px] font-semibold">{item.title}</span>
                   <span
                     className={`mt-0.5 text-[13px] ${
-                      selectedKey === item.key ? "text-white/80" : "text-[#8b6f5c]"
+                      selectedKey === item.key ? "text-white/80" : "text-[#6B6570]"
                     }`}
                   >
                     {item.subtitle}
@@ -205,7 +205,7 @@ function ReviewWriteForm() {
             </div>
           )}
 
-          <label className="mt-6 block text-[16px] font-bold text-[#3d2b1f]" htmlFor="review-name">
+          <label className="mt-6 block text-[16px] font-bold text-[#403A49]" htmlFor="review-name">
             이름
           </label>
           <input
@@ -216,7 +216,7 @@ function ReviewWriteForm() {
             placeholder="이름"
           />
 
-          <p className="mt-6 text-[16px] font-bold text-[#3d2b1f]">별점</p>
+          <p className="mt-6 text-[16px] font-bold text-[#403A49]">별점</p>
           <div className="mt-2 flex gap-2">
             {Array.from({ length: 5 }).map((_, index) => {
               const value = index + 1;
@@ -239,7 +239,7 @@ function ReviewWriteForm() {
             })}
           </div>
 
-          <label className="mt-6 block text-[16px] font-bold text-[#3d2b1f]" htmlFor="review-text">
+          <label className="mt-6 block text-[16px] font-bold text-[#403A49]" htmlFor="review-text">
             후기
           </label>
           <textarea
@@ -249,9 +249,9 @@ function ReviewWriteForm() {
             maxLength={MESSAGE_MAX}
             rows={6}
             placeholder="가장 좋았던 점을 적어 주세요."
-            className="mt-2 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] leading-relaxed outline-none focus:border-[#5c3d2e]"
+            className="mt-2 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-[16px] leading-relaxed outline-none focus:border-[#403A49]"
           />
-          <p className="mt-1 text-right text-[13px] text-[#8b6f5c]">
+          <p className="mt-1 text-right text-[13px] text-[#6B6570]">
             {text.length}/{MESSAGE_MAX}
           </p>
 
@@ -261,7 +261,7 @@ function ReviewWriteForm() {
             type="button"
             onClick={submit}
             disabled={saving}
-            className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[18px] font-semibold text-white disabled:opacity-60"
+            className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-semibold text-white disabled:opacity-60"
           >
             {saving ? "저장하는 중..." : "후기 남기기"}
           </button>

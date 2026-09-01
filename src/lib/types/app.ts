@@ -16,6 +16,10 @@ export interface User {
   bloodType: string;
   points: number;
   createdAt: string;
+  /** scrypt 해시(`salt:hash`). 가입 시에만 설정되며 기존 회원에는 없다. */
+  passwordHash?: string;
+  /** 마케팅 정보 수신 동의(선택 항목). */
+  marketingAgreed?: boolean;
 }
 
 export interface Order {
@@ -46,7 +50,8 @@ export interface Consultation {
 
 export interface Inquiry {
   id: string;
-  userId: string;
+  /** 비회원 문의도 접수할 수 있어 회원 문의에만 채워진다. */
+  userId?: string;
   name: string;
   phone: string;
   method: string;

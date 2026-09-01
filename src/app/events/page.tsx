@@ -3,14 +3,21 @@ import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 
-export default function EventsPage() {
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
+  const backHref = from === "menu" ? "/menu" : from === "my" ? "/my" : "/";
+
   return (
     <MobileShell>
-      <AppHeader variant="page" title="이벤트" backHref="/" />
+      <AppHeader variant="page" title="이벤트" backHref={backHref} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">이벤트</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">이벤트</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
           지금 진행 중인 이벤트입니다.
         </p>
       </section>
@@ -21,23 +28,23 @@ export default function EventsPage() {
         </div>
         <div className="p-4">
           <p className="text-[13px] font-medium text-[#5c3d2e]">오픈 기념 · 9월 30일까지</p>
-          <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#3d2b1f]">
+          <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#403A49]">
             사연을 보내 주세요
           </h3>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
-            인생스토리 오픈을 기념해 사연을 받습니다. 보내 주신 사연을 살펴보고, 추천을 통해 5분을
+          <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
+            사주로그 오픈을 기념해 사연을 받습니다. 보내 주신 사연을 살펴보고, 추천을 통해 5분을
             선정해 프리미엄 인생곡을 만들어 드립니다.
           </p>
 
           <div className="mt-5 rounded-2xl bg-[#f5efe6] p-4">
-            <p className="text-[16px] font-bold text-[#3d2b1f]">선정되면 받는 것</p>
+            <p className="text-[16px] font-bold text-[#403A49]">선정되면 받는 것</p>
             <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
               프리미엄 인생곡 1곡. 사주상담, 스토리상담, 노래, 뮤직비디오가 포함됩니다.
             </p>
           </div>
 
           <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
-            <p className="text-[16px] font-bold text-[#3d2b1f]">이렇게 참여하세요</p>
+            <p className="text-[16px] font-bold text-[#403A49]">이렇게 참여하세요</p>
             <ol className="mt-3 space-y-2 text-[15px] leading-relaxed text-[#5c3d2e]">
               <li>1. 아래 버튼으로 사연을 보냅니다</li>
               <li>2. 9월 30일까지 사연을 받습니다</li>
@@ -48,7 +55,7 @@ export default function EventsPage() {
 
           <Link
             href="/apply/event?type=story"
-            className="mt-5 flex h-14 items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
+            className="mt-5 flex h-14 items-center justify-center rounded-xl bg-[#403A49] text-[17px] font-semibold text-white"
           >
             사연 보내기
           </Link>
@@ -64,16 +71,16 @@ export default function EventsPage() {
         </div>
         <div className="p-4">
           <p className="text-[13px] font-medium text-[#5c3d2e]">구독 이벤트 · 9월 30일까지</p>
-          <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#3d2b1f]">
+          <h3 className="mt-1 text-[20px] font-bold leading-snug text-[#403A49]">
             인생곡 창작소 구독 이벤트
           </h3>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+          <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
             유튜브 인생곡 창작소를 구독하고, 좋아요와 댓글을 남겨 주세요. 인생의 포춘타임을 알려
             드립니다.
           </p>
 
           <div className="mt-5 rounded-2xl bg-[#f5efe6] p-4">
-            <p className="text-[16px] font-bold text-[#3d2b1f]">이렇게 참여하세요</p>
+            <p className="text-[16px] font-bold text-[#403A49]">이렇게 참여하세요</p>
             <ol className="mt-3 space-y-2 text-[15px] leading-relaxed text-[#5c3d2e]">
               <li>1. 인생곡 창작소 유튜브를 구독합니다</li>
               <li>2. 영상에 좋아요를 누릅니다</li>
@@ -86,13 +93,13 @@ export default function EventsPage() {
             href="https://www.youtube.com/@Asha-Music-8"
             target="_blank"
             rel="noreferrer"
-            className="mt-5 flex h-14 items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
+            className="mt-5 flex h-14 items-center justify-center rounded-xl bg-[#403A49] text-[17px] font-semibold text-white"
           >
             유튜브 바로가기
           </a>
           <Link
             href="/apply/event?type=subscribe"
-            className="mt-3 flex h-14 items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+            className="mt-3 flex h-14 items-center justify-center rounded-xl border border-[#403A49] bg-[#fffdf9] text-[17px] font-semibold text-[#403A49]"
           >
             이벤트 신청
           </Link>

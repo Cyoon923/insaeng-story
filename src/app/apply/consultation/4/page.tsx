@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { PaySubmit } from "@/components/apply/PaySubmit";
-import { CONSULT_STEPS } from "@/components/apply/ApplyStepper";
+import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice } from "@/lib/constants/products";
 import { getDraft } from "@/lib/client/api";
 
@@ -35,17 +35,19 @@ export default function ConsultationStep4Page() {
   return (
     <ApplyLayout
       step={4}
-      title="1:1 사주상담 시작하기"
+      title="사주 분석 시작하기"
       basePath="/apply/consultation"
       steps={CONSULT_STEPS}
+      stepperTheme={CHARCOAL_STEPPER}
+      shellBg="bg-[#FFFFFF]"
       prevHref="/apply/consultation/3"
       hideNav
       heroText={"선택한 상담 내용을 확인하고\n결제를 진행해 주세요"}
     >
-      <h2 className="font-serif text-[22px] font-bold text-[#3d2b1f]">4. 확인 및 결제</h2>
+      <h2 className="text-[22px] font-bold text-[#403A49]">4. 확인 및 결제</h2>
 
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <h3 className="text-[16px] font-bold text-[#3d2b1f]">상담 정보</h3>
+        <h3 className="text-[16px] font-bold text-[#403A49]">상담 정보</h3>
         <div className="mt-3 space-y-2 text-[14px]">
           <Row label="본인 상담 정보" value={selfInfo} href="/apply/consultation/2" />
           <Row label="선생님" value={draft.teacher || "선택 없음"} href="/apply/consultation/1" />
@@ -62,28 +64,28 @@ export default function ConsultationStep4Page() {
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
         <div className="flex justify-between text-[14px]">
-          <span className="text-[#8b6f5c]">1:1 사주상담</span>
+          <span className="text-[#6B6570]">1:1 사주상담</span>
           <span>{formatPrice(BASE_PRICE)}</span>
         </div>
         {hasReport ? (
           <div className="mt-2 flex justify-between text-[14px]">
-            <span className="text-[#8b6f5c]">상담 기록 요약 리포트</span>
+            <span className="text-[#6B6570]">상담 기록 요약 리포트</span>
             <span>+ {formatPrice(REPORT_PRICE)}</span>
           </div>
         ) : null}
         {hasExtra ? (
           <div className="mt-2 flex justify-between text-[14px]">
-            <span className="text-[#8b6f5c]">추가 인원 1명 (궁합)</span>
+            <span className="text-[#6B6570]">추가 인원 1명 (궁합)</span>
             <span>+ {formatPrice(EXTRA_PRICE)}</span>
           </div>
         ) : null}
-        <p className="mt-4 text-center text-[13px] text-[#8b6f5c]">최종 금액</p>
-        <p className="text-center text-[24px] font-bold text-[#5c3d2e]">{formatPrice(finalPrice)}</p>
+        <p className="mt-4 text-center text-[13px] text-[#6B6570]">최종 금액</p>
+        <p className="text-center text-[24px] font-bold text-[#403A49]">{formatPrice(finalPrice)}</p>
       </div>
 
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-        <p className="text-[15px] font-bold text-[#3d2b1f]">취소·환불 안내</p>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+        <p className="text-[15px] font-bold text-[#403A49]">취소·환불 안내</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
           상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다. 상담 시간이 지난 뒤에는 환불이 어려울 수
           있습니다.
         </p>
@@ -92,10 +94,10 @@ export default function ConsultationStep4Page() {
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 h-5 w-5 accent-[#5c3d2e]"
+            className="mt-1 h-5 w-5 accent-[#403A49]"
           />
           <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
-            <Link href="/terms" className="font-medium text-[#5c3d2e] underline underline-offset-2">
+            <Link href="/terms" className="font-medium text-[#403A49] underline underline-offset-2">
               이용약관
             </Link>
             의 상담 이용 안내 및 취소·환불 규정에 동의합니다. [필수]
@@ -104,7 +106,7 @@ export default function ConsultationStep4Page() {
       </div>
 
       <div className="mt-5">
-        <h3 className="mb-3 text-[16px] font-bold text-[#3d2b1f]">결제수단</h3>
+        <h3 className="mb-3 text-[16px] font-bold text-[#403A49]">결제수단</h3>
         <div className="grid grid-cols-2 gap-2">
           {PAYMENT_METHODS.map((method) => (
             <button
@@ -112,7 +114,7 @@ export default function ConsultationStep4Page() {
               type="button"
               onClick={() => setPayment(method)}
               className={`h-12 rounded-xl text-[14px] font-medium ${
-                payment === method ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                payment === method ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
               }`}
             >
               {method}
@@ -141,7 +143,7 @@ export default function ConsultationStep4Page() {
         <button
           type="button"
           disabled
-          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white opacity-40"
+          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white opacity-40"
         >
           {formatPrice(finalPrice)} 결제하기
         </button>
@@ -154,10 +156,10 @@ function Row({ label, value, href }: { label: string; value: string; href: strin
   return (
     <div className="flex items-start justify-between border-b border-[#ebe3d8] py-2 last:border-0">
       <div className="min-w-0 pr-3">
-        <p className="text-[13px] text-[#8b6f5c]">{label}</p>
+        <p className="text-[13px] text-[#6B6570]">{label}</p>
         <p className="text-[15px] font-medium leading-snug text-[#3d2b1f]">{value}</p>
       </div>
-      <Link href={href} className="shrink-0 text-[13px] text-[#5c3d2e]">
+      <Link href={href} className="shrink-0 text-[13px] text-[#403A49]">
         수정
       </Link>
     </div>

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local app data
 /data/app-data.json
+
+# temporary QA files
+/.tmp/

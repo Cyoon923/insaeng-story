@@ -1,46 +1,191 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
 
-type AuthChannel = "phone" | "email";
+/**
+ * 신규 회원 전용 흐름. 휴대폰 SMS 인증으로 시작하고,
+ * 인증 결과로 받은 단기 토큰(signupToken)으로 가입을 마친다.
+ * (기존처럼 phone/token 쿼리를 들고 들어오면 약관 단계부터 시작한다.)
+ */
+type Step = "phone" | "terms" | "profile" | "done";
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+  "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#403A49]";
 
-export default function SignupPage() {
+const TODAY = new Date().toISOString().slice(0, 10);
+
+/**
+ * 생년월일은 YYYY-MM-DD 로만 저장한다.
+ * 브라우저 날짜 입력은 연도를 4자리보다 길게 받아 줄 수 있어, 실제 값에서 잘라 준다.
+ */
+function clampBirth(value: string): string {
+  if (!value) return "";
+  const [year = "", month = "", day = ""] = value.replace(/^\+/, "").split("-");
+  const yyyy = year.replace(/\D/g, "").slice(0, 4);
+  const mm = month.replace(/\D/g, "").slice(0, 2);
+  const dd = day.replace(/\D/g, "").slice(0, 2);
+  if (!yyyy || !mm || !dd) return "";
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+const EMAIL_DOMAINS = ["naver.com", "gmail.com", "daum.net", "kakao.com", "직접입력"];
+
+function AgreeRow({
+  checked,
+  onChange,
+  label,
+  required,
+  href,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  required?: boolean;
+  href?: string;
+}) {
+  return (
+    <label className="flex items-start gap-3 py-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-6 w-6 shrink-0 accent-[#403A49]"
+      />
+      <span className="flex-1 text-[16px] leading-relaxed text-[#3d2b1f]">
+        <span className={required ? "font-semibold" : ""}>{label}</span>{" "}
+        <span className={required ? "text-[#403A49]" : "text-[#6B6570]"}>
+          {required ? "(필수)" : "(선택)"}
+        </span>
+      </span>
+      {href ? (
+        <Link
+          href={href}
+          className="shrink-0 text-[14px] text-[#6B6570] underline underline-offset-2"
+        >
+          보기
+        </Link>
+      ) : null}
+    </label>
+  );
+}
+
+/**
+ * 약관 상세("보기")로 잠깐 나갔다가 돌아왔을 때 약관 화면과 체크 상태를 되살리기 위한 임시 보관.
+ * 가입 단계 규칙 자체는 그대로이고, 화면을 떠났다 돌아오는 경우에만 사용한다.
+ */
+const RESUME_KEY = "insaeng-signup-resume";
+
+type ResumeState = {
+  phone: string;
+  signupToken: string;
+  agreeTerms: boolean;
+  agreePrivacy: boolean;
+  agreeMarketing: boolean;
+};
+
+function readResume(): ResumeState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(RESUME_KEY);
+    return raw ? (JSON.parse(raw) as ResumeState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeResume(state: ResumeState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(RESUME_KEY, JSON.stringify(state));
+  } catch {
+    // 저장에 실패해도 가입 진행에는 영향을 주지 않는다.
+  }
+}
+
+function SignupFlow() {
   const router = useRouter();
-  const [channel, setChannel] = useState<AuthChannel>("phone");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const params = useSearchParams();
+  const paramPhone = params.get("phone") ?? "";
+  const paramToken = params.get("token") ?? "";
+
+  const resumed = useState(() => readResume())[0];
+
+  const [phone, setPhone] = useState(paramPhone || resumed?.phone || "");
+  const [signupToken, setSignupToken] = useState(paramToken || resumed?.signupToken || "");
   const [code, setCode] = useState("");
   const [sentCode, setSentCode] = useState("");
-  const [agreedGuide, setAgreedGuide] = useState(false);
-  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+
+  const [step, setStep] = useState<Step>(
+    paramPhone && paramToken ? "terms" : resumed?.signupToken ? "terms" : "phone",
+  );
+  const [agreeTerms, setAgreeTerms] = useState(resumed?.agreeTerms ?? false);
+  const [agreePrivacy, setAgreePrivacy] = useState(resumed?.agreePrivacy ?? false);
+  const [agreeMarketing, setAgreeMarketing] = useState(resumed?.agreeMarketing ?? false);
+
+  const [name, setName] = useState("");
+  const [birth, setBirth] = useState("");
+  const [emailLocal, setEmailLocal] = useState("");
+  const [emailDomain, setEmailDomain] = useState(EMAIL_DOMAINS[0]);
+  const [customDomain, setCustomDomain] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const switchChannel = (next: AuthChannel) => {
-    setChannel(next);
-    setCode("");
-    setSentCode("");
-    setError("");
+  const allAgreed = agreeTerms && agreePrivacy && agreeMarketing;
+  const requiredAgreed = agreeTerms && agreePrivacy;
+
+  const toggleAll = (next: boolean) => {
+    setAgreeTerms(next);
+    setAgreePrivacy(next);
+    setAgreeMarketing(next);
   };
+
+  const domain = emailDomain === "직접입력" ? customDomain.trim() : emailDomain;
+  const email = emailLocal.trim() && domain ? `${emailLocal.trim()}@${domain}` : "";
+
+  useEffect(() => {
+    if (!signupToken) return;
+    writeResume({ phone, signupToken, agreeTerms, agreePrivacy, agreeMarketing });
+  }, [phone, signupToken, agreeTerms, agreePrivacy, agreeMarketing]);
+
+  // 뒤로가기는 항상 직전 단계로만 이동한다. 입력값은 그대로 둔다.
+  const goBack = () => {
+    if (step === "done") {
+      setStep("profile");
+      return;
+    }
+    if (step === "profile") {
+      setStep("terms");
+      return;
+    }
+    if (step === "terms") {
+      setStep("phone");
+      return;
+    }
+    // 첫 단계에서는 직전에 보던 화면으로, 없으면 로그인으로 간다.
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/login");
+  };
+
+  const header = (
+    <AppHeader variant="page" title="회원가입" showActions={false} onBack={goBack} />
+  );
 
   const sendCode = async () => {
     setError("");
     setLoading(true);
     try {
-      const payload =
-        channel === "phone"
-          ? { action: "sendCode", channel: "phone", phone }
-          : { action: "sendCode", channel: "email", email };
-      const result = await postApp(payload);
+      const result = await postApp({ action: "sendCode", channel: "phone", phone });
       setSentCode(result.code);
     } catch (err) {
       setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
@@ -49,103 +194,82 @@ export default function SignupPage() {
     }
   };
 
-  const signup = async () => {
-    if (!name.trim()) {
-      setError("이름을 입력해 주세요.");
-      return;
-    }
-    if (!agreedGuide || !agreedPrivacy) {
-      setError("이용약관과 개인정보 처리방침에 동의해 주세요.");
-      return;
-    }
+  const verify = async () => {
     setError("");
+    // 뒤로 왔다가 다시 진행하는 경우: 이미 받은 토큰을 그대로 쓴다.
+    if (signupToken) {
+      setStep("terms");
+      return;
+    }
     setLoading(true);
     try {
-      const loginPayload =
-        channel === "phone"
-          ? { action: "login", channel: "phone", phone, code }
-          : { action: "login", channel: "email", email, code };
-      await postApp(loginPayload);
-      await postApp({
-        action: "updateProfile",
-        profile:
-          channel === "phone"
-            ? { name: name.trim(), phone }
-            : { name: name.trim(), email },
-      });
-      router.push("/my");
-      router.refresh();
+      const result = await postApp({ action: "verifyCode", purpose: "signup", phone, code });
+      setSignupToken(result.signupToken);
+      setStep("terms");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "회원가입에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "인증에 실패했습니다.");
     } finally {
       setLoading(false);
     }
   };
 
-  const kakao = async () => {
-    setError("카카오 회원가입은 연결 준비 중입니다. 지금은 연락처로 가입해 주세요.");
+  const submit = async () => {
+    setError("");
+    if (!name.trim()) {
+      setError("이름을 입력해 주세요.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("비밀번호는 6자 이상으로 입력해 주세요.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError("비밀번호가 서로 다릅니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await postApp({
+        action: "signupComplete",
+        phone,
+        signupToken,
+        name: name.trim(),
+        birth,
+        email,
+        password,
+        marketingAgreed: agreeMarketing,
+      });
+      try {
+        window.sessionStorage.removeItem(RESUME_KEY);
+      } catch {
+        // 무시해도 되는 정리 작업이다.
+      }
+      setStep("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "가입에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const naver = async () => {
-    setError("네이버 회원가입은 연결 준비 중입니다. 지금은 연락처로 가입해 주세요.");
-  };
+  // 1단계: 휴대폰 SMS 인증. 인증을 마쳐야 약관 단계로 넘어간다.
+  if (step === "phone" || !signupToken) {
+    return (
+      <>
+        {header}
+        <section className="px-4 pb-2 pt-6">
+          <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
+            휴대폰 인증을 해주세요
+          </h2>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+            회원가입은 휴대폰 인증으로 시작합니다.
+          </p>
+        </section>
 
-  return (
-    <MobileShell>
-      <AppHeader variant="page" title="회원가입" backHref="/login" showActions={false} />
-
-      <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#3d2b1f]">
-          인생스토리
-          <br />
-          회원가입
-        </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
-          {channel === "phone"
-            ? "이름과 연락처를 입력하시면 주문과 상담 진행을 확인하실 수 있습니다."
-            : "해외 거주자는 이메일로도 가입할 수 있습니다."}
-        </p>
-      </section>
-
-      <div className="space-y-5 px-4 pb-8">
-        <div className="flex rounded-xl bg-[#f5efe6] p-1">
-          <button
-            type="button"
-            onClick={() => switchChannel("phone")}
-            className={`h-11 flex-1 rounded-lg text-[14px] font-semibold ${
-              channel === "phone" ? "bg-white text-[#3d2b1f] shadow-sm" : "text-[#8b6f5c]"
-            }`}
-          >
-            연락처
-          </button>
-          <button
-            type="button"
-            onClick={() => switchChannel("email")}
-            className={`h-11 flex-1 rounded-lg text-[14px] font-semibold ${
-              channel === "email" ? "bg-white text-[#3d2b1f] shadow-sm" : "text-[#8b6f5c]"
-            }`}
-          >
-            이메일
-          </button>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
-            이름 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="실명을 입력해주세요"
-            className={inputClass}
-          />
-        </div>
-
-        {channel === "phone" ? (
+        <div className="space-y-5 px-4 pb-8">
           <div>
-            <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
-              연락처 <span className="text-red-500">*</span>
+            <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+              휴대폰 번호 <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -159,136 +283,276 @@ export default function SignupPage() {
                 type="button"
                 onClick={sendCode}
                 disabled={loading}
-                className="h-12 shrink-0 rounded-xl bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white disabled:opacity-40"
+                className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
               >
                 인증번호
               </button>
             </div>
           </div>
-        ) : (
-          <div>
-            <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
-              이메일 <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="예) name@email.com"
-                className={inputClass}
-              />
-              <button
-                type="button"
-                onClick={sendCode}
-                disabled={loading}
-                className="h-12 shrink-0 rounded-xl bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white disabled:opacity-40"
-              >
-                인증번호
-              </button>
-            </div>
-          </div>
-        )}
 
+          <div>
+            <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+              인증번호 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="숫자 6자리"
+              className={inputClass}
+            />
+            {sentCode ? (
+              <p className="mt-2 text-[14px] text-[#403A49]">
+                인증번호 {sentCode} 를 입력해 주세요.
+              </p>
+            ) : null}
+          </div>
+
+          {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+
+          <button
+            type="button"
+            onClick={verify}
+            disabled={loading}
+            className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
+          >
+            인증하고 계속하기
+          </button>
+
+          <p className="text-center text-[16px] text-[#6B6570]">
+            이미 회원이신가요?{" "}
+            <Link href="/login" className="font-semibold text-[#403A49] underline underline-offset-4">
+              로그인
+            </Link>
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  if (step === "done") {
+    return (
+      <>
+        {header}
+        <section className="px-4 py-10 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#403A49] text-[36px] text-white">
+          ✓
+        </div>
+        <h2 className="mt-6 font-serif text-[24px] font-bold text-[#403A49]">가입이 완료되었습니다</h2>
+        <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+          {name}님, 사주로그에 오신 것을 환영합니다.
+        </p>
+        <Link
+          href="/my"
+          className="mt-8 flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white"
+        >
+          내 정보 보러가기
+        </Link>
+        <Link
+          href="/"
+          className="mt-3 flex h-16 w-full items-center justify-center rounded-xl border border-[#403A49] bg-[#FFFFFF] text-[18px] font-semibold text-[#403A49]"
+        >
+          홈으로
+        </Link>
+        </section>
+      </>
+    );
+  }
+
+  if (step === "terms") {
+    return (
+      <>
+        {header}
+        <section className="px-4 pb-2 pt-6">
+          <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
+            약관에 동의해 주세요
+          </h2>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+            필수 항목만 동의하셔도 가입할 수 있습니다.
+          </p>
+        </section>
+
+        <div className="px-4 pb-8">
+          <label className="flex items-center gap-3 rounded-xl bg-[#F7F6F8] px-4 py-4">
+            <input
+              type="checkbox"
+              checked={allAgreed}
+              onChange={(e) => toggleAll(e.target.checked)}
+              className="h-7 w-7 shrink-0 accent-[#403A49]"
+            />
+            <span className="text-[18px] font-bold text-[#403A49]">전체 동의</span>
+          </label>
+
+          <div className="mt-2 divide-y divide-[#e8dfd4]">
+            <AgreeRow
+              checked={agreeTerms}
+              onChange={setAgreeTerms}
+              label="이용약관 동의"
+              required
+              href="/terms?from=signup"
+            />
+            <AgreeRow
+              checked={agreePrivacy}
+              onChange={setAgreePrivacy}
+              label="개인정보 수집 및 이용 동의"
+              required
+              href="/privacy?from=signup"
+            />
+            <AgreeRow
+              checked={agreeMarketing}
+              onChange={setAgreeMarketing}
+              label="마케팅 정보 수신 동의"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStep("profile")}
+            disabled={!requiredAgreed}
+            className="mt-8 flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
+          >
+            다음
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
+      <section className="px-4 pb-2 pt-6">
+        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
+          회원정보를 입력해 주세요
+        </h2>
+        <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+          인증하신 번호 {phone} 로 가입합니다.
+        </p>
+      </section>
+
+      <div className="space-y-5 px-4 pb-8">
         <div>
-          <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
-            인증번호 <span className="text-red-500">*</span>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+            이름 <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            inputMode="numeric"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="숫자 6자리"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="이름을 적어주세요"
             className={inputClass}
           />
-          {sentCode ? (
-            <p className="mt-2 text-[13px] text-[#5c3d2e]">
-              인증번호 {sentCode} 를 입력해 주세요.
-              {channel === "email" ? " (데모: 실제 이메일은 발송되지 않습니다)" : null}
-            </p>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">생년월일</label>
+          <input
+            type="date"
+            value={birth}
+            onChange={(e) => setBirth(clampBirth(e.target.value))}
+            min="1900-01-01"
+            max={TODAY}
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">이메일</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={emailLocal}
+              onChange={(e) => setEmailLocal(e.target.value)}
+              placeholder="아이디"
+              className={inputClass}
+            />
+            <span className="shrink-0 text-[17px] text-[#6B6570]">@</span>
+            <select
+              value={emailDomain}
+              onChange={(e) => setEmailDomain(e.target.value)}
+              className="h-14 shrink-0 rounded-xl border border-[#e8dfd4] bg-white px-3 text-[16px] outline-none focus:border-[#403A49]"
+            >
+              {EMAIL_DOMAINS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+          {emailDomain === "직접입력" ? (
+            <input
+              type="text"
+              value={customDomain}
+              onChange={(e) => setCustomDomain(e.target.value)}
+              placeholder="도메인을 직접 입력해 주세요"
+              className={`mt-2 ${inputClass}`}
+            />
           ) : null}
         </div>
 
-        <div className="rounded-2xl bg-[#f5efe6] p-4">
-          <p className="text-[15px] font-bold text-[#3d2b1f]">개인정보 수집·이용 안내</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
-            받는 정보: {channel === "phone" ? "이름, 연락처" : "이름, 이메일"}
-            <br />
-            쓰는 이유: 회원가입, 주문과 상담 진행 확인
-            <br />
-            보관: 회원 탈퇴할 때까지
-          </p>
-          <label className="mt-3 flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={agreedGuide}
-              onChange={(e) => setAgreedGuide(e.target.checked)}
-              className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
-            />
-            <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
-              <Link href="/terms?from=signup" className="font-medium text-[#5c3d2e] underline underline-offset-2">
-                이용약관
-              </Link>
-              에 동의합니다. <span className="text-red-500">[필수]</span>
-            </span>
+        <div>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+            비밀번호 <span className="text-red-500">*</span>
           </label>
-          <label className="mt-3 flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={agreedPrivacy}
-              onChange={(e) => setAgreedPrivacy(e.target.checked)}
-              className="mt-1 h-5 w-5 shrink-0 accent-[#5c3d2e]"
-            />
-            <span className="text-[15px] leading-relaxed text-[#3d2b1f]">
-              <Link href="/privacy?from=signup" className="font-medium text-[#5c3d2e] underline underline-offset-2">
-                개인정보 처리방침
-              </Link>
-              에 동의합니다. <span className="text-red-500">[필수]</span>
-            </span>
-          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="6자 이상"
+            className={inputClass}
+          />
         </div>
 
-        {error ? <p className="text-[14px] text-red-600">{error}</p> : null}
+        <div>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+            비밀번호 확인 <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="password"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+            placeholder="한 번 더 입력해 주세요"
+            className={inputClass}
+          />
+        </div>
+
+        {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
 
         <button
           type="button"
-          onClick={signup}
+          onClick={submit}
           disabled={loading}
-          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+          className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
         >
-          회원가입
+          가입 완료
         </button>
 
-        {channel === "phone" ? (
-          <>
-            <button
-              type="button"
-              onClick={kakao}
-              disabled={loading}
-              className="flex h-14 w-full items-center justify-center rounded-full bg-[#fee500] text-[16px] font-semibold text-[#3d2b1f] disabled:opacity-40"
-            >
-              카카오톡으로 시작하기
-            </button>
-
-            <button
-              type="button"
-              onClick={naver}
-              disabled={loading}
-              className="flex h-14 w-full items-center justify-center rounded-full bg-[#03c75a] text-[16px] font-semibold text-white disabled:opacity-40"
-            >
-              네이버 시작하기
-            </button>
-          </>
-        ) : null}
-
-        <p className="text-center text-[14px] text-[#8b6f5c]">
-          이미 회원이신가요?{" "}
-          <Link href="/login" className="font-semibold text-[#5c3d2e] underline underline-offset-2">
-            로그인
-          </Link>
-        </p>
+        <button
+          type="button"
+          onClick={() => setStep("terms")}
+          className="flex h-14 w-full items-center justify-center rounded-xl border border-[#403A49] bg-[#FFFFFF] text-[16px] font-semibold text-[#403A49]"
+        >
+          이전
+        </button>
       </div>
+    </>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <MobileShell bgClass="bg-[#FFFFFF]">
+      <Suspense
+        fallback={
+          <>
+            <AppHeader variant="page" title="회원가입" backHref="/login" showActions={false} />
+            <div className="px-4 py-8 text-[16px] text-[#6B6570]">불러오는 중…</div>
+          </>
+        }
+      >
+        <SignupFlow />
+      </Suspense>
     </MobileShell>
   );
 }

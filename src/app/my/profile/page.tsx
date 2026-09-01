@@ -4,11 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { BirthTimeField } from "@/components/apply/BirthTimeField";
 import { fetchMe, postApp } from "@/lib/client/api";
 import type { User } from "@/lib/types/app";
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#5c3d2e]";
+  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+/** ▼ 목록은 10분 단위. 직접 타이핑은 00~59 모두 가능하다. */
+const MINUTE_OPTIONS = ["00", "10", "20", "30", "40", "50"];
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -73,18 +78,18 @@ export default function ProfilePage() {
       <AppHeader variant="page" title="개인정보 관리" backHref="/my" />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold text-[#3d2b1f]">개인정보 관리</h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <h2 className="font-serif text-[24px] font-bold text-[#403A49]">개인정보 관리</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
           상담과 제작에 필요한 기본 정보를 관리하세요.
         </p>
       </section>
 
       {loaded && !user ? (
         <div className="px-4 pb-8 text-center">
-          <p className="text-[15px] text-[#8b6f5c]">로그인하면 개인정보를 관리할 수 있습니다.</p>
+          <p className="text-[15px] text-[#6B6570]">로그인하면 개인정보를 관리할 수 있습니다.</p>
           <Link
             href="/login"
-            className="mt-4 inline-flex h-12 items-center justify-center rounded-full bg-[#5c3d2e] px-6 text-[15px] font-semibold text-white"
+            className="mt-4 inline-flex h-12 items-center justify-center rounded-full bg-[#403A49] px-6 text-[15px] font-semibold text-white"
           >
             로그인하기
           </Link>
@@ -119,35 +124,33 @@ export default function ProfilePage() {
           <div>
             <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">태어난 시간</label>
             <div className="grid grid-cols-2 gap-3">
-              <select
-                className={inputClass}
+              <BirthTimeField
+                label="시"
+                value={hour}
+                onChange={setHour}
+                max={23}
+                options={HOURS}
+                placeholder="시 (00~23)"
                 disabled={unknownTime}
-                value={hour ? `${hour}시` : ""}
-                onChange={(e) => setHour(e.target.value.replace("시", ""))}
-              >
-                <option value="">시 선택</option>
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i}>{`${i}시`}</option>
-                ))}
-              </select>
-              <select
-                className={inputClass}
+                inputClass={inputClass}
+              />
+              <BirthTimeField
+                label="분"
+                value={minute}
+                onChange={setMinute}
+                max={59}
+                options={MINUTE_OPTIONS}
+                placeholder="분 (00~59)"
                 disabled={unknownTime}
-                value={minute ? `${minute}분` : ""}
-                onChange={(e) => setMinute(e.target.value.replace("분", ""))}
-              >
-                <option value="">분 선택</option>
-                {["00", "10", "20", "30", "40", "50"].map((m) => (
-                  <option key={m}>{`${m}분`}</option>
-                ))}
-              </select>
+                inputClass={inputClass}
+              />
             </div>
             <label className="mt-3 flex items-center gap-2 text-[14px] text-[#3d2b1f]">
               <input
                 type="checkbox"
                 checked={unknownTime}
                 onChange={(e) => setUnknownTime(e.target.checked)}
-                className="h-5 w-5 accent-[#5c3d2e]"
+                className="h-5 w-5 accent-[#403A49]"
               />
               태어난 시간을 몰라요
             </label>
@@ -173,11 +176,11 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={save}
-            className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white"
+            className="flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
           >
             저장하기
           </button>
-          {saved ? <p className="text-center text-[14px] text-[#5c3d2e]">저장되었습니다.</p> : null}
+          {saved ? <p className="text-center text-[14px] text-[#403A49]">저장되었습니다.</p> : null}
         </div>
       )}
     </MobileShell>
@@ -190,7 +193,7 @@ function Toggle({ active, onClick, label }: { active: boolean; onClick: () => vo
       type="button"
       onClick={onClick}
       className={`h-12 rounded-xl text-[15px] font-semibold ${
-        active ? "bg-[#5c3d2e] text-white" : "border border-[#e8dfd4] bg-white text-[#5c3d2e]"
+        active ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"
       }`}
     >
       {label}

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData } from "@/lib/server/store";
+import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import type { AppData, Consultation, Coupon, CouponProduct, Inquiry, Order, Review, User } from "@/lib/types/app";
+
+/**
+ * 개발용 인증번호. 외부 SMS/이메일 연동이 없는 동안 화면에 표시되는 값과
+ * 서버가 검증하는 값을 같게 맞추기 위해 고정한다. 운영에서는 사용하지 않는다.
+ */
+const DEV_CODE = process.env.NODE_ENV === "production" ? null : "123456";
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
@@ -188,7 +194,8 @@ export async function POST(request: Request) {
 
   if (action === "sendCode") {
     const channel = String(body.channel ?? "phone");
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // 실제 SMS 연동 전까지는 개발용 고정 코드를 쓴다. 운영에서는 임의 코드로 돌아간다.
+    const code = DEV_CODE ?? String(Math.floor(100000 + Math.random() * 900000));
 
     if (channel === "email") {
       const email = normalizeEmail(String(body.email ?? ""));
@@ -266,32 +273,223 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, user });
   }
 
+  if (action === "verifyCode") {
+    // 휴대폰 인증 공통 진입점. 인증만 하고, 신규 회원이면 계정을 만들지 않는다.
+    const phone = normalizePhone(String(body.phone ?? ""));
+    if (phone.length < 10) {
+      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
+    }
+    const saved = data.codes[phone];
+    const code = String(body.code ?? "");
+    if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
+      return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+    }
+    delete data.codes[phone];
+
+    const purpose = String(body.purpose ?? "");
+    const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
+    if (existing) {
+      if (purpose === "signup") {
+        // 회원가입 진입점에서는 기존 회원을 로그인시키지 않고 로그인 화면으로 보낸다.
+        await writeData(data);
+        return NextResponse.json(
+          { error: "이미 가입된 번호입니다. 비밀번호로 로그인해 주세요." },
+          { status: 400 },
+        );
+      }
+      if (purpose === "reset") {
+        // 비밀번호 재설정: 인증만 확인하고 단기 토큰을 발급한다.
+        const resetToken = String(Math.floor(100000000 + Math.random() * 900000000));
+        data.codes[`reset:${phone}`] = {
+          code: resetToken,
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        };
+        await writeData(data);
+        return NextResponse.json({ ok: true, isNew: false, resetToken });
+      }
+      await writeData(data);
+      await setUserId(existing.id);
+      return NextResponse.json({ ok: true, isNew: false, user: existing });
+    }
+    if (purpose === "reset") {
+      return NextResponse.json(
+        { error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." },
+        { status: 400 },
+      );
+    }
+
+    // 신규 회원: 가입 단계에서 인증을 다시 요구하지 않도록 단기 토큰만 발급한다.
+    const signupToken = String(Math.floor(100000000 + Math.random() * 900000000));
+    data.codes[`signup:${phone}`] = {
+      code: signupToken,
+      expiresAt: Date.now() + 15 * 60 * 1000,
+    };
+    await writeData(data);
+    return NextResponse.json({ ok: true, isNew: true, signupToken });
+  }
+
+  if (action === "signupComplete") {
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const token = String(body.signupToken ?? "");
+    const key = `signup:${phone}`;
+    const saved = data.codes[key];
+    if (!saved || saved.expiresAt < Date.now() || saved.code !== token) {
+      return NextResponse.json(
+        { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
+        { status: 400 },
+      );
+    }
+    const name = String(body.name ?? "").trim();
+    if (!name) {
+      return NextResponse.json({ error: "이름을 입력해 주세요." }, { status: 400 });
+    }
+    const password = String(body.password ?? "");
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "비밀번호는 6자 이상으로 입력해 주세요." },
+        { status: 400 },
+      );
+    }
+    const email = String(body.email ?? "").trim();
+    if (email && !isValidEmail(email)) {
+      return NextResponse.json({ error: "이메일을 확인해 주세요." }, { status: 400 });
+    }
+
+    // 인증 사이에 같은 번호로 가입된 경우 중복 생성하지 않는다.
+    const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
+    if (existing) {
+      delete data.codes[key];
+      await writeData(data);
+      await setUserId(existing.id);
+      return NextResponse.json({ ok: true, isNew: false, user: existing });
+    }
+
+    const user: User = {
+      ...emptyUser(phone, name, email),
+      birth: String(body.birth ?? ""),
+      passwordHash: hashPassword(password),
+      marketingAgreed: Boolean(body.marketingAgreed),
+    };
+    data.users.push(user);
+    data.coupons[user.id] = [welcomeCoupon()];
+    data.wishlists[user.id] = [];
+    data.notifications[user.id] = [];
+    data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
+    delete data.codes[key];
+    await writeData(data);
+    await setUserId(user.id);
+    return NextResponse.json({ ok: true, isNew: true, user });
+  }
+
+  if (action === "passwordLogin") {
+    // 기존 회원 로그인: SMS 없이 휴대폰 번호 + 비밀번호로 확인한다.
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const password = String(body.password ?? "");
+    if (phone.length < 10) {
+      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
+    }
+    if (!password) {
+      return NextResponse.json({ error: "비밀번호를 입력해 주세요." }, { status: 400 });
+    }
+    const user = data.users.find((item) => normalizePhone(item.phone) === phone);
+    if (!user) {
+      return NextResponse.json(
+        { error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." },
+        { status: 400 },
+      );
+    }
+    if (!user.passwordHash) {
+      // 비밀번호 이전에 만들어진 계정: 재설정으로 안내한다.
+      return NextResponse.json(
+        { error: "비밀번호가 설정되어 있지 않습니다. 비밀번호 찾기로 설정해 주세요." },
+        { status: 400 },
+      );
+    }
+    if (!verifyPassword(password, user.passwordHash)) {
+      return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 400 });
+    }
+    await setUserId(user.id);
+    return NextResponse.json({ ok: true, user });
+  }
+
+  if (action === "resetPassword") {
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const token = String(body.resetToken ?? "");
+    const key = `reset:${phone}`;
+    const saved = data.codes[key];
+    if (!saved || saved.expiresAt < Date.now() || saved.code !== token) {
+      return NextResponse.json(
+        { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
+        { status: 400 },
+      );
+    }
+    const password = String(body.password ?? "");
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "비밀번호는 6자 이상으로 입력해 주세요." },
+        { status: 400 },
+      );
+    }
+    const user = data.users.find((item) => normalizePhone(item.phone) === phone);
+    if (!user) {
+      return NextResponse.json({ error: "가입되지 않은 번호입니다." }, { status: 400 });
+    }
+    user.passwordHash = hashPassword(password);
+    delete data.codes[key];
+    await writeData(data);
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "logout") {
     await clearUserId();
     return NextResponse.json({ ok: true });
   }
 
-  if (action === "ensureUser") {
-    const phone = normalizePhone(String(body.phone ?? ""));
-    const name = String(body.name ?? "");
-    if (phone.length < 10) {
+
+  if (action === "createInquiry") {
+    // 무료 상담·이벤트는 비회원도 접수한다. 계정을 만들지 않고 문의만 저장한다.
+    const sessionUserId = await getUserId();
+    const member = sessionUserId
+      ? (data.users.find((item) => item.id === sessionUserId) ?? null)
+      : null;
+    const name = String(body.name ?? member?.name ?? "").trim();
+    const phone = String(body.phone ?? member?.phone ?? "").trim();
+    if (!name) {
+      return NextResponse.json({ error: "이름을 입력해 주세요." }, { status: 400 });
+    }
+    if (normalizePhone(phone).length < 10) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
-    let user = data.users.find((item) => normalizePhone(item.phone) === phone);
-    if (!user) {
-      user = emptyUser(phone, name);
-      data.users.push(user);
-      data.coupons[user.id] = [welcomeCoupon()];
-      data.wishlists[user.id] = [];
-      data.notifications[user.id] = [];
-      data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
-    } else if (name && !user.name) {
-      user = { ...user, name };
-      data.users = data.users.map((item) => (item.id === user!.id ? user! : item));
+    const item: Inquiry = {
+      id: nowId(),
+      name,
+      phone,
+      method: String(body.method ?? "카카오톡 상담"),
+      product: String(body.product ?? ""),
+      message: String(body.message ?? ""),
+      createdAt: new Date().toISOString(),
+    };
+    if (member) {
+      item.userId = member.id;
+    }
+    data.inquiries = [item, ...(data.inquiries ?? [])];
+    // 알림은 로그인한 회원에게만 보낸다.
+    if (member && data.notificationSettings[member.id]?.consult !== false) {
+      data.notifications[member.id] = [
+        {
+          id: nowId(),
+          title: item.product.startsWith("이벤트")
+            ? "이벤트 신청이 접수되었습니다"
+            : "무료 상담 문의가 접수되었습니다",
+          body: `${item.method}으로 연락드리겠습니다.`,
+          createdAt: new Date().toISOString(),
+          read: false,
+        },
+        ...(data.notifications[member.id] ?? []),
+      ];
     }
     await writeData(data);
-    await setUserId(user.id);
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true, inquiry: item });
   }
 
   const userId = await getUserId();
@@ -417,35 +615,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, consultation: item });
   }
 
-  if (action === "createInquiry") {
-    const item: Inquiry = {
-      id: nowId(),
-      userId,
-      name: String(body.name ?? user.name),
-      phone: String(body.phone ?? user.phone),
-      method: String(body.method ?? "카카오톡 상담"),
-      product: String(body.product ?? ""),
-      message: String(body.message ?? ""),
-      createdAt: new Date().toISOString(),
-    };
-    data.inquiries = [item, ...(data.inquiries ?? [])];
-    if (data.notificationSettings[userId]?.consult !== false) {
-      data.notifications[userId] = [
-        {
-          id: nowId(),
-          title: item.product.startsWith("이벤트")
-            ? "이벤트 신청이 접수되었습니다"
-            : "무료 상담 문의가 접수되었습니다",
-          body: `${item.method}으로 연락드리겠습니다.`,
-          createdAt: new Date().toISOString(),
-          read: false,
-        },
-        ...(data.notifications[userId] ?? []),
-      ];
-    }
-    await writeData(data);
-    return NextResponse.json({ ok: true, inquiry: item });
-  }
 
   if (action === "createReview") {
     const title = String(body.title ?? "").trim();

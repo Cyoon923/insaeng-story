@@ -177,7 +177,6 @@ function EventApplyForm() {
     stopListening();
     setLoading(true);
     try {
-      await postApp({ action: "ensureUser", phone, name });
       await postApp({
         action: "createInquiry",
         name,
@@ -201,10 +200,10 @@ function EventApplyForm() {
       <AppHeader variant="page" title="이벤트 신청" backHref="/events" showActions={false} />
 
       <section className="px-4 py-5">
-        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#3d2b1f]">
+        <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
           {isSubscribe ? "구독 이벤트 신청" : "이벤트에 신청해 주세요"}
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-[#8b6f5c]">
+        <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
           {isSubscribe
             ? "구독과 댓글을 남긴 분께 인생의 포춘타임을 알려 드립니다. 유튜브 아이디를 꼭 적어 주세요."
             : "이름과 연락처를 남겨 주세요. 카카오톡 또는 전화로 안내해 드립니다."}
@@ -269,7 +268,7 @@ function EventApplyForm() {
             <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">
               유튜브 아이디 <span className="text-red-500">*</span>
             </label>
-            <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+            <p className="mb-2 text-[14px] leading-relaxed text-[#6B6570]">
               구독하고 댓글을 남긴 유튜브 아이디를 적어 주세요.
             </p>
             <input
@@ -334,7 +333,7 @@ function EventApplyForm() {
             {isSubscribe ? "하고 싶은 말" : "사연 신청"}
             {!isSubscribe ? <span className="text-red-500"> *</span> : null}
           </label>
-          <p className="mb-2 text-[14px] leading-relaxed text-[#8b6f5c]">
+          <p className="mb-2 text-[14px] leading-relaxed text-[#6B6570]">
             {isSubscribe
               ? "인생에서 가장 좋았던 때와 가장 힘들었던 때를 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."
               : "본인이나 소중한 분의 사연을 적어 주세요. 글로 쓰거나, 말로 하셔도 됩니다."}
@@ -367,13 +366,13 @@ function EventApplyForm() {
               지금 듣고 있어요. 말하면 위 칸에 글자가 바로 나옵니다.
             </p>
           ) : null}
-          <p className="mt-1 text-right text-[12px] text-[#8b6f5c]">
+          <p className="mt-1 text-right text-[12px] text-[#6B6570]">
             {shownMessage.length} / {MESSAGE_MAX}
           </p>
         </div>
 
         <div className="rounded-2xl bg-[#f5efe6] p-4">
-          <p className="text-[15px] font-bold text-[#3d2b1f]">개인정보 수집·이용 안내</p>
+          <p className="text-[15px] font-bold text-[#403A49]">개인정보 수집·이용 안내</p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
             받는 정보: 이름, 연락처{isSubscribe ? ", 유튜브 아이디" : ""}
             <br />
@@ -403,7 +402,7 @@ function EventApplyForm() {
           type="button"
           onClick={submit}
           disabled={loading}
-          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#5c3d2e] text-[16px] font-bold text-white disabled:opacity-40"
+          className="flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white disabled:opacity-40"
         >
           {loading ? "보내는 중..." : "이벤트 신청하기"}
         </button>
