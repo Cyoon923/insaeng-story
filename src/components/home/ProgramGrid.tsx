@@ -9,7 +9,7 @@ const PROGRAMS = [
     title: "이야기로 만드는 인생곡",
     desc: "직접 쓴 이야기 또는 소중한 사람의 이야기로 맞춤 가사와 음악을 만듭니다.",
     cta: "자세히 보기",
-    image: "/images/photo-program-story-song.png",
+    image: "/images/photo-program-story-song.webp",
   },
   {
     id: "premium",
@@ -17,7 +17,7 @@ const PROGRAMS = [
     title: "프리미엄 인생곡",
     desc: "사주상담, 스토리상담, 인생곡, 뮤직비디오까지 함께 진행합니다.",
     cta: "자세히 보기",
-    image: "/images/photo-program-premium.png",
+    image: "/images/photo-program-premium.webp",
   },
   {
     id: "saju",
@@ -25,7 +25,7 @@ const PROGRAMS = [
     title: "사주 인생곡",
     desc: "상담 없이 사주 정보로 흐름과 메시지를 담아 인생곡을 만듭니다.",
     cta: "자세히 보기",
-    image: "/images/photo-program-saju-song.png",
+    image: "/images/photo-program-saju-song.webp",
   },
   {
     id: "consultation",
@@ -33,7 +33,7 @@ const PROGRAMS = [
     title: "사주 분석",
     desc: "인생곡과 별도로 받는 전문 사주상담입니다.",
     cta: "사주상담 신청하기",
-    image: "/images/photo-program-saju-analysis.png",
+    image: "/images/photo-program-saju-analysis.webp",
   },
 ];
 
