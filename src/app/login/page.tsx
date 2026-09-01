@@ -35,18 +35,19 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   /**
-   * 카카오 로그인 실패 시 callback이 /login?error=... 으로 되돌려 보낸다.
+   * 소셜 로그인 실패 시 callback이 /login?error=... 으로 되돌려 보낸다.
    * useSearchParams 대신 주소를 직접 읽어 Suspense 경계를 늘리지 않는다.
    */
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("error");
     if (!reason) return;
+    const label = reason.startsWith("naver_") ? "네이버" : "카카오";
     // 최초 진입 시 1회만 실행되며 되돌아온 실패 사유를 그대로 보여준다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(
-      reason === "kakao_cancelled"
-        ? "카카오 로그인을 취소했습니다."
-        : "카카오 로그인에 실패했습니다. 다시 시도해 주세요.",
+      reason.endsWith("_cancelled")
+        ? `${label} 로그인을 취소했습니다.`
+        : `${label} 로그인에 실패했습니다. 다시 시도해 주세요.`,
     );
     window.history.replaceState(null, "", "/login");
   }, []);
@@ -165,15 +166,18 @@ export default function LoginPage() {
     backToLogin();
   };
 
-  const social = (name: string) => {
-    setError(`${name} 로그인은 연결 준비 중입니다. 지금은 연락처로 로그인해 주세요.`);
-  };
-
   const startKakao = () => {
     // 카카오 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
     // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/auth/kakao/start";
+  };
+
+  const startNaver = () => {
+    // 네이버 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
+    // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/api/auth/naver/start";
   };
 
   if (mode === "reset") {
@@ -417,7 +421,7 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={() => social("네이버")}
+          onClick={startNaver}
           disabled={loading}
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#03c75a] text-[17px] font-semibold text-white disabled:opacity-40"
         >

@@ -22,6 +22,8 @@ export interface User {
   marketingAgreed?: boolean;
   /** 카카오 로그인으로 연결된 계정의 카카오 사용자 ID. 소셜 가입자에게만 있다. */
   kakaoId?: string;
+  /** 네이버 로그인으로 연결된 계정의 네이버 사용자 ID. 소셜 가입자에게만 있다. */
+  naverId?: string;
 }
 
 export interface Order {
