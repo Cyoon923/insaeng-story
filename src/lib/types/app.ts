@@ -112,6 +112,17 @@ export interface Review {
   kind?: "story" | "premium" | "saju-song" | "consultation";
 }
 
+/**
+ * 인증번호 저장 형태. attempts/sentAt은 무제한 인증 시도와
+ * 재발송 남용을 막기 위한 값이라 발급 코드에만 채운다.
+ */
+export interface VerificationCode {
+  code: string;
+  expiresAt: number;
+  attempts?: number;
+  sentAt?: number;
+}
+
 export interface AppData {
   users: User[];
   orders: Order[];
@@ -122,7 +133,7 @@ export interface AppData {
   coupons: Record<string, Coupon[]>;
   notifications: Record<string, AppNotification[]>;
   notificationSettings: Record<string, NotificationSettings>;
-  codes: Record<string, { code: string; expiresAt: number }>;
+  codes: Record<string, VerificationCode>;
   blockedSlots: BlockedSlot[];
   adminPromo: AdminPromo | null;
   testResetAt?: string;

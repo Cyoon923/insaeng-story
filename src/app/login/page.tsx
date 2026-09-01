@@ -28,6 +28,8 @@ export default function LoginPage() {
   const [resetPhone, setResetPhone] = useState("");
   const [code, setCode] = useState("");
   const [sentCode, setSentCode] = useState("");
+  // 운영에서는 인증번호를 받을 수 없으므로 발송 여부만 안내한다.
+  const [codeSent, setCodeSent] = useState(false);
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -89,7 +91,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await postApp({ action: "sendCode", channel: "phone", phone: resetPhone });
-      setSentCode(result.code);
+      setSentCode(result.devCode ?? "");
+      setCodeSent(true);
       setResetStep("code");
     } catch (err) {
       setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
@@ -268,6 +271,10 @@ export default function LoginPage() {
                     {sentCode ? (
                       <p className="mt-2 text-[14px] text-[#403A49]">
                         인증번호 {sentCode} 를 입력해 주세요.
+                      </p>
+                    ) : codeSent ? (
+                      <p className="mt-2 text-[14px] text-[#403A49]">
+                        인증번호를 문자로 보냈습니다.
                       </p>
                     ) : null}
                   </div>

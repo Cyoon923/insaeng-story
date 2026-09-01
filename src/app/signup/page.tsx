@@ -119,6 +119,8 @@ function SignupFlow() {
   const [signupToken, setSignupToken] = useState(paramToken || resumed?.signupToken || "");
   const [code, setCode] = useState("");
   const [sentCode, setSentCode] = useState("");
+  // 운영에서는 인증번호를 받을 수 없으므로 발송 여부만 안내한다.
+  const [codeSent, setCodeSent] = useState(false);
 
   const [step, setStep] = useState<Step>(
     paramPhone && paramToken ? "terms" : resumed?.signupToken ? "terms" : "phone",
@@ -186,7 +188,8 @@ function SignupFlow() {
     setLoading(true);
     try {
       const result = await postApp({ action: "sendCode", channel: "phone", phone });
-      setSentCode(result.code);
+      setSentCode(result.devCode ?? "");
+      setCodeSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
     } finally {
@@ -305,6 +308,10 @@ function SignupFlow() {
             {sentCode ? (
               <p className="mt-2 text-[14px] text-[#403A49]">
                 인증번호 {sentCode} 를 입력해 주세요.
+              </p>
+            ) : codeSent ? (
+              <p className="mt-2 text-[14px] text-[#403A49]">
+                인증번호를 문자로 보냈습니다.
               </p>
             ) : null}
           </div>

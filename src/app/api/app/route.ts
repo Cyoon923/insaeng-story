@@ -1,14 +1,83 @@
+import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
+import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
-import type { AppData, Consultation, CouponProduct, Inquiry, Order, Review, User } from "@/lib/types/app";
+import type {
+  AppData,
+  Consultation,
+  CouponProduct,
+  Inquiry,
+  Order,
+  Review,
+  User,
+  VerificationCode,
+} from "@/lib/types/app";
+
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 /**
  * 개발용 인증번호. 외부 SMS/이메일 연동이 없는 동안 화면에 표시되는 값과
  * 서버가 검증하는 값을 같게 맞추기 위해 고정한다. 운영에서는 사용하지 않는다.
  */
-const DEV_CODE = process.env.NODE_ENV === "production" ? null : "123456";
+const DEV_CODE = IS_PRODUCTION ? null : "123456";
+
+/** 인증번호 유효시간 5분, 재발송 쿨다운 60초, 코드별 검증 시도 5회. */
+const CODE_TTL_MS = 5 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 60 * 1000;
+const MAX_VERIFY_ATTEMPTS = 5;
+
+/** 실제 사용 중인 verifyCode 목적만 허용한다. */
+const VERIFY_PURPOSES = ["signup", "reset"] as const;
+type VerifyPurpose = (typeof VERIFY_PURPOSES)[number];
+
+function isVerifyPurpose(value: string): value is VerifyPurpose {
+  return (VERIFY_PURPOSES as readonly string[]).includes(value);
+}
+
+/** 예측 가능한 Math.random 대신 crypto 기반으로 6자리 인증번호를 만든다. */
+function generateCode(): string {
+  return String(randomInt(0, 1000000)).padStart(6, "0");
+}
+
+/** 회원가입·재설정 단기 토큰도 같은 방식으로 안전하게 만든다. */
+function generateToken(): string {
+  return randomInt(0, 1000000000).toString(36) + randomInt(0, 1000000000).toString(36);
+}
+
+/** 남은 쿨다운(초). 0이면 재발송 가능. */
+function cooldownLeft(saved: VerificationCode | undefined): number {
+  if (!saved?.sentAt) return 0;
+  const left = saved.sentAt + RESEND_COOLDOWN_MS - Date.now();
+  return left > 0 ? Math.ceil(left / 1000) : 0;
+}
+
+/**
+ * 인증번호 검증 결과. 실패 시 시도 횟수를 올리고, 5회를 넘기면 코드를 폐기한다.
+ * 저장은 호출한 쪽에서 writeData로 마무리한다.
+ */
+function checkCode(data: AppData, key: string, input: string): { ok: boolean; error?: string } {
+  const saved = data.codes[key];
+  if (!saved || saved.expiresAt < Date.now()) {
+    delete data.codes[key];
+    return { ok: false, error: "인증번호가 올바르지 않습니다." };
+  }
+  if (saved.code === input && input.length > 0) {
+    delete data.codes[key];
+    return { ok: true };
+  }
+  const attempts = (saved.attempts ?? 0) + 1;
+  if (attempts >= MAX_VERIFY_ATTEMPTS) {
+    delete data.codes[key];
+    return {
+      ok: false,
+      error: "인증 시도 횟수를 초과했습니다. 인증번호를 다시 받아주세요.",
+    };
+  }
+  saved.attempts = attempts;
+  return { ok: false, error: "인증번호가 올바르지 않습니다." };
+}
 
 const REFERRAL_DISCOUNT = 10000;
 const REFERRAL_POINTS = 10000;
@@ -168,26 +237,64 @@ export async function POST(request: Request) {
 
   if (action === "sendCode") {
     const channel = String(body.channel ?? "phone");
-    // 실제 SMS 연동 전까지는 개발용 고정 코드를 쓴다. 운영에서는 임의 코드로 돌아간다.
-    const code = DEV_CODE ?? String(Math.floor(100000 + Math.random() * 900000));
+    // 실제 SMS 연동 전까지는 개발용 고정 코드를 쓴다. 운영에서는 crypto 난수를 쓴다.
+    const code = DEV_CODE ?? generateCode();
+    const now = Date.now();
 
-    if (channel === "email") {
-      const email = normalizeEmail(String(body.email ?? ""));
-      if (!isValidEmail(email)) {
-        return NextResponse.json({ error: "이메일을 확인해 주세요." }, { status: 400 });
-      }
-      data.codes[emailCodeKey(email)] = { code, expiresAt: Date.now() + 5 * 60 * 1000 };
-      await writeData(data);
-      return NextResponse.json({ ok: true, code });
+    const key =
+      channel === "email"
+        ? (() => {
+            const email = normalizeEmail(String(body.email ?? ""));
+            return isValidEmail(email) ? emailCodeKey(email) : null;
+          })()
+        : (() => {
+            const phone = normalizePhone(String(body.phone ?? ""));
+            return phone.length >= 10 ? phone : null;
+          })();
+    if (!key) {
+      return NextResponse.json(
+        { error: channel === "email" ? "이메일을 확인해 주세요." : "연락처를 확인해 주세요." },
+        { status: 400 },
+      );
     }
 
-    const phone = normalizePhone(String(body.phone ?? ""));
-    if (phone.length < 10) {
-      return NextResponse.json({ error: "연락처를 확인해 주세요." }, { status: 400 });
+    // 같은 번호(또는 이메일)로의 재발송은 60초 쿨다운을 둔다.
+    const wait = cooldownLeft(data.codes[key]);
+    if (wait > 0) {
+      return NextResponse.json(
+        { error: `인증번호는 ${wait}초 후에 다시 요청할 수 있습니다.` },
+        { status: 429 },
+      );
     }
-    data.codes[phone] = { code, expiresAt: Date.now() + 5 * 60 * 1000 };
+
+    data.codes[key] = { code, expiresAt: now + CODE_TTL_MS, attempts: 0, sentAt: now };
     await writeData(data);
-    return NextResponse.json({ ok: true, code });
+
+    // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
+    // 개발에서는 발송하지 않고 devCode로 확인한다. 이메일 채널은 아직 발송 연동이 없다.
+    if (IS_PRODUCTION && channel !== "email") {
+      try {
+        await sendVerificationSms(String(body.phone ?? ""), code);
+      } catch {
+        // 발송 실패 시 방금 저장한 코드를 폐기해 쿨다운·시도 횟수가 남지 않게 한다.
+        // 단, 그 사이 다른 요청이 같은 key에 새 코드를 저장했을 수 있으므로
+        // code와 sentAt이 모두 이번 요청이 저장한 값일 때만 삭제한다.
+        // 실패 원인(SOLAPI 응답·키 정보)은 응답에 담지 않는다.
+        const current = await readData();
+        const saved = current.codes[key];
+        if (saved && saved.code === code && saved.sentAt === now) {
+          delete current.codes[key];
+          await writeData(current);
+        }
+        return NextResponse.json(
+          { error: "인증번호를 보내지 못했습니다. 잠시 후 다시 시도해 주세요." },
+          { status: 502 },
+        );
+      }
+    }
+
+    // 운영에서는 인증번호를 응답에 절대 담지 않는다.
+    return NextResponse.json(IS_PRODUCTION ? { ok: true } : { ok: true, devCode: code });
   }
 
   if (action === "login") {
@@ -198,12 +305,11 @@ export async function POST(request: Request) {
       if (!isValidEmail(email)) {
         return NextResponse.json({ error: "이메일을 입력해 주세요." }, { status: 400 });
       }
-      const saved = data.codes[emailCodeKey(email)];
-      const code = String(body.code ?? "");
-      if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
-        return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+      const checked = checkCode(data, emailCodeKey(email), String(body.code ?? ""));
+      if (!checked.ok) {
+        await writeData(data);
+        return NextResponse.json({ error: checked.error }, { status: 400 });
       }
-      delete data.codes[emailCodeKey(email)];
 
       let user = data.users.find((item) => normalizeEmail(item.email) === email);
       if (!user) {
@@ -224,12 +330,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
     if (action === "login") {
-      const saved = data.codes[phone];
-      const code = String(body.code ?? "");
-      if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
-        return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+      const checked = checkCode(data, phone, String(body.code ?? ""));
+      if (!checked.ok) {
+        await writeData(data);
+        return NextResponse.json({ error: checked.error }, { status: 400 });
       }
-      delete data.codes[phone];
     }
     let user = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (!user) {
@@ -251,14 +356,17 @@ export async function POST(request: Request) {
     if (phone.length < 10) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
-    const saved = data.codes[phone];
-    const code = String(body.code ?? "");
-    if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
-      return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
-    }
-    delete data.codes[phone];
-
+    // 실제 사용 중인 목적(signup/reset)만 허용한다.
     const purpose = String(body.purpose ?? "");
+    if (!isVerifyPurpose(purpose)) {
+      return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    }
+    const checked = checkCode(data, phone, String(body.code ?? ""));
+    if (!checked.ok) {
+      await writeData(data);
+      return NextResponse.json({ error: checked.error }, { status: 400 });
+    }
+
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
       if (purpose === "signup") {
@@ -271,7 +379,7 @@ export async function POST(request: Request) {
       }
       if (purpose === "reset") {
         // 비밀번호 재설정: 인증만 확인하고 단기 토큰을 발급한다.
-        const resetToken = String(Math.floor(100000000 + Math.random() * 900000000));
+        const resetToken = generateToken();
         data.codes[`reset:${phone}`] = {
           code: resetToken,
           expiresAt: Date.now() + 15 * 60 * 1000,
@@ -279,11 +387,9 @@ export async function POST(request: Request) {
         await writeData(data);
         return NextResponse.json({ ok: true, isNew: false, resetToken });
       }
-      await writeData(data);
-      await setUserId(existing.id);
-      return NextResponse.json({ ok: true, isNew: false, user: existing });
     }
     if (purpose === "reset") {
+      await writeData(data);
       return NextResponse.json(
         { error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." },
         { status: 400 },
@@ -291,7 +397,7 @@ export async function POST(request: Request) {
     }
 
     // 신규 회원: 가입 단계에서 인증을 다시 요구하지 않도록 단기 토큰만 발급한다.
-    const signupToken = String(Math.floor(100000000 + Math.random() * 900000000));
+    const signupToken = generateToken();
     data.codes[`signup:${phone}`] = {
       code: signupToken,
       expiresAt: Date.now() + 15 * 60 * 1000,
