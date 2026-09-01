@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -33,6 +33,23 @@ export default function LoginPage() {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
 
   const [error, setError] = useState("");
+
+  /**
+   * 카카오 로그인 실패 시 callback이 /login?error=... 으로 되돌려 보낸다.
+   * useSearchParams 대신 주소를 직접 읽어 Suspense 경계를 늘리지 않는다.
+   */
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (!reason) return;
+    // 최초 진입 시 1회만 실행되며 되돌아온 실패 사유를 그대로 보여준다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setError(
+      reason === "kakao_cancelled"
+        ? "카카오 로그인을 취소했습니다."
+        : "카카오 로그인에 실패했습니다. 다시 시도해 주세요.",
+    );
+    window.history.replaceState(null, "", "/login");
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const openReset = () => {
@@ -150,6 +167,13 @@ export default function LoginPage() {
 
   const social = (name: string) => {
     setError(`${name} 로그인은 연결 준비 중입니다. 지금은 연락처로 로그인해 주세요.`);
+  };
+
+  const startKakao = () => {
+    // 카카오 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
+    // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/api/auth/kakao/start";
   };
 
   if (mode === "reset") {
@@ -384,7 +408,7 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={() => social("카카오")}
+          onClick={startKakao}
           disabled={loading}
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#fee500] text-[17px] font-semibold text-[#3d2b1f] disabled:opacity-40"
         >

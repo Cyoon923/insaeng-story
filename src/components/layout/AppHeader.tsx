@@ -53,7 +53,7 @@ interface AppHeaderProps {
 export function AppHeader({
   variant = "home",
   title,
-  subtitle = "사주로 이야기하고, 노래로 남기다",
+  subtitle = "인생의 서사를 연주하고 기록한다",
   backHref,
   onBack,
   showMenu = variant === "home",

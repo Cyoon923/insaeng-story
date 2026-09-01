@@ -9,7 +9,7 @@ const SLIDES = [
   {
     id: "story",
     badge: "",
-    title: "사주로 이야기하고,\n노래로 남기다",
+    title: "인생의 서사를\n연주하고 기록한다",
     desc: "사주 분석부터 인생 이야기, 그리고\n인생곡 제작까지\n당신의 삶을 하나의 이야기로 기록합니다.",
     image: "/images/photo-hero-sajulog-v2.webp",
     imageClass: "object-center",

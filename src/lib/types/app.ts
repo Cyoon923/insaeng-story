@@ -20,6 +20,8 @@ export interface User {
   passwordHash?: string;
   /** 마케팅 정보 수신 동의(선택 항목). */
   marketingAgreed?: boolean;
+  /** 카카오 로그인으로 연결된 계정의 카카오 사용자 ID. 소셜 가입자에게만 있다. */
+  kakaoId?: string;
 }
 
 export interface Order {

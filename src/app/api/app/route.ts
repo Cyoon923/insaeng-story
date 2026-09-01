@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { formatPhone, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
-import type { AppData, Consultation, Coupon, CouponProduct, Inquiry, Order, Review, User } from "@/lib/types/app";
+import type { AppData, Consultation, CouponProduct, Inquiry, Order, Review, User } from "@/lib/types/app";
 
 /**
  * 개발용 인증번호. 외부 SMS/이메일 연동이 없는 동안 화면에 표시되는 값과
@@ -120,32 +120,6 @@ function settledPayment(amount: number, details: Record<string, string>, fallbac
   return fallback;
 }
 
-function emptyUser(phone = "", name = "", email = ""): User {
-  return {
-    id: nowId(),
-    phone: phone ? formatPhone(phone) : "",
-    email: email ? normalizeEmail(email) : "",
-    name,
-    gender: "",
-    birth: "",
-    birthTime: "",
-    unknownTime: false,
-    calendar: "solar",
-    bloodType: "",
-    points: 0,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function welcomeCoupon(): Coupon {
-  return {
-    id: nowId(),
-    title: "첫 방문 안내",
-    desc: "신청과 상담 진행을 우선 안내해 드립니다.",
-    createdAt: new Date().toISOString(),
-  };
-}
-
 function publicReviews(data: AppData) {
   return (data.reviews ?? [])
     .filter((item) => item.visible)
@@ -216,7 +190,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, code });
   }
 
-  if (action === "login" || action === "kakao" || action === "naver") {
+  if (action === "login") {
     const channel = String(body.channel ?? "phone");
 
     if (action === "login" && channel === "email") {
@@ -259,9 +233,7 @@ export async function POST(request: Request) {
     }
     let user = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (!user) {
-      const socialName =
-        action === "kakao" ? "카카오 회원" : action === "naver" ? "네이버 회원" : "";
-      user = emptyUser(phone, socialName);
+      user = emptyUser(phone);
       data.users.push(user);
       data.coupons[user.id] = [welcomeCoupon()];
       data.wishlists[user.id] = [];

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "사주로그 | 사주로 이야기하고, 노래로 남기다",
+  title: "사주로그 | 인생의 서사를 연주하고 기록한다",
   description: "고객의 이야기 또는 사주를 바탕으로 한 사람만을 위한 인생곡을 만들어 드립니다.",
 };
 
