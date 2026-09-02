@@ -205,7 +205,10 @@ export default function AdminPage() {
     }
     const data = await res.json();
     setUsers(data.users ?? []);
-    setOrders(data.orders ?? []);
+    // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
+    setOrders(
+      ((data.orders ?? []) as Order[]).filter((order) => order.product !== "consultation"),
+    );
     setConsultations(data.consultations ?? []);
     setReviews((data.reviews ?? []) as ReviewItem[]);
     setInquiries(data.inquiries ?? []);

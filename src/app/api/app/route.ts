@@ -625,6 +625,7 @@ export async function POST(request: Request) {
       title: String(body.title ?? "인생곡"),
       status: "신청접수",
       amount: pointed.amount,
+      baseAmount: priced.amount,
       payment: settledPayment(pointed.amount, pointed.details, String(body.payment ?? "")),
       details: pointed.details,
       createdAt: new Date().toISOString(),
@@ -677,20 +678,52 @@ export async function POST(request: Request) {
     }
     const pointed = applyPoints(user, referred.details, referred.amount);
 
+    // 상담과 결제 귀속용 주문이 같은 건임을 알 수 있도록 id와 시각을 공유한다.
+    const id = `c-${nowId()}`;
+    const createdAt = new Date().toISOString();
+    const consultTeacher = String(body.teacher ?? "유비 선생");
+    const consultDatetime = String(body.datetime ?? "");
+    const consultPurpose = String(body.purpose ?? "");
+    const consultMethod = String(body.method ?? "카카오톡 상담");
+    const consultOption = String(body.option ?? "없음");
+
     const item: Consultation = {
-      id: nowId(),
+      id,
       userId,
-      teacher: String(body.teacher ?? "유비 선생"),
-      datetime: String(body.datetime ?? ""),
-      purpose: String(body.purpose ?? ""),
-      method: String(body.method ?? "카카오톡 상담"),
-      option: String(body.option ?? "없음"),
+      teacher: consultTeacher,
+      datetime: consultDatetime,
+      purpose: consultPurpose,
+      method: consultMethod,
+      option: consultOption,
       status: "상담 신청",
       amount: pointed.amount,
       details: pointed.details,
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
     data.consultations.unshift(item);
+
+    // 결제는 주문 단위로 귀속시킨다. 상담 진행 상태는 위 Consultation이 계속 관리하므로
+    // 이 주문은 "신청접수"로 두고, 할인 계산은 위에서 끝난 값을 그대로 재사용한다.
+    const consultOrder: Order = {
+      id,
+      userId,
+      product: "consultation",
+      title: "1:1 사주상담",
+      status: "신청접수",
+      amount: pointed.amount,
+      baseAmount: priced.amount,
+      payment: settledPayment(pointed.amount, pointed.details, String(body.payment ?? "")),
+      details: {
+        ...pointed.details,
+        teacher: consultTeacher,
+        datetime: consultDatetime,
+        purpose: consultPurpose,
+        method: consultMethod,
+        option: consultOption,
+      },
+      createdAt,
+    };
+    data.orders.unshift(consultOrder);
     if (data.notificationSettings[userId]?.consult !== false) {
       data.notifications[userId] = [
         {

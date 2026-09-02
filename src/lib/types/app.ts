@@ -1,5 +1,7 @@
 export type ProductId = "story" | "premium" | "saju-song";
 export type CouponProduct = ProductId | "consultation";
+/** 주문에 기록되는 상품. 1:1 사주상담도 결제 귀속을 위해 주문으로 남긴다. */
+export type OrderProduct = ProductId | "consultation";
 export type OrderStatus = "신청접수" | "상담진행" | "제작중" | "완성/전달" | "완료";
 export type ConsultStatus = "상담 신청" | "사주정보 입력" | "선생님과 1:1 상담" | "상담 완료";
 
@@ -29,10 +31,16 @@ export interface User {
 export interface Order {
   id: string;
   userId: string;
-  product: ProductId;
+  product: OrderProduct;
   title: string;
   status: OrderStatus;
+  /** 쿠폰·추천인·적립금을 적용한 뒤의 최종 결제 예정 금액. */
   amount: number;
+  /**
+   * 할인 전 금액. 상품 기본가 + 서버가 인정한 유료 옵션가로,
+   * 서버가 계산한 값만 들어간다. 이전에 만들어진 주문에는 없다.
+   */
+  baseAmount?: number;
   payment: string;
   details: Record<string, string>;
   createdAt: string;
