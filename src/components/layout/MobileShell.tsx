@@ -16,7 +16,14 @@ export function MobileShell({
 }: MobileShellProps) {
   return (
     <div className={`mx-auto min-h-screen w-full max-w-[430px] ${bgClass} shadow-xl`}>
-      <main className={hideBottomNav ? "min-h-screen" : "min-h-screen pb-20"}>
+      {/* 하단 여백은 기존 pb-20(5rem)에 홈 인디케이터 높이를 더한다. safe-area가 0이면 pb-20과 같다. */}
+      <main
+        className={
+          hideBottomNav
+            ? "min-h-screen"
+            : "min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))]"
+        }
+      >
         {children}
         <SiteFooter />
       </main>

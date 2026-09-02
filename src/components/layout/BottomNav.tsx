@@ -18,7 +18,9 @@ export function BottomNav() {
   const activeTab = getActiveTab(pathname);
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-[#ebe3d8] bg-[#fffdf9]">
+    // iPhone standalone에서 홈 인디케이터만큼 아래 여백을 둬 터치 영역이 가려지지 않게 한다.
+    // safe-area가 0인 Android·데스크톱에서는 값이 0이라 기존 모습 그대로다.
+    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-[#ebe3d8] bg-[#fffdf9] pb-[env(safe-area-inset-bottom)]">
       <ul className="flex h-[60px] items-stretch">
         {BOTTOM_NAV.map((item) => {
           const Icon = ICONS[item.icon];
