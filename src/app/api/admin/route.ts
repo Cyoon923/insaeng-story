@@ -5,7 +5,7 @@ import {
   isAdminAuthenticated,
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
-import { nowId, readData, writeData, writeDataWithOrderStatus } from "@/lib/server/store";
+import { nowId, readData, writeData, writeDataWithOrderStatus, listAllOrders } from "@/lib/server/store";
 import {
   DEFAULT_TEACHER,
   CONSULT_TIMES,
@@ -26,7 +26,7 @@ export async function GET() {
   const data = await readData();
   return NextResponse.json({
     users: data.users,
-    orders: data.orders,
+    orders: await listAllOrders(),
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],
     reviews: data.reviews ?? [],

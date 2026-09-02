@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, writeDataWithOrder, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, writeDataWithOrder, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import type {
@@ -216,7 +216,7 @@ export async function GET() {
   }
   return NextResponse.json({
     user,
-    orders: data.orders.filter((item) => item.userId === userId),
+    orders: await listOrdersByUser(userId),
     consultations: data.consultations.filter((item) => item.userId === userId),
     inquiries: (data.inquiries ?? []).filter((item) => item.userId === userId),
     wishlist: data.wishlists[userId] ?? [],
@@ -767,7 +767,7 @@ export async function POST(request: Request) {
     }
     let kind: Review["kind"];
     if (targetKey.startsWith("order:")) {
-      const order = data.orders.find((item) => item.id === targetKey.slice(6));
+      const order = await getOrderById(targetKey.slice(6));
       kind = order?.product;
     } else if (targetKey.startsWith("consult:")) {
       kind = "consultation";

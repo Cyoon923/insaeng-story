@@ -194,6 +194,89 @@ export async function writeDataWithOrder(data: AppData, order: Order): Promise<v
   ]);
 }
 
+interface OrderRow {
+  id: string;
+  user_id: string;
+  product: string;
+  title: string;
+  status: string;
+  amount: number;
+  base_amount: number | null;
+  payment: string;
+  details: unknown;
+  created_at: string | Date;
+}
+
+/** orders 테이블 행을 기존 Order 형태로 되돌린다. */
+function toOrder(row: OrderRow): Order {
+  const details = (row.details ?? {}) as Record<string, string>;
+  const createdAt =
+    row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+  return {
+    id: row.id,
+    userId: row.user_id,
+    product: row.product as Order["product"],
+    title: row.title,
+    status: row.status as OrderStatus,
+    amount: Number(row.amount),
+    // 컬럼이 NULL이면 값이 없는 것으로 둔다. 예전 주문에는 정가 정보가 없다.
+    ...(row.base_amount === null ? {} : { baseAmount: Number(row.base_amount) }),
+    payment: row.payment,
+    details,
+    createdAt,
+  };
+}
+
+const ORDER_COLUMNS = `id, user_id, product, title, status,
+  amount, base_amount, payment, details, created_at`;
+
+/** 목록 정렬은 기존 unshift 순서(최신 먼저)를 그대로 재현한다. */
+const ORDER_SORT = "ORDER BY created_at DESC, id DESC";
+
+/** 한 회원의 주문 목록. 상담 주문도 포함하며 화면에서 걸러 쓴다. */
+export async function listOrdersByUser(userId: string): Promise<Order[]> {
+  const sql = sqlClient();
+  if (!sql) {
+    const data = await readData();
+    return data.orders.filter((item) => item.userId === userId);
+  }
+  await ensureTable(sql);
+  const rows = (await sql.query(
+    `SELECT ${ORDER_COLUMNS} FROM orders WHERE user_id = $1 ${ORDER_SORT}`,
+    [userId],
+  )) as OrderRow[];
+  return rows.map(toOrder);
+}
+
+/** 관리자용 전체 주문 목록. */
+export async function listAllOrders(): Promise<Order[]> {
+  const sql = sqlClient();
+  if (!sql) {
+    const data = await readData();
+    return data.orders;
+  }
+  await ensureTable(sql);
+  const rows = (await sql.query(
+    `SELECT ${ORDER_COLUMNS} FROM orders ${ORDER_SORT}`,
+  )) as OrderRow[];
+  return rows.map(toOrder);
+}
+
+/** 주문 1건. 소유자 확인은 호출한 쪽에서 한다. */
+export async function getOrderById(id: string): Promise<Order | null> {
+  const sql = sqlClient();
+  if (!sql) {
+    const data = await readData();
+    return data.orders.find((item) => item.id === id) ?? null;
+  }
+  await ensureTable(sql);
+  const rows = (await sql.query(
+    `SELECT ${ORDER_COLUMNS} FROM orders WHERE id = $1`,
+    [id],
+  )) as OrderRow[];
+  return rows[0] ? toOrder(rows[0]) : null;
+}
+
 /**
  * 주문 진행 상태 변경. JSONB와 orders 테이블이 어긋나지 않도록 함께 갱신한다.
  */

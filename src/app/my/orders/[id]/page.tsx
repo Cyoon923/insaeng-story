@@ -5,7 +5,7 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { formatPrice } from "@/lib/constants/products";
 import { getUserId } from "@/lib/server/session";
-import { readData } from "@/lib/server/store";
+import { getOrderById } from "@/lib/server/store";
 
 const STEPS = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"] as const;
 
@@ -65,9 +65,9 @@ export default async function OrderDetailPage({
     );
   }
 
-  const data = await readData();
-  const order = data.orders.find((item) => item.id === id && item.userId === userId);
-  if (!order) notFound();
+  // 본인 주문만 열람할 수 있다. 소유자가 다르면 존재 자체를 알리지 않는다.
+  const order = await getOrderById(id);
+  if (!order || order.userId !== userId) notFound();
 
   const currentIndex = STEPS.indexOf(order.status);
   const rows = Object.entries(order.details)
