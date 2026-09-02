@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, writeDataWithOrder, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import type {
@@ -643,7 +643,7 @@ export async function POST(request: Request) {
         ...(data.notifications[userId] ?? []),
       ];
     }
-    await writeData(data);
+    await writeDataWithOrder(data, order);
     return NextResponse.json({ ok: true, order });
   }
 
@@ -736,7 +736,7 @@ export async function POST(request: Request) {
         ...(data.notifications[userId] ?? []),
       ];
     }
-    await writeData(data);
+    await writeDataWithOrder(data, consultOrder);
     return NextResponse.json({ ok: true, consultation: item });
   }
 

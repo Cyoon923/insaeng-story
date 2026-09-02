@@ -2,7 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
-import type { AppData, Coupon, User } from "@/lib/types/app";
+import type { AppData, Coupon, Order, OrderStatus, User } from "@/lib/types/app";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "app-data.json");
@@ -138,23 +138,85 @@ export async function readData(): Promise<AppData> {
   }
 }
 
+const APP_STORE_UPSERT = `
+  INSERT INTO app_store (id, data)
+  VALUES (1, $1::jsonb)
+  ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+`;
+
 export async function writeData(data: AppData): Promise<void> {
   const sql = sqlClient();
   if (sql) {
     await ensureTable(sql);
-    await sql.query(
-      `
-        INSERT INTO app_store (id, data)
-        VALUES (1, $1::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
-      `,
-      [JSON.stringify(data)],
-    );
+    await sql.query(APP_STORE_UPSERT, [JSON.stringify(data)]);
     return;
   }
 
   await mkdir(DATA_DIR, { recursive: true });
   await writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+/**
+ * 주문 저장. JSONB 전체와 orders 테이블에 같은 주문을 한 트랜잭션으로 남긴다.
+ * 아직 읽기는 JSONB만 쓰므로, 테이블 쪽은 이후 전환을 위한 이중 기록이다.
+ * DATABASE_URL이 없으면 기존 파일 저장으로 그대로 위임한다.
+ */
+export async function writeDataWithOrder(data: AppData, order: Order): Promise<void> {
+  const sql = sqlClient();
+  if (!sql) return writeData(data);
+
+  // DDL은 트랜잭션 밖에서 먼저 보장한다.
+  await ensureTable(sql);
+  await sql.transaction((txn) => [
+    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
+    txn.query(
+      `
+        INSERT INTO orders (
+          id, user_id, product, title, status,
+          amount, base_amount, payment, details, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamptz, $10::timestamptz)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      [
+        order.id,
+        order.userId,
+        order.product,
+        order.title,
+        order.status,
+        order.amount,
+        order.baseAmount ?? null,
+        order.payment,
+        JSON.stringify(order.details ?? {}),
+        order.createdAt,
+      ],
+    ),
+  ]);
+}
+
+/**
+ * 주문 진행 상태 변경. JSONB와 orders 테이블이 어긋나지 않도록 함께 갱신한다.
+ */
+export async function writeDataWithOrderStatus(
+  data: AppData,
+  id: string,
+  status: OrderStatus,
+): Promise<void> {
+  const sql = sqlClient();
+  if (!sql) return writeData(data);
+
+  await ensureTable(sql);
+  await sql.transaction((txn) => [
+    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
+    txn.query(
+      `
+        UPDATE orders
+        SET status = $2, updated_at = now()
+        WHERE id = $1
+      `,
+      [id, status],
+    ),
+  ]);
 }
 
 export function nowId(): string {

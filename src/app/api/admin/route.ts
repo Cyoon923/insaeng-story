@@ -5,7 +5,7 @@ import {
   isAdminAuthenticated,
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
-import { nowId, readData, writeData } from "@/lib/server/store";
+import { nowId, readData, writeData, writeDataWithOrderStatus } from "@/lib/server/store";
 import {
   DEFAULT_TEACHER,
   CONSULT_TIMES,
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
         ...(data.notifications[order.userId] ?? []),
       ];
     }
-    await writeData(data);
+    await writeDataWithOrderStatus(data, order.id, status);
     return NextResponse.json({ ok: true, order });
   }
 
