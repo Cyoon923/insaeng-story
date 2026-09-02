@@ -4,6 +4,7 @@ import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
+import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import type {
   AppData,
   Consultation,
@@ -598,8 +599,14 @@ export async function POST(request: Request) {
 
   if (action === "createOrder") {
     const details = (body.details as Record<string, string>) ?? {};
+    // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
+    const priced = calcOrderAmount(body.product, body.options);
+    if (!priced) {
+      return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
+    }
     const product = body.product as Order["product"];
-    const couponed = applyFreeCoupon(data, userId, details, Number(body.amount ?? 0), product);
+    details.optionIds = priced.optionIds.join(",");
+    const couponed = applyFreeCoupon(data, userId, details, priced.amount, product);
     if (couponed.error) {
       return NextResponse.json({ error: couponed.error }, { status: 400 });
     }
@@ -654,13 +661,10 @@ export async function POST(request: Request) {
     }
 
     const details = (body.details as Record<string, string>) ?? {};
-    const couponed = applyFreeCoupon(
-      data,
-      userId,
-      details,
-      Number(body.amount ?? 100000),
-      "consultation",
-    );
+    // 상담 금액도 서버에서 기본가 + 옵션가로 다시 계산한다.
+    const priced = calcConsultationAmount(body);
+    details.optionIds = priced.optionIds.join(",");
+    const couponed = applyFreeCoupon(data, userId, details, priced.amount, "consultation");
     if (couponed.error) {
       return NextResponse.json({ error: couponed.error }, { status: 400 });
     }

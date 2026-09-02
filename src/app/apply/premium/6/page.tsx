@@ -6,13 +6,15 @@ import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { PaySubmit } from "@/components/apply/PaySubmit";
 import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
+import { ORDER_OPTION_PRICES } from "@/lib/server/pricing";
 import { getDraft } from "@/lib/client/api";
 
 const BASE_PRICE = LIFE_SONG_PRODUCTS[1].priceFrom;
+/** 서버(src/lib/server/pricing.ts)와 같은 id·가격을 쓴다. 표시용 이름만 여기서 붙인다. */
 const OPTION_PRICES = [
-  { name: "내 얼굴 AI 뮤직비디오", price: 100000 },
-  { name: "추억사진 영상 제작", price: 50000 },
-  { name: "가사 수정 1회 추가", price: 10000 },
+  { id: "ai-mv", name: "내 얼굴 AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
+  { id: "photo-mv", name: "추억사진 영상 제작", price: ORDER_OPTION_PRICES["photo-mv"] },
+  { id: "lyric-edit", name: "가사 수정 1회 추가", price: ORDER_OPTION_PRICES["lyric-edit"] },
 ];
 const PAYMENT_METHODS = ["신용/체크카드", "무통장 입금", "카카오페이", "네이버페이"];
 
@@ -22,6 +24,9 @@ function moodLabel(draft: Record<string, string>) {
 }
 
 function selectedOptions(draft: Record<string, string>) {
+  const ids = (draft.optionIds ?? "").split(",").filter(Boolean);
+  if (ids.length) return OPTION_PRICES.filter((opt) => ids.includes(opt.id));
+  // optionIds 이전에 저장된 draft는 기존처럼 한글 이름으로 복원한다.
   const raw = draft.options ?? "";
   if (!raw) return [];
   return OPTION_PRICES.filter((opt) => raw.includes(opt.name));
@@ -37,9 +42,8 @@ export default function ApplyStep6Page() {
   }, []);
 
   const options = selectedOptions(draft);
-  const hasGift = (draft.options ?? "").includes("선물 패키지");
   const optionLabel = [
-    [...options.map((opt) => opt.name), hasGift ? "선물 패키지" : ""].filter(Boolean).join(", ") || "없음",
+    options.map((opt) => opt.name).join(", ") || "없음",
     draft.videoStyle ? `영상 스타일: ${draft.videoStyle}` : "",
   ]
     .filter(Boolean)
@@ -104,12 +108,6 @@ export default function ApplyStep6Page() {
               <span className="text-[#3d2b1f]">+ {formatPrice(opt.price)}</span>
             </div>
           ))}
-          {hasGift ? (
-            <div className="flex justify-between">
-              <span className="text-[#6B6570]">선물 패키지</span>
-              <span className="text-[#3d2b1f]">별도 문의</span>
-            </div>
-          ) : null}
         </div>
         <div className="mt-4 rounded-xl bg-[#f5efe6] p-4 text-center">
           <p className="text-[13px] text-[#6B6570]">최종 결제 금액</p>
@@ -171,6 +169,7 @@ export default function ApplyStep6Page() {
           product="premium"
           title="프리미엄 인생곡"
           amount={finalPrice}
+          optionIds={options.map((opt) => opt.id)}
           payment={payment}
           details={{
             주인공: draft.protagonist || "선택 없음",

@@ -16,6 +16,7 @@ export function PaySubmit({
   payment,
   details,
   label,
+  optionIds = [],
 }: {
   flow: string;
   kind: "order" | "consultation";
@@ -25,6 +26,8 @@ export function PaySubmit({
   payment: string;
   details: Record<string, string>;
   label: string;
+  /** 서버가 금액을 다시 계산할 때 쓰는 옵션 id. 표시용 한글 문자열과 별개다. */
+  optionIds?: string[];
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -81,7 +84,7 @@ export function PaySubmit({
           action: "createOrder",
           product,
           title,
-          amount,
+          options: optionIds,
           payment,
           details: merged,
         });
@@ -92,7 +95,8 @@ export function PaySubmit({
         const result = await postApp({
           action: "createConsultation",
           title,
-          amount,
+          report: merged.report === "1" ? "1" : "",
+          extraPerson: merged.extraPerson === "1" ? "1" : "",
           payment,
           teacher: merged.teacher ?? "유비 선생",
           datetime: merged.datetime ?? "",

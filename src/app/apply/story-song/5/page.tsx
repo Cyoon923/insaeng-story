@@ -49,12 +49,6 @@ const OPTIONS = [
     price: 10000,
     desc: "가사 고치기를 한 번 더 할 수 있습니다.",
   },
-  {
-    id: "gift",
-    title: "선물 패키지",
-    price: null,
-    desc: "음원과 가사 카드를 선물로 포장합니다.",
-  },
 ];
 
 export default function ApplyStep5Page() {
@@ -64,17 +58,23 @@ export default function ApplyStep5Page() {
   const persist = (ids: string[], style: string) => {
     const labels = OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title);
     saveDraft("story", {
+      // 표시용 한글 문자열과, 서버가 금액을 계산할 때 쓰는 id를 함께 남긴다.
       options: labels.join(", "),
+      optionIds: ids.join(","),
       videoStyle: ids.includes("ai-mv") ? style : "",
     });
   };
 
   useEffect(() => {
     const draft = getDraft("story");
-    if (draft.options) {
-      const ids = OPTIONS.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id);
-      if (ids.length) setSelected(ids);
-    }
+    // 되돌아온 경우: optionIds가 있으면 그것을 쓰고, 예전 draft는 한글명으로 복원한다.
+    const savedIds = (draft.optionIds ?? "").split(",").filter(Boolean);
+    const ids = savedIds.length
+      ? OPTIONS.filter((opt) => savedIds.includes(opt.id)).map((opt) => opt.id)
+      : draft.options
+        ? OPTIONS.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id)
+        : [];
+    if (ids.length) setSelected(ids);
     if (draft.videoStyle) {
       const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
       setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
