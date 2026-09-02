@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
 import { emptyUser, readData, registerUser, writeData } from "@/lib/server/store";
 import {
@@ -103,7 +104,17 @@ export async function GET(request: Request) {
   await writeData(data);
   await setUserId(user.id);
 
-  const response = NextResponse.redirect(new URL("/my", origin));
+  // 신청 화면에서 로그인으로 넘어온 경우 그 자리로 되돌려 보낸다.
+  const savedNext = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${LOGIN_NEXT_COOKIE}=`))
+    ?.slice(LOGIN_NEXT_COOKIE.length + 1);
+  // 쿠키 값은 저장될 때 인코딩되므로 되돌린 뒤 검사한다.
+  const next = safeNextPath(savedNext ? decodeURIComponent(savedNext) : null);
+  const response = NextResponse.redirect(new URL(next ?? LOGIN_DEFAULT_PATH, origin));
   response.cookies.delete(KAKAO_STATE_COOKIE);
+  response.cookies.delete(LOGIN_NEXT_COOKIE);
   return response;
 }

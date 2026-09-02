@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 
 /**
  * 신규 회원 전용 흐름. 휴대폰 SMS 인증으로 시작하고,
@@ -112,6 +113,9 @@ function SignupFlow() {
   const params = useSearchParams();
   const paramPhone = params.get("phone") ?? "";
   const paramToken = params.get("token") ?? "";
+  /** 신청 화면에서 로그인을 거쳐 넘어온 경우의 복귀 주소. */
+  const nextPath = safeNextPath(params.get("next")) ?? "";
+  const loginHref = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login";
 
   const resumed = useState(() => readResume())[0];
 
@@ -176,7 +180,7 @@ function SignupFlow() {
       router.back();
       return;
     }
-    router.push("/login");
+    router.push(loginHref);
   };
 
   const header = (
@@ -351,7 +355,7 @@ function SignupFlow() {
           {name}님, 사주로그에 오신 것을 환영합니다.
         </p>
         <Link
-          href="/my"
+          href={nextPath || LOGIN_DEFAULT_PATH}
           className="mt-8 flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white"
         >
           내 정보 보러가기

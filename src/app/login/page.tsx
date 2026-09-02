@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 
 /**
  * 로그인은 휴대폰 번호 + 비밀번호로 진행한다.
@@ -54,6 +55,16 @@ export default function LoginPage() {
     window.history.replaceState(null, "", "/login");
   }, []);
   const [loading, setLoading] = useState(false);
+  /** 신청 화면에서 넘어온 경우의 복귀 주소. 없으면 빈 문자열이다. */
+  const [nextPath, setNextPath] = useState("");
+
+  useEffect(() => {
+    const value = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    if (!value) return;
+    // 주소에서 한 번만 읽어 둔다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNextPath(value);
+  }, []);
 
   const openReset = () => {
     setMode("reset");
@@ -72,12 +83,16 @@ export default function LoginPage() {
     setError("");
   };
 
+  /** 회원가입으로 갈 때도 돌아갈 주소를 함께 넘겨 복귀 흐름을 잇는다. */
+  const signupHref = nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup";
+
   const login = async () => {
     setError("");
     setLoading(true);
     try {
       await postApp({ action: "passwordLogin", phone, password });
-      router.push("/my");
+      // 신청 화면에서 넘어왔다면 그 자리로 되돌려 보낸다.
+      router.push(nextPath || LOGIN_DEFAULT_PATH);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
@@ -408,7 +423,7 @@ export default function LoginPage() {
           </button>
           <span className="text-[#e8dfd4]">|</span>
           <Link
-            href="/signup"
+            href={signupHref}
             className="font-semibold text-[#403A49] underline underline-offset-4"
           >
             회원가입
