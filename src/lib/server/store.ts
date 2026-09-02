@@ -36,13 +36,67 @@ function sqlClient() {
   return neon(databaseUrl());
 }
 
+/**
+ * 필요한 테이블을 보장한다. 모두 IF NOT EXISTS라 여러 번 실행해도 안전하다.
+ * orders/payments는 아직 어느 경로에서도 읽고 쓰지 않는 빈 테이블이며,
+ * 현재 데이터는 그대로 app_store JSONB에만 저장된다.
+ * DDL을 한 트랜잭션으로 묶어 기존과 같은 왕복 1회를 유지한다.
+ */
 async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
-  await sql.query(`
-    CREATE TABLE IF NOT EXISTS app_store (
-      id INTEGER PRIMARY KEY,
-      data JSONB NOT NULL
-    )
-  `);
+  await sql.transaction((txn) => [
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS app_store (
+        id INTEGER PRIMARY KEY,
+        data JSONB NOT NULL
+      )
+    `),
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        product TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        base_amount INTEGER,
+        payment TEXT NOT NULL DEFAULT '',
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS orders_user_created_idx
+        ON orders (user_id, created_at DESC)
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS orders_created_idx
+        ON orders (created_at DESC)
+    `),
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id TEXT PRIMARY KEY,
+        order_id TEXT NOT NULL REFERENCES orders(id),
+        provider TEXT NOT NULL,
+        merchant_order_id TEXT NOT NULL,
+        pg_tid TEXT,
+        requested_amount INTEGER NOT NULL,
+        approved_amount INTEGER,
+        cancelled_amount INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL,
+        method TEXT,
+        approved_at TIMESTAMPTZ,
+        cancelled_at TIMESTAMPTZ,
+        raw JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS payments_order_created_idx
+        ON payments (order_id, created_at DESC)
+    `),
+  ]);
 }
 
 function mergeData(value: unknown): AppData {
