@@ -88,14 +88,19 @@ export default async function GuidePage({
       <section className="px-4 pb-6">
         <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">사업자 정보</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 비앤비 어드바이저리</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: 등록 후 적어 주세요</p>
+          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 비앤비어드바이저리</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: 정문경</p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
-            사업자등록번호: 등록 후 적어 주세요
+            사업자등록번호: 158-25-00095
           </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">연락처: 등록 후 적어 주세요</p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
-            사업자 정보는 등록이 끝나면 여기에 넣습니다.
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
+            주소: 경기도 안산시 단원구 시화호수로 623, 2825호 (성곡동, 아티스큐브2차)
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
+            고객센터:{" "}
+            <a href="mailto:code8jmk@gmail.com" className="underline underline-offset-2">
+              code8jmk@gmail.com
+            </a>
           </p>
         </div>
       </section>

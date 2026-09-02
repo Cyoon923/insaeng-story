@@ -1,5 +1,6 @@
 import { BottomNav } from "./BottomNav";
 import { BenefitNotice } from "./BenefitNotice";
+import { SiteFooter } from "./SiteFooter";
 
 interface MobileShellProps {
   children: React.ReactNode;
@@ -15,7 +16,10 @@ export function MobileShell({
 }: MobileShellProps) {
   return (
     <div className={`mx-auto min-h-screen w-full max-w-[430px] ${bgClass} shadow-xl`}>
-      <main className={hideBottomNav ? "min-h-screen" : "min-h-screen pb-20"}>{children}</main>
+      <main className={hideBottomNav ? "min-h-screen" : "min-h-screen pb-20"}>
+        {children}
+        <SiteFooter />
+      </main>
       <BenefitNotice />
       {!hideBottomNav && <BottomNav />}
     </div>
