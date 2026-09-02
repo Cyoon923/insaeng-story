@@ -5,7 +5,14 @@ import {
   isAdminAuthenticated,
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
-import { nowId, readData, writeData, writeDataWithOrderStatus, listAllOrders } from "@/lib/server/store";
+import {
+  nowId,
+  readData,
+  writeData,
+  writeDataWithOrderStatus,
+  listAllOrders,
+  getOrderById,
+} from "@/lib/server/store";
 import {
   DEFAULT_TEACHER,
   CONSULT_TIMES,
@@ -44,11 +51,18 @@ export async function POST(request: Request) {
   const action = String(body.action ?? "");
 
   if (action === "login") {
+    // ADMIN_PASSWORD가 설정되어 있지 않으면 기본 비밀번호로 대체하지 않고 거부한다.
+    const adminPassword = getAdminPassword();
+    if (!adminPassword) {
+      return NextResponse.json({ error: "관리자 로그인을 사용할 수 없습니다." }, { status: 503 });
+    }
     const password = String(body.password ?? "");
-    if (password !== getAdminPassword()) {
+    if (password !== adminPassword) {
       return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 401 });
     }
-    await setAdminAuthenticated();
+    if (!(await setAdminAuthenticated())) {
+      return NextResponse.json({ error: "관리자 로그인을 사용할 수 없습니다." }, { status: 503 });
+    }
     return NextResponse.json({ ok: true });
   }
 
@@ -209,12 +223,18 @@ export async function POST(request: Request) {
     if (!ORDER_STATUSES.includes(status)) {
       return NextResponse.json({ error: "진행 상태를 확인해 주세요." }, { status: 400 });
     }
-    const data = await readData();
-    const order = data.orders.find((item) => item.id === id);
-    if (!order) {
+    // 조회 기준은 목록(listAllOrders)과 같은 orders 테이블로 통일한다.
+    // JSONB에만 남아 있던 주문 때문에 목록에는 보이는데 404가 나던 문제를 막는다.
+    const found = await getOrderById(id);
+    if (!found) {
       return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
     }
-    order.status = status;
+    const order = { ...found, status };
+
+    const data = await readData();
+    // 이중 기록(dual-write)을 유지한다. JSONB에도 같은 주문이 있으면 함께 맞춰 둔다.
+    const mirrored = data.orders.find((item) => item.id === id);
+    if (mirrored) mirrored.status = status;
     if (data.notificationSettings[order.userId]?.order !== false) {
       data.notifications[order.userId] = [
         {
