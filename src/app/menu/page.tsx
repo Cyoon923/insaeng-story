@@ -21,6 +21,7 @@ const GROUPS = [
   {
     title: "안내",
     items: [
+      { label: "고객 후기", href: "/reviews?from=menu" },
       { label: "이벤트", href: "/events?from=menu" },
       { label: "자주 묻는 질문", href: "/faq?from=menu" },
       { label: "공지사항", href: "/notice?from=menu" },
