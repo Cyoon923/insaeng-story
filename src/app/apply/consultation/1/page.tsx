@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
-import { getDraft, saveDraft } from "@/lib/client/api";
+import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
+import { displayReviewsForProduct, summarizeReviews } from "@/lib/constants/reviews";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -139,6 +140,19 @@ export default function ConsultationStep1Page() {
     if (draft.extraPerson === "1") setExtraPerson(true);
   }, []);
 
+  // 실제 공개된 상담 후기가 있을 때만 평균 별점과 개수를 함께 보여 준다.
+  const [reviewSummary, setReviewSummary] = useState<{ count: number; average: number } | null>(null);
+
+  useEffect(() => {
+    fetchMe()
+      .then((data) => {
+        setReviewSummary(
+          summarizeReviews(displayReviewsForProduct("consultation", data.reviews ?? [])),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
   const togglePurpose = (item: string) => {
     const next = purposes.includes(item) ? purposes.filter((p) => p !== item) : [...purposes, item];
     setPurposes(next);
@@ -166,7 +180,12 @@ export default function ConsultationStep1Page() {
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[16px] font-bold text-[#403A49]">선생님</p>
         <p className="mt-2 text-[15px] font-semibold text-[#403A49]">{TEACHER}</p>
-        <p className="mt-1 text-[13px] text-[#6B6570]">사주로그 전담 선생 · 5.0 (후기 128개)</p>
+        <p className="mt-1 text-[13px] text-[#6B6570]">
+          사주로그 전담 선생
+          {reviewSummary
+            ? ` · ${reviewSummary.average.toFixed(1)} (후기 ${reviewSummary.count}개)`
+            : ""}
+        </p>
       </section>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">

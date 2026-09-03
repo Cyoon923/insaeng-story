@@ -57,10 +57,16 @@ function ReviewWriteForm() {
       setLoggedIn(Boolean(user));
       if (user?.name) setName(user.name);
 
+      // 이미 후기를 남긴 대상은 목록에서 뺀다. 서버도 409로 한 번 더 막는다.
+      const written = new Set(
+        ((data.myReviews ?? []) as { targetKey?: string }[])
+          .map((item) => item.targetKey)
+          .filter((key): key is string => Boolean(key)),
+      );
       const next = receivedTargets(
         (data.orders ?? []) as Order[],
         (data.consultations ?? []) as Consultation[],
-      );
+      ).filter((item) => !written.has(item.key));
       const previewTargets =
         searchParams.get("preview") === "1" && next.length === 0
           ? [

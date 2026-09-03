@@ -7,7 +7,7 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/Button";
 import { formatPriceFrom } from "@/lib/constants/products";
-import { displayReviewsForProduct, reviewsForProduct } from "@/lib/constants/reviews";
+import { displayReviewsForProduct, type Review } from "@/lib/constants/reviews";
 
 export interface ProductFeature {
   icon: React.ReactNode;
@@ -85,7 +85,7 @@ function DetailProcessFlow({ steps }: { steps: ProcessStep[] }) {
 }
 
 export function ProductDetailPage({ config }: ProductDetailPageProps) {
-  const [reviews, setReviews] = useState(() => reviewsForProduct(config.slug));
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     fetch("/api/app", { cache: "no-store" })
@@ -161,7 +161,14 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
             {reviews.map((review) => (
               <div key={review.id} className="rounded-2xl bg-card p-4 ring-1 ring-border">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[15px] font-bold text-[#403A49]">{review.name}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-[15px] font-bold text-[#403A49]">{review.name}</p>
+                    {review.verified ? (
+                      <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#5c3d2e]">
+                        구매 인증
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: review.rating }).map((_, i) => (
                       <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />

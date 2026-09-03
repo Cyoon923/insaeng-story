@@ -118,6 +118,8 @@ export interface Review {
   createdAt: string;
   visible: boolean;
   kind?: "story" | "premium" | "saju-song" | "consultation";
+  /** 후기를 남긴 대상. "order:<주문id>" 또는 "consult:<상담id>". 한 대상에 하나만 남길 수 있다. */
+  targetKey: string;
 }
 
 /**

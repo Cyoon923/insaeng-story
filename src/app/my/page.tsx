@@ -30,7 +30,7 @@ import type { Order, User } from "@/lib/types/app";
 const MENU_GRID = [
   { icon: Headphones, label: "1:1 사주상담 내역", href: "/my/consultations" },
   { icon: ClipboardList, label: "이벤트 신청", href: "/my/inquiries" },
-  { icon: Star, label: "후기 작성", href: "/my/reviews/write" },
+  { icon: Star, label: "후기", href: "/my/reviews" },
   { icon: Heart, label: "찜한 상품", href: "/my/wishlist" },
   { icon: Ticket, label: "쿠폰함", href: "/my/coupons" },
   { icon: Megaphone, label: "공지사항", href: "/notice?from=my" },

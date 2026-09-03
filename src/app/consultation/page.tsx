@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { CONSULT_REVIEWS, displayReviewsForProduct } from "@/lib/constants/reviews";
+import { displayReviewsForProduct, summarizeReviews, type Review } from "@/lib/constants/reviews";
 
 const RECOMMENDS = [
   {
@@ -72,7 +72,9 @@ const FAQS = [
 ];
 
 export default function ConsultationPage() {
-  const [reviews, setReviews] = useState(CONSULT_REVIEWS);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  // 실제 공개 후기가 있을 때만 별점·개수를 보여 준다. 없으면 줄 자체를 감춘다.
+  const summary = summarizeReviews(reviews);
 
   useEffect(() => {
     fetch("/api/app", { cache: "no-store" })
@@ -147,12 +149,16 @@ export default function ConsultationPage() {
                   사주로그 전담 선생
                 </span>
               </div>
-              <div className="mt-1 flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
-                ))}
-                <span className="text-[12px] text-[#6B6570]">5.0 (후기 128개)</span>
-              </div>
+              {summary ? (
+                <div className="mt-1 flex items-center gap-1">
+                  {Array.from({ length: Math.round(summary.average) }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
+                  ))}
+                  <span className="text-[12px] text-[#6B6570]">
+                    {summary.average.toFixed(1)} (후기 {summary.count}개)
+                  </span>
+                </div>
+              ) : null}
               <p className="mt-2 text-[13px] leading-relaxed text-[#6B6570]">
                 사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
               </p>
@@ -254,11 +260,23 @@ export default function ConsultationPage() {
       <section className="px-4 py-6">
         <h3 className="text-[17px] font-bold text-[#403A49]">상담 후기</h3>
         <p className="mt-1 text-[13px] text-[#6B6570]">유비 선생과 상담하신 분의 이야기입니다.</p>
+        {reviews.length === 0 ? (
+          <p className="mt-3 rounded-2xl bg-white p-4 text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
+            아직 등록된 후기가 없습니다.
+          </p>
+        ) : null}
         <div className="mt-3 space-y-3">
           {reviews.map((review) => (
             <div key={review.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[15px] font-bold text-[#403A49]">{review.name}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="text-[15px] font-bold text-[#403A49]">{review.name}</p>
+                  {review.verified ? (
+                    <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#5c3d2e]">
+                      구매 인증
+                    </span>
+                  ) : null}
+                </div>
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: review.rating }).map((_, i) => (
                     <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />

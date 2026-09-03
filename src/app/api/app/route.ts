@@ -5,6 +5,7 @@ import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, writeDataWithOrder, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import { maskName } from "@/lib/constants/reviews";
 import type {
   AppData,
   Consultation,
@@ -190,16 +191,41 @@ function settledPayment(amount: number, details: Record<string, string>, fallbac
   return fallback;
 }
 
+/**
+ * 내가 쓴 후기. 본인에게만 내려주며, 승인 대기 중인 후기도 포함한다.
+ * 다른 회원의 후기나 userId는 여기에 담기지 않는다.
+ * targetKey가 없던 예전 후기는 빈 문자열로 채워 화면이 깨지지 않게 한다.
+ */
+function myReviews(data: AppData, userId: string) {
+  return (data.reviews ?? [])
+    .filter((item) => item.userId === userId)
+    .map((item) => ({
+      id: item.id,
+      targetKey: item.targetKey ?? "",
+      kind: item.kind,
+      title: item.title,
+      rating: item.rating,
+      text: item.text,
+      createdAt: item.createdAt,
+      visible: item.visible,
+    }));
+}
+
+/**
+ * 공개 후기. 이름은 여기에서만 가려 내보내고 저장된 원본은 그대로 둔다.
+ * 대상 정보(targetKey)는 밖으로 내보내지 않고, 있는지 여부만 verified로 알린다.
+ */
 function publicReviews(data: AppData) {
   return (data.reviews ?? [])
     .filter((item) => item.visible)
     .map((item) => ({
       id: item.id,
-      name: item.name,
+      name: maskName(item.name),
       rating: item.rating,
       text: item.text,
       kind: item.kind,
       title: item.title,
+      verified: Boolean(item.targetKey),
     }));
 }
 
@@ -228,6 +254,7 @@ export async function GET() {
       notice: false,
     },
     reviews,
+    myReviews: myReviews(data, userId),
   });
 }
 
@@ -765,13 +792,49 @@ export async function POST(request: Request) {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "별점을 선택해 주세요." }, { status: 400 });
     }
+    // 후기는 실제로 받아 보신 분만 남길 수 있다.
+    // 화면(MY 후기 작성)의 대상 목록과 같은 규칙을 서버에서 다시 확인한다.
     let kind: Review["kind"];
     if (targetKey.startsWith("order:")) {
       const order = await getOrderById(targetKey.slice(6));
-      kind = order?.product;
+      if (!order || order.userId !== userId) {
+        return NextResponse.json({ error: "후기를 남길 수 있는 신청이 아닙니다." }, { status: 403 });
+      }
+      if (order.status !== "완성/전달" && order.status !== "완료") {
+        return NextResponse.json(
+          { error: "아직 완성되지 않은 신청입니다. 완성 후에 후기를 남기실 수 있습니다." },
+          { status: 403 },
+        );
+      }
+      kind = order.product;
     } else if (targetKey.startsWith("consult:")) {
+      const consultation = data.consultations.find(
+        (item) => item.id === targetKey.slice(8) && item.userId === userId,
+      );
+      if (!consultation) {
+        return NextResponse.json({ error: "후기를 남길 수 있는 상담이 아닙니다." }, { status: 403 });
+      }
+      if (consultation.status !== "상담 완료") {
+        return NextResponse.json(
+          { error: "아직 끝나지 않은 상담입니다. 상담 후에 후기를 남기실 수 있습니다." },
+          { status: 403 },
+        );
+      }
       kind = "consultation";
+    } else {
+      // order:/consult: 이외의 값으로는 후기를 만들 수 없다.
+      return NextResponse.json({ error: "후기를 남길 대상을 선택해 주세요." }, { status: 400 });
     }
+    // 한 주문·상담에는 후기를 하나만 남길 수 있다.
+    // 승인 대기(visible:false)나 비공개 처리된 후기도 이미 쓴 것으로 본다.
+    // targetKey가 없던 예전 후기는 빈 값으로 취급되어 비교에 걸리지 않는다.
+    const already = (data.reviews ?? []).some(
+      (item) => item.userId === userId && (item.targetKey ?? "") === targetKey,
+    );
+    if (already) {
+      return NextResponse.json({ error: "이미 후기를 남기셨습니다." }, { status: 409 });
+    }
+
     const review: Review = {
       id: nowId(),
       userId,
@@ -782,6 +845,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
       visible: false,
       kind,
+      targetKey,
     };
     data.reviews = [review, ...(data.reviews ?? [])];
     await writeData(data);
