@@ -27,7 +27,19 @@ export interface NicepayApproveResult {
   paidAt?: string;
 }
 
+/**
+ * 승인 결과의 종류.
+ *  approved  승인 성공
+ *  declined  NICEPAY가 정상 응답했고 그 내용이 명확한 승인 실패
+ *  unknown   통신 오류·5xx·본문 파싱 실패 등 승인 여부를 확정할 수 없음
+ *
+ * unknown을 실패로 취급하면 "실제로는 승인됐는데 실패로 확정"하는 사고가 난다.
+ * 호출자는 unknown일 때 결제 상태를 바꾸지 말아야 한다.
+ */
+export type NicepayApproveKind = "approved" | "declined" | "unknown";
+
 export interface NicepayApproveOutcome {
+  kind: NicepayApproveKind;
   ok: boolean;
   /** 사용자에게 보여도 되는 짧은 사유. PG 원문이나 secret은 담지 않는다. */
   reason: string;
@@ -115,8 +127,15 @@ export async function approveNicepayPayment(input: {
       }),
     });
   } catch {
-    // 네트워크 실패. 승인 여부를 알 수 없으므로 성공으로 취급하지 않는다.
-    return { ok: false, reason: "승인 요청에 실패했습니다.", raw: null, result: null, httpStatus: null };
+    // 네트워크 실패. 승인이 됐는지 안 됐는지 알 수 없다. 실패로 확정하지 않는다.
+    return {
+      kind: "unknown",
+      ok: false,
+      reason: "결제 결과를 확인하는 중입니다.",
+      raw: null,
+      result: null,
+      httpStatus: null,
+    };
   }
 
   let raw: Record<string, unknown> | null = null;
@@ -130,10 +149,12 @@ export async function approveNicepayPayment(input: {
   }
 
   // HTTP 상태와 NICEPAY 결과코드는 별개다. 둘 다 확인한다.
-  if (!response.ok || !raw) {
+  // 4xx는 요청이 거절된 것이라 결과가 확정이지만, 5xx·본문 없음은 확정할 수 없다.
+  if (!raw || response.status >= 500) {
     return {
+      kind: "unknown",
       ok: false,
-      reason: "승인 결과를 확인하지 못했습니다.",
+      reason: "결제 결과를 확인하는 중입니다.",
       raw,
       result: null,
       httpStatus: response.status,
@@ -142,9 +163,13 @@ export async function approveNicepayPayment(input: {
 
   const result = raw as NicepayApproveResult;
   const ok = result.resultCode === "0000" && result.status === "paid";
+  if (ok) {
+    return { kind: "approved", ok: true, reason: "", raw, result, httpStatus: response.status };
+  }
   return {
-    ok,
-    reason: ok ? "" : "카드사 승인이 완료되지 않았습니다.",
+    kind: "declined",
+    ok: false,
+    reason: "카드사 승인이 완료되지 않았습니다.",
     raw,
     result,
     httpStatus: response.status,

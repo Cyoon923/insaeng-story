@@ -515,11 +515,63 @@ export async function markPaymentApproved(input: {
 }
 
 /**
- * 승인 결과를 "아직 ready인 결제 1건"에만 기록한다.
- * markPaymentApproved와 달리 status = 'ready' 조건이 붙어 있어,
- * 같은 승인 callback이 두 번 들어와도 두 번째는 0행이 되어 null을 돌려준다.
- * 호출한 쪽은 null을 "이미 처리됐거나 준비 상태가 아님"으로 읽고
- * 주문을 다시 만들지 않으면 된다.
+ * 승인 API를 부르기 전에 결제 1건을 선점한다.
+ * 단일 UPDATE 문이라 그 자체로 원자적이다. 같은 결제에 콜백이 동시에 두 번 들어오면
+ * 뒤에 온 요청은 행 잠금이 풀린 뒤 조건을 다시 평가해 0행이 되므로,
+ * 정확히 한 요청만 row를 받아 승인을 진행한다.
+ * null을 받은 요청은 승인 API를 절대 호출하면 안 된다.
+ */
+export async function claimPaymentProcessing(merchantOrderId: string): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET status = 'processing',
+          updated_at = now()
+      WHERE merchant_order_id = $1
+        AND status = 'ready'
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [merchantOrderId],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 승인이 "명확히 거절된" 경우에만 부른다.
+ * 통신 오류처럼 승인 여부를 알 수 없는 경우에는 절대 부르면 안 된다.
+ * 그런 건은 processing으로 남겨 두고 사람이 확인해야 한다.
+ */
+export async function markPaymentFailed(input: {
+  merchantOrderId: string;
+  raw?: Record<string, unknown> | null;
+}): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET status = 'failed',
+          raw = COALESCE($2::jsonb, raw),
+          updated_at = now()
+      WHERE merchant_order_id = $1
+        AND status = 'processing'
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [input.merchantOrderId, input.raw ? JSON.stringify(input.raw) : null],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 승인 결과를 "승인을 선점한(processing) 결제 1건"에만 기록한다.
+ * markPaymentApproved와 달리 status = 'processing' 조건이 붙어 있어,
+ * 선점하지 못한 요청은 0행이 되어 null을 돌려받는다.
+ * 호출한 쪽은 null을 "이미 처리됐거나 내가 선점한 건이 아님"으로 읽고
+ * 주문을 만들지 않으면 된다.
  *
  * 기존 markPaymentApproved는 아직 호출하는 곳이 없지만 그대로 남겨 둔다.
  * order_id는 주문을 만들기 전에도 기록할 수 있어야 하므로 null을 허용한다.
@@ -548,7 +600,7 @@ export async function claimPaymentApproved(input: {
           raw = COALESCE($7::jsonb, raw),
           updated_at = now()
       WHERE merchant_order_id = $1
-        AND status = 'ready'
+        AND status = 'processing'
       RETURNING ${PAYMENT_COLUMNS}
     `,
     [

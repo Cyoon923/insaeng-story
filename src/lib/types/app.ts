@@ -137,7 +137,15 @@ export interface VerificationCode {
  * 결제 상태. NICEPAY가 돌려주는 status 값을 그대로 담는다.
  * 서비스 진행 상태(OrderStatus)와는 완전히 별개이며 섞어 쓰지 않는다.
  */
-export type PaymentStatus = "ready" | "paid" | "failed" | "cancelled" | "partialCancelled";
+export type PaymentStatus =
+  | "ready"
+  // 승인 API를 부르기 직전에 한 요청만 선점하는 중간 상태.
+  // 같은 결제로 콜백이 두 번 들어와도 두 번째는 여기서 막힌다.
+  | "processing"
+  | "paid"
+  | "failed"
+  | "cancelled"
+  | "partialCancelled";
 
 /**
  * 결제 1건. 주문이 만들어지기 전(결제 준비 단계)에도 행이 생기므로 orderId는 비어 있을 수 있다.
