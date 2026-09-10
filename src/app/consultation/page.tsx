@@ -10,10 +10,80 @@ import {
   Pencil,
   MessageCircle,
   CheckCircle,
+  User,
+  X,
 } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { displayReviewsForProduct, summarizeReviews, type Review } from "@/lib/constants/reviews";
+
+/**
+ * 상담 선생님 카드 데이터.
+ * image가 없는 선생님은 사진이 아직 확정되지 않아 placeholder로 표시한다.
+ * 새 이미지 파일은 만들지 않는다.
+ */
+const TEACHERS = [
+  {
+    id: "yubi",
+    name: "유비 선생",
+    badge: "사주로그 전담 선생",
+    role: "전체 운세 · 인생 방향 상담",
+    desc: "사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.",
+    tags: ["전체적인 운세", "진로", "올해의 흐름"],
+    image: "/images/photo-yubi-teacher.png",
+    showRating: true,
+    // 아래 상세 내용은 임시 문구다. 실제 약력을 받으면 이 값만 교체하면 된다.
+    intro:
+      "20년 넘게 사람의 사주와 이야기를 함께 살펴 왔습니다. 어려운 말 대신 지금 상황에 맞는 이야기로 풀어 드립니다.",
+    career: [
+      "사주로그 전담 선생",
+      "개인 상담 다수 진행",
+      "인생곡 사주 해석 자문",
+    ],
+    style:
+      "말을 끊지 않고 끝까지 듣습니다. 좋은 이야기만 하지 않고, 지금 챙겨야 할 부분을 분명히 짚어 드립니다.",
+  },
+  {
+    id: "helen",
+    name: "헬렌 선생",
+    badge: "사주로그 선생",
+    role: "연애 · 인연 · 결혼 궁합 상담",
+    desc: "관계 속에서 생기는 고민을 편안하게 나누며, 인연의 흐름을 함께 살펴봅니다.",
+    tags: ["연애·인연", "결혼·궁합", "가족"],
+    image: "",
+    showRating: false,
+    intro:
+      "마음이 복잡할 때 편하게 이야기 나눌 수 있는 상담을 지향합니다. 관계의 흐름을 찬찬히 함께 살펴봅니다.",
+    career: [
+      "사주로그 선생",
+      "연애·궁합 상담 다수 진행",
+      "가족 관계 상담 진행",
+    ],
+    style:
+      "재촉하지 않고 편안하게 듣습니다. 상대방 사주까지 함께 보며 관계를 넓게 살펴 드립니다.",
+  },
+  {
+    id: "pending",
+    name: "미정 선생",
+    badge: "사주로그 선생",
+    role: "재물 · 직장 · 사업 흐름 상담",
+    desc: "금전과 일의 흐름을 차분히 짚어 보며, 지금 필요한 선택을 함께 정리합니다.",
+    tags: ["재물·금전", "직장·사업", "전체적인 운세"],
+    image: "",
+    showRating: false,
+    intro:
+      "일과 돈에 관한 고민을 현실적인 기준으로 정리해 드립니다. 막연한 불안보다 다음에 할 일을 찾는 상담입니다.",
+    career: [
+      "사주로그 선생",
+      "재물·직장 흐름 상담 진행",
+      "사업 시기 상담 진행",
+    ],
+    style:
+      "돌려 말하지 않고 정리해서 알려 드립니다. 선택지를 함께 두고 비교하며 방향을 잡아 갑니다.",
+  },
+] as const;
+
+type Teacher = (typeof TEACHERS)[number];
 
 const RECOMMENDS = [
   {
@@ -73,6 +143,8 @@ const FAQS = [
 
 export default function ConsultationPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
+  /** 열려 있는 선생님 상세. null이면 닫힌 상태다. */
+  const [openTeacher, setOpenTeacher] = useState<Teacher | null>(null);
   // 실제 공개 후기가 있을 때만 별점·개수를 보여 준다. 없으면 줄 자체를 감춘다.
   const summary = summarizeReviews(reviews);
 
@@ -103,13 +175,6 @@ export default function ConsultationPage() {
               지금의 흐름을 이해하면 앞으로의 방향이 보입니다
             </h2>
             <p className="mt-4 text-[18px] font-bold text-[#403A49]">100,000원~</p>
-            <Link
-              href="/apply/consultation/1"
-              className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[#403A49] px-3 text-[13px] font-semibold text-white"
-            >
-              사주 분석 시작하기
-              <ChevronRight className="ml-0.5 h-4 w-4" />
-            </Link>
           </div>
           {/*
             Hero 전체를 채우는 배경 이미지. 왼쪽 밝은 페이드가 원본에 그려져 있어
@@ -131,39 +196,80 @@ export default function ConsultationPage() {
 
       <section className="px-4 py-6">
         <h3 className="text-[17px] font-bold text-[#403A49]">상담 선생님 소개</h3>
-        <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <div className="flex items-start gap-3">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
-              <Image
-                src="/images/photo-yubi-teacher.png"
-                alt="유비 선생"
-                fill
-                className="object-cover object-top"
-                sizes="64px"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[16px] font-bold text-[#403A49]">유비 선생</p>
-                <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
-                  사주로그 전담 선생
-                </span>
-              </div>
-              {summary ? (
-                <div className="mt-1 flex items-center gap-1">
-                  {Array.from({ length: Math.round(summary.average) }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
-                  ))}
-                  <span className="text-[12px] text-[#6B6570]">
-                    {summary.average.toFixed(1)} (후기 {summary.count}개)
-                  </span>
+        <div className="mt-3 space-y-3">
+          {TEACHERS.map((teacher) => (
+            <div key={teacher.name} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <div className="flex items-start gap-3">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
+                  {teacher.image ? (
+                    <Image
+                      src={teacher.image}
+                      alt={teacher.name}
+                      fill
+                      className="object-cover object-top"
+                      sizes="64px"
+                    />
+                  ) : (
+                    // 사진이 아직 없는 선생님은 새 이미지를 만들지 않고 아이콘으로 자리만 잡는다.
+                    <div className="flex h-full w-full items-center justify-center">
+                      <User className="h-7 w-7 text-[#c4a574]" />
+                    </div>
+                  )}
                 </div>
-              ) : null}
-              <p className="mt-2 text-[13px] leading-relaxed text-[#6B6570]">
-                사람의 마음과 이야기에 귀 기울이며, 당신만의 특별한 인생길을 함께 찾아드립니다.
-              </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[16px] font-bold text-[#403A49]">{teacher.name}</p>
+                    <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
+                      {teacher.badge}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-keep text-[13px] font-medium text-[#5c3d2e]">
+                    {teacher.role}
+                  </p>
+                  {teacher.showRating && summary ? (
+                    <div className="mt-1 flex items-center gap-1">
+                      {Array.from({ length: Math.round(summary.average) }).map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-[#c4a574] text-[#c4a574]" />
+                      ))}
+                      <span className="text-[12px] text-[#6B6570]">
+                        {summary.average.toFixed(1)} (후기 {summary.count}개)
+                      </span>
+                    </div>
+                  ) : null}
+                  <p className="mt-2 break-keep text-[13px] leading-relaxed text-[#6B6570]">
+                    {teacher.desc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {teacher.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-[#faf8f5] px-2.5 py-1 text-[12px] text-[#5c3d2e] ring-1 ring-[#ebe3d8]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenTeacher(teacher)}
+                  className="flex h-11 flex-1 items-center justify-center rounded-lg bg-[#faf8f5] text-[14px] font-semibold text-[#5c3d2e] ring-1 ring-[#ebe3d8]"
+                >
+                  자세히 보기
+                </button>
+                <Link
+                  href={`/apply/consultation/1?teacher=${teacher.id}`}
+                  className="flex h-11 flex-1 items-center justify-center rounded-lg bg-[#403A49] text-[14px] font-semibold text-white"
+                >
+                  상담 신청하기
+                </Link>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -305,6 +411,128 @@ export default function ConsultationPage() {
           ))}
         </div>
       </section>
+
+      {/*
+        선생님 상세 Bottom Sheet.
+        MobileShell(max-w-[430px]) 안에서 fixed로 띄우되 좌우를 화면 폭에 맞춰
+        가운데 정렬하므로 body 가로 스크롤이 생기지 않는다.
+      */}
+      {openTeacher ? (
+        <div className="fixed inset-0 z-[95] flex items-end justify-center">
+          {/* 바깥 영역을 누르면 닫힌다. */}
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => setOpenTeacher(null)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div className="relative flex max-h-[85vh] w-full max-w-[430px] flex-col rounded-t-2xl bg-[#FFFFFF]">
+            <div className="flex items-center justify-between border-b border-[#ebe3d8] px-4 py-3">
+              <p className="text-[16px] font-bold text-[#403A49]">선생님 소개</p>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={() => setOpenTeacher(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[#6B6570]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* 내용이 길면 이 영역만 세로로 스크롤된다. */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+              <div className="flex items-start gap-3">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-[#f5efe6]">
+                  {openTeacher.image ? (
+                    <Image
+                      src={openTeacher.image}
+                      alt={openTeacher.name}
+                      fill
+                      className="object-cover object-top"
+                      sizes="80px"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <User className="h-8 w-8 text-[#c4a574]" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[18px] font-bold text-[#403A49]">{openTeacher.name}</p>
+                    <span className="rounded bg-[#f5efe6] px-2 py-0.5 text-[10px] text-[#5c3d2e]">
+                      {openTeacher.badge}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-keep text-[14px] font-medium text-[#5c3d2e]">
+                    {openTeacher.role}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {openTeacher.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#faf8f5] px-2.5 py-1 text-[12px] text-[#5c3d2e] ring-1 ring-[#ebe3d8]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-[15px] font-bold text-[#403A49]">선생님 소개</p>
+                <p className="mt-2 break-keep text-[14px] leading-relaxed text-[#6B6570]">
+                  {openTeacher.intro}
+                </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-[15px] font-bold text-[#403A49]">주요 약력</p>
+                <ul className="mt-2 space-y-1.5">
+                  {openTeacher.career.map((item) => (
+                    <li
+                      key={item}
+                      className="flex gap-2 break-keep text-[14px] leading-relaxed text-[#6B6570]"
+                    >
+                      <span className="text-[#c4a574]">·</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-[15px] font-bold text-[#403A49]">상담 스타일</p>
+                <p className="mt-2 break-keep text-[14px] leading-relaxed text-[#6B6570]">
+                  {openTeacher.style}
+                </p>
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-[#faf8f5] p-4 ring-1 ring-[#ebe3d8]">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[14px] font-medium text-[#403A49]">상담 방식</p>
+                  <p className="text-[14px] text-[#6B6570]">전화 · 카카오톡</p>
+                </div>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                  <p className="text-[14px] font-medium text-[#403A49]">상담 시간</p>
+                  <p className="text-[14px] text-[#6B6570]">약 50분</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 고정 CTA. 기존 신청 경로를 그대로 쓴다. */}
+            <div className="border-t border-[#ebe3d8] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+              <Link
+                href={`/apply/consultation/1?teacher=${openTeacher.id}`}
+                className="flex h-14 w-full items-center justify-center rounded-xl bg-[#403A49] text-[16px] font-bold text-white"
+              >
+                {openTeacher.name}에게 상담 신청하기
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </MobileShell>
   );
 }

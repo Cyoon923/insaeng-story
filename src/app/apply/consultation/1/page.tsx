@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
@@ -20,6 +21,22 @@ const PURPOSES = [
 ];
 
 const TEACHER = "유비 선생";
+
+/**
+ * 상담 상세페이지에서 넘어온 ?teacher= 값을 화면에 보여 줄 이름으로 바꾼다.
+ * 목록에 없는 값이나 쿼리가 없으면 기존과 같이 유비 선생으로 둔다.
+ */
+const TEACHER_NAMES: Record<string, string> = {
+  yubi: "유비 선생",
+  helen: "헬렌 선생",
+  pending: "미정 선생",
+};
+
+const TEACHER_BADGES: Record<string, string> = {
+  yubi: "사주로그 전담 선생",
+  helen: "사주로그 선생",
+  pending: "사주로그 선생",
+};
 
 function parseConsultDate(value: string) {
   const match = value.match(/^(\d+)월 (\d+)일\((.+)\)$/);
@@ -60,7 +77,13 @@ function formatSlotButton(time: string) {
   return { period: "", clock: time };
 }
 
-export default function ConsultationStep1Page() {
+function ConsultationStep1Flow() {
+  const params = useSearchParams();
+  // 상세페이지에서 넘어온 선생님. 값이 없거나 목록에 없으면 기존 기본값을 쓴다.
+  const paramTeacher = params.get("teacher") ?? "";
+  const teacherId = TEACHER_NAMES[paramTeacher] ? paramTeacher : "yubi";
+  const teacherName = TEACHER_NAMES[teacherId] ?? TEACHER;
+
   const [dates, setDates] = useState<string[]>([]);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -89,7 +112,7 @@ export default function ConsultationStep1Page() {
       .join(" / ");
     if (!nextDate || !nextTime) return;
     saveDraft("consultation", {
-      teacher: TEACHER,
+      teacher: teacherName,
       datetime: `${nextDate} ${nextTime}`,
       purpose: nextPurposes.join(" / "),
       option: options || "없음",
@@ -113,7 +136,7 @@ export default function ConsultationStep1Page() {
 
   useEffect(() => {
     if (!date) return;
-    fetch(`/api/consultation/availability?date=${encodeURIComponent(date)}&teacher=${encodeURIComponent(TEACHER)}`, {
+    fetch(`/api/consultation/availability?date=${encodeURIComponent(date)}&teacher=${encodeURIComponent(teacherName)}`, {
       cache: "no-store",
     })
       .then((res) => res.json())
@@ -131,7 +154,7 @@ export default function ConsultationStep1Page() {
           persist({ date, time: nextTime });
         }
       });
-  }, [date]);
+  }, [date, teacherName]);
 
   useEffect(() => {
     const draft = getDraft("consultation");
@@ -179,10 +202,12 @@ export default function ConsultationStep1Page() {
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[16px] font-bold text-[#403A49]">선생님</p>
-        <p className="mt-2 text-[15px] font-semibold text-[#403A49]">{TEACHER}</p>
+        <p className="mt-2 text-[15px] font-semibold text-[#403A49]">
+          {TEACHER_NAMES[teacherId]}
+        </p>
         <p className="mt-1 text-[13px] text-[#6B6570]">
-          사주로그 전담 선생
-          {reviewSummary
+          {TEACHER_BADGES[teacherId]}
+          {teacherId === "yubi" && reviewSummary
             ? ` · ${reviewSummary.average.toFixed(1)} (후기 ${reviewSummary.count}개)`
             : ""}
         </p>
@@ -327,5 +352,13 @@ export default function ConsultationStep1Page() {
         </button>
       </section>
     </ApplyLayout>
+  );
+}
+
+export default function ConsultationStep1Page() {
+  return (
+    <Suspense fallback={null}>
+      <ConsultationStep1Flow />
+    </Suspense>
   );
 }

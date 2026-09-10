@@ -200,6 +200,8 @@ export default function AdminPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
   const [teacher, setTeacher] = useState("유비 선생");
+  /** 선택할 수 있는 선생님 목록. API가 주지 않으면 빈 배열이라 선택 UI를 그리지 않는다. */
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
   const [adminPromo, setAdminPromo] = useState<AdminPromo | null>(null);
   const [promoPercent, setPromoPercent] = useState(20);
   const [promoCopied, setPromoCopied] = useState(false);
@@ -243,6 +245,7 @@ export default function AdminPage() {
     setScheduleDates(nextDates);
     setScheduleDate((current) => current || nextDates[0] || "");
     setTeacher(String(data.teacher ?? "유비 선생"));
+    setTeachers((data.teachers ?? []) as { id: string; name: string }[]);
     setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
     setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
     setAuthed(true);
@@ -1077,6 +1080,28 @@ export default function AdminPage() {
 
         {tab === "schedule" ? (
           <>
+            {teachers.length > 0 ? (
+              <div className="mb-3 grid grid-cols-3 gap-2">
+                {teachers.map((item) => {
+                  const active = teacher === item.name;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTeacher(item.name)}
+                      aria-pressed={active}
+                      className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
+                        active
+                          ? "bg-[#5c3d2e] text-white"
+                          : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                      }`}
+                    >
+                      {item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <p className="text-[15px] font-bold text-[#403A49]">{teacher} 상담 일정</p>
             <p className="mt-1 text-[13px] text-[#6B6570]">
               예약된 시간은 자동으로 막힙니다. 선생님 개인 일정은 아래에서 막거나 열 수 있습니다.

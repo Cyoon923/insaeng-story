@@ -16,6 +16,7 @@ import {
 } from "@/lib/server/store";
 import {
   DEFAULT_TEACHER,
+  CONSULT_TEACHERS,
   CONSULT_TIMES,
   toggleBlockedSlot,
   upcomingConsultDates,
@@ -55,6 +56,9 @@ export async function GET() {
     dates: upcomingConsultDates(),
     times: CONSULT_TIMES,
     teacher: DEFAULT_TEACHER,
+    // 일정 화면에서 선생님을 고를 수 있도록 목록도 함께 내려준다.
+    // 기존 teacher 필드는 그대로 두어 지금 화면이 그대로 동작한다.
+    teachers: CONSULT_TEACHERS,
     adminPromo: data.adminPromo ?? null,
     coupons: data.coupons ?? {},
   });

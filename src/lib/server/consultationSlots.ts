@@ -7,7 +7,27 @@ function formatConsultTime(hour: number): string {
 }
 
 export const CONSULT_TIMES = Array.from({ length: 9 }, (_, index) => formatConsultTime(10 + index));
-export const DEFAULT_TEACHER = "유비 선생";
+
+/**
+ * 상담 선생님 목록. id는 화면 사이에서 주고받는 값이고,
+ * name은 화면에 보여 주고 저장 데이터(BlockedSlot.teacher, Consultation.teacher)에 쓰는 값이다.
+ * 저장 데이터가 이름 문자열을 쓰고 있으므로 name은 함부로 바꾸지 않는다.
+ */
+export const CONSULT_TEACHERS = [
+  { id: "yubi", name: "유비 선생" },
+  { id: "helen", name: "헬렌 선생" },
+  { id: "pending", name: "미정 선생" },
+] as const;
+
+export type TeacherId = (typeof CONSULT_TEACHERS)[number]["id"];
+
+/** 기존과 같은 값("유비 선생")이다. 목록의 첫 번째를 기본으로 쓴다. */
+export const DEFAULT_TEACHER = CONSULT_TEACHERS[0].name;
+
+/** id가 목록에 없으면 기존 기본값으로 돌려준다. */
+export function teacherNameById(id: string): string {
+  return CONSULT_TEACHERS.find((item) => item.id === id)?.name ?? DEFAULT_TEACHER;
+}
 
 export type SlotStatus = "available" | "booked" | "blocked";
 
