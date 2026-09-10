@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clearDraft, fetchMe, getDraft, postApp } from "@/lib/client/api";
+import { openNicepayCard } from "@/lib/client/nicepay";
 import { formatPrice } from "@/lib/constants/products";
 import type { Coupon, CouponProduct } from "@/lib/types/app";
+
+/** 결제수단 선택 화면이 쓰는 값. NICEPAY 연결은 아직 이 카드 결제만 지원한다. */
+const CARD_PAYMENT = "신용/체크카드";
+const CARD_ONLY_MESSAGE = "지금은 신용/체크카드로만 결제할 수 있습니다. 결제수단을 카드로 선택해 주세요.";
 
 export function PaySubmit({
   flow,
@@ -48,6 +53,43 @@ export function PaySubmit({
   const pointsToUse = !usingCoupon && usePoints ? Math.min(points, afterDiscount) : 0;
   const payAmount = Math.max(0, afterDiscount - pointsToUse);
 
+  /**
+   * 결제창에서 돌아왔을 때 버튼을 다시 풀어 주는 1회성 감시의 해제 함수.
+   * 감시가 걸려 있지 않으면 null이다.
+   */
+  const releasePaymentWatch = useRef<(() => void) | null>(null);
+
+  // 화면을 벗어나도 리스너가 남지 않게 한다.
+  useEffect(() => () => releasePaymentWatch.current?.(), []);
+
+  /**
+   * NICEPAY 결제창에서 원래 화면으로 돌아오면 loading을 한 번만 푼다.
+   * 결제창이 떠 있는 동안에는 아무 일도 하지 않으므로 재클릭이 막힌 상태가 유지된다.
+   * 모바일처럼 returnUrl로 페이지가 실제 이동하는 경우에는 페이지가 사라지면서
+   * 리스너도 함께 사라지므로 기존 결제 흐름에 관여하지 않는다.
+   */
+  const watchPaymentWindowReturn = () => {
+    if (typeof window === "undefined") return;
+    releasePaymentWatch.current?.();
+
+    const cleanup = () => {
+      releasePaymentWatch.current = null;
+      window.removeEventListener("focus", handleReturn);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
+    const handleReturn = () => {
+      cleanup();
+      setLoading(false);
+    };
+    const handleVisible = () => {
+      if (document.visibilityState === "visible") handleReturn();
+    };
+
+    releasePaymentWatch.current = cleanup;
+    window.addEventListener("focus", handleReturn);
+    document.addEventListener("visibilitychange", handleVisible);
+  };
+
   useEffect(() => {
     fetchMe()
       .then((data) => {
@@ -79,39 +121,77 @@ export function PaySubmit({
         couponId,
         usePoints: !usingCoupon && usePoints ? "1" : "",
       };
-      if (kind === "order") {
-        const result = await postApp({
-          action: "createOrder",
-          product,
-          title,
-          options: optionIds,
-          payment,
-          details: merged,
+
+      // 신청 내용은 두 흐름이 똑같이 쓴다. 유료/0원 판단은 서버가 한다.
+      const applyBody: Record<string, unknown> =
+        kind === "order"
+          ? {
+              product,
+              title,
+              options: optionIds,
+              payment,
+              details: merged,
+            }
+          : {
+              title,
+              report: merged.report === "1" ? "1" : "",
+              extraPerson: merged.extraPerson === "1" ? "1" : "",
+              payment,
+              teacher: merged.teacher ?? "유비 선생",
+              datetime: merged.datetime ?? "",
+              purpose: merged.purpose ?? "",
+              method: merged.method ?? "카카오톡 상담",
+              option: merged.option ?? "없음",
+              details: merged,
+            };
+
+      // 결제가 필요해 보이는데 카드가 아니면 결제 준비 자체를 하지 않는다.
+      // 쓸모없는 ready 결제 기록이 남지 않는다.
+      if (payAmount > 0 && payment !== CARD_PAYMENT) {
+        throw new Error(CARD_ONLY_MESSAGE);
+      }
+
+      // 금액은 서버가 다시 계산한다. 화면의 payAmount는 결제창에 넘기지 않는다.
+      const prepared = await postApp({ action: "preparePayment", kind, ...applyBody });
+
+      if (prepared.requiresPayment) {
+        if (payment !== CARD_PAYMENT) {
+          throw new Error(CARD_ONLY_MESSAGE);
+        }
+        // 유료 주문은 여기서 끝낸다. 주문/상담은 NICEPAY 승인 성공 뒤에만 만든다.
+        // draft도 아직 지우지 않는다.
+        // 결제창이 닫혀 이 화면으로 돌아오는 경우에만 버튼을 푼다.
+        watchPaymentWindowReturn();
+        await openNicepayCard({
+          merchantOrderId: String(prepared.merchantOrderId),
+          amount: Number(prepared.amount),
+          goodsName: String(prepared.goodsName),
+          onError: (message) => {
+            releasePaymentWatch.current?.();
+            setError(message);
+            setLoading(false);
+          },
         });
+        return;
+      }
+
+      // 최종 0원(무료 쿠폰·적립금)은 기존 신청 흐름을 그대로 쓴다.
+      if (kind === "order") {
+        const result = await postApp({ action: "createOrder", ...applyBody });
         // 서버가 주문을 만든 뒤에만 이 플로우 draft를 비운다.
         clearDraft(flow);
         router.push(`/apply/complete?type=order&id=${result.order.id}`);
       } else {
-        const result = await postApp({
-          action: "createConsultation",
-          title,
-          report: merged.report === "1" ? "1" : "",
-          extraPerson: merged.extraPerson === "1" ? "1" : "",
-          payment,
-          teacher: merged.teacher ?? "유비 선생",
-          datetime: merged.datetime ?? "",
-          purpose: merged.purpose ?? "",
-          method: merged.method ?? "카카오톡 상담",
-          option: merged.option ?? "없음",
-          details: merged,
-        });
+        const result = await postApp({ action: "createConsultation", ...applyBody });
         // 서버가 상담을 만든 뒤에만 이 플로우 draft를 비운다.
         clearDraft(flow);
         router.push(`/apply/complete?type=consult&id=${result.consultation.id}`);
       }
     } catch (err) {
+      releasePaymentWatch.current?.();
       setError(err instanceof Error ? err.message : "결제에 실패했습니다.");
-    } finally {
+      // 성공 경로는 결제창이 열리거나 완료 화면으로 이동하므로 버튼을 잠근 채로 둔다.
+      // 실패했을 때만 다시 누를 수 있게 푼다.
       setLoading(false);
     }
   };
