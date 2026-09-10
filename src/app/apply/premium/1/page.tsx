@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
-import { getDraft, saveDraft } from "@/lib/client/api";
+import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
+import type { User } from "@/lib/types/app";
 import { BirthTimeField } from "@/components/apply/BirthTimeField";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -27,9 +28,24 @@ export default function PremiumStep1Page() {
   const [gender, setGender] = useState<"male" | "female">("male");
   const [calendar, setCalendar] = useState<"solar" | "lunar">("solar");
 
+  /**
+   * draft에 이미 있던 항목. 값이 빈 문자열이어도 "사용자가 정한 값"으로 보고
+   * 회원정보로 덮어쓰지 않는다. 그래서 truthy가 아니라 key 존재로 판단한다.
+   */
+  const draftKeys = useRef<Set<string>>(new Set());
+  /** 이 화면에서 사용자가 직접 건드린 항목. 늦게 도착한 회원정보가 덮지 못하게 한다. */
+  const touched = useRef<Set<string>>(new Set());
+
+  /** 입력 저장. draft에 남기면서 그 항목을 "사용자가 정한 값"으로 표시한다. */
+  const commit = (values: Record<string, string>) => {
+    for (const key of Object.keys(values)) touched.current.add(key);
+    saveDraft("premium", values);
+  };
+
   // 이전 단계에서 돌아왔을 때 이미 입력한 값을 되살린다.
   useEffect(() => {
     const draft = getDraft("premium");
+    draftKeys.current = new Set(Object.keys(draft));
     if (draft.name) setName(draft.name);
     if (draft.phone) setPhone(draft.phone);
     if (draft.birth) setBirth(draft.birth);
@@ -44,6 +60,74 @@ export default function PremiumStep1Page() {
     if (draft.calendar === "음력") setCalendar("lunar");
     else if (draft.calendar === "양력") setCalendar("solar");
     if (draft.unknownTime === "1") setUnknownTime(true);
+  }, []);
+
+  /**
+   * 로그인한 회원의 기본정보를 채운다.
+   * draft에 없고 사용자가 아직 건드리지 않은 항목만 채우므로,
+   * 다른 사람 이름으로 바꿔 둔 값이 되살아나지 않는다.
+   * 회원정보가 비어 있는 항목은 기존 기본값을 그대로 둔다.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    fetchMe()
+      .then((data) => {
+        if (cancelled) return;
+        const user = (data?.user ?? null) as User | null;
+        if (!user) return;
+
+        const canFill = (key: string) =>
+          !draftKeys.current.has(key) && !touched.current.has(key);
+        // 자동입력한 값도 draft에 남겨 다음 단계와 복원에서 그대로 쓰이게 한다.
+        const filled: Record<string, string> = {};
+
+        if (user.name && canFill("name")) {
+          setName(user.name);
+          filled.name = user.name;
+        }
+        if (user.phone && canFill("phone")) {
+          setPhone(user.phone);
+          filled.phone = user.phone;
+        }
+        if (user.birth && canFill("birth")) {
+          setBirth(user.birth);
+          filled.birth = user.birth;
+        }
+        if (user.bloodType && canFill("bloodType")) {
+          setBloodType(user.bloodType);
+          filled.bloodType = user.bloodType;
+        }
+        if (user.gender && canFill("gender")) {
+          setGender(user.gender);
+          filled.gender = user.gender === "female" ? "여성" : "남성";
+        }
+        if (user.calendar && canFill("calendar")) {
+          setCalendar(user.calendar);
+          filled.calendar = user.calendar === "lunar" ? "음력" : "양력";
+        }
+        if (user.birthTime && canFill("birthTime")) {
+          const [h = "", m = ""] = user.birthTime.split(":");
+          if (h) setHour(h);
+          if (m) setMinute(m);
+          filled.birthTime = user.birthTime;
+        }
+        if (user.unknownTime && canFill("unknownTime")) {
+          setUnknownTime(true);
+          filled.unknownTime = "1";
+        }
+
+        if (Object.keys(filled).length > 0) {
+          for (const key of Object.keys(filled)) draftKeys.current.add(key);
+          saveDraft("premium", filled);
+        }
+      })
+      .catch(() => {
+        // 회원정보를 불러오지 못해도 직접 입력해서 신청할 수 있어야 한다.
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // 화면에 필수(*)로 표시된 항목 중 기본값이 없는 것만 검사한다.
@@ -84,7 +168,7 @@ export default function PremiumStep1Page() {
             value={name}
             onChange={(e) => {
               setName(e.target.value);
-              saveDraft("premium", { name: e.target.value });
+              commit({ name: e.target.value });
             }}
           />
         </Field>
@@ -96,7 +180,7 @@ export default function PremiumStep1Page() {
             value={phone}
             onChange={(e) => {
               setPhone(e.target.value);
-              saveDraft("premium", { phone: e.target.value });
+              commit({ phone: e.target.value });
             }}
           />
         </Field>
@@ -106,7 +190,7 @@ export default function PremiumStep1Page() {
               active={gender === "male"}
               onClick={() => {
                 setGender("male");
-                saveDraft("premium", { gender: "남성" });
+                commit({ gender: "남성" });
               }}
               label="남성"
             />
@@ -114,7 +198,7 @@ export default function PremiumStep1Page() {
               active={gender === "female"}
               onClick={() => {
                 setGender("female");
-                saveDraft("premium", { gender: "여성" });
+                commit({ gender: "여성" });
               }}
               label="여성"
             />
@@ -128,7 +212,7 @@ export default function PremiumStep1Page() {
             value={birth}
             onChange={(e) => {
               setBirth(e.target.value);
-              saveDraft("premium", { birth: e.target.value });
+              commit({ birth: e.target.value });
             }}
           />
         </Field>
@@ -139,7 +223,7 @@ export default function PremiumStep1Page() {
               value={hour}
               onChange={(next) => {
                 setHour(next);
-                saveDraft("premium", { birthTime: birthTimeValue(next, minute) });
+                commit({ birthTime: birthTimeValue(next, minute) });
               }}
               max={23}
               options={HOURS}
@@ -152,7 +236,7 @@ export default function PremiumStep1Page() {
               value={minute}
               onChange={(next) => {
                 setMinute(next);
-                saveDraft("premium", { birthTime: birthTimeValue(hour, next) });
+                commit({ birthTime: birthTimeValue(hour, next) });
               }}
               max={59}
               options={MINUTE_OPTIONS}
@@ -167,7 +251,7 @@ export default function PremiumStep1Page() {
               checked={unknownTime}
               onChange={(e) => {
                 setUnknownTime(e.target.checked);
-                saveDraft("premium", { unknownTime: e.target.checked ? "1" : "" });
+                commit({ unknownTime: e.target.checked ? "1" : "" });
               }}
               className="h-5 w-5 accent-[#403A49]"
             />
@@ -180,7 +264,7 @@ export default function PremiumStep1Page() {
               active={calendar === "solar"}
               onClick={() => {
                 setCalendar("solar");
-                saveDraft("premium", { calendar: "양력" });
+                commit({ calendar: "양력" });
               }}
               label="양력"
             />
@@ -188,7 +272,7 @@ export default function PremiumStep1Page() {
               active={calendar === "lunar"}
               onClick={() => {
                 setCalendar("lunar");
-                saveDraft("premium", { calendar: "음력" });
+                commit({ calendar: "음력" });
               }}
               label="음력"
             />
@@ -200,7 +284,7 @@ export default function PremiumStep1Page() {
             value={bloodType}
             onChange={(e) => {
               setBloodType(e.target.value);
-              saveDraft("premium", { bloodType: e.target.value });
+              commit({ bloodType: e.target.value });
             }}
           >
             <option value="" disabled>
