@@ -1,8 +1,11 @@
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon } from "@/lib/server/store";
+import { consumeSocialLinkPending } from "@/lib/server/socialLink";
+import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import {
@@ -37,7 +40,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
 
 /** 실제 사용 중인 verifyCode 목적만 허용한다. */
-const VERIFY_PURPOSES = ["signup", "reset"] as const;
+const VERIFY_PURPOSES = ["signup", "reset", "link"] as const;
 type VerifyPurpose = (typeof VERIFY_PURPOSES)[number];
 
 function isVerifyPurpose(value: string): value is VerifyPurpose {
@@ -301,6 +304,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: checked.error }, { status: 400 });
     }
 
+    if (purpose === "link") {
+      // 소셜 계정 연결: 이미 가입된 번호도 인증할 수 있어야 한다.
+      // 여기서는 본인 확인만 하고, 실제 연결은 completeSocialLink에서 한다.
+      const linkToken = generateToken();
+      data.codes[`link:${phone}`] = {
+        code: linkToken,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      };
+      await writeData(data);
+      // 소셜 정보는 서버 대기 상태에만 있으므로 토큰 외에는 아무것도 돌려주지 않는다.
+      return NextResponse.json({ ok: true, linkToken });
+    }
+
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
       if (purpose === "signup") {
@@ -393,6 +409,93 @@ export async function POST(request: Request) {
     await writeData(data);
     await setUserId(user.id);
     return NextResponse.json({ ok: true, isNew: true, user });
+  }
+
+  if (action === "completeSocialLink") {
+    // SMS 인증을 마친 휴대폰 번호를 기준으로 소셜 계정을 연결한다.
+    // provider / providerUserId는 클라이언트에서 받지 않고 서버 대기 상태에서만 읽는다.
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const linkToken = String(body.linkToken ?? "");
+    if (phone.length < 10) {
+      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
+    }
+    const expired = () =>
+      NextResponse.json(
+        { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
+        { status: 400 },
+      );
+
+    // A. 휴대폰 인증 토큰 확인.
+    const key = `link:${phone}`;
+    const saved = data.codes[key];
+    if (!linkToken || !saved || saved.expiresAt < Date.now() || saved.code !== linkToken) {
+      return expired();
+    }
+
+    // B. 소셜 정보는 오직 여기서만 얻는다. 읽는 즉시 폐기되어 재사용할 수 없다.
+    const pending = await consumeSocialLinkPending();
+    if (!pending) {
+      return NextResponse.json(
+        { error: "소셜 로그인 정보가 만료되었습니다. 다시 로그인해 주세요." },
+        { status: 400 },
+      );
+    }
+    const providerKey = pending.provider === "kakao" ? "kakaoId" : "naverId";
+    const providerLabel = pending.provider === "kakao" ? "카카오" : "네이버";
+
+    // C. 실제 쓰기 직전에 최신 상태를 다시 읽는다. pending을 폐기하며 저장소가 바뀌었고,
+    //    그 사이 같은 번호나 같은 소셜 ID가 먼저 등록됐을 수 있다.
+    const latest = await readData();
+    const latestToken = latest.codes[key];
+    if (!latestToken || latestToken.expiresAt < Date.now() || latestToken.code !== linkToken) {
+      return expired();
+    }
+
+    // 같은 소셜 ID가 이미 다른 회원에게 붙어 있으면 연결하지 않는다.
+    const ownedBySocial = latest.users.find((item) => item[providerKey] === pending.providerUserId);
+    // 연결 대상은 인증한 번호의 회원이다. 여기서 phone도 다시 확인된다.
+    const target = latest.users.find((item) => normalizePhone(item.phone) === phone);
+
+    if (ownedBySocial && (!target || ownedBySocial.id !== target.id)) {
+      return NextResponse.json(
+        { error: `이미 다른 계정에 연결된 ${providerLabel} 계정입니다.` },
+        { status: 400 },
+      );
+    }
+
+    let user: User;
+    if (target) {
+      // D. 기존 회원: id와 이름·비밀번호·포인트·쿠폰·주문은 그대로 두고 소셜 ID만 붙인다.
+      const current = target[providerKey];
+      if (current && current !== pending.providerUserId) {
+        // 이미 다른 소셜 ID가 연결되어 있으면 덮어쓰지 않는다.
+        return NextResponse.json(
+          { error: `이미 다른 ${providerLabel} 계정이 연결되어 있습니다.` },
+          { status: 400 },
+        );
+      }
+      target[providerKey] = pending.providerUserId;
+      user = target;
+    } else {
+      // E. 이 번호의 회원이 정말 없을 때만 신규 회원 1명을 만든다.
+      //    웰컴 쿠폰과 딸린 컬렉션 초기화는 registerUser가 여기서 한 번만 수행한다.
+      user = {
+        ...emptyUser(phone, pending.nickname || `${providerLabel} 회원`),
+        [providerKey]: pending.providerUserId,
+      };
+      registerUser(latest, user);
+    }
+
+    delete latest.codes[key];
+    await writeData(latest);
+    await setUserId(user.id);
+
+    // 신청 화면에서 로그인으로 넘어온 경우 그 자리로 되돌려 보낸다.
+    const store = await cookies();
+    const savedNext = store.get(LOGIN_NEXT_COOKIE)?.value;
+    const next = safeNextPath(savedNext ? decodeURIComponent(savedNext) : null);
+    store.delete(LOGIN_NEXT_COOKIE);
+    return NextResponse.json({ ok: true, redirect: next ?? LOGIN_DEFAULT_PATH });
   }
 
   if (action === "passwordLogin") {

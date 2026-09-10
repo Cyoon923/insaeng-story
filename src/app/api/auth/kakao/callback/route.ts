@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
+import {
+  LOGIN_DEFAULT_PATH,
+  LOGIN_NEXT_COOKIE,
+  SOCIAL_LINK_VERIFY_PATH,
+  safeNextPath,
+} from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
-import { emptyUser, readData, registerUser, writeData } from "@/lib/server/store";
+import { createSocialLinkPending } from "@/lib/server/socialLink";
+import { readData, writeData } from "@/lib/server/store";
 import {
   KAKAO_STATE_COOKIE,
   KAKAO_TOKEN_URL,
@@ -25,7 +31,8 @@ interface KakaoUserResponse {
 
 /**
  * 카카오 인가 코드를 받아 토큰 교환 → 사용자 조회까지 마친 뒤,
- * 카카오 사용자 ID로 기존 회원을 찾고 없으면 새로 만든다.
+ * 카카오 사용자 ID로 기존 회원을 찾는다. 이미 연결된 계정이면 그대로 로그인하고,
+ * 처음 보는 계정이면 회원을 만들지 않고 대기 상태만 남긴 뒤 휴대폰 인증 화면으로 보낸다.
  * 세션은 기존 연락처 로그인과 동일하게 setUserId() 쿠키를 그대로 쓴다.
  * 어떤 단계에서 실패하든 사용자는 /login 으로 안전하게 되돌아간다.
  */
@@ -93,12 +100,16 @@ export async function GET(request: Request) {
   }
 
   const data = await readData();
-  let user = data.users.find((item) => item.kakaoId === kakaoId);
+  const user = data.users.find((item) => item.kakaoId === kakaoId);
   if (!user) {
-    // 이메일과 연락처는 동의항목이 아니므로 비워 둔다. MY에서 직접 채운다.
-    user = { ...emptyUser("", nickname || "카카오 회원"), kakaoId };
-    registerUser(data, user);
-  } else if (nickname && !user.name) {
+    // 처음 보는 카카오 계정: 회원을 만들지 않고 휴대폰 인증까지 대기 상태로만 둔다.
+    await createSocialLinkPending({ provider: "kakao", providerUserId: kakaoId, nickname });
+    const pendingResponse = NextResponse.redirect(new URL(SOCIAL_LINK_VERIFY_PATH, origin));
+    pendingResponse.cookies.delete(KAKAO_STATE_COOKIE);
+    // login_next는 인증을 마친 뒤 복귀에 써야 하므로 여기서 지우지 않는다.
+    return pendingResponse;
+  }
+  if (nickname && !user.name) {
     user.name = nickname;
   }
   await writeData(data);

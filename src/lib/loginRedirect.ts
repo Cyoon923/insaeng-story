@@ -18,3 +18,9 @@ export function safeNextPath(value: string | null | undefined): string | null {
   if (value.startsWith("//")) return null;
   return value;
 }
+
+/**
+ * 처음 보는 소셜 계정을 만났을 때 보내는 휴대폰 인증 화면.
+ * OAuth 콜백과 화면이 같은 값을 쓰도록 여기에 둔다.
+ */
+export const SOCIAL_LINK_VERIFY_PATH = "/social-link/verify-phone";
