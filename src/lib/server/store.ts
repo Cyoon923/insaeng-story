@@ -50,8 +50,9 @@ function sqlClient() {
  * 그 밖의 데이터는 그대로 app_store JSONB에 저장된다.
  * 여기에는 잠금이 가벼운 CREATE 문만 둔다. ALTER는 runPaymentsMigration으로 분리했다.
  * DDL을 한 트랜잭션으로 묶어 기존과 같은 왕복 1회를 유지한다.
+ * 실제 호출은 ensureTable()이 감싸서 서버 인스턴스당 한 번만 실행한다.
  */
-async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+async function createTables(sql: NonNullable<ReturnType<typeof sqlClient>>) {
   await sql.transaction((txn) => [
     txn.query(`
       CREATE TABLE IF NOT EXISTS app_store (
@@ -110,6 +111,27 @@ async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
         ON payments (order_id, created_at DESC)
     `),
   ]);
+}
+
+/**
+ * 서버 인스턴스당 한 번만 실행하기 위한 기억. 실패하면 지워서 다음 요청이 다시 시도한다.
+ * 기존 ensurePaymentsMigration과 같은 방식이다.
+ */
+let tableMigration: Promise<void> | null = null;
+
+/**
+ * 테이블·인덱스 준비. 호출부는 그대로 두고, 실제 DDL은 인스턴스당 한 번만 보낸다.
+ * 매 요청마다 CREATE 문을 반복해 보내지 않게 하려는 것이고, 만드는 대상은 그대로다.
+ */
+function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
+  if (!tableMigration) {
+    tableMigration = createTables(sql).catch((error) => {
+      // 한 번 실패했다고 인스턴스가 영구히 막히지 않도록 기억을 지운다.
+      tableMigration = null;
+      throw error;
+    });
+  }
+  return tableMigration;
 }
 
 /**
