@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { formatPrice } from "@/lib/constants/products";
-import { getUserId } from "@/lib/server/session";
 import { readData } from "@/lib/server/store";
+import { getActiveUserId } from "@/lib/server/withdrawAccount";
 
 const STEPS = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"] as const;
 
@@ -14,7 +14,7 @@ export default async function ConsultationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const userId = await getUserId();
+  const userId = await getActiveUserId();
   if (!userId) {
     return (
       <MobileShell>

@@ -26,6 +26,11 @@ export interface User {
   kakaoId?: string;
   /** 네이버 로그인으로 연결된 계정의 네이버 사용자 ID. 소셜 가입자에게만 있다. */
   naverId?: string;
+  /**
+   * 탈퇴 시각(ISO). 값이 있으면 탈퇴한 회원이며 로그인 회원으로 인정하지 않는다.
+   * 거래 기록을 남겨야 해서 행 자체는 지우지 않고 개인정보만 비운다.
+   */
+  withdrawnAt?: string;
 }
 
 export interface Order {

@@ -21,6 +21,7 @@ import {
   Pencil,
   CheckCircle,
   Star,
+  UserMinus,
 } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -250,6 +251,8 @@ export default function MyPage() {
               { icon: Lock, label: "개인정보 관리", href: "/my/profile" },
               { icon: Bell, label: "알림 설정", href: "/my/notifications" },
               { icon: LogOut, label: "로그아웃", href: "/my/logout" },
+              // 계정 메뉴 맨 아래. 실제 안내와 확인은 /my/withdraw 화면에서 한다.
+              { icon: UserMinus, label: "회원탈퇴", href: "/my/withdraw" },
             ]
           : [
               { icon: LogIn, label: "로그인", href: "/login" },

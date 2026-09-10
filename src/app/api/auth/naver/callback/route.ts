@@ -7,6 +7,14 @@ import {
 } from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
 import { createSocialLinkPending } from "@/lib/server/socialLink";
+import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import {
+  createWithdrawVerification,
+  OAUTH_PURPOSE_COOKIE,
+  WITHDRAW_FAILED_PATH,
+  WITHDRAW_PURPOSE,
+  WITHDRAW_VERIFIED_PATH,
+} from "@/lib/server/withdrawVerification";
 import { readData, writeData } from "@/lib/server/store";
 import { loginErrorUrl } from "@/lib/server/kakao";
 import {
@@ -45,8 +53,18 @@ export async function GET(request: Request) {
   const fail = (reason: string) => {
     const response = NextResponse.redirect(loginErrorUrl(origin, reason));
     response.cookies.delete(NAVER_STATE_COOKIE);
+    // 목적 쿠키는 어느 경로로 끝나든 남기지 않는다.
+    response.cookies.delete(OAUTH_PURPOSE_COOKIE);
     return response;
   };
+
+  // 이 요청이 탈퇴 재인증인지. 쿠키가 없으면 지금까지와 같은 로그인 흐름이다.
+  const purpose = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${OAUTH_PURPOSE_COOKIE}=`))
+    ?.slice(OAUTH_PURPOSE_COOKIE.length + 1);
 
   const config = naverConfig();
   if (!config) return fail("naver_config");
@@ -96,6 +114,43 @@ export async function GET(request: Request) {
     return fail("naver_network");
   }
 
+  /**
+   * 탈퇴 재인증. 여기서 끝나며 아래 로그인 코드로는 내려가지 않는다.
+   * setUserId()를 부르지 않고 User도 고치지 않는다. 본인 확인 토큰만 발급한다.
+   * 실제 탈퇴는 이 토큰을 소비하는 별도 API가 하며 아직 만들지 않았다.
+   */
+  if (purpose === WITHDRAW_PURPOSE) {
+    const withdrawFail = (reason: string) => {
+      const response = NextResponse.redirect(
+        new URL(`${WITHDRAW_FAILED_PATH}${reason}`, origin),
+      );
+      response.cookies.delete(NAVER_STATE_COOKIE);
+      response.cookies.delete(OAUTH_PURPOSE_COOKIE);
+      return response;
+    };
+
+    // 확인 방향은 "세션 회원 → 그 회원의 연결 id" 다.
+    // naverId로 회원을 찾으면 다른 계정으로 들어와도 성립해 버린다.
+    const activeUserId = await getActiveUserId();
+    if (!activeUserId) return withdrawFail("session");
+    const current = await readData();
+    const me = current.users.find((item) => item.id === activeUserId);
+    if (!me) return withdrawFail("session");
+    // 비밀번호가 있는 회원은 소셜 재인증 대상이 아니다. 비밀번호를 다시 받는다.
+    if (me.passwordHash) return withdrawFail("password");
+    if (!me.naverId || me.naverId !== naverId) return withdrawFail("mismatch");
+
+    await createWithdrawVerification({
+      userId: me.id,
+      provider: "naver",
+      providerUserId: naverId,
+    });
+    const verified = NextResponse.redirect(new URL(WITHDRAW_VERIFIED_PATH, origin));
+    verified.cookies.delete(NAVER_STATE_COOKIE);
+    verified.cookies.delete(OAUTH_PURPOSE_COOKIE);
+    return verified;
+  }
+
   const data = await readData();
   const user = data.users.find((item) => item.naverId === naverId);
   if (!user) {
@@ -103,6 +158,7 @@ export async function GET(request: Request) {
     await createSocialLinkPending({ provider: "naver", providerUserId: naverId, nickname });
     const pendingResponse = NextResponse.redirect(new URL(SOCIAL_LINK_VERIFY_PATH, origin));
     pendingResponse.cookies.delete(NAVER_STATE_COOKIE);
+    pendingResponse.cookies.delete(OAUTH_PURPOSE_COOKIE);
     // login_next는 인증을 마친 뒤 복귀에 써야 하므로 여기서 지우지 않는다.
     return pendingResponse;
   }
@@ -124,5 +180,6 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(new URL(next ?? LOGIN_DEFAULT_PATH, origin));
   response.cookies.delete(NAVER_STATE_COOKIE);
   response.cookies.delete(LOGIN_NEXT_COOKIE);
+  response.cookies.delete(OAUTH_PURPOSE_COOKIE);
   return response;
 }

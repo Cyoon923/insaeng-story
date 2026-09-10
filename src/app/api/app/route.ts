@@ -3,8 +3,17 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import { consumeSocialLinkPending } from "@/lib/server/socialLink";
+import {
+  anonymizeWithdrawnUser,
+  findWithdrawBlockers,
+  getActiveUserId,
+  isActiveUser,
+  KEPT_DETAIL_KEYS,
+  scrubUserRecords,
+} from "@/lib/server/withdrawAccount";
+import { consumeWithdrawVerification } from "@/lib/server/withdrawVerification";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
@@ -128,6 +137,19 @@ function publicReviews(data: AppData) {
     }));
 }
 
+/**
+ * 클라이언트로 내려보내는 회원 사본. 로그인·재식별에 쓰이는 원본 값
+ * (비밀번호 해시, 소셜 계정 id)은 화면에서 쓸 일이 없으므로 빼고 보낸다.
+ * 저장소의 User 객체는 그대로 두고 사본에서만 지운다.
+ */
+function toPublicUser(user: User): User {
+  const result: User = { ...user };
+  delete result.passwordHash;
+  delete result.kakaoId;
+  delete result.naverId;
+  return result;
+}
+
 export async function GET() {
   const userId = await getUserId();
   const data = await readData();
@@ -136,11 +158,22 @@ export async function GET() {
     return NextResponse.json({ user: null, reviews });
   }
   const user = data.users.find((item) => item.id === userId) ?? null;
-  if (!user) {
+  // 탈퇴한 회원은 세션 쿠키가 남아 있어도 로그인 상태로 보지 않는다.
+  if (!isActiveUser(user)) {
     return NextResponse.json({ user: null, reviews });
   }
   return NextResponse.json({
-    user,
+    user: toPublicUser(user),
+    /**
+     * 로그인 수단이 무엇인지만 알려준다. 탈퇴 화면이 비밀번호 확인과
+     * 소셜 재인증 중 무엇을 보여줄지 고르는 데 쓴다.
+     * passwordHash·kakaoId·naverId 같은 실제 값은 담지 않는다.
+     */
+    authMethods: {
+      password: Boolean(user.passwordHash),
+      kakao: Boolean(user.kakaoId),
+      naver: Boolean(user.naverId),
+    },
     orders: await listOrdersByUser(userId),
     consultations: data.consultations.filter((item) => item.userId === userId),
     inquiries: (data.inquiries ?? []).filter((item) => item.userId === userId),
@@ -259,7 +292,7 @@ export async function POST(request: Request) {
       }
       await writeData(data);
       await setUserId(user.id);
-      return NextResponse.json({ ok: true, user });
+      return NextResponse.json({ ok: true, user: toPublicUser(user) });
     }
 
     const phone = normalizePhone(String(body.phone ?? ""));
@@ -284,7 +317,7 @@ export async function POST(request: Request) {
     }
     await writeData(data);
     await setUserId(user.id);
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true, user: toPublicUser(user) });
   }
 
   if (action === "verifyCode") {
@@ -392,7 +425,7 @@ export async function POST(request: Request) {
       delete data.codes[key];
       await writeData(data);
       await setUserId(existing.id);
-      return NextResponse.json({ ok: true, isNew: false, user: existing });
+      return NextResponse.json({ ok: true, isNew: false, user: toPublicUser(existing) });
     }
 
     const user: User = {
@@ -408,7 +441,7 @@ export async function POST(request: Request) {
     delete data.codes[key];
     await writeData(data);
     await setUserId(user.id);
-    return NextResponse.json({ ok: true, isNew: true, user });
+    return NextResponse.json({ ok: true, isNew: true, user: toPublicUser(user) });
   }
 
   if (action === "completeSocialLink") {
@@ -526,7 +559,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 400 });
     }
     await setUserId(user.id);
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true, user: toPublicUser(user) });
   }
 
   if (action === "resetPassword") {
@@ -565,7 +598,7 @@ export async function POST(request: Request) {
 
   if (action === "createInquiry") {
     // 무료 상담·이벤트는 비회원도 접수한다. 계정을 만들지 않고 문의만 저장한다.
-    const sessionUserId = await getUserId();
+    const sessionUserId = await getActiveUserId();
     const member = sessionUserId
       ? (data.users.find((item) => item.id === sessionUserId) ?? null)
       : null;
@@ -614,7 +647,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const user = data.users.find((item) => item.id === userId);
-  if (!user) {
+  // 탈퇴한 회원은 세션 쿠키가 남아 있어도 로그인 상태로 보지 않는다.
+  if (!isActiveUser(user)) {
     return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
   }
 
@@ -645,7 +679,118 @@ export async function POST(request: Request) {
 
     data.users = data.users.map((item) => (item.id === userId ? next : item));
     await writeData(data);
-    return NextResponse.json({ ok: true, user: next });
+    return NextResponse.json({ ok: true, user: toPublicUser(next) });
+  }
+
+  if (action === "withdrawAccount") {
+    /**
+     * 회원 탈퇴 실행. 되돌릴 수 없으므로 본인확인 → blocker 재확인을 모두 통과한
+     * 요청만 진행한다. 본인확인과 blocker 단계에서는 아무것도 저장하지 않는다.
+     *
+     * 위에서 getUserId() + isActiveUser()로 활성 회원을 이미 확정했다.
+     * (getActiveUserId()와 같은 검사이며, 저장소를 한 번 더 읽지 않으려고 재사용한다.)
+     */
+
+    // 1) 본인확인. 실패 메시지는 어떤 단계에서 걸렸는지 알려주지 않는다.
+    const verifyFailed = () =>
+      NextResponse.json({ error: "본인 확인에 실패했습니다." }, { status: 400 });
+
+    if (user.passwordHash) {
+      // 비밀번호가 있는 회원은 비밀번호로만 확인한다.
+      // 소셜 재인증 토큰을 들고 와도 이 분기로 들어오므로 우회할 수 없다.
+      const password = String(body.password ?? "");
+      if (!password || !verifyPassword(password, user.passwordHash)) {
+        return verifyFailed();
+      }
+    } else {
+      // 소셜 전용 회원. 토큰은 읽는 즉시 폐기되므로 재사용할 수 없다.
+      const verification = await consumeWithdrawVerification();
+      if (!verification || verification.userId !== user.id) {
+        return verifyFailed();
+      }
+      const providerKey = verification.provider === "kakao" ? "kakaoId" : "naverId";
+      // 재인증한 소셜 계정이 지금도 이 회원에 연결되어 있는지 다시 본다.
+      if (!user[providerKey] || user[providerKey] !== verification.providerUserId) {
+        return verifyFailed();
+      }
+    }
+
+    /**
+     * 2) 최신 상태를 다시 읽는다. 소셜 경로는 토큰을 폐기하면서 저장소를 이미 바꿨고,
+     *    본인확인 사이에 새 주문·결제가 생겼을 수도 있다.
+     *    여기서 읽은 latest 위에서만 비식별화하고 저장한다.
+     *    (위쪽 data로 저장하면 방금 폐기한 토큰이 되살아난다.)
+     */
+    const latest = await readData();
+    const target = latest.users.find((item) => item.id === user.id);
+    if (!isActiveUser(target)) {
+      return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+    }
+
+    // 3) 진행 중인 서비스가 있으면 탈퇴하지 않는다. 여기까지 아무것도 저장하지 않았다.
+    const blockers = await findWithdrawBlockers(latest, target.id);
+    if (blockers.length > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "진행 중인 서비스가 있어 탈퇴할 수 없습니다.",
+          blockers,
+        },
+        { status: 409 },
+      );
+    }
+
+    // 4) 개인정보 비식별화 + details 사본 정리. 주문·상담 행과 후기는 지우지 않는다.
+    anonymizeWithdrawnUser(latest, target);
+    scrubUserRecords(latest, target.id);
+
+    try {
+      await writeData(latest);
+    } catch {
+      // 저장에 실패하면 탈퇴가 성립하지 않은 것이므로 세션을 그대로 둔다.
+      return NextResponse.json(
+        { error: "탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 500 },
+      );
+    }
+
+    /**
+     * 5) SQL orders 테이블의 details도 같은 allowlist로 정리한다.
+     *    JSONB와 달리 이쪽이 운영의 읽기 경로라 여기에 남으면 개인정보가 실제로 조회된다.
+     *    실패해도 되돌리지 않는다. 탈퇴는 이미 성립했고 이 함수는 몇 번 실행해도 결과가 같다.
+     *    다만 결제 스냅샷보다 중대한 잔존이므로 서버 로그에 남기고 응답에도 표시한다.
+     */
+    let orderDetailsScrubbed = true;
+    try {
+      await scrubOrderDetailsByUser(target.id, KEPT_DETAIL_KEYS);
+    } catch {
+      orderDetailsScrubbed = false;
+      // 운영자가 같은 함수를 다시 실행해 정리해야 한다. 개인정보는 로그에 남기지 않는다.
+      console.error(`[withdraw] orders.details scrub failed for user ${target.id}`);
+    }
+
+    /**
+     * 6) 결제 스냅샷의 신청 내용 사본 제거. 여기서 실패해도 위 저장은 이미 끝났고
+     *    회원은 탈퇴한 상태다. 되돌리지 않고 실패 사실만 응답에 남긴다.
+     *    (남는 값은 order_snapshot.details 하나뿐이고 운영자가 뒤에 정리할 수 있다.)
+     */
+    let paymentSnapshotScrubbed = true;
+    try {
+      await scrubPaymentSnapshotDetailsByUser(target.id);
+    } catch {
+      paymentSnapshotScrubbed = false;
+    }
+
+    // 7) 마지막으로 세션을 끊는다. 탈퇴 자체는 4)에서 이미 확정됐다.
+    await clearUserId();
+    return NextResponse.json({
+      ok: true,
+      withdrawn: true,
+      orderDetailsScrubbed,
+      paymentSnapshotScrubbed,
+      // 남은 사본이 있으면 운영자 확인이 필요하다는 사실을 응답에도 남긴다.
+      needsManualCleanup: !orderDetailsScrubbed || !paymentSnapshotScrubbed,
+    });
   }
 
   if (action === "createOrder") {

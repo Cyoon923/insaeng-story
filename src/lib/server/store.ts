@@ -753,6 +753,104 @@ function toPaymentReview(row: PaymentReviewRow): PaymentReviewItem {
  *  unlinked 승인은 끝났는데 주문이 연결되지 않은 건(paid + order_id NULL)
  * 정상 결제(paid + order_id 있음)와 ready, 10분 미만 processing은 어느 쪽에도 들어가지 않는다.
  */
+/**
+ * 아직 끝나지 않은 결제(준비/승인 진행 중) 개수. 회원 탈퇴 가능 여부 판정에 쓴다.
+ * payments 테이블에는 user_id 컬럼이 없고, 결제 준비 단계에는 order_id도 비어 있다.
+ * 대신 결제 준비 때 저장한 order_snapshot.userId로 회원을 찾는다
+ * (값을 넣는 곳: src/app/api/app/route.ts의 preparePayment).
+ * DATABASE_URL이 없는 환경에는 결제 기록 자체가 없으므로 0을 돌려준다.
+ */
+export async function countPendingPaymentsByUser(userId: string): Promise<number> {
+  const sql = sqlClient();
+  if (!sql) return 0;
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT count(*)::int AS count
+      FROM payments
+      WHERE status IN ('ready', 'processing')
+        AND order_snapshot->>'userId' = $1
+    `,
+    [userId],
+  )) as { count: number }[];
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 탈퇴한 회원의 주문에서 개인정보 사본(orders.details)을 정리한다.
+ *
+ * 주문은 app_store JSONB와 orders 테이블에 이중 기록되고(writeDataWithOrder),
+ * DATABASE_URL이 있으면 읽기는 orders 테이블 쪽을 쓴다(listOrdersByUser/getOrderById).
+ * JSONB만 정리하면 테이블 사본에 이름·연락처·사연이 그대로 남으므로 여기서 함께 지운다.
+ *
+ * keptKeys에 없는 키는 전부 버리는 allowlist 방식이다. 목록은 복제하지 않고
+ * withdrawAccount.ts의 KEPT_DETAIL_KEYS를 호출부에서 그대로 넘겨받는다.
+ * (이 파일을 withdrawAccount.ts가 import하므로 반대 방향 import는 순환이 된다.)
+ *
+ * details만 바꾼다. 주문 행을 지우지 않고 status·product·title·amount·payment도 건드리지 않는다.
+ * DATABASE_URL이 없는 환경에는 orders 테이블 자체가 없으므로 아무것도 하지 않는다.
+ */
+export async function scrubOrderDetailsByUser(
+  userId: string,
+  keptKeys: readonly string[],
+): Promise<void> {
+  const sql = sqlClient();
+  if (!sql) return;
+  await ensureTable(sql);
+  await sql.query(
+    `
+      UPDATE orders
+      SET details = COALESCE(
+            (
+              SELECT jsonb_object_agg(kept.key, kept.value)
+              FROM jsonb_each(orders.details) AS kept
+              WHERE kept.key = ANY($2::text[])
+            ),
+            '{}'::jsonb
+          ),
+          updated_at = now()
+      WHERE user_id = $1
+        -- 남길 키만 있는 주문은 건드리지 않는다. 지울 것이 있는 행만 고른다.
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_each(orders.details) AS extra
+          WHERE extra.key <> ALL($2::text[])
+        )
+    `,
+    [userId, keptKeys as string[]],
+  );
+}
+
+/**
+ * 탈퇴한 회원의 결제 스냅샷에서 신청 내용 사본(order_snapshot.details)만 지운다.
+ * details는 Order/Consultation.details에 확정본이 있는 중복 사본이라 지워도 잃는 정보가 없다.
+ *
+ * 남기는 값: version/kind/userId/goodsName/baseAmount/amount/request/discount/preparedAt.
+ * userId는 countPendingPaymentsByUser와 listPaymentsNeedingReview가 읽으므로 반드시 남긴다.
+ * raw(PG 응답 원문)는 이 함수가 건드리지 않는다.
+ *
+ * 결제 상태로 대상을 가르지 않는다. 진행 중인 결제가 있는 회원은
+ * findWithdrawBlockers에서 이미 탈퇴가 막히기 때문이다.
+ * DATABASE_URL이 없는 환경에는 결제 기록 자체가 없으므로 아무것도 하지 않는다.
+ */
+export async function scrubPaymentSnapshotDetailsByUser(userId: string): Promise<void> {
+  const sql = sqlClient();
+  if (!sql) return;
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  await sql.query(
+    `
+      UPDATE payments
+      SET order_snapshot = order_snapshot - 'details',
+          updated_at = now()
+      WHERE order_snapshot->>'userId' = $1
+        AND order_snapshot->'details' IS NOT NULL
+    `,
+    [userId],
+  );
+}
+
 export async function listPaymentsNeedingReview(): Promise<{
   stale: PaymentReviewItem[];
   unlinked: PaymentReviewItem[];

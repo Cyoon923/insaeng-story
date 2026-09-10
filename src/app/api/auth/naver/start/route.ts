@@ -6,6 +6,11 @@ import {
   NAVER_STATE_COOKIE,
   naverConfig,
 } from "@/lib/server/naver";
+import {
+  OAUTH_PURPOSE_COOKIE,
+  OAUTH_PURPOSE_MAX_AGE,
+  WITHDRAW_PURPOSE,
+} from "@/lib/server/withdrawVerification";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +40,17 @@ export async function GET(request: Request) {
     path: "/",
     maxAge: 60 * 10,
   });
+
+  // 탈퇴 재인증으로 들어온 경우에만 목적을 남긴다. 일반 로그인은 이 쿠키가 없다.
+  // 값은 서버만 읽고 쓰며, 콜백이 분기 여부와 관계없이 지운다.
+  if (new URL(request.url).searchParams.get("purpose") === WITHDRAW_PURPOSE) {
+    response.cookies.set(OAUTH_PURPOSE_COOKIE, WITHDRAW_PURPOSE, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: OAUTH_PURPOSE_MAX_AGE,
+    });
+  }
   return response;
 }

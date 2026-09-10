@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { formatPrice } from "@/lib/constants/products";
-import { getUserId } from "@/lib/server/session";
 import { getOrderById } from "@/lib/server/store";
+import { getActiveUserId } from "@/lib/server/withdrawAccount";
 
 const STEPS = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"] as const;
 
@@ -47,7 +47,7 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const userId = await getUserId();
+  const userId = await getActiveUserId();
   if (!userId) {
     return (
       <MobileShell>
