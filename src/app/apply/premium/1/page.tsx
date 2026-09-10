@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { STORY_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
-import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
+import { fetchMe, getDraft, postApp, saveDraft } from "@/lib/client/api";
 import type { User } from "@/lib/types/app";
 import { BirthTimeField } from "@/components/apply/BirthTimeField";
 
@@ -25,6 +25,8 @@ export default function PremiumStep1Page() {
   const [hour, setHour] = useState("");
   const [minute, setMinute] = useState("");
   const [unknownTime, setUnknownTime] = useState(false);
+  /** 이 사주정보가 누구 것인지. 본인 정보일 때만 회원 프로필에 저장한다. */
+  const [subject, setSubject] = useState<"self" | "other">("self");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [calendar, setCalendar] = useState<"solar" | "lunar">("solar");
 
@@ -60,6 +62,9 @@ export default function PremiumStep1Page() {
     if (draft.calendar === "음력") setCalendar("lunar");
     else if (draft.calendar === "양력") setCalendar("solar");
     if (draft.unknownTime === "1") setUnknownTime(true);
+    if (draft.subject === "other") setSubject("other");
+    // 기존 draft에 없으면 "내 정보"를 기본값으로 남겨 둔다.
+    else if (!draft.subject) saveDraft("premium", { subject: "self" });
   }, []);
 
   /**
@@ -133,11 +138,40 @@ export default function PremiumStep1Page() {
   // 화면에 필수(*)로 표시된 항목 중 기본값이 없는 것만 검사한다.
   // 성별·양력/음력은 기본값이 늘 선택되어 있어 비워질 수 없다.
   // 태어난 시간은 "태어난 시간을 몰라요"를 정상값으로 인정한다.
+  /**
+   * 본인 정보일 때만 회원 프로필에 남긴다. 다음에 신청할 때 다시 입력하지 않기 위해서다.
+   * "다른 사람 정보"에서는 호출하지 않으므로 내 프로필이 남의 사주로 덮이지 않는다.
+   * 빈 값은 보내지 않는다. 기존에 저장해 둔 정보를 지우지 않기 위해서다.
+   */
+  const saveMyProfile = () => {
+    if (subject !== "self") return;
+    const profile: Record<string, string | boolean> = {
+      gender: gender === "female" ? "female" : "male",
+      calendar: calendar === "lunar" ? "lunar" : "solar",
+      unknownTime,
+    };
+    if (name.trim()) profile.name = name.trim();
+    if (phone.trim()) profile.phone = phone.trim();
+    if (birth.trim()) profile.birth = birth.trim();
+    if (bloodType) profile.bloodType = bloodType;
+    // "태어난 시간 몰라요"를 고르면 예전에 저장해 둔 출생시간이 프로필에 남지 않도록 비운다.
+    if (unknownTime) profile.birthTime = "";
+    else {
+      const time = birthTimeValue(hour, minute);
+      if (time) profile.birthTime = time;
+    }
+
+    // 저장 실패가 신청을 막으면 안 된다. 기다리지 않고 실패도 조용히 넘긴다.
+    postApp({ action: "updateProfile", profile }).catch(() => {});
+  };
+
   const validateNext = () => {
     if (!birth.trim()) return "생년월일을 입력해 주세요.";
     if (!unknownTime && !(hour && minute)) {
       return "태어난 시간을 입력하거나 '태어난 시간을 몰라요'를 선택해 주세요.";
     }
+    // 필수 검사를 모두 통과한 시점 = 다음 단계로 넘어가기 직전이다.
+    saveMyProfile();
     return "";
   };
 
@@ -160,6 +194,33 @@ export default function PremiumStep1Page() {
       <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">프리미엄 인생곡 제작을 위한 기본 정보를 입력해 주세요.</p>
 
       <div className="mt-5 space-y-5">
+        <div>
+          <label className="mb-1.5 block text-[16px] font-medium text-[#3d2b1f]">
+            누구의 정보인가요? <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <Choice
+              active={subject === "self"}
+              onClick={() => {
+                setSubject("self");
+                saveDraft("premium", { subject: "self" });
+              }}
+              label="내 정보"
+            />
+            <Choice
+              active={subject === "other"}
+              onClick={() => {
+                setSubject("other");
+                saveDraft("premium", { subject: "other" });
+              }}
+              label="다른 사람 정보"
+            />
+          </div>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
+            내 정보를 선택하시면 다음 신청부터 다시 입력하지 않으셔도 됩니다.
+          </p>
+        </div>
+
         <Field label="이름" required>
           <input
             type="text"

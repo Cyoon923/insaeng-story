@@ -516,7 +516,30 @@ export async function POST(request: Request) {
   }
 
   if (action === "updateProfile") {
-    const next = { ...user, ...(body.profile as Partial<User>) };
+    // 회원이 직접 고칠 수 있는 항목만 반영한다. id·points·passwordHash처럼
+    // 서버가 관리하는 값은 클라이언트가 보내도 무시한다.
+    const profile = (body.profile as Record<string, unknown>) ?? {};
+    const next: User = { ...user };
+    const has = (key: string) => Object.prototype.hasOwnProperty.call(profile, key);
+
+    if (has("name")) next.name = String(profile.name ?? "");
+    if (has("phone")) next.phone = String(profile.phone ?? "");
+    if (has("email")) next.email = String(profile.email ?? "");
+    if (has("birth")) next.birth = String(profile.birth ?? "");
+    if (has("birthTime")) next.birthTime = String(profile.birthTime ?? "");
+    if (has("bloodType")) next.bloodType = String(profile.bloodType ?? "");
+    if (has("gender")) {
+      const value = String(profile.gender ?? "");
+      // 저장 형식은 기존 그대로 male / female / 빈 값만 인정한다.
+      if (value === "male" || value === "female" || value === "") next.gender = value;
+    }
+    if (has("calendar")) {
+      const value = String(profile.calendar ?? "");
+      if (value === "solar" || value === "lunar") next.calendar = value;
+    }
+    if (has("unknownTime")) next.unknownTime = Boolean(profile.unknownTime);
+    if (has("marketingAgreed")) next.marketingAgreed = Boolean(profile.marketingAgreed);
+
     data.users = data.users.map((item) => (item.id === userId ? next : item));
     await writeData(data);
     return NextResponse.json({ ok: true, user: next });
