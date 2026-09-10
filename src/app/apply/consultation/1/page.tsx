@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
 import { displayReviewsForProduct, summarizeReviews } from "@/lib/constants/reviews";
+import { CONSULT_TEACHERS, teacherNameById } from "@/lib/server/consultationSlots";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -20,17 +21,10 @@ const PURPOSES = [
   "기타 인생 고민",
 ];
 
-const TEACHER = "유비 선생";
-
-/**
- * 상담 상세페이지에서 넘어온 ?teacher= 값을 화면에 보여 줄 이름으로 바꾼다.
- * 목록에 없는 값이나 쿼리가 없으면 기존과 같이 유비 선생으로 둔다.
- */
-const TEACHER_NAMES: Record<string, string> = {
-  yubi: "유비 선생",
-  helen: "헬렌 선생",
-  pending: "이권기 선생",
-};
+/** 목록에 있는 id인지 확인한다. 아니면 기존과 같이 유비 선생으로 둔다. */
+function isTeacherId(value: string): boolean {
+  return CONSULT_TEACHERS.some((item) => item.id === value);
+}
 
 const TEACHER_BADGES: Record<string, string> = {
   yubi: "사주로그 전담 선생",
@@ -79,10 +73,15 @@ function formatSlotButton(time: string) {
 
 function ConsultationStep1Flow() {
   const params = useSearchParams();
-  // 상세페이지에서 넘어온 선생님. 값이 없거나 목록에 없으면 기존 기본값을 쓴다.
+  // 상세페이지에서 넘어온 선생님을 최초 선택값으로 쓴다.
+  // 값이 없거나 목록에 없으면 기존 기본값(유비 선생)이다.
   const paramTeacher = params.get("teacher") ?? "";
-  const teacherId = TEACHER_NAMES[paramTeacher] ? paramTeacher : "yubi";
-  const teacherName = TEACHER_NAMES[teacherId] ?? TEACHER;
+  const [teacherId, setTeacherId] = useState(() =>
+    isTeacherId(paramTeacher) ? paramTeacher : "yubi",
+  );
+  const teacherName = teacherNameById(teacherId);
+  // 선생님을 바꾼 직후에는 이전 선생님 기준으로 골라 둔 시간을 되살리지 않는다.
+  const teacherChanged = useRef(false);
 
   const [dates, setDates] = useState<string[]>([]);
   const [date, setDate] = useState("");
@@ -91,6 +90,14 @@ function ConsultationStep1Flow() {
   const [purposes, setPurposes] = useState<string[]>(["직업 · 사업 고민"]);
   const [report, setReport] = useState(false);
   const [extraPerson, setExtraPerson] = useState(false);
+
+  /** 선생님 변경. 날짜는 그대로 두고 시간 선택만 초기화한다. */
+  const changeTeacher = (nextId: string) => {
+    if (nextId === teacherId) return;
+    teacherChanged.current = true;
+    setTeacherId(nextId);
+    setTime("");
+  };
 
   const persist = (next: {
     date?: string;
@@ -144,9 +151,12 @@ function ConsultationStep1Flow() {
         const nextSlots = (data.slots ?? []) as { time: string; status: SlotStatus }[];
         setSlots(nextSlots);
         const draft = getDraft("consultation");
-        const draftTime = nextSlots.find(
-          (item) => draft.datetime?.includes(item.time) && item.status === "available",
-        )?.time;
+        const draftTime = teacherChanged.current
+          ? undefined
+          : nextSlots.find(
+              (item) => draft.datetime?.includes(item.time) && item.status === "available",
+            )?.time;
+        teacherChanged.current = false;
         const firstAvailable = nextSlots.find((item) => item.status === "available")?.time ?? "";
         const nextTime = draftTime ?? firstAvailable;
         setTime(nextTime);
@@ -202,10 +212,27 @@ function ConsultationStep1Flow() {
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[16px] font-bold text-[#403A49]">선생님</p>
-        <p className="mt-2 text-[15px] font-semibold text-[#403A49]">
-          {TEACHER_NAMES[teacherId]}
-        </p>
-        <p className="mt-1 text-[13px] text-[#6B6570]">
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {CONSULT_TEACHERS.map((item) => {
+            const active = teacherId === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => changeTeacher(item.id)}
+                aria-pressed={active}
+                className={`flex h-11 items-center justify-center whitespace-nowrap rounded-xl px-1 text-[14px] font-semibold ${
+                  active
+                    ? "bg-[#403A49] text-white"
+                    : "border border-[#e8dfd4] bg-white text-[#403A49]"
+                }`}
+              >
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[13px] text-[#6B6570]">
           {TEACHER_BADGES[teacherId]}
           {teacherId === "yubi" && reviewSummary
             ? ` · ${reviewSummary.average.toFixed(1)} (후기 ${reviewSummary.count}개)`
