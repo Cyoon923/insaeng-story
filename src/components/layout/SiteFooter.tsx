@@ -21,8 +21,7 @@ const linkClass = "text-[12px] text-[#6B6570]";
 
 export function SiteFooter() {
   const pathname = usePathname();
-  // 심사·법적 표기용이라 처음부터 펼쳐 둔다.
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   // 관리자 화면에는 노출하지 않는다.
   if (pathname.startsWith("/admin")) return null;
