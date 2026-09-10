@@ -5,22 +5,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * 공통 하단 Footer. 기본은 링크만 간결하게 두고,
- * 법적 표기용 사업자 정보는 눌렀을 때만 펼친다.
- * 통신판매업 신고번호와 고객센터 전화번호는 확정 후 추가한다.
+ * 공통 하단 Footer. 링크 줄 아래에 법적 표기용 사업자 정보를 항상 펼쳐 둔다.
+ * 결제대행 심사에서 하단 사업자 정보를 바로 확인할 수 있어야 하기 때문이다.
  */
 const BUSINESS_INFO = [
-  "비앤비어드바이저리",
-  "대표 정문경",
-  "사업자등록번호 158-25-00095",
-  "경기도 안산시 단원구 시화호수로 623, 2825호 (성곡동, 아티스큐브2차)",
+  "상호: 비앤비어드바이저리",
+  "대표자명: 정문경",
+  "사업자등록번호: 158-25-00095",
+  "통신판매업 신고번호: 2020-서울강서-3858",
+  "주소: 경기도 안산시 단원구 시화호수로 623, 2825호 (성곡동, 아티스큐브2차)",
+  "전화번호: 010-9079-5118",
 ] as const;
 
 const linkClass = "text-[12px] text-[#6B6570]";
 
 export function SiteFooter() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  // 심사·법적 표기용이라 처음부터 펼쳐 둔다.
+  const [open, setOpen] = useState(true);
 
   // 관리자 화면에는 노출하지 않는다.
   if (pathname.startsWith("/admin")) return null;
