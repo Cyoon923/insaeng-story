@@ -363,7 +363,10 @@ export async function POST(request: Request) {
       );
     }
     const email = String(body.email ?? "").trim();
-    if (email && !isValidEmail(email)) {
+    if (!email) {
+      return NextResponse.json({ error: "이메일을 입력해 주세요." }, { status: 400 });
+    }
+    if (!isValidEmail(email)) {
       return NextResponse.json({ error: "이메일을 확인해 주세요." }, { status: 400 });
     }
 
@@ -378,7 +381,6 @@ export async function POST(request: Request) {
 
     const user: User = {
       ...emptyUser(phone, name, email),
-      birth: String(body.birth ?? ""),
       passwordHash: hashPassword(password),
       marketingAgreed: Boolean(body.marketingAgreed),
     };

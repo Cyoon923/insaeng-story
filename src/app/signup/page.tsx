@@ -18,22 +18,6 @@ type Step = "phone" | "terms" | "profile" | "done";
 const inputClass =
   "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#403A49]";
 
-const TODAY = new Date().toISOString().slice(0, 10);
-
-/**
- * 생년월일은 YYYY-MM-DD 로만 저장한다.
- * 브라우저 날짜 입력은 연도를 4자리보다 길게 받아 줄 수 있어, 실제 값에서 잘라 준다.
- */
-function clampBirth(value: string): string {
-  if (!value) return "";
-  const [year = "", month = "", day = ""] = value.replace(/^\+/, "").split("-");
-  const yyyy = year.replace(/\D/g, "").slice(0, 4);
-  const mm = month.replace(/\D/g, "").slice(0, 2);
-  const dd = day.replace(/\D/g, "").slice(0, 2);
-  if (!yyyy || !mm || !dd) return "";
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 const EMAIL_DOMAINS = ["naver.com", "gmail.com", "daum.net", "kakao.com", "직접입력"];
 
 function AgreeRow({
@@ -134,7 +118,6 @@ function SignupFlow() {
   const [agreeMarketing, setAgreeMarketing] = useState(resumed?.agreeMarketing ?? false);
 
   const [name, setName] = useState("");
-  const [birth, setBirth] = useState("");
   const [emailLocal, setEmailLocal] = useState("");
   const [emailDomain, setEmailDomain] = useState(EMAIL_DOMAINS[0]);
   const [customDomain, setCustomDomain] = useState("");
@@ -226,6 +209,11 @@ function SignupFlow() {
       setError("이름을 입력해 주세요.");
       return;
     }
+    // 아이디와 도메인이 모두 있어야 email 문자열이 만들어진다.
+    if (!email) {
+      setError("이메일을 입력해 주세요.");
+      return;
+    }
     if (password.length < 6) {
       setError("비밀번호는 6자 이상으로 입력해 주세요.");
       return;
@@ -241,7 +229,6 @@ function SignupFlow() {
         phone,
         signupToken,
         name: name.trim(),
-        birth,
         email,
         password,
         marketingAgreed: agreeMarketing,
@@ -457,19 +444,9 @@ function SignupFlow() {
         </div>
 
         <div>
-          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">생년월일</label>
-          <input
-            type="date"
-            value={birth}
-            onChange={(e) => setBirth(clampBirth(e.target.value))}
-            min="1900-01-01"
-            max={TODAY}
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">이메일</label>
+          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+            이메일 <span className="text-red-500">*</span>
+          </label>
           <div className="flex items-center gap-2">
             <input
               type="text"
