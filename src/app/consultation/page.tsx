@@ -50,7 +50,7 @@ const TEACHERS = [
     role: "연애 · 인연 · 결혼 궁합 상담",
     desc: "관계 속에서 생기는 고민을 편안하게 나누며, 인연의 흐름을 함께 살펴봅니다.",
     tags: ["연애·인연", "결혼·궁합", "가족"],
-    image: "",
+    image: "/images/photo-helen-teacher.png",
     showRating: false,
     intro:
       "마음이 복잡할 때 편하게 이야기 나눌 수 있는 상담을 지향합니다. 관계의 흐름을 찬찬히 함께 살펴봅니다.",
@@ -64,12 +64,12 @@ const TEACHERS = [
   },
   {
     id: "pending",
-    name: "미정 선생",
+    name: "이권기 선생",
     badge: "사주로그 선생",
     role: "재물 · 직장 · 사업 흐름 상담",
     desc: "금전과 일의 흐름을 차분히 짚어 보며, 지금 필요한 선택을 함께 정리합니다.",
     tags: ["재물·금전", "직장·사업", "전체적인 운세"],
-    image: "",
+    image: "/images/photo-pending-teacher.png",
     showRating: false,
     intro:
       "일과 돈에 관한 고민을 현실적인 기준으로 정리해 드립니다. 막연한 불안보다 다음에 할 일을 찾는 상담입니다.",

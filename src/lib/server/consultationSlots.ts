@@ -16,7 +16,7 @@ export const CONSULT_TIMES = Array.from({ length: 9 }, (_, index) => formatConsu
 export const CONSULT_TEACHERS = [
   { id: "yubi", name: "유비 선생" },
   { id: "helen", name: "헬렌 선생" },
-  { id: "pending", name: "미정 선생" },
+  { id: "pending", name: "이권기 선생" },
 ] as const;
 
 export type TeacherId = (typeof CONSULT_TEACHERS)[number]["id"];

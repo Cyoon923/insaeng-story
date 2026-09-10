@@ -29,7 +29,7 @@ const TEACHER = "유비 선생";
 const TEACHER_NAMES: Record<string, string> = {
   yubi: "유비 선생",
   helen: "헬렌 선생",
-  pending: "미정 선생",
+  pending: "이권기 선생",
 };
 
 const TEACHER_BADGES: Record<string, string> = {
