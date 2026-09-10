@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, readData, writeData, writeDataWithOrder, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, writeDataWithOrder, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import { maskName } from "@/lib/constants/reviews";
@@ -767,6 +767,151 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, consultation: item });
   }
 
+
+  /**
+   * NICEPAY 결제 준비. 결제창에 넘길 주문번호와 서버 확정 금액만 만든다.
+   * 이 단계에서는 주문·상담을 만들지 않고, 쿠폰/적립금/추천인 상태도 바꾸지 않는다.
+   * 실제 차감과 주문 생성은 승인 단계에서 order_snapshot을 근거로 다시 수행한다.
+   */
+  if (action === "preparePayment") {
+    const kind = String(body.kind ?? "");
+    if (kind !== "order" && kind !== "consultation") {
+      return NextResponse.json({ error: "신청 종류를 확인해 주세요." }, { status: 400 });
+    }
+
+    // 기존 applyFreeCoupon/applyReferral/applyPoints는 data와 user를 직접 바꾼다.
+    // 규칙을 베껴 쓰지 않고 그대로 재사용하되, 저장하지 않는 사본 위에서만 실행한다.
+    // 이 요청은 writeData를 부르지 않으므로 사본의 변경은 어디에도 남지 않는다.
+    const draft = structuredClone(data);
+    const draftUser = draft.users.find((item) => item.id === userId);
+    if (!draftUser) {
+      return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+    }
+
+    const details = { ...((body.details as Record<string, string>) ?? {}) };
+    // 고객이 요청한 할인 수단. 기존 apply* 가 읽는 것과 같은 방식으로 정규화해 둔다.
+    // 승인 단계는 이 값을 근거로 "같은 할인 수단"을 다시 검증한다.
+    const requestedCouponId = (details.couponId ?? "").trim() || null;
+    const requestedReferralCode = (details.referralCode ?? "").trim().toUpperCase() || null;
+    let baseAmount = 0;
+    let goodsName = "";
+    let snapshotRequest: Record<string, unknown>;
+
+    if (kind === "order") {
+      // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
+      const priced = calcOrderAmount(body.product, body.options);
+      if (!priced) {
+        return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
+      }
+      const product = body.product as Order["product"];
+      details.optionIds = priced.optionIds.join(",");
+      baseAmount = priced.amount;
+      goodsName = String(body.title ?? "인생곡");
+      snapshotRequest = {
+        product,
+        title: goodsName,
+        options: priced.optionIds,
+        payment: String(body.payment ?? ""),
+      };
+    } else {
+      const teacher = String(body.teacher ?? "유비 선생");
+      const datetime = String(body.datetime ?? "");
+      const parsed = parseDatetime(datetime);
+      if (!parsed) {
+        return NextResponse.json({ error: "상담 시간을 다시 선택해 주세요." }, { status: 400 });
+      }
+      // 확인만 한다. 슬롯 점유는 승인 단계에서 다시 검증한 뒤에 이뤄진다.
+      if (!isSlotAvailable(data, teacher, parsed.date, parsed.time)) {
+        return NextResponse.json(
+          { error: "이미 예약되었거나 선택할 수 없는 시간입니다. 다른 시간을 선택해 주세요." },
+          { status: 409 },
+        );
+      }
+      // 상담 금액도 서버에서 기본가 + 옵션가로 다시 계산한다.
+      const priced = calcConsultationAmount(body);
+      details.optionIds = priced.optionIds.join(",");
+      baseAmount = priced.amount;
+      goodsName = String(body.title ?? "1:1 사주상담");
+      snapshotRequest = {
+        title: goodsName,
+        report: String(body.report ?? "") === "1" ? "1" : "",
+        extraPerson: String(body.extraPerson ?? "") === "1" ? "1" : "",
+        payment: String(body.payment ?? ""),
+        teacher,
+        datetime,
+        purpose: String(body.purpose ?? ""),
+        method: String(body.method ?? "카카오톡 상담"),
+        option: String(body.option ?? "없음"),
+      };
+    }
+
+    const couponProduct: CouponProduct =
+      kind === "consultation" ? "consultation" : (body.product as Order["product"]);
+    const couponed = applyFreeCoupon(draft, userId, details, baseAmount, couponProduct);
+    if (couponed.error) {
+      return NextResponse.json({ error: couponed.error }, { status: 400 });
+    }
+    const referred =
+      couponed.amount > 0
+        ? applyReferral(draft, userId, couponed.details, couponed.amount)
+        : couponed;
+    if (referred.error) {
+      return NextResponse.json({ error: referred.error }, { status: 400 });
+    }
+    const pointed = applyPoints(draftUser, referred.details, referred.amount);
+    const amount = pointed.amount;
+    // 실제로 쓰인 적립금. 클라이언트 값이나 details 문자열이 아니라
+    // 서버 계산 결과의 차액이라 위조할 수 없다.
+    const pointsUsed = Math.max(0, referred.amount - amount);
+
+    // 무료 쿠폰·적립금으로 0원이 되는 경로는 기존 주문 생성 흐름이 그대로 처리한다.
+    // 여기서는 결제가 필요 없다는 사실만 알려주고 payments 행을 만들지 않는다.
+    if (amount <= 0) {
+      return NextResponse.json({ ok: true, requiresPayment: false, amount: 0, goodsName });
+    }
+
+    const merchantOrderId = `is-${nowId()}`;
+    const payment = await createPayment({
+      provider: "nicepay",
+      merchantOrderId,
+      requestedAmount: amount,
+      status: "ready",
+      method: "card",
+      orderSnapshot: {
+        version: 1,
+        kind,
+        userId,
+        goodsName,
+        baseAmount,
+        amount,
+        request: snapshotRequest,
+        // 승인 재검증의 근거. details 문자열은 클라이언트가 임의 키를 섞을 수 있으므로
+        // 할인 판단에는 쓰지 않고 이 값만 사용한다.
+        discount: {
+          couponId: requestedCouponId,
+          referralCode: requestedReferralCode,
+          usePoints: pointsUsed,
+        },
+        details: pointed.details,
+        preparedAt: new Date().toISOString(),
+      },
+    });
+    // 주문번호가 겹치면 남의 결제 준비를 이어받게 되므로 재사용하지 않고 실패시킨다.
+    if (!payment) {
+      return NextResponse.json(
+        { error: "결제 준비에 실패했습니다. 다시 시도해 주세요." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      requiresPayment: true,
+      merchantOrderId: payment.merchantOrderId,
+      amount: payment.requestedAmount,
+      goodsName,
+    });
+  }
 
   if (action === "createReview") {
     const title = String(body.title ?? "").trim();
