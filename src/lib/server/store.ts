@@ -2,7 +2,15 @@ import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
-import type { AppData, Coupon, Order, OrderStatus, User } from "@/lib/types/app";
+import type {
+  AppData,
+  Coupon,
+  Order,
+  OrderStatus,
+  Payment,
+  PaymentStatus,
+  User,
+} from "@/lib/types/app";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "app-data.json");
@@ -38,8 +46,9 @@ function sqlClient() {
 
 /**
  * 필요한 테이블을 보장한다. 모두 IF NOT EXISTS라 여러 번 실행해도 안전하다.
- * orders/payments는 아직 어느 경로에서도 읽고 쓰지 않는 빈 테이블이며,
- * 현재 데이터는 그대로 app_store JSONB에만 저장된다.
+ * orders는 주문 읽기·쓰기에 쓰이고, payments는 결제 준비·승인 기록에 쓴다.
+ * 그 밖의 데이터는 그대로 app_store JSONB에 저장된다.
+ * 여기에는 잠금이 가벼운 CREATE 문만 둔다. ALTER는 runPaymentsMigration으로 분리했다.
  * DDL을 한 트랜잭션으로 묶어 기존과 같은 왕복 1회를 유지한다.
  */
 async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
@@ -76,7 +85,8 @@ async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
     txn.query(`
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT PRIMARY KEY,
-        order_id TEXT NOT NULL REFERENCES orders(id),
+        -- 결제 준비 시점에는 아직 주문이 없으므로 비워 둔다. 승인 성공 후 채운다.
+        order_id TEXT REFERENCES orders(id),
         provider TEXT NOT NULL,
         merchant_order_id TEXT NOT NULL,
         pg_tid TEXT,
@@ -87,6 +97,9 @@ async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
         method TEXT,
         approved_at TIMESTAMPTZ,
         cancelled_at TIMESTAMPTZ,
+        -- 승인 성공 후 주문·상담을 만들기 위한 신청 정보 사본.
+        order_snapshot JSONB,
+        -- PG 응답 원문. order_snapshot과 용도를 섞지 않는다.
         raw JSONB,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -97,6 +110,39 @@ async function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>) {
         ON payments (order_id, created_at DESC)
     `),
   ]);
+}
+
+/**
+ * 예전에 만들어진 payments 테이블을 지금 모양으로 맞춘다.
+ * ALTER TABLE은 바꿀 것이 없어도 테이블 잠금을 잡기 때문에
+ * 모든 요청이 지나가는 ensureTable에 두지 않고 여기로 분리했다.
+ * 결제 함수에서만, 서버 인스턴스당 한 번만 실행한다.
+ * 세 문장 모두 여러 번 실행해도 안전하다.
+ */
+async function runPaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+  await sql.transaction((txn) => [
+    // 이미 nullable이면 아무 일도 일어나지 않는다.
+    txn.query(`ALTER TABLE payments ALTER COLUMN order_id DROP NOT NULL`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_snapshot JSONB`),
+    // 같은 결제 준비 건이 두 번 만들어지지 않도록 우리 쪽에서 막는다.
+    txn.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS payments_merchant_order_id_key
+        ON payments (merchant_order_id)
+    `),
+  ]);
+}
+
+/** 서버 인스턴스당 한 번만 실행하기 위한 기억. 실패하면 지워서 다음에 다시 시도한다. */
+let paymentsMigration: Promise<void> | null = null;
+
+function ensurePaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
+  if (!paymentsMigration) {
+    paymentsMigration = runPaymentsMigration(sql).catch((error) => {
+      paymentsMigration = null;
+      throw error;
+    });
+  }
+  return paymentsMigration;
 }
 
 function mergeData(value: unknown): AppData {
@@ -300,6 +346,172 @@ export async function writeDataWithOrderStatus(
       [id, status],
     ),
   ]);
+}
+
+/* ------------------------------------------------------------------ *
+ * 결제(payments)
+ *
+ * 주문이 만들어지기 전 단계부터 기록하므로 order_id는 비워 둔 채로 시작한다.
+ * 결제 기록은 JSONB로 대체할 수 없어 DATABASE_URL이 반드시 필요하다.
+ * ------------------------------------------------------------------ */
+
+interface PaymentRow {
+  id: string;
+  order_id: string | null;
+  provider: string;
+  merchant_order_id: string;
+  pg_tid: string | null;
+  requested_amount: number;
+  approved_amount: number | null;
+  cancelled_amount: number;
+  status: string;
+  method: string | null;
+  approved_at: string | Date | null;
+  cancelled_at: string | Date | null;
+  order_snapshot: unknown;
+  raw: unknown;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+const PAYMENT_COLUMNS = `id, order_id, provider, merchant_order_id, pg_tid,
+  requested_amount, approved_amount, cancelled_amount, status, method,
+  approved_at, cancelled_at, order_snapshot, raw, created_at, updated_at`;
+
+function toIso(value: string | Date | null): string | null {
+  if (value === null) return null;
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+function toJsonObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toPayment(row: PaymentRow): Payment {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    provider: row.provider,
+    merchantOrderId: row.merchant_order_id,
+    pgTid: row.pg_tid,
+    requestedAmount: Number(row.requested_amount),
+    approvedAmount: row.approved_amount === null ? null : Number(row.approved_amount),
+    cancelledAmount: Number(row.cancelled_amount),
+    status: row.status as PaymentStatus,
+    method: row.method,
+    approvedAt: toIso(row.approved_at),
+    cancelledAt: toIso(row.cancelled_at),
+    orderSnapshot: toJsonObject(row.order_snapshot),
+    raw: toJsonObject(row.raw),
+    createdAt: toIso(row.created_at) ?? "",
+    updatedAt: toIso(row.updated_at) ?? "",
+  };
+}
+
+/** 결제 기록은 파일 저장소로 대체할 수 없다. DB가 없으면 조용히 넘기지 않고 알린다. */
+function paymentsClient() {
+  const sql = sqlClient();
+  if (!sql) {
+    throw new Error("결제 정보는 DATABASE_URL이 설정된 환경에서만 저장할 수 있습니다.");
+  }
+  return sql;
+}
+
+/**
+ * 결제 준비 기록. 주문이 아직 없으므로 order_id는 비워 둔다.
+ * merchant_order_id가 이미 있으면 만들지 않고 null을 돌려준다.
+ */
+export async function createPayment(input: {
+  provider: string;
+  merchantOrderId: string;
+  requestedAmount: number;
+  status: PaymentStatus;
+  method?: string | null;
+  orderSnapshot?: Record<string, unknown> | null;
+}): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      INSERT INTO payments (
+        id, provider, merchant_order_id, requested_amount, status, method, order_snapshot
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+      ON CONFLICT (merchant_order_id) DO NOTHING
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [
+      nowId(),
+      input.provider,
+      input.merchantOrderId,
+      input.requestedAmount,
+      input.status,
+      input.method ?? null,
+      input.orderSnapshot ? JSON.stringify(input.orderSnapshot) : null,
+    ],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/** 결제창에 넘긴 주문번호로 결제 1건을 찾는다. */
+export async function getPaymentByMerchantOrderId(
+  merchantOrderId: string,
+): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `SELECT ${PAYMENT_COLUMNS} FROM payments WHERE merchant_order_id = $1`,
+    [merchantOrderId],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 승인 결과 기록. 주문을 만든 뒤 order_id와 PG 응답을 함께 남긴다.
+ * method와 approvedAt은 넘기지 않으면 기존 값을 유지한다.
+ */
+export async function markPaymentApproved(input: {
+  merchantOrderId: string;
+  orderId: string;
+  pgTid: string;
+  approvedAmount: number;
+  status: PaymentStatus;
+  method?: string | null;
+  approvedAt?: string | null;
+  raw?: Record<string, unknown> | null;
+}): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET order_id = $2,
+          pg_tid = $3,
+          approved_amount = $4,
+          status = $5,
+          method = COALESCE($6, method),
+          approved_at = COALESCE($7::timestamptz, approved_at, now()),
+          raw = $8::jsonb,
+          updated_at = now()
+      WHERE merchant_order_id = $1
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [
+      input.merchantOrderId,
+      input.orderId,
+      input.pgTid,
+      input.approvedAmount,
+      input.status,
+      input.method ?? null,
+      input.approvedAt ?? null,
+      input.raw ? JSON.stringify(input.raw) : null,
+    ],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
 }
 
 export function nowId(): string {

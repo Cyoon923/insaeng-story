@@ -133,6 +133,41 @@ export interface VerificationCode {
   sentAt?: number;
 }
 
+/**
+ * 결제 상태. NICEPAY가 돌려주는 status 값을 그대로 담는다.
+ * 서비스 진행 상태(OrderStatus)와는 완전히 별개이며 섞어 쓰지 않는다.
+ */
+export type PaymentStatus = "ready" | "paid" | "failed" | "cancelled" | "partialCancelled";
+
+/**
+ * 결제 1건. 주문이 만들어지기 전(결제 준비 단계)에도 행이 생기므로 orderId는 비어 있을 수 있다.
+ * orderSnapshot은 승인 성공 뒤 주문·상담을 만들기 위한 신청 정보 사본이고,
+ * raw는 PG 응답 원문이다. 두 값의 용도를 섞지 않는다.
+ */
+export interface Payment {
+  id: string;
+  /** 승인 성공 후 주문을 만들고 나서 채운다. 준비 단계에서는 null. */
+  orderId: string | null;
+  provider: string;
+  /** 결제창에 넘기는 주문번호. 결제 준비 1건당 하나이며 중복될 수 없다. */
+  merchantOrderId: string;
+  /** PG 거래 키. 승인 전에는 null. */
+  pgTid: string | null;
+  requestedAmount: number;
+  approvedAmount: number | null;
+  cancelledAmount: number;
+  status: PaymentStatus;
+  method: string | null;
+  approvedAt: string | null;
+  cancelledAt: string | null;
+  /** 결제 성공 후 Order/Consultation을 만들기 위한 신청 정보 스냅샷. */
+  orderSnapshot: Record<string, unknown> | null;
+  /** PG 응답 원문. */
+  raw: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   users: User[];
   orders: Order[];
