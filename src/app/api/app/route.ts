@@ -2,13 +2,19 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, writeDataWithOrder, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
+import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, welcomeCoupon } from "@/lib/server/store";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import {
+  applyFreeCoupon,
+  applyPoints,
+  applyReferral,
+  commitConsultation,
+  commitOrder,
+} from "@/lib/server/applyOrder";
 import { maskName } from "@/lib/constants/reviews";
 import type {
   AppData,
-  Consultation,
   CouponProduct,
   Inquiry,
   Order,
@@ -79,116 +85,6 @@ function checkCode(data: AppData, key: string, input: string): { ok: boolean; er
   }
   saved.attempts = attempts;
   return { ok: false, error: "인증번호가 올바르지 않습니다." };
-}
-
-const REFERRAL_DISCOUNT = 10000;
-const REFERRAL_POINTS = 10000;
-
-function referralCodeFor(user: User): string {
-  const raw = user.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  const tail = (raw.slice(-6) || "HOME").padStart(6, "0");
-  return `IS${tail}`;
-}
-
-function applyReferral(
-  data: AppData,
-  buyerUserId: string,
-  details: Record<string, string>,
-  amount: number,
-): { amount: number; details: Record<string, string>; error?: string } {
-  const code = (details.referralCode ?? "").trim().toUpperCase();
-  if (!code) return { amount, details };
-  if (code === data.adminPromo?.code) {
-    const percent = data.adminPromo.percent;
-    const discount = Math.round(amount * (percent / 100));
-    return {
-      amount: Math.max(0, amount - discount),
-      details: {
-        ...details,
-        referralCode: code,
-        referralDiscount: String(discount),
-        referralType: "admin",
-        referralPercent: String(percent),
-      },
-    };
-  }
-  const buyer = data.users.find((item) => item.id === buyerUserId);
-  if (buyer && referralCodeFor(buyer) === code) {
-    return { amount, details, error: "본인 코드는 사용할 수 없습니다." };
-  }
-  const referrer = data.users.find((item) => referralCodeFor(item) === code);
-  if (!referrer) {
-    return { amount, details, error: "추천인 코드를 확인해 주세요." };
-  }
-  referrer.points = (referrer.points ?? 0) + REFERRAL_POINTS;
-  return {
-    amount: Math.max(0, amount - REFERRAL_DISCOUNT),
-    details: {
-      ...details,
-      referralCode: code,
-      referralDiscount: String(REFERRAL_DISCOUNT),
-      referrerId: referrer.id,
-    },
-  };
-}
-
-function applyFreeCoupon(
-  data: AppData,
-  userId: string,
-  details: Record<string, string>,
-  amount: number,
-  product: CouponProduct,
-): { amount: number; details: Record<string, string>; error?: string } {
-  const couponId = (details.couponId ?? "").trim();
-  if (!couponId) return { amount, details };
-  const list = data.coupons[userId] ?? [];
-  const coupon = list.find((item) => item.id === couponId);
-  if (!coupon) {
-    return { amount, details, error: "쿠폰을 확인해 주세요." };
-  }
-  if (coupon.usedAt) {
-    return { amount, details, error: "이미 사용한 쿠폰입니다." };
-  }
-  if (!coupon.product || coupon.product !== product) {
-    return { amount, details, error: "이 상품에 사용할 수 없는 쿠폰입니다." };
-  }
-  coupon.usedAt = new Date().toISOString();
-  return {
-    amount: 0,
-    details: {
-      ...details,
-      couponId: coupon.id,
-      couponTitle: coupon.title,
-      couponFree: "1",
-    },
-  };
-}
-
-function applyPoints(
-  user: User,
-  details: Record<string, string>,
-  amount: number,
-): { amount: number; details: Record<string, string> } {
-  if (amount <= 0 || details.usePoints !== "1") return { amount, details };
-  const available = Math.max(0, Math.floor(user.points ?? 0));
-  const used = Math.min(available, amount);
-  if (used <= 0) return { amount, details };
-  user.points = available - used;
-  return {
-    amount: amount - used,
-    details: {
-      ...details,
-      usePoints: "1",
-      pointsUsed: String(used),
-    },
-  };
-}
-
-function settledPayment(amount: number, details: Record<string, string>, fallback: string) {
-  if (amount > 0) return fallback;
-  if (details.couponFree === "1") return "무료 쿠폰";
-  if (details.pointsUsed) return "적립금";
-  return fallback;
 }
 
 /**
@@ -625,154 +521,38 @@ export async function POST(request: Request) {
   }
 
   if (action === "createOrder") {
-    const details = (body.details as Record<string, string>) ?? {};
-    // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
-    const priced = calcOrderAmount(body.product, body.options);
-    if (!priced) {
-      return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
+    const result = await commitOrder(data, user, {
+      product: body.product,
+      title: body.title,
+      options: body.options,
+      payment: body.payment,
+      details: (body.details as Record<string, string>) ?? {},
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
-    const product = body.product as Order["product"];
-    details.optionIds = priced.optionIds.join(",");
-    const couponed = applyFreeCoupon(data, userId, details, priced.amount, product);
-    if (couponed.error) {
-      return NextResponse.json({ error: couponed.error }, { status: 400 });
-    }
-    const referred =
-      couponed.amount > 0
-        ? applyReferral(data, userId, couponed.details, couponed.amount)
-        : couponed;
-    if (referred.error) {
-      return NextResponse.json({ error: referred.error }, { status: 400 });
-    }
-    const pointed = applyPoints(user, referred.details, referred.amount);
-    const order: Order = {
-      id: nowId(),
-      userId,
-      product,
-      title: String(body.title ?? "인생곡"),
-      status: "신청접수",
-      amount: pointed.amount,
-      baseAmount: priced.amount,
-      payment: settledPayment(pointed.amount, pointed.details, String(body.payment ?? "")),
-      details: pointed.details,
-      createdAt: new Date().toISOString(),
-    };
-    data.orders.unshift(order);
-    if (data.notificationSettings[userId]?.order !== false) {
-      data.notifications[userId] = [
-        {
-          id: nowId(),
-          title: "신청이 접수되었습니다",
-          body: `${order.title} 주문이 신청접수로 등록되었습니다.`,
-          createdAt: new Date().toISOString(),
-          read: false,
-        },
-        ...(data.notifications[userId] ?? []),
-      ];
-    }
-    await writeDataWithOrder(data, order);
-    return NextResponse.json({ ok: true, order });
+    return NextResponse.json({ ok: true, order: result.order });
   }
 
   if (action === "createConsultation") {
-    const teacher = String(body.teacher ?? "유비 선생");
-    const datetime = String(body.datetime ?? "");
-    const parsed = parseDatetime(datetime);
-    if (!parsed) {
-      return NextResponse.json({ error: "상담 시간을 다시 선택해 주세요." }, { status: 400 });
+    const result = await commitConsultation(data, user, {
+      title: body.title,
+      report: body.report,
+      extraPerson: body.extraPerson,
+      payment: body.payment,
+      teacher: body.teacher,
+      datetime: body.datetime,
+      purpose: body.purpose,
+      method: body.method,
+      option: body.option,
+      details: (body.details as Record<string, string>) ?? {},
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
-    if (!isSlotAvailable(data, teacher, parsed.date, parsed.time)) {
-      return NextResponse.json(
-        { error: "이미 예약되었거나 선택할 수 없는 시간입니다. 다른 시간을 선택해 주세요." },
-        { status: 409 },
-      );
-    }
-
-    const details = (body.details as Record<string, string>) ?? {};
-    // 상담 금액도 서버에서 기본가 + 옵션가로 다시 계산한다.
-    const priced = calcConsultationAmount(body);
-    details.optionIds = priced.optionIds.join(",");
-    const couponed = applyFreeCoupon(data, userId, details, priced.amount, "consultation");
-    if (couponed.error) {
-      return NextResponse.json({ error: couponed.error }, { status: 400 });
-    }
-    const referred =
-      couponed.amount > 0
-        ? applyReferral(data, userId, couponed.details, couponed.amount)
-        : couponed;
-    if (referred.error) {
-      return NextResponse.json({ error: referred.error }, { status: 400 });
-    }
-    const pointed = applyPoints(user, referred.details, referred.amount);
-
-    // 상담과 결제 귀속용 주문이 같은 건임을 알 수 있도록 id와 시각을 공유한다.
-    const id = `c-${nowId()}`;
-    const createdAt = new Date().toISOString();
-    const consultTeacher = String(body.teacher ?? "유비 선생");
-    const consultDatetime = String(body.datetime ?? "");
-    const consultPurpose = String(body.purpose ?? "");
-    const consultMethod = String(body.method ?? "카카오톡 상담");
-    const consultOption = String(body.option ?? "없음");
-
-    const item: Consultation = {
-      id,
-      userId,
-      teacher: consultTeacher,
-      datetime: consultDatetime,
-      purpose: consultPurpose,
-      method: consultMethod,
-      option: consultOption,
-      status: "상담 신청",
-      amount: pointed.amount,
-      details: pointed.details,
-      createdAt,
-    };
-    data.consultations.unshift(item);
-
-    // 결제는 주문 단위로 귀속시킨다. 상담 진행 상태는 위 Consultation이 계속 관리하므로
-    // 이 주문은 "신청접수"로 두고, 할인 계산은 위에서 끝난 값을 그대로 재사용한다.
-    const consultOrder: Order = {
-      id,
-      userId,
-      product: "consultation",
-      title: "1:1 사주상담",
-      status: "신청접수",
-      amount: pointed.amount,
-      baseAmount: priced.amount,
-      payment: settledPayment(pointed.amount, pointed.details, String(body.payment ?? "")),
-      details: {
-        ...pointed.details,
-        teacher: consultTeacher,
-        datetime: consultDatetime,
-        purpose: consultPurpose,
-        method: consultMethod,
-        option: consultOption,
-      },
-      createdAt,
-    };
-    data.orders.unshift(consultOrder);
-    if (data.notificationSettings[userId]?.consult !== false) {
-      data.notifications[userId] = [
-        {
-          id: nowId(),
-          title: "상담 신청이 접수되었습니다",
-          body: `${item.teacher} · ${item.datetime}`,
-          createdAt: new Date().toISOString(),
-          read: false,
-        },
-        ...(data.notifications[userId] ?? []),
-      ];
-    }
-    await writeDataWithOrder(data, consultOrder);
-    return NextResponse.json({ ok: true, consultation: item });
+    return NextResponse.json({ ok: true, consultation: result.consultation });
   }
 
-
-  /**
-   * NICEPAY 결제 준비. 결제창에 넘길 주문번호와 서버 확정 금액만 만든다.
-   * 이 단계에서는 주문·상담을 만들지 않고, 쿠폰/적립금/추천인 상태도 바꾸지 않는다.
-   * 실제 차감과 주문 생성은 승인 단계에서 order_snapshot을 근거로 다시 수행한다.
-   */
   if (action === "preparePayment") {
     const kind = String(body.kind ?? "");
     if (kind !== "order" && kind !== "consultation") {

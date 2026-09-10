@@ -514,6 +514,103 @@ export async function markPaymentApproved(input: {
   return rows[0] ? toPayment(rows[0]) : null;
 }
 
+/**
+ * 승인 결과를 "아직 ready인 결제 1건"에만 기록한다.
+ * markPaymentApproved와 달리 status = 'ready' 조건이 붙어 있어,
+ * 같은 승인 callback이 두 번 들어와도 두 번째는 0행이 되어 null을 돌려준다.
+ * 호출한 쪽은 null을 "이미 처리됐거나 준비 상태가 아님"으로 읽고
+ * 주문을 다시 만들지 않으면 된다.
+ *
+ * 기존 markPaymentApproved는 아직 호출하는 곳이 없지만 그대로 남겨 둔다.
+ * order_id는 주문을 만들기 전에도 기록할 수 있어야 하므로 null을 허용한다.
+ */
+export async function claimPaymentApproved(input: {
+  merchantOrderId: string;
+  orderId?: string | null;
+  pgTid: string;
+  approvedAmount: number;
+  method?: string | null;
+  approvedAt?: string | null;
+  raw?: Record<string, unknown> | null;
+}): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET order_id = COALESCE($2, order_id),
+          pg_tid = $3,
+          approved_amount = $4,
+          status = 'paid',
+          method = COALESCE($5, method),
+          approved_at = COALESCE($6::timestamptz, approved_at, now()),
+          raw = COALESCE($7::jsonb, raw),
+          updated_at = now()
+      WHERE merchant_order_id = $1
+        AND status = 'ready'
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [
+      input.merchantOrderId,
+      input.orderId ?? null,
+      input.pgTid,
+      input.approvedAmount,
+      input.method ?? null,
+      input.approvedAt ?? null,
+      input.raw ? JSON.stringify(input.raw) : null,
+    ],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 승인 성공 뒤 주문을 만들 때 쓸 저장 경계.
+ * app_store JSONB · orders INSERT · payments.order_id 연결을 한 트랜잭션으로 묶는다.
+ * neon의 sql.transaction은 쿼리 배열만 받아 트랜잭션 안에서 분기할 수 없으므로,
+ * "결제를 paid로 선점하는 조건부 UPDATE"는 이 함수 밖에서 먼저 끝내고
+ * 여기서는 이미 선점된 결제에 주문을 이어 붙이기만 한다.
+ * 아직 호출하는 곳은 없다. 4-2b에서 승인 라우트가 쓴다.
+ */
+export async function writeDataWithOrderForPayment(
+  data: AppData,
+  order: Order,
+  merchantOrderId: string,
+): Promise<void> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  await sql.transaction((txn) => [
+    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
+    txn.query(
+      `
+        INSERT INTO orders (
+          id, user_id, product, title, status,
+          amount, base_amount, payment, details, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamptz, $10::timestamptz)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      [
+        order.id,
+        order.userId,
+        order.product,
+        order.title,
+        order.status,
+        order.amount,
+        order.baseAmount ?? null,
+        order.payment,
+        JSON.stringify(order.details ?? {}),
+        order.createdAt,
+      ],
+    ),
+    txn.query(
+      `UPDATE payments SET order_id = $2, updated_at = now() WHERE merchant_order_id = $1`,
+      [merchantOrderId, order.id],
+    ),
+  ]);
+}
+
 export function nowId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
