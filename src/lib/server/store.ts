@@ -663,6 +663,109 @@ export async function writeDataWithOrderForPayment(
   ]);
 }
 
+/**
+ * 운영자가 확인해야 하는 결제 1건. 조회 전용이라 필요한 값만 담는다.
+ * raw(PG 응답 원문)와 order_snapshot 전체는 절대 담지 않는다.
+ */
+export interface PaymentReviewItem {
+  merchantOrderId: string;
+  status: PaymentStatus;
+  requestedAmount: number;
+  approvedAmount: number | null;
+  pgTid: string | null;
+  method: string | null;
+  orderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+  /** order_snapshot에서 뽑은 최소 식별값. 신청 내용은 포함하지 않는다. */
+  kind: string | null;
+  goodsName: string | null;
+  userId: string | null;
+}
+
+interface PaymentReviewRow {
+  merchant_order_id: string;
+  status: string;
+  requested_amount: number;
+  approved_amount: number | null;
+  pg_tid: string | null;
+  method: string | null;
+  order_id: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+  approved_at: string | Date | null;
+  kind: string | null;
+  goods_name: string | null;
+  snapshot_user_id: string | null;
+}
+
+/** 조회에 필요한 컬럼만 고른다. raw와 order_snapshot 본문은 select하지 않는다. */
+const PAYMENT_REVIEW_COLUMNS = `merchant_order_id, status, requested_amount, approved_amount,
+  pg_tid, method, order_id, created_at, updated_at, approved_at,
+  order_snapshot->>'kind' AS kind,
+  order_snapshot->>'goodsName' AS goods_name,
+  order_snapshot->>'userId' AS snapshot_user_id`;
+
+function toPaymentReview(row: PaymentReviewRow): PaymentReviewItem {
+  return {
+    merchantOrderId: row.merchant_order_id,
+    status: row.status as PaymentStatus,
+    requestedAmount: Number(row.requested_amount),
+    approvedAmount: row.approved_amount === null ? null : Number(row.approved_amount),
+    pgTid: row.pg_tid,
+    method: row.method,
+    orderId: row.order_id,
+    createdAt: toIso(row.created_at) ?? "",
+    updatedAt: toIso(row.updated_at) ?? "",
+    approvedAt: toIso(row.approved_at),
+    kind: row.kind,
+    goodsName: row.goods_name,
+    userId: row.snapshot_user_id,
+  };
+}
+
+/**
+ * 사람이 확인해야 하는 결제만 모아 온다. 조회 전용이며 아무것도 바꾸지 않는다.
+ *  stale    승인 결과를 확정하지 못한 채 10분 넘게 processing으로 남은 건
+ *  unlinked 승인은 끝났는데 주문이 연결되지 않은 건(paid + order_id NULL)
+ * 정상 결제(paid + order_id 있음)와 ready, 10분 미만 processing은 어느 쪽에도 들어가지 않는다.
+ */
+export async function listPaymentsNeedingReview(): Promise<{
+  stale: PaymentReviewItem[];
+  unlinked: PaymentReviewItem[];
+}> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const [staleRows, unlinkedRows] = (await Promise.all([
+    sql.query(
+      `
+        SELECT ${PAYMENT_REVIEW_COLUMNS}
+        FROM payments
+        WHERE status = 'processing'
+          AND updated_at < now() - interval '10 minutes'
+        ORDER BY updated_at DESC
+        LIMIT 50
+      `,
+    ),
+    sql.query(
+      `
+        SELECT ${PAYMENT_REVIEW_COLUMNS}
+        FROM payments
+        WHERE status = 'paid'
+          AND order_id IS NULL
+        ORDER BY approved_at DESC NULLS LAST, updated_at DESC
+        LIMIT 50
+      `,
+    ),
+  ])) as [PaymentReviewRow[], PaymentReviewRow[]];
+  return {
+    stale: staleRows.map(toPaymentReview),
+    unlinked: unlinkedRows.map(toPaymentReview),
+  };
+}
+
 export function nowId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

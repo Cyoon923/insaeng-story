@@ -11,6 +11,7 @@ import {
   writeData,
   writeDataWithOrderStatus,
   listAllOrders,
+  listPaymentsNeedingReview,
   getOrderById,
 } from "@/lib/server/store";
 import {
@@ -31,8 +32,21 @@ export async function GET() {
   }
 
   const data = await readData();
+  // 결제 기록은 DATABASE_URL이 있어야 읽을 수 있다. 없으면 관리자 화면 전체가
+  // 깨지지 않도록 빈 목록으로 둔다. 조회 전용이라 실패해도 부작용이 없다.
+  let paymentsNeedingReview: Awaited<ReturnType<typeof listPaymentsNeedingReview>> = {
+    stale: [],
+    unlinked: [],
+  };
+  try {
+    paymentsNeedingReview = await listPaymentsNeedingReview();
+  } catch {
+    paymentsNeedingReview = { stale: [], unlinked: [] };
+  }
+
   return NextResponse.json({
     users: data.users,
+    paymentsNeedingReview,
     orders: await listAllOrders(),
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],

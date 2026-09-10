@@ -16,6 +16,23 @@ import type {
 
 type SlotStatus = "available" | "booked" | "blocked";
 
+/** 관리자가 눈으로 확인해야 하는 결제 1건. 서버가 필요한 값만 내려준다. */
+interface PaymentReviewItem {
+  merchantOrderId: string;
+  status: string;
+  requestedAmount: number;
+  approvedAmount: number | null;
+  pgTid: string | null;
+  method: string | null;
+  orderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+  kind: string | null;
+  goodsName: string | null;
+  userId: string | null;
+}
+
 type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
 
 type ReviewItem = {
@@ -171,6 +188,10 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabId>("users");
   const [users, setUsers] = useState<User[]>([]);
+  const [paymentReview, setPaymentReview] = useState<{
+    stale: PaymentReviewItem[];
+    unlinked: PaymentReviewItem[];
+  }>({ stale: [], unlinked: [] });
   const [orders, setOrders] = useState<Order[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -205,6 +226,12 @@ export default function AdminPage() {
     }
     const data = await res.json();
     setUsers(data.users ?? []);
+    setPaymentReview(
+      (data.paymentsNeedingReview ?? { stale: [], unlinked: [] }) as {
+        stale: PaymentReviewItem[];
+        unlinked: PaymentReviewItem[];
+      },
+    );
     // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
     setOrders(
       ((data.orders ?? []) as Order[]).filter((order) => order.product !== "consultation"),
@@ -517,6 +544,72 @@ export default function AdminPage() {
           })}
         </div>
       </header>
+
+      {paymentReview.stale.length > 0 || paymentReview.unlinked.length > 0 ? (
+        <section className="px-4 pt-5">
+          <p className="text-[16px] font-bold text-[#403A49]">결제 확인 필요</p>
+          <div className="mt-2 space-y-3">
+            {paymentReview.stale.map((item) => (
+              <article
+                key={`stale-${item.merchantOrderId}`}
+                className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[16px] font-bold text-[#403A49]">
+                    {item.goodsName ?? "결제 건"}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                    결제 결과 확인 필요
+                  </span>
+                </div>
+                <p className="mt-2 text-[14px] text-[#5c3d2e]">
+                  {formatAmount(item.requestedAmount)}
+                </p>
+                <p className="mt-1 text-[13px] text-[#6B6570]">주문번호 {item.merchantOrderId}</p>
+                {item.pgTid ? (
+                  <p className="mt-1 text-[13px] text-[#6B6570]">PG 거래번호 {item.pgTid}</p>
+                ) : null}
+                <p className="mt-1 text-[13px] text-[#6B6570]">
+                  마지막 변경 {formatDate(item.updatedAt)}
+                </p>
+                <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
+                  결제 승인 여부를 NICEPAY 관리자에서 확인해 주세요.
+                </p>
+              </article>
+            ))}
+            {paymentReview.unlinked.map((item) => (
+              <article
+                key={`unlinked-${item.merchantOrderId}`}
+                className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[16px] font-bold text-[#403A49]">
+                    {item.goodsName ?? "결제 건"}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                    결제 완료 / 접수 확인 필요
+                  </span>
+                </div>
+                <p className="mt-2 text-[14px] text-[#5c3d2e]">
+                  {formatAmount(item.approvedAmount ?? item.requestedAmount)}
+                </p>
+                <p className="mt-1 text-[13px] text-[#6B6570]">주문번호 {item.merchantOrderId}</p>
+                {item.pgTid ? (
+                  <p className="mt-1 text-[13px] text-[#6B6570]">PG 거래번호 {item.pgTid}</p>
+                ) : null}
+                {item.approvedAt ? (
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
+                    승인 시간 {formatDate(item.approvedAt)}
+                  </p>
+                ) : null}
+                <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
+                  결제는 완료되었으나 주문 접수가 완료되지 않았습니다.
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="space-y-3 px-4 py-5">
         {tab === "users"
