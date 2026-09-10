@@ -86,6 +86,14 @@ export default function LoginPage() {
   /** 회원가입으로 갈 때도 돌아갈 주소를 함께 넘겨 복귀 흐름을 잇는다. */
   const signupHref = nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup";
 
+  /** 비밀번호 입력 후 Enter와 로그인 버튼이 같은 경로를 타게 한다. */
+  const handleLoginSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    // 진행 중에는 버튼이 잠기지만, Enter로 한 번 더 들어오는 경우를 막는다.
+    if (loading) return;
+    login();
+  };
+
   const login = async () => {
     setError("");
     setLoading(true);
@@ -376,42 +384,43 @@ export default function LoginPage() {
       </section>
 
       <div className="space-y-5 px-4 pb-8">
-        <div>
-          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
-            휴대폰 번호 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="예) 010-1234-5678"
-            className={inputClass}
-          />
-        </div>
+        <form onSubmit={handleLoginSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+              휴대폰 번호 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="예) 010-1234-5678"
+              className={inputClass}
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
-            비밀번호 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호를 입력해 주세요"
-            className={inputClass}
-          />
-        </div>
+          <div>
+            <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+              비밀번호 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호를 입력해 주세요"
+              className={inputClass}
+            />
+          </div>
 
-        {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+          {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
 
-        <button
-          type="button"
-          onClick={login}
-          disabled={loading}
-          className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
-        >
-          로그인
-        </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
+          >
+            로그인
+          </button>
+        </form>
 
         <div className="flex items-center justify-center gap-4 text-[16px]">
           <button
