@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { PaymentDraftCleanup } from "@/components/apply/PaymentDraftCleanup";
 
 export default async function ApplyCompletePage({
   searchParams,
@@ -22,9 +23,13 @@ export default async function ApplyCompletePage({
         ? "/my/consultations"
         : "/my/orders";
 
+  const cleanupOrderId = (type === "order" || type === "consult") && id ? id : "";
+
   return (
     <MobileShell>
       <AppHeader variant="page" title="신청 완료" backHref="/" showActions={false} />
+      {/* 완료된 신청의 draft만 정리한다. 화면에는 아무것도 그리지 않는다. */}
+      {cleanupOrderId ? <PaymentDraftCleanup orderId={cleanupOrderId} /> : null}
 
       <div className="px-5 py-10 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#5c3d2e] text-[28px] text-white">
