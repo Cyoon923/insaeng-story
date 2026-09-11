@@ -38,10 +38,20 @@ import type {
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 /**
+ * 실제 운영 배포인지. Vercel Preview도 NODE_ENV가 "production"이라
+ * IS_PRODUCTION만으로는 운영과 구분할 수 없어 VERCEL_ENV를 함께 본다.
+ * 운영(VERCEL_ENV="production")에서는 IS_PRODUCTION과 값이 같으므로 기존 동작이 그대로다.
+ *
+ * 인증번호 발송·노출 판단에만 쓴다. 세션·탈퇴 등 다른 로직은 이 값을 보지 않는다.
+ */
+const IS_REAL_PRODUCTION = IS_PRODUCTION && process.env.VERCEL_ENV !== "preview";
+
+/**
  * 개발용 인증번호. 외부 SMS/이메일 연동이 없는 동안 화면에 표시되는 값과
  * 서버가 검증하는 값을 같게 맞추기 위해 고정한다. 운영에서는 사용하지 않는다.
+ * Preview에서도 실제 문자를 보내지 않고 이 값으로 흐름을 확인한다.
  */
-const DEV_CODE = IS_PRODUCTION ? null : "123456";
+const DEV_CODE = IS_REAL_PRODUCTION ? null : "123456";
 
 /** 인증번호 유효시간 5분, 재발송 쿨다운 60초, 코드별 검증 시도 5회. */
 const CODE_TTL_MS = 5 * 60 * 1000;
@@ -231,8 +241,9 @@ export async function POST(request: Request) {
     await writeData(data);
 
     // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
-    // 개발에서는 발송하지 않고 devCode로 확인한다. 이메일 채널은 아직 발송 연동이 없다.
-    if (IS_PRODUCTION && channel !== "email") {
+    // 개발과 Preview에서는 발송하지 않고 devCode로 확인한다.
+    // 이메일 채널은 아직 발송 연동이 없다.
+    if (IS_REAL_PRODUCTION && channel !== "email") {
       try {
         await sendVerificationSms(String(body.phone ?? ""), code);
       } catch (error) {
@@ -264,7 +275,7 @@ export async function POST(request: Request) {
     }
 
     // 운영에서는 인증번호를 응답에 절대 담지 않는다.
-    return NextResponse.json(IS_PRODUCTION ? { ok: true } : { ok: true, devCode: code });
+    return NextResponse.json(IS_REAL_PRODUCTION ? { ok: true } : { ok: true, devCode: code });
   }
 
   if (action === "login") {
