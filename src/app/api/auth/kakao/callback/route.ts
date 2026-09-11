@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  LOGIN_DEFAULT_PATH,
-  LOGIN_NEXT_COOKIE,
-  SOCIAL_LINK_VERIFY_PATH,
-  safeNextPath,
-} from "@/lib/loginRedirect";
+import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
-import { createSocialLinkPending } from "@/lib/server/socialLink";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
 import {
   createWithdrawVerification,
@@ -15,7 +9,7 @@ import {
   WITHDRAW_PURPOSE,
   WITHDRAW_VERIFIED_PATH,
 } from "@/lib/server/withdrawVerification";
-import { readData, writeData } from "@/lib/server/store";
+import { emptyUser, readData, registerUser, writeData } from "@/lib/server/store";
 import {
   KAKAO_STATE_COOKIE,
   KAKAO_TOKEN_URL,
@@ -155,17 +149,20 @@ export async function GET(request: Request) {
   }
 
   const data = await readData();
-  const user = data.users.find((item) => item.kakaoId === kakaoId);
+  let user = data.users.find((item) => item.kakaoId === kakaoId);
   if (!user) {
-    // 처음 보는 카카오 계정: 회원을 만들지 않고 휴대폰 인증까지 대기 상태로만 둔다.
-    await createSocialLinkPending({ provider: "kakao", providerUserId: kakaoId, nickname });
-    const pendingResponse = NextResponse.redirect(new URL(SOCIAL_LINK_VERIFY_PATH, origin));
-    pendingResponse.cookies.delete(KAKAO_STATE_COOKIE);
-    pendingResponse.cookies.delete(OAUTH_PURPOSE_COOKIE);
-    // login_next는 인증을 마친 뒤 복귀에 써야 하므로 여기서 지우지 않는다.
-    return pendingResponse;
-  }
-  if (nickname && !user.name) {
+    /**
+     * 처음 보는 카카오 계정: 휴대폰 인증을 받지 않고 바로 회원을 만든다.
+     * 번호는 비워 둔다. 주문·상담은 신청 1단계에서 번호를 직접 받으므로 진행에 지장이 없다.
+     *
+     * 같은 번호나 같은 이름의 기존 회원과 자동으로 합치지 않는다.
+     * 계정 연결은 본인이 원할 때 completeSocialLink(휴대폰 인증)로만 한다.
+     */
+    user = registerUser(data, {
+      ...emptyUser("", nickname || "카카오 회원"),
+      kakaoId,
+    });
+  } else if (nickname && !user.name) {
     user.name = nickname;
   }
   await writeData(data);
