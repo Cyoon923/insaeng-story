@@ -54,6 +54,12 @@ export interface WithdrawVerification {
   userId: string;
   provider: SocialProvider;
   providerUserId: string;
+  /**
+   * 재인증에서 받은 provider access token. 탈퇴 직전 연결 해제(카카오 unlink)에만 쓴다.
+   * 서버 저장소에만 있고 브라우저·응답·로그에는 절대 나가지 않는다.
+   * TTL 5분이 지나거나 한 번 소비되면 함께 사라진다.
+   */
+  accessToken?: string;
   issuedAt: number;
   expiresAt: number;
 }
@@ -85,10 +91,12 @@ function parseVerification(raw: string, expiresAt: number): WithdrawVerification
     const providerUserId = String(value.providerUserId ?? "");
     if (!userId || !providerUserId) return null;
     const issuedAt = Number(value.issuedAt ?? 0);
+    const accessToken = typeof value.accessToken === "string" ? value.accessToken : "";
     return {
       userId,
       provider: value.provider,
       providerUserId,
+      ...(accessToken ? { accessToken } : {}),
       issuedAt: Number.isFinite(issuedAt) ? issuedAt : 0,
       expiresAt,
     };
@@ -107,6 +115,8 @@ export async function createWithdrawVerification(input: {
   userId: string;
   provider: SocialProvider;
   providerUserId: string;
+  /** 탈퇴 직전 연결 해제에 쓸 access token. 없으면 저장하지 않는다. */
+  accessToken?: string;
 }): Promise<string> {
   const store = await cookies();
   const previous = store.get(COOKIE)?.value;
@@ -121,6 +131,7 @@ export async function createWithdrawVerification(input: {
       userId: input.userId,
       provider: input.provider,
       providerUserId: input.providerUserId,
+      ...(input.accessToken ? { accessToken: input.accessToken } : {}),
       issuedAt,
     }),
     expiresAt: issuedAt + TTL_MS,

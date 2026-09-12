@@ -78,6 +78,8 @@ export async function GET(request: Request) {
 
   let kakaoId = "";
   let nickname = "";
+  // 탈퇴 재인증에서만 쓴다. 일반 로그인 경로에서는 사용하지 않고 응답에도 담지 않는다.
+  let accessToken = "";
   try {
     const tokenBody = new URLSearchParams({
       grant_type: "authorization_code",
@@ -107,6 +109,7 @@ export async function GET(request: Request) {
 
     kakaoId = String(profile.id);
     nickname = (profile.kakao_account?.profile?.nickname ?? "").trim();
+    accessToken = token.access_token;
   } catch {
     return fail("kakao_network");
   }
@@ -141,6 +144,8 @@ export async function GET(request: Request) {
       userId: me.id,
       provider: "kakao",
       providerUserId: kakaoId,
+      // 탈퇴 직전 연결 끊기에 쓴다. 서버 저장소에만 남고 5분 뒤 또는 소비 즉시 사라진다.
+      accessToken,
     });
     const verified = NextResponse.redirect(new URL(WITHDRAW_VERIFIED_PATH, origin));
     verified.cookies.delete(KAKAO_STATE_COOKIE);
