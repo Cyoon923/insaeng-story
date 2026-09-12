@@ -79,8 +79,10 @@ const QUICK_QUESTIONS = [
   {
     icon: "🔮",
     label: "사주상담 안내",
+    // AI 연결 단계에서는 선생님 이름을 문구에 적지 않고
+    // src/lib/constants/consultationTeachers.ts의 현재 데이터를 읽어 안내한다.
     answer:
-      "사주로그의 1:1 사주상담은 유비 선생과 진행하며 카카오톡 또는 전화 상담을 선택할 수 있어요.",
+      "사주로그의 1:1 사주상담은 여러 선생님 중 원하는 선생님을 선택해 진행할 수 있어요. 상담 신청 화면에서 선생님별 상담 정보와 가능한 일정을 확인하고 선택할 수 있어요.",
   },
   {
     icon: "💳",
@@ -95,6 +97,11 @@ const QUICK_QUESTIONS = [
       "원하는 상품을 선택한 뒤 신청 정보를 입력하고 확인 및 결제를 진행하면 돼요. 상품별로 신청 단계는 조금씩 달라요.",
   },
 ] as const;
+
+/** 연락받을 방법. 상담 신청 화면에서 쓰는 방식과 같은 어휘를 쓴다. */
+const CONTACT_METHODS = ["카카오톡", "전화", "문자"] as const;
+
+type ContactMethod = (typeof CONTACT_METHODS)[number];
 
 /** 도령이 말풍선. 왼쪽 정렬 + 작은 표정 프로필 + 크림색 배경. */
 function DoryeongBubble({ text, mood }: { text: string; mood?: DoryeongMood }) {
@@ -135,6 +142,13 @@ export function ChatWidget() {
   // 말풍선 key로만 쓰는 일련번호. 같은 질문을 여러 번 눌러도 값이 겹치지 않는다.
   const seqRef = useRef(0);
 
+  // 실제 상담원 문의 폼. 아직 서버에 보내지 않고 화면에만 결과를 남긴다.
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [inquiryName, setInquiryName] = useState("");
+  const [inquiryMethod, setInquiryMethod] = useState<ContactMethod>("카카오톡");
+  const [inquiryContact, setInquiryContact] = useState("");
+  const [inquiryText, setInquiryText] = useState("");
+
   useEffect(() => {
     // 새 말풍선이 생기면 대화 영역 아래가 보이게 한다. 패널 안에서만 움직인다.
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -151,6 +165,39 @@ export function ChatWidget() {
       { id: `u-${seq}`, role: "user", text: label },
       { id: `d-${seq}`, role: "doryeong", text: answer, mood: "helpful" },
     ]);
+  };
+
+  const canSubmitInquiry =
+    inquiryName.trim().length > 0 &&
+    inquiryContact.trim().length > 0 &&
+    inquiryText.trim().length > 0;
+
+  /**
+   * 문의 폼 제출. 아직 서버에 저장하지 않고 화면에만 접수 안내를 남긴다.
+   * 실제 접수는 이후 단계에서 붙인다.
+   */
+  const submitInquiry = () => {
+    if (!canSubmitInquiry) return;
+    const seq = (seqRef.current += 1);
+    setMessages((previous) => [
+      ...previous,
+      {
+        id: `u-${seq}`,
+        role: "user",
+        text: `상담원 문의\n이름: ${inquiryName.trim()}\n연락 방법: ${inquiryMethod}\n연락처: ${inquiryContact.trim()}\n내용: ${inquiryText.trim()}`,
+      },
+      {
+        id: `d-${seq}`,
+        role: "doryeong",
+        text: "문의가 접수되었어요. 확인 후 상담원이 연락드릴게요.",
+        mood: "yes",
+      },
+    ]);
+    setInquiryOpen(false);
+    setInquiryName("");
+    setInquiryMethod("카카오톡");
+    setInquiryContact("");
+    setInquiryText("");
   };
 
   return (
@@ -213,6 +260,95 @@ export function ChatWidget() {
                   </button>
                 ))}
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#ebe3d8] bg-white p-3">
+              <p className="text-[13px] leading-relaxed text-[#6B6570]">
+                AI 안내로 해결되지 않으셨나요?
+              </p>
+              {inquiryOpen ? (
+                <div className="mt-3 space-y-3">
+                  <label className="block">
+                    <span className="text-[13px] font-bold text-[#403A49]">이름</span>
+                    <input
+                      type="text"
+                      value={inquiryName}
+                      onChange={(event) => setInquiryName(event.target.value)}
+                      placeholder="이름을 입력해 주세요"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#e8dfd4] bg-[#fffdf9] px-3 text-[15px] text-[#403A49] outline-none focus:border-[#403A49]"
+                    />
+                  </label>
+
+                  <div>
+                    <span className="text-[13px] font-bold text-[#403A49]">연락받을 방법</span>
+                    <div className="mt-1 flex gap-2">
+                      {CONTACT_METHODS.map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setInquiryMethod(method)}
+                          aria-pressed={inquiryMethod === method}
+                          className={`h-10 flex-1 rounded-xl border text-[14px] font-medium ${
+                            inquiryMethod === method
+                              ? "border-[#403A49] bg-[#403A49] text-white"
+                              : "border-[#e0d5c8] bg-[#fffdf9] text-[#5c3d2e]"
+                          }`}
+                        >
+                          {method}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <label className="block">
+                    <span className="text-[13px] font-bold text-[#403A49]">연락처</span>
+                    <input
+                      type="tel"
+                      value={inquiryContact}
+                      onChange={(event) => setInquiryContact(event.target.value)}
+                      placeholder="연락받을 번호나 아이디"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#e8dfd4] bg-[#fffdf9] px-3 text-[15px] text-[#403A49] outline-none focus:border-[#403A49]"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-[13px] font-bold text-[#403A49]">문의 내용</span>
+                    <textarea
+                      value={inquiryText}
+                      onChange={(event) => setInquiryText(event.target.value)}
+                      rows={3}
+                      placeholder="궁금한 내용을 적어 주세요"
+                      className="mt-1 w-full resize-none rounded-xl border border-[#e8dfd4] bg-[#fffdf9] px-3 py-2 text-[15px] leading-relaxed text-[#403A49] outline-none focus:border-[#403A49]"
+                    />
+                  </label>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInquiryOpen(false)}
+                      className="h-11 rounded-xl border border-[#e0d5c8] bg-[#fffdf9] px-4 text-[15px] font-medium text-[#6B6570]"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      onClick={submitInquiry}
+                      disabled={!canSubmitInquiry}
+                      className="h-11 flex-1 rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
+                    >
+                      문의 남기기
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setInquiryOpen(true)}
+                  className="mt-2 h-11 w-full rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] active:bg-[#f5efe6]"
+                >
+                  실제 상담원에게 문의하기
+                </button>
+              )}
             </section>
 
             {messages.map((message) =>
