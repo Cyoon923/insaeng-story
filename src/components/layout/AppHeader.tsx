@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, Bell, ChevronLeft, Share2, User } from "lucide-react";
 import { fetchMe } from "@/lib/client/api";
 
@@ -27,6 +28,20 @@ async function copyLink(url: string): Promise<boolean> {
       return false;
     }
   }
+}
+
+/**
+ * 공유 버튼을 숨기는 경로. 로그인해야 볼 수 있는 개인 화면이라
+ * 주소를 남에게 넘길 이유가 없고, 주문 id 같은 식별자가 링크에 담긴다.
+ * 공개 페이지(상품·상담·후기·약관 등)는 지금처럼 그대로 공유할 수 있다.
+ */
+const PRIVATE_PATH_PREFIXES = ["/my", "/social-link"];
+
+function isPrivatePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return PRIVATE_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 function isLocalPreview() {
@@ -63,6 +78,10 @@ export function AppHeader({
   compact = false,
   bgClass = "bg-[#fffdf9]/95",
 }: AppHeaderProps) {
+  const pathname = usePathname();
+  // 개인 화면에서는 showActions가 true로 넘어와도 공유 버튼을 그리지 않는다.
+  const canShare = showActions && !isPrivatePath(pathname);
+
   const [mounted, setMounted] = useState(false);
   // 로그인 여부는 기존 세션 판별(GET /api/app 의 user)을 그대로 사용한다.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
@@ -208,7 +227,7 @@ export function AppHeader({
                 <User className="h-5 w-5" />
               </Link>
             ))}
-          {showActions && (
+          {canShare && (
             <button
               type="button"
               onClick={() => setShareOpen(true)}
@@ -218,7 +237,7 @@ export function AppHeader({
               <Share2 className="h-4 w-4" />
             </button>
           )}
-          {!showBell && !showActions && !showUser && <span className="w-5" />}
+          {!showBell && !canShare && !showUser && <span className="w-5" />}
         </div>
       </div>
       {shareMessage ? (
