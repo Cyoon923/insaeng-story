@@ -30,6 +30,8 @@ interface NaverUserResponse {
   response?: {
     id?: string;
     nickname?: string;
+    /** 회원이름. 개발자센터에서 '이름' 제공정보에 동의받은 경우에만 내려온다. */
+    name?: string;
   };
 }
 
@@ -80,6 +82,8 @@ export async function GET(request: Request) {
 
   let naverId = "";
   let nickname = "";
+  // 회원이름. 제공정보에 '이름'이 없으면 빈 문자열로 남고 nickname으로 대체된다.
+  let realName = "";
   try {
     const tokenUrl = new URL(NAVER_TOKEN_URL);
     tokenUrl.searchParams.set("grant_type", "authorization_code");
@@ -104,6 +108,7 @@ export async function GET(request: Request) {
 
     naverId = String(profile.response.id);
     nickname = (profile.response.nickname ?? "").trim();
+    realName = (profile.response.name ?? "").trim();
   } catch {
     return fail("naver_network");
   }
@@ -145,6 +150,9 @@ export async function GET(request: Request) {
     return verified;
   }
 
+  // 이름은 실명을 우선한다. 없으면 별명, 둘 다 없으면 기본값으로 둔다.
+  const displayName = realName || nickname;
+
   const data = await readData();
   let user = data.users.find((item) => item.naverId === naverId);
   if (!user) {
@@ -156,11 +164,12 @@ export async function GET(request: Request) {
      * 계정 연결은 본인이 원할 때 completeSocialLink(휴대폰 인증)로만 한다.
      */
     user = registerUser(data, {
-      ...emptyUser("", nickname || "네이버 회원"),
+      ...emptyUser("", displayName || "네이버 회원"),
       naverId,
     });
-  } else if (nickname && !user.name) {
-    user.name = nickname;
+  } else if (displayName && !user.name) {
+    // 이미 이름이 있는 회원은 건드리지 않는다. 본인이 고친 이름을 로그인이 덮으면 안 된다.
+    user.name = displayName;
   }
   await writeData(data);
   await setUserId(user.id);
