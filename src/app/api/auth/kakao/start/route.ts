@@ -26,6 +26,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginErrorUrl(origin, "kakao_config"));
   }
 
+  const isWithdrawPurpose =
+    new URL(request.url).searchParams.get("purpose") === WITHDRAW_PURPOSE;
+
   const state = randomBytes(16).toString("hex");
   const authorize = new URL(KAKAO_AUTHORIZE_URL);
   authorize.searchParams.set("client_id", config.restApiKey);
@@ -33,6 +36,13 @@ export async function GET(request: Request) {
   authorize.searchParams.set("response_type", "code");
   authorize.searchParams.set("scope", KAKAO_SCOPE);
   authorize.searchParams.set("state", state);
+
+  // 일반 로그인은 매번 카카오 계정을 고를 수 있게 한다.
+  // 탈퇴 재인증(purpose=withdraw)은 "지금 로그인한 본인"을 확인하는 절차라
+  // 계정 선택을 끼우지 않고 기존 동작을 그대로 둔다.
+  if (!isWithdrawPurpose) {
+    authorize.searchParams.set("prompt", "select_account");
+  }
 
   const response = NextResponse.redirect(authorize);
   response.cookies.set(KAKAO_STATE_COOKIE, state, {
@@ -45,7 +55,7 @@ export async function GET(request: Request) {
 
   // 탈퇴 재인증으로 들어온 경우에만 목적을 남긴다. 일반 로그인은 이 쿠키가 없다.
   // 값은 서버만 읽고 쓰며, 콜백이 분기 여부와 관계없이 지운다.
-  if (new URL(request.url).searchParams.get("purpose") === WITHDRAW_PURPOSE) {
+  if (isWithdrawPurpose) {
     response.cookies.set(OAUTH_PURPOSE_COOKIE, WITHDRAW_PURPOSE, {
       httpOnly: true,
       sameSite: "lax",
