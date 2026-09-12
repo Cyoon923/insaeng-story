@@ -34,6 +34,12 @@ export async function GET(request: Request) {
   authorize.searchParams.set("scope", KAKAO_SCOPE);
   authorize.searchParams.set("state", state);
 
+  // mode=other-account 로 들어온 경우에만 카카오 로그인 화면을 강제로 띄운다.
+  // 기본 로그인은 기존 그대로 두어, 카카오 세션이 있으면 바로 통과한다.
+  if (new URL(request.url).searchParams.get("mode") === "other-account") {
+    authorize.searchParams.set("prompt", "login");
+  }
+
   const response = NextResponse.redirect(authorize);
   response.cookies.set(KAKAO_STATE_COOKIE, state, {
     httpOnly: true,

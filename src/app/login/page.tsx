@@ -199,6 +199,12 @@ export default function LoginPage() {
     window.location.href = "/api/auth/kakao/start";
   };
 
+  const startKakaoOtherAccount = () => {
+    // 카카오 세션이 남아 있어도 계정을 다시 고를 수 있도록 강제 로그인 화면으로 보낸다.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/api/auth/kakao/start?mode=other-account";
+  };
+
   const startNaver = () => {
     // 네이버 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
     // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
@@ -448,6 +454,15 @@ export default function LoginPage() {
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#fee500] text-[17px] font-semibold text-[#3d2b1f] disabled:opacity-40"
         >
           카카오톡으로 시작하기
+        </button>
+
+        <button
+          type="button"
+          onClick={startKakaoOtherAccount}
+          disabled={loading}
+          className="-mt-1 w-full py-2 text-center text-[15px] font-semibold text-[#6B6570] underline underline-offset-4 disabled:opacity-40"
+        >
+          다른 카카오 계정으로 로그인
         </button>
 
         <button
