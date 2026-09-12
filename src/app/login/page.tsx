@@ -15,6 +15,31 @@ import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 type Mode = "login" | "reset";
 type ResetStep = "phone" | "code" | "password" | "done";
 
+/**
+ * 이 브라우저에서 마지막에 고른 로그인 방식. 안내 표시에만 쓰고 서버로 보내지 않는다.
+ * 로그아웃이나 탈퇴 때 지우지 않는다. 다음 방문에서 같은 방식을 알려주는 것이 목적이다.
+ */
+const RECENT_LOGIN_KEY = "sajulog_recent_login_method";
+type RecentLoginMethod = "kakao" | "naver" | "password";
+
+/** 저장소를 쓸 수 없는 브라우저(프라이빗 모드 등)에서도 로그인은 그대로 되어야 한다. */
+function readRecentLogin(): RecentLoginMethod | null {
+  try {
+    const value = localStorage.getItem(RECENT_LOGIN_KEY);
+    return value === "kakao" || value === "naver" || value === "password" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRecentLogin(method: RecentLoginMethod) {
+  try {
+    localStorage.setItem(RECENT_LOGIN_KEY, method);
+  } catch {
+    // 저장하지 못해도 안내만 없을 뿐이라 그대로 진행한다.
+  }
+}
+
 const inputClass =
   "h-14 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[17px] outline-none focus:border-[#403A49]";
 
@@ -36,6 +61,7 @@ export default function LoginPage() {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
 
   const [error, setError] = useState("");
+  const [recentLogin, setRecentLogin] = useState<RecentLoginMethod | null>(null);
 
   /**
    * 소셜 로그인 실패 시 callback이 /login?error=... 으로 되돌려 보낸다.
@@ -64,6 +90,12 @@ export default function LoginPage() {
     // 주소에서 한 번만 읽어 둔다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNextPath(value);
+  }, []);
+
+  useEffect(() => {
+    // localStorage는 브라우저에만 있으므로 마운트 후 한 번만 읽는다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecentLogin(readRecentLogin());
   }, []);
 
   const openReset = () => {
@@ -99,6 +131,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await postApp({ action: "passwordLogin", phone, password });
+      saveRecentLogin("password");
       // 신청 화면에서 넘어왔다면 그 자리로 되돌려 보낸다.
       router.push(nextPath || LOGIN_DEFAULT_PATH);
       router.refresh();
@@ -195,6 +228,7 @@ export default function LoginPage() {
   const startKakao = () => {
     // 카카오 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
     // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
+    saveRecentLogin("kakao");
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/auth/kakao/start";
   };
@@ -202,6 +236,7 @@ export default function LoginPage() {
   const startNaver = () => {
     // 네이버 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
     // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
+    saveRecentLogin("naver");
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/auth/naver/start";
   };
@@ -419,6 +454,9 @@ export default function LoginPage() {
             className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
           >
             로그인
+            {recentLogin === "password" ? (
+              <span className="ml-2 text-[15px] font-medium text-white/80">· 최근 로그인</span>
+            ) : null}
           </button>
         </form>
 
@@ -448,6 +486,9 @@ export default function LoginPage() {
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#fee500] text-[17px] font-semibold text-[#3d2b1f] disabled:opacity-40"
         >
           카카오톡으로 시작하기
+          {recentLogin === "kakao" ? (
+            <span className="ml-2 text-[15px] font-medium text-[#3d2b1f]/70">· 최근 로그인</span>
+          ) : null}
         </button>
 
         <button
@@ -457,6 +498,9 @@ export default function LoginPage() {
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#03c75a] text-[17px] font-semibold text-white disabled:opacity-40"
         >
           네이버 시작하기
+          {recentLogin === "naver" ? (
+            <span className="ml-2 text-[15px] font-medium text-white/80">· 최근 로그인</span>
+          ) : null}
         </button>
 
         <p className="text-center text-[13px] leading-relaxed text-[#6B6570]">
