@@ -84,6 +84,8 @@ export async function GET(request: Request) {
   let nickname = "";
   // 회원이름. 제공정보에 '이름'이 없으면 빈 문자열로 남고 nickname으로 대체된다.
   let realName = "";
+  // 탈퇴 재인증에서만 쓴다. 일반 로그인 경로에서는 사용하지 않고 응답에도 담지 않는다.
+  let accessToken = "";
   try {
     const tokenUrl = new URL(NAVER_TOKEN_URL);
     tokenUrl.searchParams.set("grant_type", "authorization_code");
@@ -109,6 +111,7 @@ export async function GET(request: Request) {
     naverId = String(profile.response.id);
     nickname = (profile.response.nickname ?? "").trim();
     realName = (profile.response.name ?? "").trim();
+    accessToken = token.access_token;
   } catch {
     return fail("naver_network");
   }
@@ -143,6 +146,8 @@ export async function GET(request: Request) {
       userId: me.id,
       provider: "naver",
       providerUserId: naverId,
+      // 탈퇴 직전 연동 해제에 쓴다. 서버 저장소에만 남고 5분 뒤 또는 소비 즉시 사라진다.
+      accessToken,
     });
     const verified = NextResponse.redirect(new URL(WITHDRAW_VERIFIED_PATH, origin));
     verified.cookies.delete(NAVER_STATE_COOKIE);

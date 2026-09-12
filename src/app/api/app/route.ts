@@ -15,6 +15,7 @@ import {
 } from "@/lib/server/withdrawAccount";
 import { consumeWithdrawVerification } from "@/lib/server/withdrawVerification";
 import { unlinkKakao } from "@/lib/server/kakaoUnlink";
+import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
@@ -698,6 +699,10 @@ export async function POST(request: Request) {
 
     /** 카카오 연결 끊기에 쓸 access token. 비밀번호 회원이거나 네이버면 빈 문자열이다. */
     let kakaoAccessToken = "";
+    /** 네이버 연동 해제에 쓸 access token. 비밀번호 회원이거나 카카오면 빈 문자열이다. */
+    let naverAccessToken = "";
+    /** 네이버 소셜 재인증으로 들어온 탈퇴인지. 토큰이 비어 있어도 해제를 건너뛰지 않기 위해 둔다. */
+    let isNaverWithdraw = false;
 
     if (user.passwordHash) {
       // 비밀번호가 있는 회원은 비밀번호로만 확인한다.
@@ -720,6 +725,11 @@ export async function POST(request: Request) {
       // 카카오는 탈퇴 직전에 연결까지 끊는다. 토큰은 이 요청 안에서만 쓰고 남기지 않는다.
       if (verification.provider === "kakao") {
         kakaoAccessToken = verification.accessToken ?? "";
+      }
+      // 네이버도 같은 원칙으로 탈퇴 직전에 연동을 해제한다.
+      if (verification.provider === "naver") {
+        isNaverWithdraw = true;
+        naverAccessToken = verification.accessToken ?? "";
       }
     }
 
@@ -767,7 +777,25 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5) 개인정보 비식별화 + details 사본 정리. 주문·상담 행과 후기는 지우지 않는다.
+    /**
+     * 5) 네이버 연동 해제. 카카오와 같은 이유로 아직 아무것도 저장하지 않은 지점에서 처리한다.
+     *    탈퇴가 끝나면 naverId가 지워져 어떤 계정을 해제해야 하는지 알 수 없게 된다.
+     *    토큰이 없으면 해제 자체가 불가능하므로 진행하지 않고 여기서 멈춘다.
+     */
+    if (isNaverWithdraw) {
+      const revoked = naverAccessToken ? await unlinkNaver(naverAccessToken) : "failed";
+      if (revoked === "failed") {
+        return NextResponse.json(
+          {
+            error:
+              "네이버 연결 해제에 실패했습니다. 네이버 본인 확인을 다시 하신 뒤 시도해 주세요.",
+          },
+          { status: 502 },
+        );
+      }
+    }
+
+    // 6) 개인정보 비식별화 + details 사본 정리. 주문·상담 행과 후기는 지우지 않는다.
     anonymizeWithdrawnUser(latest, target);
     scrubUserRecords(latest, target.id);
 
@@ -782,7 +810,7 @@ export async function POST(request: Request) {
     }
 
     /**
-     * 6) SQL orders 테이블의 details도 같은 allowlist로 정리한다.
+     * 7) SQL orders 테이블의 details도 같은 allowlist로 정리한다.
      *    JSONB와 달리 이쪽이 운영의 읽기 경로라 여기에 남으면 개인정보가 실제로 조회된다.
      *    실패해도 되돌리지 않는다. 탈퇴는 이미 성립했고 이 함수는 몇 번 실행해도 결과가 같다.
      *    다만 결제 스냅샷보다 중대한 잔존이므로 서버 로그에 남기고 응답에도 표시한다.
@@ -797,7 +825,7 @@ export async function POST(request: Request) {
     }
 
     /**
-     * 7) 결제 스냅샷의 신청 내용 사본 제거. 여기서 실패해도 위 저장은 이미 끝났고
+     * 8) 결제 스냅샷의 신청 내용 사본 제거. 여기서 실패해도 위 저장은 이미 끝났고
      *    회원은 탈퇴한 상태다. 되돌리지 않고 실패 사실만 응답에 남긴다.
      *    (남는 값은 order_snapshot.details 하나뿐이고 운영자가 뒤에 정리할 수 있다.)
      */
@@ -808,7 +836,7 @@ export async function POST(request: Request) {
       paymentSnapshotScrubbed = false;
     }
 
-    // 8) 마지막으로 세션을 끊는다. 탈퇴 자체는 5)의 writeData에서 이미 확정됐다.
+    // 9) 마지막으로 세션을 끊는다. 탈퇴 자체는 6)의 writeData에서 이미 확정됐다.
     await clearUserId();
     return NextResponse.json({
       ok: true,
