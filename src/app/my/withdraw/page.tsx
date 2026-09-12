@@ -113,7 +113,7 @@ function WithdrawPage() {
         <section className="px-4 py-10 text-center">
           <p className="text-[20px] font-bold text-[#403A49]">탈퇴가 완료되었습니다</p>
           <p className="mt-3 text-[15px] leading-relaxed text-[#6B6570]">
-            그동안 인생스토리를 이용해 주셔서 감사합니다.
+            그동안 사주로그를 이용해 주셔서 감사합니다.
           </p>
           <button
             type="button"

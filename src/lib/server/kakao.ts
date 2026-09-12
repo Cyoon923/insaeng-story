@@ -8,6 +8,8 @@ export const KAKAO_SCOPE = "profile_nickname";
 export const KAKAO_AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize";
 export const KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 export const KAKAO_USER_URL = "https://kapi.kakao.com/v2/user/me";
+/** 연결 끊기. 사용자 access token으로만 호출하며 Admin Key는 쓰지 않는다. */
+export const KAKAO_UNLINK_URL = "https://kapi.kakao.com/v1/user/unlink";
 
 export interface KakaoConfig {
   restApiKey: string;
