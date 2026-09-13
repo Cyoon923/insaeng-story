@@ -217,37 +217,30 @@ function mergeData(value: unknown): AppData {
   return { ...EMPTY, ...(value as AppData) };
 }
 
-async function clearTestDataOnce(data: AppData): Promise<AppData> {
-  if (data.testResetAt) return data;
-  data.users = [];
-  data.orders = [];
-  data.consultations = [];
-  data.inquiries = [];
-  data.reviews = [];
-  data.wishlists = {};
-  data.coupons = {};
-  data.notifications = {};
-  data.notificationSettings = {};
-  data.codes = {};
-  data.testResetAt = new Date().toISOString();
-  await writeData(data);
-  return data;
-}
-
+/**
+ * 저장된 내용을 그대로 읽는다. 읽기만 하고 아무것도 쓰지 않는다.
+ *
+ * 예전에는 여기서 testResetAt이 비어 있으면 회원·주문·상담·문의·후기·쿠폰을 비우고
+ * 다시 저장하는 일회성 정리(clearTestDataOnce)가 함께 돌았다.
+ * 2026-08-16 배포 때 테스트 데이터를 한 번 지우려고 넣은 코드이고 그 목적은 이미 끝났다.
+ * 남겨 두면 testResetAt이 없는 저장소(새 DB, 예전 스냅샷 복원 등)를 처음 읽는 순간
+ * 운영 데이터가 통째로 지워지므로 호출과 함수를 함께 걷어냈다.
+ * testResetAt 필드 자체는 이미 저장된 JSON과의 호환을 위해 그대로 둔다.
+ */
 export async function readData(): Promise<AppData> {
   const sql = sqlClient();
   if (sql) {
     await ensureTable(sql);
     const rows = (await sql.query("SELECT data FROM app_store WHERE id = 1")) as { data: unknown }[];
-    if (!rows[0]) return clearTestDataOnce(structuredClone(EMPTY));
-    return clearTestDataOnce(mergeData(rows[0].data));
+    if (!rows[0]) return structuredClone(EMPTY);
+    return mergeData(rows[0].data);
   }
 
   try {
     const raw = await readFile(DATA_FILE, "utf8");
-    return clearTestDataOnce(mergeData(JSON.parse(raw)));
+    return mergeData(JSON.parse(raw));
   } catch {
-    return clearTestDataOnce(structuredClone(EMPTY));
+    return structuredClone(EMPTY);
   }
 }
 
