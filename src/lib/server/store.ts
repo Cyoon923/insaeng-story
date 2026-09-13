@@ -39,7 +39,7 @@ function canUseDatabase() {
   return Boolean(databaseUrl());
 }
 
-function sqlClient() {
+export function sqlClient() {
   if (!canUseDatabase()) return null;
   return neon(databaseUrl());
 }
@@ -110,6 +110,51 @@ async function createTables(sql: NonNullable<ReturnType<typeof sqlClient>>) {
       CREATE INDEX IF NOT EXISTS payments_order_created_idx
         ON payments (order_id, created_at DESC)
     `),
+    // 상담원 문의방과 그 안의 메시지. 고객과 상담원이 여러 번 주고받는 대화라
+    // app_store JSONB가 아니라 행 단위로 쌓는다. 아직 읽기·쓰기 코드는 없다.
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS chat_inquiries (
+        id TEXT PRIMARY KEY,
+        -- 회원 문의에만 채운다. 비회원은 guest_token_hash로 자기 방을 다시 찾는다.
+        user_id TEXT,
+        -- 원문 토큰은 저장하지 않는다. 해시만 둔다.
+        guest_token_hash TEXT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        contact_method TEXT NOT NULL,
+        -- new | in_progress | closed. 값 검증은 서버 데이터 계층에서 한다.
+        status TEXT NOT NULL DEFAULT 'new',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        last_message_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS chat_inquiries_status_last_message_idx
+        ON chat_inquiries (status, last_message_at DESC)
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS chat_inquiries_user_last_message_idx
+        ON chat_inquiries (user_id, last_message_at DESC)
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS chat_inquiries_guest_token_idx
+        ON chat_inquiries (guest_token_hash)
+    `),
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS chat_inquiry_messages (
+        id TEXT PRIMARY KEY,
+        inquiry_id TEXT NOT NULL REFERENCES chat_inquiries(id) ON DELETE CASCADE,
+        -- customer | agent. 값 검증은 서버 데이터 계층에서 한다.
+        sender TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `),
+    txn.query(`
+      CREATE INDEX IF NOT EXISTS chat_inquiry_messages_inquiry_created_idx
+        ON chat_inquiry_messages (inquiry_id, created_at)
+    `),
   ]);
 }
 
@@ -123,7 +168,7 @@ let tableMigration: Promise<void> | null = null;
  * 테이블·인덱스 준비. 호출부는 그대로 두고, 실제 DDL은 인스턴스당 한 번만 보낸다.
  * 매 요청마다 CREATE 문을 반복해 보내지 않게 하려는 것이고, 만드는 대상은 그대로다.
  */
-function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
+export function ensureTable(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
   if (!tableMigration) {
     tableMigration = createTables(sql).catch((error) => {
       // 한 번 실패했다고 인스턴스가 영구히 막히지 않도록 기억을 지운다.

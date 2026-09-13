@@ -102,6 +102,41 @@ function formatDate(value: string) {
   return value.slice(0, 16).replace("T", " ").replaceAll("-", ".");
 }
 
+/** 관리자 챗봇 문의방. /api/admin/chat-inquiries 응답 형태 그대로 담는다. */
+interface AdminChatInquiry {
+  id: string;
+  name: string;
+  phone: string;
+  contactMethod: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string;
+  lastMessageBody?: string;
+  lastMessageSender?: "customer" | "agent";
+}
+
+interface AdminChatMessage {
+  id: string;
+  sender: "customer" | "agent";
+  body: string;
+  createdAt: string;
+}
+
+/** 내부 상태값을 그대로 보여 주지 않는다. */
+function chatStatusLabel(status: string): string {
+  if (status === "in_progress") return "상담 중";
+  if (status === "closed") return "상담 종료";
+  return "새 문의";
+}
+
+/** 상태 변경 버튼에 쓰는 값과 문구. 데이터 계층이 허용하는 세 값 그대로다. */
+const CHAT_STATUS_OPTIONS: { value: "new" | "in_progress" | "closed"; label: string }[] = [
+  { value: "new", label: "새 문의" },
+  { value: "in_progress", label: "상담 중" },
+  { value: "closed", label: "상담 종료" },
+];
+
 function formatAmount(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
@@ -223,6 +258,21 @@ export default function AdminPage() {
   const [codeNotifySearched, setCodeNotifySearched] = useState(false);
   const [codeNotifyDone, setCodeNotifyDone] = useState(false);
 
+  // 새 상담원 문의방(chat_inquiries). 기존 legacy 문의와 별개로 담는다.
+  const [chatThreads, setChatThreads] = useState<AdminChatInquiry[]>([]);
+  // 목록을 한 번이라도 불러왔는지. 탭을 오갈 때 같은 조회를 반복하지 않기 위해 둔다.
+  const [chatLoaded, setChatLoaded] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const [selectedChatId, setSelectedChatId] = useState("");
+  const [selectedChatMessages, setSelectedChatMessages] = useState<AdminChatMessage[]>([]);
+  const [chatDetailLoading, setChatDetailLoading] = useState(false);
+  const [chatDetailError, setChatDetailError] = useState("");
+  const [chatReply, setChatReply] = useState("");
+  const [chatReplySending, setChatReplySending] = useState(false);
+  const [chatReplyError, setChatReplyError] = useState("");
+  const [chatStatusSaving, setChatStatusSaving] = useState(false);
+
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
     if (res.status === 401) {
@@ -254,6 +304,61 @@ export default function AdminPage() {
     setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
     setAuthed(true);
     setLoading(false);
+  }, []);
+
+  /**
+   * 새 상담원 문의방 목록. 챗봇 문의 탭에 들어갈 때 한 번만 부른다.
+   * 실패해도 다른 관리자 기능은 그대로 쓸 수 있도록 이 탭 안에만 오류를 남긴다.
+   */
+  const loadChatThreads = useCallback(async () => {
+    setChatLoading(true);
+    setChatError("");
+    try {
+      const res = await fetch("/api/admin/chat-inquiries", { cache: "no-store" });
+      if (!res.ok) {
+        setChatError("문의 목록을 불러오지 못했습니다.");
+        return;
+      }
+      const data = (await res.json()) as { inquiries?: AdminChatInquiry[] };
+      setChatThreads(data.inquiries ?? []);
+      setChatLoaded(true);
+    } catch {
+      setChatError("문의 목록을 불러오지 못했습니다.");
+    } finally {
+      setChatLoading(false);
+    }
+  }, []);
+
+  /** 문의방 하나의 전체 대화. 목록은 그대로 두고 상세 영역만 바꾼다. */
+  const openChatThread = useCallback(async (id: string) => {
+    setSelectedChatId(id);
+    setSelectedChatMessages([]);
+    setChatDetailError("");
+    setChatReply("");
+    setChatReplyError("");
+    setChatDetailLoading(true);
+    try {
+      const res = await fetch(`/api/admin/chat-inquiries/${encodeURIComponent(id)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        setChatDetailError("대화를 불러오지 못했습니다.");
+        return;
+      }
+      const data = (await res.json()) as {
+        inquiry: AdminChatInquiry;
+        messages: AdminChatMessage[];
+      };
+      // 목록 쪽 상태도 서버가 준 최신 값으로 맞춘다.
+      setChatThreads((list) =>
+        list.map((item) => (item.id === data.inquiry.id ? { ...item, ...data.inquiry } : item)),
+      );
+      setSelectedChatMessages(data.messages ?? []);
+    } catch {
+      setChatDetailError("대화를 불러오지 못했습니다.");
+    } finally {
+      setChatDetailLoading(false);
+    }
   }, []);
 
   const loadSchedule = useCallback(
@@ -453,6 +558,88 @@ export default function AdminPage() {
     setReviews((list) => list.map((item) => (item.id === next.id ? { ...item, visible: next.visible } : item)));
   }
 
+  /**
+   * 상담원 답변 저장. 성공한 메시지만 화면에 더하고, 목록의 마지막 말과 시간도 함께 맞춘다.
+   * 관리자 전체 데이터를 다시 불러오지 않는다.
+   */
+  async function handleSendChatReply() {
+    const message = chatReply.trim();
+    if (!selectedChatId || !message || chatReplySending) return;
+    setChatReplySending(true);
+    setChatReplyError("");
+    try {
+      const res = await fetch(`/api/admin/chat-inquiries/${encodeURIComponent(selectedChatId)}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { message?: AdminChatMessage; error?: string }
+        | null;
+      if (!res.ok || !data?.message) {
+        setChatReplyError(data?.error ?? "답변을 보내지 못했습니다.");
+        return;
+      }
+      const saved = data.message;
+      setSelectedChatMessages((list) => [...list, saved]);
+      // 서버가 new였던 방을 in_progress로 바꾸므로 화면에도 같게 반영한다.
+      setChatThreads((list) =>
+        list.map((item) =>
+          item.id === selectedChatId
+            ? {
+                ...item,
+                status: item.status === "new" ? "in_progress" : item.status,
+                lastMessageAt: saved.createdAt,
+                updatedAt: saved.createdAt,
+                lastMessageBody: saved.body,
+                lastMessageSender: saved.sender,
+              }
+            : item,
+        ),
+      );
+      setChatReply("");
+    } catch {
+      setChatReplyError("답변을 보내지 못했습니다.");
+    } finally {
+      setChatReplySending(false);
+    }
+  }
+
+  /** 상담 상태 변경. 실패하면 기존 상태를 그대로 둔다. */
+  async function handleUpdateChatStatus(id: string, status: "new" | "in_progress" | "closed") {
+    const current = chatThreads.find((item) => item.id === id);
+    if (!current || current.status === status || chatStatusSaving) return;
+    // 끝난 상담을 다시 열면 고객이 또 메시지를 보낼 수 있게 되므로 한 번 더 묻는다.
+    if (current.status === "closed" && status !== "closed") {
+      const ok = window.confirm(
+        "상담을 다시 진행 상태로 변경하시겠습니까?\n고객이 다시 메시지를 보낼 수 있습니다.",
+      );
+      if (!ok) return;
+    }
+    setChatStatusSaving(true);
+    setChatDetailError("");
+    try {
+      const res = await fetch(`/api/admin/chat-inquiries/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { inquiry?: AdminChatInquiry; error?: string }
+        | null;
+      if (!res.ok || !data?.inquiry) {
+        setChatDetailError(data?.error ?? "상태를 변경하지 못했습니다.");
+        return;
+      }
+      const next = data.inquiry;
+      setChatThreads((list) => list.map((item) => (item.id === next.id ? { ...item, ...next } : item)));
+    } catch {
+      setChatDetailError("상태를 변경하지 못했습니다.");
+    } finally {
+      setChatStatusSaving(false);
+    }
+  }
+
   const userMap = new Map(users.map((user) => [user.id, user]));
 
   if (loading) {
@@ -520,8 +707,12 @@ export default function AdminPage() {
     reviews: reviews.length,
     events: eventItems.length,
     inquiries: inquiryItems.length,
-    chat: chatItems.length,
+    // 새 문의방 + 기존 legacy 문의. 목록을 아직 부르기 전에는 chatThreads가 빈 배열이라
+    // legacy 수만 보이고, 조회가 끝나면 늘어난다. 0으로 깜빡이지 않는다.
+    chat: chatThreads.length + chatItems.length,
   };
+
+  const selectedChatThread = chatThreads.find((item) => item.id === selectedChatId) ?? null;
 
   return (
     <MobileShell>
@@ -546,7 +737,11 @@ export default function AdminPage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setTab(item.id)}
+                onClick={() => {
+                  setTab(item.id);
+                  // 챗봇 문의 탭을 처음 열 때만 문의방 목록을 부른다. 주기적으로 다시 부르지 않는다.
+                  if (item.id === "chat" && !chatLoaded && !chatLoading) loadChatThreads();
+                }}
                 className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
                   active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
                 }`}
@@ -1088,23 +1283,197 @@ export default function AdminPage() {
             })
           : null}
 
-        {tab === "chat"
-          ? chatItems.map((item) => {
-              const member = userMap.get(item.userId ?? "");
-              return (
-                <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>
+        {tab === "chat" ? (
+          <div className="space-y-3">
+            {chatLoading ? (
+              <p className="text-[14px] text-[#6B6570]">문의 목록을 불러오는 중...</p>
+            ) : null}
+            {chatError ? (
+              <div className="rounded-2xl bg-[#fdf2f2] px-4 py-3 text-[14px] text-[#b42318]">
+                {chatError}
+              </div>
+            ) : null}
+
+            {selectedChatThread ? (
+              // 상세. 폭이 좁은 관리자 셸이라 목록 대신 대화만 보여 준다.
+              <section className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedChatId("")}
+                  className="text-[14px] font-medium text-[#6B6570]"
+                >
+                  ← 문의 목록
+                </button>
+
+                <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <p className="text-[16px] font-bold text-[#403A49]">
+                    {selectedChatThread.name || "이름 없음"}
+                  </p>
                   <p className="mt-1 text-[14px] text-[#5c3d2e]">
-                    {item.phone || member?.phone || "-"} · {item.method}
+                    {selectedChatThread.phone || "-"} · {selectedChatThread.contactMethod}
                   </p>
-                  <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">{item.message}</p>
-                  <p className="mt-2 text-[13px] text-[#6B6570]">
-                    {item.product} · {formatDate(item.createdAt)}
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
+                    {chatStatusLabel(selectedChatThread.status)} · 최근 대화{" "}
+                    {formatDate(selectedChatThread.lastMessageAt)}
                   </p>
-                </article>
-              );
-            })
-          : null}
+
+                  <div className="mt-3 flex gap-2">
+                    {CHAT_STATUS_OPTIONS.map((option) => {
+                      const active = selectedChatThread.status === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          disabled={active || chatStatusSaving}
+                          onClick={() => handleUpdateChatStatus(selectedChatThread.id, option.value)}
+                          className={`h-10 flex-1 rounded-xl border text-[14px] font-medium disabled:opacity-60 ${
+                            active
+                              ? "border-[#403A49] bg-[#403A49] text-white"
+                              : "border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  {chatDetailLoading ? (
+                    <p className="text-[14px] text-[#6B6570]">대화를 불러오는 중...</p>
+                  ) : null}
+                  {chatDetailError ? (
+                    <p className="text-[14px] text-[#b42318]">{chatDetailError}</p>
+                  ) : null}
+                  {!chatDetailLoading && !chatDetailError && selectedChatMessages.length === 0 ? (
+                    <p className="text-[14px] text-[#6B6570]">아직 메시지가 없습니다.</p>
+                  ) : null}
+
+                  {selectedChatMessages.map((message) =>
+                    message.sender === "agent" ? (
+                      <div key={message.id} className="flex flex-col items-end">
+                        <p className="text-[12px] font-bold text-[#6B6570]">👤 사주로그 상담원</p>
+                        <p className="mt-1 max-w-[85%] whitespace-pre-line rounded-2xl rounded-tr-md bg-[#403A49] px-4 py-3 text-[15px] leading-relaxed text-white [overflow-wrap:anywhere]">
+                          {message.body}
+                        </p>
+                        <p className="mt-1 text-[12px] text-[#6B6570]">
+                          {formatDate(message.createdAt)}
+                        </p>
+                      </div>
+                    ) : (
+                      <div key={message.id} className="flex flex-col items-start">
+                        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-tl-md bg-[#f5efe6] px-4 py-3 text-[15px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                          {message.body}
+                        </p>
+                        <p className="mt-1 text-[12px] text-[#6B6570]">
+                          {formatDate(message.createdAt)}
+                        </p>
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                {selectedChatThread.status === "closed" ? (
+                  <div className="rounded-2xl bg-[#f5efe6] px-4 py-4 text-[14px] leading-relaxed text-[#8b6f5c]">
+                    상담이 종료된 문의입니다.
+                    <br />
+                    답변하려면 위에서 상태를 &ldquo;상담 중&rdquo;으로 먼저 변경해 주세요.
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                    <textarea
+                      value={chatReply}
+                      maxLength={1000}
+                      onChange={(event) => setChatReply(event.target.value)}
+                      rows={3}
+                      placeholder="고객에게 보낼 답변을 입력하세요"
+                      className="w-full resize-none rounded-xl border border-[#d4c8ba] bg-white px-3 py-2 text-[15px] leading-relaxed text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                    />
+                    {chatReplyError ? (
+                      <p className="mt-2 text-[14px] text-[#b42318]">{chatReplyError}</p>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={handleSendChatReply}
+                      disabled={chatReply.trim().length === 0 || chatReplySending}
+                      className="mt-3 h-11 w-full rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
+                    >
+                      {chatReplySending ? "전송 중…" : "답변 보내기"}
+                    </button>
+                  </div>
+                )}
+              </section>
+            ) : (
+              <>
+                {chatThreads.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => openChatThread(item.id)}
+                    className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-[#ebe3d8]"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[16px] font-bold text-[#403A49]">
+                        {item.name || "이름 없음"}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-[#f5efe6] px-2 py-1 text-[12px] font-medium text-[#5c3d2e]">
+                        {chatStatusLabel(item.status)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[14px] text-[#5c3d2e]">
+                      {item.phone || "-"} · {item.contactMethod}
+                    </p>
+                    {item.lastMessageBody ? (
+                      <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+                        {item.lastMessageSender === "agent" ? "상담원: " : ""}
+                        {item.lastMessageBody}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-[13px] text-[#6B6570]">
+                      {formatDate(item.lastMessageAt)}
+                    </p>
+                  </button>
+                ))}
+
+                {chatItems.length > 0 ? (
+                  <>
+                    <p className="pt-2 text-[13px] font-semibold text-[#6B6570]">
+                      이전 문의 (읽기 전용)
+                    </p>
+                    {chatItems.map((item) => {
+                      const member = userMap.get(item.userId ?? "");
+                      return (
+                        <article
+                          key={item.id}
+                          className="rounded-2xl bg-[#faf8f5] p-4 ring-1 ring-[#ebe3d8]"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[16px] font-bold text-[#403A49]">
+                              {item.name || member?.name || "이름 없음"}
+                            </p>
+                            <span className="shrink-0 rounded-full bg-[#ebe3d8] px-2 py-1 text-[12px] font-medium text-[#6B6570]">
+                              읽기 전용
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[14px] text-[#5c3d2e]">
+                            {item.phone || member?.phone || "-"} · {item.method}
+                          </p>
+                          <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">
+                            {item.message}
+                          </p>
+                          <p className="mt-2 text-[13px] text-[#6B6570]">
+                            {item.product} · {formatDate(item.createdAt)}
+                          </p>
+                        </article>
+                      );
+                    })}
+                  </>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
 
         {tab === "schedule" ? (
           <>

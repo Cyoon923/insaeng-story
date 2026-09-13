@@ -478,10 +478,55 @@ const LOCAL_GREETING_REPLIES: {
 /** 연락받을 방법. 상담 신청 화면에서 쓰는 방식과 같은 어휘를 쓴다. */
 const CONTACT_METHODS = ["카카오톡", "문자"] as const;
 
-/** 관리자 "문의" 탭에서 다른 접수와 구분하는 값. 서버가 같은 값을 확인한다. */
-const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
-
 type ContactMethod = (typeof CONTACT_METHODS)[number];
+
+/**
+ * 상담원 문의방. /api/chat-inquiries 응답에 들어 있는 값만 담는다.
+ * 서버가 이름·연락처를 되돌려주지 않으므로 여기에도 없다.
+ */
+interface ChatInquiryView {
+  id: string;
+  status: string;
+  contactMethod: string;
+  createdAt: string;
+  lastMessageAt: string;
+}
+
+/** 문의방 안의 메시지 한 줄. customer는 고객, agent는 사람 상담원이다. */
+interface ChatInquiryMessageView {
+  id: string;
+  sender: "customer" | "agent";
+  body: string;
+  createdAt: string;
+}
+
+/** 아직 끝나지 않은 문의방인지. 진행 중일 때만 대화를 이어 갈 수 있다. */
+function isOpenInquiry(inquiry: ChatInquiryView | null): boolean {
+  return inquiry?.status === "new" || inquiry?.status === "in_progress";
+}
+
+/** 내부 상태값을 그대로 보여 주지 않고 사람이 읽는 문구로 바꾼다. */
+function inquiryStatusLabel(status: string): string {
+  if (status === "closed") return "상담이 끝난 대화예요";
+  if (status === "in_progress") return "상담원이 대화 중이에요";
+  return "상담원이 확인하고 있어요";
+}
+
+/**
+ * 사람 상담원 말풍선.
+ * 도령이(고양이 아바타)와 같은 사람으로 보이지 않도록 얼굴 이미지를 쓰지 않고
+ * 이름표만 붙인다. 배경도 도령이 말풍선과 다른 흰색을 쓴다.
+ */
+function AgentBubble({ text }: { text: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[12px] font-bold leading-tight text-[#6B6570]">👤 사주로그 상담원</p>
+      <p className="max-w-[88%] whitespace-pre-line break-keep rounded-2xl rounded-tl-md border border-[#ebe3d8] bg-white px-4 py-3.5 text-[16px] leading-[1.75] text-[#403A49] [overflow-wrap:anywhere]">
+        {text}
+      </p>
+    </div>
+  );
+}
 
 /**
  * 도령이 말풍선. 왼쪽 정렬 + 표정 프로필 + 크림색 배경.
@@ -918,6 +963,18 @@ export function ChatWidget() {
   const [inquirySending, setInquirySending] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
 
+  // 사람 상담원과의 대화 화면. 도령이 자동 안내와 같은 패널 안의 별도 화면이다.
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentInquiry, setAgentInquiry] = useState<ChatInquiryView | null>(null);
+  const [agentMessages, setAgentMessages] = useState<ChatInquiryMessageView[]>([]);
+  const [agentInput, setAgentInput] = useState("");
+  // 전송 중에는 버튼을 잠가 같은 메시지가 두 번 올라가지 않게 한다.
+  const [agentSending, setAgentSending] = useState(false);
+  const [agentError, setAgentError] = useState("");
+  const agentEndRef = useRef<HTMLDivElement>(null);
+  // 패널을 처음 열 때 한 번만 문의방을 찾아본다. polling은 하지 않는다.
+  const inquiryLoadedRef = useRef(false);
+
   useEffect(() => {
     // 팝업이 열려 있을 때만 ESC를 듣는다.
     if (!profileOpen) return;
@@ -932,6 +989,36 @@ export function ChatWidget() {
     // 새 말풍선이 생기면 대화 영역 아래가 보이게 한다. 패널 안에서만 움직인다.
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    // 상담원 대화도 새 메시지가 오면 아래가 보이게 한다.
+    if (!agentOpen) return;
+    agentEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [agentOpen, agentMessages]);
+
+  useEffect(() => {
+    // 패널을 처음 열 때 한 번만 내 문의방을 찾아본다.
+    // 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
+    if (!open || inquiryLoadedRef.current) return;
+    inquiryLoadedRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/chat-inquiries/me");
+        if (!response.ok) return;
+        const result = (await response.json()) as { inquiries?: ChatInquiryView[] };
+        // 목록은 최근 대화가 앞에 온다. 그중 아직 진행 중인 방 하나만 이어 쓴다.
+        const found = result.inquiries?.find((item) => isOpenInquiry(item)) ?? null;
+        if (!cancelled && found) setAgentInquiry(found);
+      } catch {
+        // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   /**
    * UI 확인용 임시 동작. 질문을 그대로 사용자 말풍선에 넣고,
@@ -1012,8 +1099,33 @@ export function ChatWidget() {
     !inquirySending;
 
   /**
-   * 문의 폼 제출. 기존 문의 접수 API(createInquiry)에 그대로 보낸다.
-   * 저장에 성공했을 때만 접수 안내를 남기고 폼을 비운다.
+   * 상담원 대화 화면 열기. 전체 타임라인을 서버에서 다시 읽어 온다.
+   * 실패하면 화면을 바꾸지 않고 간단한 안내만 남긴다.
+   */
+  const openAgentChat = async (inquiryId: string) => {
+    setAgentError("");
+    try {
+      const response = await fetch(`/api/chat-inquiries/me/${encodeURIComponent(inquiryId)}`);
+      if (!response.ok) {
+        setInquiryError("대화를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      const result = (await response.json()) as {
+        inquiry: ChatInquiryView;
+        messages: ChatInquiryMessageView[];
+      };
+      setAgentInquiry(result.inquiry);
+      setAgentMessages(result.messages);
+      setAgentOpen(true);
+    } catch {
+      setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
+    }
+  };
+
+  /**
+   * 문의 폼 제출. 새 문의방 API로 보낸다.
+   * 서버가 진행 중인 방을 찾으면 그 방에 메시지가 이어 붙고, 없으면 새 방이 만들어진다.
+   * 어느 쪽이든 응답 형태가 같아 여기서 따로 나누지 않는다.
    * 실패하면 입력값을 그대로 두고 다시 시도할 수 있게 한다.
    */
   const submitInquiry = async () => {
@@ -1026,25 +1138,31 @@ export function ChatWidget() {
     const message = inquiryText.trim();
 
     try {
-      const response = await fetch("/api/app", {
+      const response = await fetch("/api/chat-inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "createInquiry",
           name,
           phone,
-          method: inquiryMethod,
-          product: CHAT_INQUIRY_PRODUCT,
+          contactMethod: inquiryMethod,
           message,
+          privacyAgreed: true,
         }),
       });
       const result = (await response.json().catch(() => null)) as
-        | { ok?: boolean; error?: string }
+        | { inquiry?: ChatInquiryView; messages?: ChatInquiryMessageView[]; error?: string }
         | null;
-      if (!response.ok || !result?.ok) {
+      if (!response.ok || !result?.inquiry) {
         setInquiryError(result?.error ?? "문의 접수에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
+
+      // 접수 안내로 끝내지 않고 바로 상담원 대화 화면으로 넘어간다.
+      setAgentInquiry(result.inquiry);
+      setAgentMessages(result.messages ?? []);
+      setAgentOpen(true);
+      setAgentError("");
+      setAgentInput("");
     } catch {
       setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
       return;
@@ -1052,29 +1170,46 @@ export function ChatWidget() {
       setInquirySending(false);
     }
 
-    const seq = (seqRef.current += 1);
-    setMessages((previous) => [
-      ...previous,
-      {
-        id: `u-${seq}`,
-        role: "user",
-        text: `상담원 문의\n이름: ${name}\n연락 방법: ${inquiryMethod}\n휴대폰 번호: ${phone}\n내용: ${message}`,
-      },
-      {
-        id: `d-${seq}`,
-        role: "doryeong",
-        text: "문의가 접수되었어요 🐾\n\n상담원이 확인 후 연락드리겠습니다.",
-        mood: "waiting",
-        display: "emphasis",
-      },
-    ]);
     setInquiryOpen(false);
-    setInquiryName("");
-    setInquiryMethod("카카오톡");
-    setInquiryContact("");
     setInquiryText("");
-    setInquiryAgreed(false);
     setInquiryError("");
+    // 다음에 새 문의를 남길 때 동의를 다시 받는다.
+    setInquiryAgreed(false);
+  };
+
+  const canSendAgentMessage =
+    !!agentInquiry && isOpenInquiry(agentInquiry) && agentInput.trim().length > 0 && !agentSending;
+
+  /**
+   * 상담원 대화에 메시지 추가. 이미 접수된 방에 덧붙이는 것이라
+   * 개인정보 동의를 다시 받지 않는다.
+   * 실패하면 입력값을 지우지 않고 그대로 둔다.
+   */
+  const sendAgentMessage = async () => {
+    if (!canSendAgentMessage || !agentInquiry) return;
+    setAgentSending(true);
+    setAgentError("");
+    try {
+      const response = await fetch("/api/chat-inquiries/me/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inquiryId: agentInquiry.id, message: agentInput.trim() }),
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { message?: ChatInquiryMessageView; error?: string }
+        | null;
+      if (!response.ok || !result?.message) {
+        setAgentError("메시지를 보내지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      const saved = result.message;
+      setAgentMessages((previous) => [...previous, saved]);
+      setAgentInput("");
+    } catch {
+      setAgentError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setAgentSending(false);
+    }
   };
 
   return (
@@ -1145,6 +1280,76 @@ export function ChatWidget() {
             </button>
           </header>
 
+          {agentOpen && agentInquiry ? (
+            // 상담원 대화 화면. 도령이 자동 안내와 같은 패널 안의 별도 화면이다.
+            <>
+              <div className="flex shrink-0 items-center gap-2 border-b border-[#ebe3d8] bg-[#fffdf9] px-4 py-2">
+                <button
+                  type="button"
+                  onClick={() => setAgentOpen(false)}
+                  className="rounded-lg px-2 py-1 text-[14px] font-medium text-[#6B6570] active:bg-[#f5efe6]"
+                >
+                  ← 뒤로
+                </button>
+                <span className="min-w-0 flex-1">
+                  <p className="text-[14px] font-bold leading-tight text-[#403A49]">상담원 대화</p>
+                  <p className="mt-0.5 text-[12px] leading-tight text-[#6B6570]">
+                    {inquiryStatusLabel(agentInquiry.status)}
+                  </p>
+                </span>
+              </div>
+
+              <div className="flex-1 space-y-4 overflow-y-auto bg-[#faf8f5] px-4 py-4">
+                {agentMessages.map((message) =>
+                  message.sender === "customer" ? (
+                    <UserBubble key={message.id} text={message.body} />
+                  ) : (
+                    <AgentBubble key={message.id} text={message.body} />
+                  ),
+                )}
+                {agentError ? (
+                  <p className="text-[13px] leading-relaxed text-red-600">{agentError}</p>
+                ) : null}
+                <div ref={agentEndRef} />
+              </div>
+
+              <div className="shrink-0 border-t border-[#ebe3d8] bg-[#fffdf9] px-4 py-3">
+                {isOpenInquiry(agentInquiry) ? (
+                  <div className="flex w-full min-w-0 items-center gap-2">
+                    <input
+                      type="text"
+                      value={agentInput}
+                      maxLength={1000}
+                      onChange={(event) => setAgentInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        // 한글 조합 중 Enter는 글자 확정용이라 전송하지 않는다.
+                        if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+                        event.preventDefault();
+                        sendAgentMessage();
+                      }}
+                      placeholder="상담원에게 보낼 내용을 입력해주세요"
+                      aria-label="상담원에게 보낼 메시지"
+                      className="h-12 w-full min-w-0 flex-1 rounded-xl border border-[#e8dfd4] bg-white px-3 text-[16px] text-[#403A49] outline-none placeholder:text-[#9c96a6]"
+                    />
+                    <button
+                      type="button"
+                      onClick={sendAgentMessage}
+                      disabled={!canSendAgentMessage}
+                      aria-label="보내기"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#403A49] text-white disabled:opacity-40"
+                    >
+                      <Send className="h-5 w-5" strokeWidth={1.8} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[13px] leading-relaxed text-[#6B6570]">
+                    상담이 끝난 대화예요. 새로 궁금한 점이 있으시면 뒤로 가서 다시 문의해 주세요.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
           {/* 대화 영역. 첫 인사와 자주 묻는 질문 아래로 실제 대화가 이어진다. */}
           <div className="flex-1 space-y-4 overflow-y-auto bg-[#faf8f5] px-4 py-4">
             <div className="space-y-2">
@@ -1169,7 +1374,16 @@ export function ChatWidget() {
               <p className="text-[13px] leading-relaxed text-[#6B6570]">
                 AI 안내로 해결되지 않으셨나요?
               </p>
-              {inquiryOpen ? (
+              {isOpenInquiry(agentInquiry) && agentInquiry ? (
+                // 이미 진행 중인 대화가 있으면 새 폼을 또 쓰게 하지 않는다.
+                <button
+                  type="button"
+                  onClick={() => openAgentChat(agentInquiry.id)}
+                  className="mt-2 h-11 w-full rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] active:bg-[#f5efe6]"
+                >
+                  상담원과 대화 이어가기
+                </button>
+              ) : inquiryOpen ? (
                 <div className="mt-3 space-y-3">
                   <label className="block">
                     <span className="text-[13px] font-bold text-[#403A49]">이름</span>
@@ -1329,6 +1543,8 @@ export function ChatWidget() {
               </button>
             </div>
           </div>
+            </>
+          )}
         </section>
       ) : (
         <div
