@@ -33,7 +33,10 @@ interface PaymentReviewItem {
   userId: string | null;
 }
 
-type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "schedule";
+type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "chat" | "schedule";
+
+/** 챗봇에서 접수한 문의의 product 값. 저장 시 쓰는 값과 같아야 한다. */
+const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
 
 type ReviewItem = {
   id: string;
@@ -52,6 +55,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "reviews", label: "후기" },
   { id: "events", label: "이벤트" },
   { id: "inquiries", label: "문의" },
+  { id: "chat", label: "챗봇 문의" },
   { id: "schedule", label: "일정" },
   { id: "points", label: "적립금" },
   { id: "coupons", label: "쿠폰" },
@@ -498,19 +502,25 @@ export default function AdminPage() {
   }
 
   const eventItems = inquiries.filter(isEventInquiry);
-  const inquiryItems = inquiries.filter((item) => !isEventInquiry(item));
+  const chatItems = inquiries.filter((item) => item.product === CHAT_INQUIRY_PRODUCT);
+  const inquiryItems = inquiries.filter(
+    (item) => !isEventInquiry(item) && item.product !== CHAT_INQUIRY_PRODUCT,
+  );
   const codeUses = adminCodeUses(orders, consultations);
   const currentCodeUses = codeUses.filter((item) => item.code === adminPromo?.code);
+  // 탈퇴한 회원은 이름과 개인정보만 비운 채 행이 남는다. 숫자에서는 빼고 목록에는 그대로 둔다.
+  const activeUsers = users.filter((user) => !user.withdrawnAt);
   const counts: Record<Exclude<TabId, "schedule">, number> = {
-    users: users.length,
-    points: users.length,
-    coupons: users.length,
+    users: activeUsers.length,
+    points: activeUsers.length,
+    coupons: activeUsers.length,
     codes: codeUses.length,
     orders: orders.length,
     consultations: consultations.length,
     reviews: reviews.length,
     events: eventItems.length,
     inquiries: inquiryItems.length,
+    chat: chatItems.length,
   };
 
   return (
@@ -1062,6 +1072,24 @@ export default function AdminPage() {
 
         {tab === "inquiries"
           ? inquiryItems.map((item) => {
+              const member = userMap.get(item.userId ?? "");
+              return (
+                <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>
+                  <p className="mt-1 text-[14px] text-[#5c3d2e]">
+                    {item.phone || member?.phone || "-"} · {item.method}
+                  </p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[#5c3d2e]">{item.message}</p>
+                  <p className="mt-2 text-[13px] text-[#6B6570]">
+                    {item.product} · {formatDate(item.createdAt)}
+                  </p>
+                </article>
+              );
+            })
+          : null}
+
+        {tab === "chat"
+          ? chatItems.map((item) => {
               const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
