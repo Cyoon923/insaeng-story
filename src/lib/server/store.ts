@@ -157,6 +157,23 @@ async function createTables(sql: NonNullable<ReturnType<typeof sqlClient>>) {
       CREATE INDEX IF NOT EXISTS chat_inquiry_messages_inquiry_created_idx
         ON chat_inquiry_messages (inquiry_id, created_at)
     `),
+    // 인증번호·단기 토큰을 담을 자리. 지금은 만들어 두기만 하고 읽기·쓰기 코드는 없다.
+    // 인증은 그대로 app_store JSONB의 codes를 쓴다. 다음 단계에서 이 테이블로 옮긴다.
+    // storage_key는 지금 codes의 키를 그대로 쓴다("<휴대폰>", "signup:", "reset:",
+    // "link:", "sociallink:", "withdraw:"). 키를 쪼개면 뜻이 달라져 원형을 유지한다.
+    txn.query(`
+      CREATE TABLE IF NOT EXISTS verification_codes (
+        storage_key TEXT PRIMARY KEY,
+        -- 6자리 인증번호, 단기 토큰, 대기 상태 JSON이 모두 이 한 칸에 들어간다.
+        code TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        -- 검증 실패 횟수. 발급 코드에만 의미가 있고 토큰에는 0으로 남는다.
+        attempts INTEGER NOT NULL DEFAULT 0,
+        -- 재발송 쿨다운 계산에만 쓴다. 토큰에는 값이 없다.
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `),
   ]);
 }
 
