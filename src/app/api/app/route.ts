@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -202,6 +202,23 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    // 다른 요청과 겹쳐 저장되지 않은 경우. 함께 묶인 주문·결제 변경도 일어나지 않았다.
+    // 무엇이 겹쳤는지는 남기지 않는다. 경로와 사실만 남긴다.
+    if (isAppStoreConflict(error)) {
+      console.warn("[app] store conflict");
+      return NextResponse.json(
+        { error: "다른 요청과 겹쳤습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+}
+
+async function handlePost(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
   const action = String(body.action ?? "");
   const data = await readData();
@@ -854,18 +871,101 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6) 개인정보 비식별화 + details 사본 정리. 주문·상담 행과 후기는 지우지 않는다.
-    anonymizeWithdrawnUser(latest, target);
-    scrubUserRecords(latest, target.id);
+    /**
+     * 6) 개인정보 비식별화 + details 사본 정리. 주문·상담 행과 후기는 지우지 않는다.
+     *
+     * 여기부터는 되돌릴 수 없는 일(본인확인 토큰 소비, 소셜 연결 해제)이 이미 끝났다.
+     * 저장이 다른 요청과 겹쳐 밀리면 사용자는 스스로 다시 탈퇴할 방법이 없으므로
+     * 이 저장 구간만 몇 번 다시 시도한다. 위쪽 일들은 이 안에 들어오지 않는다.
+     *
+     * 매번 최신 내용을 새로 읽어 그 위에 비식별화를 다시 적용한다.
+     * 밀린 객체를 그대로 다시 저장하면 그사이 다른 요청이 저장한 내용이 사라진다.
+     */
+    const WITHDRAW_SAVE_ATTEMPTS = 3;
+    /** 저장까지 끝난 회원 id. 아래 SQL 정리와 응답에서 쓴다. */
+    let withdrawnUserId = "";
+    /** 이미 탈퇴가 끝나 있어 이번 요청이 저장할 것이 없었던 경우. */
+    let alreadyWithdrawn = false;
+    /** 재시도 중 새 blocker가 생겨 멈춘 경우. 기존 정책 그대로 409로 돌려준다. */
+    let lateBlockers: Awaited<ReturnType<typeof findWithdrawBlockers>> = [];
+    let saveConflicted = false;
 
-    try {
-      await writeData(latest);
-    } catch {
-      // 저장에 실패하면 탈퇴가 성립하지 않은 것이므로 세션을 그대로 둔다.
+    for (let attempt = 1; attempt <= WITHDRAW_SAVE_ATTEMPTS; attempt += 1) {
+      // 첫 회차는 위에서 읽은 latest를 그대로 쓰고, 이후에는 새로 읽는다.
+      const fresh = attempt === 1 ? latest : await readData();
+      const freshTarget = fresh.users.find((item) => item.id === user.id);
+      if (!freshTarget) {
+        return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+      }
+      // 그사이 같은 회원의 탈퇴가 끝났다면 더 저장할 것이 없다.
+      if (!isActiveUser(freshTarget)) {
+        // 세션 회원 본인의 행이다(위에서 id로 찾았다). 남의 탈퇴를 성공으로 바꾸지 않는다.
+        withdrawnUserId = user.id;
+        alreadyWithdrawn = true;
+        break;
+      }
+
+      // 겹친 요청이 새 주문·상담을 만들었을 수 있다. 기존 정책을 최신 내용에 그대로 다시 적용한다.
+      const freshBlockers =
+        attempt === 1 ? blockers : await findWithdrawBlockers(fresh, freshTarget.id);
+      if (freshBlockers.length > 0) {
+        lateBlockers = freshBlockers;
+        break;
+      }
+
+      anonymizeWithdrawnUser(fresh, freshTarget);
+      scrubUserRecords(fresh, freshTarget.id);
+
+      try {
+        await writeData(fresh);
+        withdrawnUserId = freshTarget.id;
+        saveConflicted = false;
+        break;
+      } catch (error) {
+        // 겹쳐서 밀린 경우에만 다음 회차로 간다. 그 밖의 오류는 그대로 실패다.
+        if (!isAppStoreConflict(error)) {
+          return NextResponse.json(
+            { error: "탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요." },
+            { status: 500 },
+          );
+        }
+        saveConflicted = true;
+        // 개인정보는 남기지 않는다. 몇 번째 시도였는지만 남긴다.
+        console.warn(`[withdraw] store conflict on attempt ${attempt}`);
+      }
+    }
+
+    // 새 blocker가 생겼으면 기존 정책 그대로 탈퇴를 진행하지 않는다.
+    if (lateBlockers.length > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "진행 중인 서비스가 있어 탈퇴할 수 없습니다.",
+          blockers: lateBlockers,
+        },
+        { status: 409 },
+      );
+    }
+
+    // 정해진 횟수를 모두 겹쳐서 놓쳤다. 소셜 연결 해제는 다시 시도하지 않는다.
+    if (!withdrawnUserId) {
+      if (saveConflicted) console.warn("[withdraw] store conflict exhausted");
       return NextResponse.json(
         { error: "탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요." },
         { status: 500 },
       );
+    }
+
+    // 이미 끝나 있던 경우에는 아래 SQL 정리를 다시 하지 않고 세션만 정리한다.
+    if (alreadyWithdrawn) {
+      await clearUserId();
+      return NextResponse.json({
+        ok: true,
+        withdrawn: true,
+        orderDetailsScrubbed: true,
+        paymentSnapshotScrubbed: true,
+        needsManualCleanup: false,
+      });
     }
 
     /**
@@ -876,11 +976,11 @@ export async function POST(request: Request) {
      */
     let orderDetailsScrubbed = true;
     try {
-      await scrubOrderDetailsByUser(target.id, KEPT_DETAIL_KEYS);
+      await scrubOrderDetailsByUser(withdrawnUserId, KEPT_DETAIL_KEYS);
     } catch {
       orderDetailsScrubbed = false;
       // 운영자가 같은 함수를 다시 실행해 정리해야 한다. 개인정보는 로그에 남기지 않는다.
-      console.error(`[withdraw] orders.details scrub failed for user ${target.id}`);
+      console.error("[withdraw] orders.details scrub failed");
     }
 
     /**
@@ -890,7 +990,7 @@ export async function POST(request: Request) {
      */
     let paymentSnapshotScrubbed = true;
     try {
-      await scrubPaymentSnapshotDetailsByUser(target.id);
+      await scrubPaymentSnapshotDetailsByUser(withdrawnUserId);
     } catch {
       paymentSnapshotScrubbed = false;
     }

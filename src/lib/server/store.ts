@@ -57,7 +57,9 @@ async function createTables(sql: NonNullable<ReturnType<typeof sqlClient>>) {
     txn.query(`
       CREATE TABLE IF NOT EXISTS app_store (
         id INTEGER PRIMARY KEY,
-        data JSONB NOT NULL
+        data JSONB NOT NULL,
+        -- 저장할 때마다 1씩 오른다. 읽은 시점의 값과 다르면 그사이 다른 요청이 저장한 것이다.
+        version BIGINT NOT NULL DEFAULT 0
       )
     `),
     txn.query(`
@@ -212,6 +214,75 @@ function ensurePaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient>>)
   return paymentsMigration;
 }
 
+/**
+ * 예전에 만들어진 app_store에 version 열을 더한다.
+ * 기존 행은 DEFAULT 0으로 채워진다. 데이터를 지우거나 다시 쓰지 않는다.
+ * ALTER는 바꿀 것이 없어도 잠금을 잡으므로 ensureTable이 아니라 여기에 두고
+ * 서버 인스턴스당 한 번만 실행한다. 여러 번 실행해도 안전하다.
+ */
+async function runAppStoreVersionMigration(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+  await sql.query(
+    `ALTER TABLE app_store ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0`,
+  );
+}
+
+let appStoreVersionMigration: Promise<void> | null = null;
+
+function ensureAppStoreVersion(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
+  if (!appStoreVersionMigration) {
+    appStoreVersionMigration = runAppStoreVersionMigration(sql).catch((error) => {
+      appStoreVersionMigration = null;
+      throw error;
+    });
+  }
+  return appStoreVersionMigration;
+}
+
+/**
+ * 저장이 다른 요청과 겹쳐 반영되지 않았다는 신호.
+ * 이 오류가 나면 app_store와 함께 묶인 orders·payments 변경도 하나도 일어나지 않았다.
+ * 호출부는 이 오류만 따로 잡아 409로 돌려준다.
+ */
+export class AppStoreConflictError extends Error {
+  constructor() {
+    super("APP_STORE_CONFLICT");
+    this.name = "AppStoreConflictError";
+  }
+}
+
+export function isAppStoreConflict(error: unknown): boolean {
+  return error instanceof AppStoreConflictError;
+}
+
+/**
+ * 읽은 시점의 version을 그 읽기가 돌려준 객체에 매달아 둔다.
+ *
+ * AppData 안에 넣으면 JSON에 섞여 저장되고 화면 응답에도 흘러갈 수 있어 밖에 둔다.
+ * 모듈 전역 변수 하나에 담으면 동시에 들어온 요청끼리 값이 섞이므로,
+ * 읽기마다 다른 객체를 키로 쓰는 WeakMap에 담는다. 객체가 사라지면 함께 사라진다.
+ */
+const readVersions = new WeakMap<AppData, number>();
+
+function rememberVersion(data: AppData, version: number): AppData {
+  readVersions.set(data, version);
+  return data;
+}
+
+/**
+ * 이 데이터가 어떤 version을 보고 만들어졌는지. 모르면 저장하지 않는다.
+ * (readData를 거치지 않은 객체로 저장하면 남의 변경을 덮어쓸 수 있다)
+ */
+function expectedVersionOf(data: AppData): number {
+  const version = readVersions.get(data);
+  if (version === undefined) throw new AppStoreConflictError();
+  return version;
+}
+
+/** 저장에 성공하면 그 객체의 기준 version을 올려 둔다. 같은 요청이 이어서 저장할 수 있다. */
+function advanceVersion(data: AppData, version: number): void {
+  readVersions.set(data, version);
+}
+
 function mergeData(value: unknown): AppData {
   if (!value || typeof value !== "object") return structuredClone(EMPTY);
   return { ...EMPTY, ...(value as AppData) };
@@ -231,9 +302,15 @@ export async function readData(): Promise<AppData> {
   const sql = sqlClient();
   if (sql) {
     await ensureTable(sql);
-    const rows = (await sql.query("SELECT data FROM app_store WHERE id = 1")) as { data: unknown }[];
-    if (!rows[0]) return structuredClone(EMPTY);
-    return mergeData(rows[0].data);
+    await ensureAppStoreVersion(sql);
+    const rows = (await sql.query("SELECT data, version FROM app_store WHERE id = 1")) as {
+      data: unknown;
+      version: string | number;
+    }[];
+    // 행이 아직 없으면 "아무도 저장한 적 없음"을 -1로 표시한다.
+    // 저장할 때 이 값이면 INSERT로 처음 만들고, 그사이 누가 만들었으면 충돌이 된다.
+    if (!rows[0]) return rememberVersion(structuredClone(EMPTY), NO_ROW_VERSION);
+    return rememberVersion(mergeData(rows[0].data), Number(rows[0].version));
   }
 
   try {
@@ -244,17 +321,70 @@ export async function readData(): Promise<AppData> {
   }
 }
 
-const APP_STORE_UPSERT = `
-  INSERT INTO app_store (id, data)
-  VALUES (1, $1::jsonb)
-  ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+/** app_store 행이 아직 없을 때 쓰는 기준값. 실제 version은 0부터 시작한다. */
+const NO_ROW_VERSION = -1;
+
+/**
+ * version을 확인하며 저장한다. 조건이 맞을 때만 새 version을 돌려준다.
+ * 돌려줄 행이 없으면(0행) 그사이 다른 요청이 저장한 것이므로 충돌이다.
+ *
+ * 뒤따르는 orders·payments 문장은 이 CTE가 행을 돌려줬을 때만 실행되도록
+ * WHERE EXISTS (SELECT 1 FROM cas)로 묶는다. 한 문장 안에서 함께 실행되므로
+ * "app_store는 안 바뀌었는데 주문만 들어가는" 중간 상태가 생기지 않는다.
+ */
+const CAS_UPDATE_CTE = `
+  WITH cas AS (
+    UPDATE app_store
+    SET data = $1::jsonb, version = version + 1
+    WHERE id = 1 AND version = $2
+    RETURNING version
+  )
 `;
+
+/** 행이 아직 없을 때. 같은 순간 둘이 만들면 하나만 성공한다. */
+const CAS_INSERT_CTE = `
+  WITH cas AS (
+    INSERT INTO app_store (id, data, version)
+    VALUES (1, $1::jsonb, 0)
+    ON CONFLICT (id) DO NOTHING
+    RETURNING version
+  )
+`;
+
+function casHead(expectedVersion: number): string {
+  return expectedVersion === NO_ROW_VERSION ? CAS_INSERT_CTE : CAS_UPDATE_CTE;
+}
+
+/** CAS 문장에 넘길 인자. INSERT 경로는 version 조건이 없어 data만 쓴다. */
+function casParams(data: AppData, expectedVersion: number): unknown[] {
+  return expectedVersion === NO_ROW_VERSION
+    ? [JSON.stringify(data)]
+    : [JSON.stringify(data), expectedVersion];
+}
+
+/** CAS 문장 뒤에 오는 값 인자의 시작 번호($1, $2를 이미 쓴 만큼 밀린다). */
+function casParamCount(expectedVersion: number): number {
+  return expectedVersion === NO_ROW_VERSION ? 1 : 2;
+}
+
+/** 저장 결과. 행이 없으면 충돌로 본다. */
+function commitVersion(data: AppData, rows: { version: string | number }[]): void {
+  if (!rows[0]) throw new AppStoreConflictError();
+  advanceVersion(data, Number(rows[0].version));
+}
+
 
 export async function writeData(data: AppData): Promise<void> {
   const sql = sqlClient();
   if (sql) {
     await ensureTable(sql);
-    await sql.query(APP_STORE_UPSERT, [JSON.stringify(data)]);
+    await ensureAppStoreVersion(sql);
+    const expected = expectedVersionOf(data);
+    const rows = (await sql.query(
+      `${casHead(expected)} SELECT version FROM cas`,
+      casParams(data, expected),
+    )) as { version: string | number }[];
+    commitVersion(data, rows);
     return;
   }
 
@@ -271,33 +401,44 @@ export async function writeDataWithOrder(data: AppData, order: Order): Promise<v
   const sql = sqlClient();
   if (!sql) return writeData(data);
 
-  // DDL은 트랜잭션 밖에서 먼저 보장한다.
+  // DDL은 문장 밖에서 먼저 보장한다.
   await ensureTable(sql);
-  await sql.transaction((txn) => [
-    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
-    txn.query(
-      `
+  await ensureAppStoreVersion(sql);
+  const expected = expectedVersionOf(data);
+  const n = casParamCount(expected);
+
+  // CAS가 행을 돌려줬을 때만 주문이 들어간다. 한 문장이라 중간 상태가 없다.
+  const rows = (await sql.query(
+    `
+      ${casHead(expected)},
+      saved AS (
         INSERT INTO orders (
           id, user_id, product, title, status,
           amount, base_amount, payment, details, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamptz, $10::timestamptz)
+        SELECT $${n + 1}, $${n + 2}, $${n + 3}, $${n + 4}, $${n + 5},
+               $${n + 6}, $${n + 7}, $${n + 8}, $${n + 9}::jsonb,
+               $${n + 10}::timestamptz, $${n + 10}::timestamptz
+        WHERE EXISTS (SELECT 1 FROM cas)
         ON CONFLICT (id) DO NOTHING
-      `,
-      [
-        order.id,
-        order.userId,
-        order.product,
-        order.title,
-        order.status,
-        order.amount,
-        order.baseAmount ?? null,
-        order.payment,
-        JSON.stringify(order.details ?? {}),
-        order.createdAt,
-      ],
-    ),
-  ]);
+      )
+      SELECT version FROM cas
+    `,
+    [
+      ...casParams(data, expected),
+      order.id,
+      order.userId,
+      order.product,
+      order.title,
+      order.status,
+      order.amount,
+      order.baseAmount ?? null,
+      order.payment,
+      JSON.stringify(order.details ?? {}),
+      order.createdAt,
+    ],
+  )) as { version: string | number }[];
+  commitVersion(data, rows);
 }
 
 interface OrderRow {
@@ -395,17 +536,23 @@ export async function writeDataWithOrderStatus(
   if (!sql) return writeData(data);
 
   await ensureTable(sql);
-  await sql.transaction((txn) => [
-    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
-    txn.query(
-      `
+  await ensureAppStoreVersion(sql);
+  const expected = expectedVersionOf(data);
+  const n = casParamCount(expected);
+
+  const rows = (await sql.query(
+    `
+      ${casHead(expected)},
+      touched AS (
         UPDATE orders
-        SET status = $2, updated_at = now()
-        WHERE id = $1
-      `,
-      [id, status],
-    ),
-  ]);
+        SET status = $${n + 2}, updated_at = now()
+        WHERE id = $${n + 1} AND EXISTS (SELECT 1 FROM cas)
+      )
+      SELECT version FROM cas
+    `,
+    [...casParams(data, expected), id, status],
+  )) as { version: string | number }[];
+  commitVersion(data, rows);
 }
 
 /* ------------------------------------------------------------------ *
@@ -692,35 +839,48 @@ export async function writeDataWithOrderForPayment(
   const sql = paymentsClient();
   await ensureTable(sql);
   await ensurePaymentsMigration(sql);
-  await sql.transaction((txn) => [
-    txn.query(APP_STORE_UPSERT, [JSON.stringify(data)]),
-    txn.query(
-      `
+  await ensureAppStoreVersion(sql);
+  const expected = expectedVersionOf(data);
+  const n = casParamCount(expected);
+
+  // 주문 저장도 결제 연결도 CAS가 성공했을 때만 실행된다. 한 문장이라 함께 일어나거나 함께 없다.
+  const rows = (await sql.query(
+    `
+      ${casHead(expected)},
+      saved AS (
         INSERT INTO orders (
           id, user_id, product, title, status,
           amount, base_amount, payment, details, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamptz, $10::timestamptz)
+        SELECT $${n + 1}, $${n + 2}, $${n + 3}, $${n + 4}, $${n + 5},
+               $${n + 6}, $${n + 7}, $${n + 8}, $${n + 9}::jsonb,
+               $${n + 10}::timestamptz, $${n + 10}::timestamptz
+        WHERE EXISTS (SELECT 1 FROM cas)
         ON CONFLICT (id) DO NOTHING
-      `,
-      [
-        order.id,
-        order.userId,
-        order.product,
-        order.title,
-        order.status,
-        order.amount,
-        order.baseAmount ?? null,
-        order.payment,
-        JSON.stringify(order.details ?? {}),
-        order.createdAt,
-      ],
-    ),
-    txn.query(
-      `UPDATE payments SET order_id = $2, updated_at = now() WHERE merchant_order_id = $1`,
-      [merchantOrderId, order.id],
-    ),
-  ]);
+      ),
+      linked AS (
+        UPDATE payments
+        SET order_id = $${n + 1}, updated_at = now()
+        WHERE merchant_order_id = $${n + 11} AND EXISTS (SELECT 1 FROM cas)
+      )
+      SELECT version FROM cas
+    `,
+    [
+      ...casParams(data, expected),
+      order.id,
+      order.userId,
+      order.product,
+      order.title,
+      order.status,
+      order.amount,
+      order.baseAmount ?? null,
+      order.payment,
+      JSON.stringify(order.details ?? {}),
+      order.createdAt,
+      merchantOrderId,
+    ],
+  )) as { version: string | number }[];
+  commitVersion(data, rows);
 }
 
 /**

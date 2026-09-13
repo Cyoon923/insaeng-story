@@ -6,6 +6,7 @@ import {
   setAdminAuthenticated,
 } from "@/lib/server/adminSession";
 import {
+  isAppStoreConflict,
   nowId,
   readData,
   writeData,
@@ -65,6 +66,22 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    // 다른 요청과 겹쳐 저장되지 않은 경우. 관리자가 적용 여부를 오해하지 않도록 분명히 알린다.
+    if (isAppStoreConflict(error)) {
+      console.warn("[admin] store conflict");
+      return NextResponse.json(
+        { error: "다른 요청과 겹쳐 변경사항이 적용되지 않았습니다. 다시 시도해 주세요." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+}
+
+async function handlePost(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
   const action = String(body.action ?? "");
 
