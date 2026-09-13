@@ -1,7 +1,7 @@
 import { BottomNav } from "./BottomNav";
 import { BenefitNotice } from "./BenefitNotice";
 import { SiteFooter } from "./SiteFooter";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+import { ChatWidgetSlot } from "@/components/chat/ChatWidgetSlot";
 
 interface MobileShellProps {
   children: React.ReactNode;
@@ -29,7 +29,7 @@ export function MobileShell({
         <SiteFooter />
       </main>
       <BenefitNotice />
-      <ChatWidget />
+      <ChatWidgetSlot />
       {!hideBottomNav && <BottomNav />}
     </div>
   );
