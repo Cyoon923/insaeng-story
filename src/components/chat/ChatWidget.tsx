@@ -1007,7 +1007,7 @@ export function ChatWidget() {
           </div>
 
           <div className="shrink-0 border-t border-[#ebe3d8] bg-[#fffdf9] px-4 py-3">
-            <div className="flex items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2">
               <input
                 type="text"
                 value={inputValue}
@@ -1020,7 +1020,7 @@ export function ChatWidget() {
                 }}
                 placeholder="궁금한 내용을 입력해주세요"
                 aria-label="메시지 입력"
-                className="h-12 flex-1 rounded-xl border border-[#e8dfd4] bg-white px-3 text-[16px] text-[#403A49] outline-none placeholder:text-[#9c96a6] disabled:bg-white"
+                className="h-12 w-full min-w-0 flex-1 rounded-xl border border-[#e8dfd4] bg-white px-3 text-[16px] text-[#403A49] outline-none placeholder:text-[#9c96a6] disabled:bg-white"
               />
               <button
                 type="button"
