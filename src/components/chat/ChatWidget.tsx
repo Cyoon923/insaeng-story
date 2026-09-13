@@ -9,7 +9,7 @@ import {
   formatPrice,
   formatPriceFrom,
 } from "@/lib/constants/products";
-import { ORDER_OPTION_PRICES } from "@/lib/server/pricing";
+import { CONSULT_OPTION_PRICES, ORDER_OPTION_PRICES } from "@/lib/server/pricing";
 import { TEACHERS } from "@/lib/constants/consultationTeachers";
 
 /**
@@ -106,6 +106,18 @@ export type ChatNodeId =
   | "apply"
   | "duration"
   | "price"
+  | "coupon"
+  | "payment"
+  | "refund"
+  | "lyric-edit"
+  | "delivery"
+  | "copyright"
+  | "account"
+  | "my-orders"
+  | "photo"
+  | "schedule-change"
+  | "consult-options"
+  | "help-pages"
   | "more"
   | "contact"
   | "fallback";
@@ -146,6 +158,18 @@ const NODE_ICONS: Partial<Record<ChatNodeId, string>> = {
   teachers: "👤",
   duration: "⏱️",
   price: "💳",
+  coupon: "🎟️",
+  payment: "💰",
+  refund: "↩︎",
+  "lyric-edit": "✏️",
+  delivery: "🎧",
+  copyright: "©️",
+  account: "👤",
+  "my-orders": "📋",
+  photo: "📷",
+  "schedule-change": "🗓️",
+  "consult-options": "🧾",
+  "help-pages": "📚",
   apply: "📝",
   more: "↩️",
   contact: "💬",
@@ -167,7 +191,7 @@ function ChoiceButton({ id, onSelect }: { id: ChatNodeId; onSelect: (id: ChatNod
     <button
       type="button"
       onClick={() => onSelect(id)}
-      className="flex min-w-[calc(50%-0.25rem)] flex-1 items-center gap-1.5 rounded-xl border border-[#e0d5c8] bg-[#fffdf9] px-3 py-2 text-left text-[13px] font-medium text-[#5c3d2e] active:bg-[#f5efe6]"
+      className="flex min-w-[calc(50%-0.25rem)] flex-1 items-center gap-1.5 rounded-xl border border-[#e0d5c8] bg-[#fffdf9] px-2.5 py-2 text-left text-[13px] font-medium leading-snug text-[#5c3d2e] break-keep active:bg-[#f5efe6]"
     >
       {icon ? <span aria-hidden>{icon}</span> : null}
       <span className="min-w-0 flex-1">{CHAT_NODES[id].label}</span>
@@ -179,126 +203,196 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   "what-is": {
     label: "인생곡이 뭐예요?",
     answer:
-      "인생곡은 고객님의 이야기나 사주 정보를 담아\n세상에 하나뿐인 노래를 만들어 드리는 서비스예요 🐾\n이야기로 만드는 인생곡, 프리미엄 인생곡, 사주 인생곡 세 가지가 있어요.",
+      "인생곡은 고객님의 이야기나 사주 정보를 담아\n세상에 하나뿐인 노래를 만들어 드리는 서비스예요 🐾\n\n이야기로 만드는 인생곡,\n프리미엄 인생곡,\n사주 인생곡 세 가지가 있어요.",
     next: ["compare", "choose", "price", "apply"],
   },
   compare: {
     label: "세 상품은 뭐가 달라요?",
     answer:
-      "차이는 상담이 들어가는지예요 🐾\n· 이야기로 만드는 인생곡 — 직접 쓰신 이야기로 제작해요.\n· 사주 인생곡 — 상담 없이 사주 정보와 이야기로 제작해요.\n· 프리미엄 인생곡 — 사주상담과 스토리상담을 함께 진행해요.\n뮤직비디오는 세 상품 모두 추가 옵션이에요.",
+      "차이는 상담이 들어가는지예요 🐾\n\n· 이야기로 만드는 인생곡\n  직접 쓰신 이야기로 제작해요.\n\n· 사주 인생곡\n  상담 없이 사주 정보와 이야기로 제작해요.\n\n· 프리미엄 인생곡\n  사주상담과 스토리상담을 함께 진행해요.\n\n뮤직비디오는 세 상품 모두 추가 옵션이에요.",
     next: ["choose", "story", "premium", "saju-song"],
   },
   choose: {
     label: "어떤 걸 골라야 할까요?",
     answer:
-      "이렇게 생각해 보시면 편해요 🐾\n· 하고 싶은 이야기가 있으시면 → 이야기로 만드는 인생곡\n· 상담까지 함께 받고 싶으시면 → 프리미엄 인생곡\n· 상담 없이 간편하게 원하시면 → 사주 인생곡",
+      "이렇게 생각해 보시면 편해요 🐾\n\n· 하고 싶은 이야기가 있으시면\n  → 이야기로 만드는 인생곡\n\n· 상담까지 함께 받고 싶으시면\n  → 프리미엄 인생곡\n\n· 상담 없이 간편하게 원하시면\n  → 사주 인생곡",
     mood: "curious",
     next: ["story", "premium", "saju-song", "contact"],
   },
   story: {
     label: "이야기로 만드는 인생곡",
-    answer: `직접 작성하신 자신의 이야기, 또는 소중한 분의 이야기를 바탕으로\n맞춤 가사와 음악을 만들어 드려요 🐾\n가격은 ${productPriceFrom("story")}이에요.\n사주상담과 영상은 기본 포함이 아니라 따로 선택하시는 부분이에요.`,
-    next: ["video", "price", "apply", "duration"],
+    answer: `직접 작성하신 자신의 이야기,\n또는 소중한 분의 이야기를 바탕으로\n맞춤 가사와 음악을 만들어 드려요 🐾\n\n가격은 ${productPriceFrom("story")}이에요.\n\n사주상담과 영상은 기본 포함이 아니라\n따로 선택하시는 부분이에요.`,
+    next: ["video", "price", "lyric-edit", "duration"],
   },
   premium: {
     label: "프리미엄 인생곡",
-    answer: `프리미엄은 일반 인생곡의 고급형이 아니라\n사주상담 → 스토리상담 → 인생곡 제작까지 함께하는 토탈 서비스예요 🐾\n가격은 ${productPriceFrom("premium")}이에요.\n뮤직비디오는 기본 포함이 아니라 추가 옵션이고, 전문 보컬 녹음은 포함되지 않아요.`,
-    next: ["compare", "video", "apply", "more"],
+    answer: `프리미엄은 일반 인생곡의 고급형이 아니라\n사주상담 → 스토리상담 → 인생곡 제작까지\n함께하는 토탈 서비스예요 🐾\n\n가격은 ${productPriceFrom("premium")}이에요.\n\n뮤직비디오는 기본 포함이 아니라 추가 옵션이고,\n전문 보컬 녹음은 포함되지 않아요.`,
+    next: ["compare", "video", "lyric-edit", "apply"],
   },
   "saju-song": {
     label: "사주 인생곡",
-    answer: `상담 없이 사주 정보와 고객님의 이야기, 음악 취향을 함께 담아 만드는 인생곡이에요 🐾\n가격은 ${productPriceFrom("saju-song")}이에요.\n생년월일과 태어난 시간을 입력해 주시면 되고, 시간을 모르셔도 신청하실 수 있어요.`,
-    next: ["compare", "price", "apply", "more"],
+    answer: `상담 없이 사주 정보와 고객님의 이야기,\n음악 취향을 함께 담아 만드는 인생곡이에요 🐾\n\n가격은 ${productPriceFrom("saju-song")}이에요.\n\n생년월일과 태어난 시간을 입력해 주시면 되고,\n시간을 모르셔도 신청하실 수 있어요.`,
+    next: ["compare", "price", "lyric-edit", "apply"],
   },
   gift: {
     label: "선물로 만들고 싶어요",
-    answer: "선물로 많이 찾아 주세요 🐾\n어떤 분께 드릴 선물인지 알려주시면 안내해 드릴게요.",
+    answer: "선물로 많이 찾아 주세요 🐾\n\n어떤 분께 드릴 선물인지 알려주시면\n안내해 드릴게요.",
     mood: "curious",
     next: ["gift-parents", "gift-partner", "gift-family", "more"],
   },
   "gift-parents": {
     label: "부모님 선물",
     answer:
-      "부모님 이야기를 노래로 담아 드리는 분들이 많으세요 🐾\n이야기로 만드는 인생곡에서 부모님을 이야기 주인공으로 선택하실 수 있어요.\n사주상담까지 함께 원하시면 프리미엄 인생곡도 있어요.",
+      "부모님 이야기를 노래로 담아 드리는 분들이\n많으세요 🐾\n\n이야기로 만드는 인생곡에서 부모님을\n이야기 주인공으로 선택하실 수 있어요.\n\n사주상담까지 함께 원하시면\n프리미엄 인생곡도 있어요.",
     next: ["story", "premium", "video", "apply"],
   },
   "gift-partner": {
     label: "배우자·연인 선물",
     answer:
-      "연인이나 배우자께 마음을 전하고 싶은 분들이 많이 신청하세요 🐾\n이야기로 만드는 인생곡에서 배우자·연인을 이야기 주인공으로 고르실 수 있어요.",
+      "연인이나 배우자께 마음을 전하고 싶은 분들이\n많이 신청하세요 🐾\n\n이야기로 만드는 인생곡에서 배우자·연인을\n이야기 주인공으로 고르실 수 있어요.",
     next: ["story", "video", "apply", "more"],
   },
   "gift-family": {
     label: "가족·반려동물",
     answer:
-      "가족과 반려동물의 이야기도 노래로 만들어 드려요 🐾\n이야기 주인공으로 가족과 반려동물을 선택하실 수 있어요.",
+      "가족과 반려동물의 이야기도\n노래로 만들어 드려요 🐾\n\n이야기 주인공으로 가족과 반려동물을\n선택하실 수 있어요.",
     next: ["story", "video", "apply", "more"],
   },
   video: {
     label: "영상 옵션",
-    answer: `영상은 어느 상품이든 기본 포함이 아니라 추가 옵션이에요 🐾\n· 내 얼굴 AI 뮤직비디오 +${formatPrice(ORDER_OPTION_PRICES["ai-mv"])} — 얼굴 사진을 바탕으로 노래에 맞는 영상을 만들어요.\n· 추억사진 영상 제작 +${formatPrice(ORDER_OPTION_PRICES["photo-mv"])} — 보내주신 사진을 인생곡에 맞춰 영상으로 편집해요.\n사진은 결제 후 카카오톡으로 연락드려 받아요.`,
-    next: ["price", "apply", "contact", "more"],
+    answer: `영상은 어느 상품이든 기본 포함이 아니라\n추가 옵션이에요 🐾\n\n· 내 얼굴 AI 뮤직비디오 +${formatPrice(ORDER_OPTION_PRICES["ai-mv"])}\n  얼굴 사진을 바탕으로\n  노래에 맞는 영상을 만들어요.\n\n· 추억사진 영상 제작 +${formatPrice(ORDER_OPTION_PRICES["photo-mv"])}\n  보내주신 사진을 인생곡에 맞춰\n  영상으로 편집해요.\n\n사진은 결제 후 카카오톡으로 연락드려 받아요.`,
+    next: ["photo", "price", "apply", "more"],
   },
   consulting: {
     label: "1:1 사주상담 알려주세요",
-    answer: `인생곡과 별도로 이용하실 수 있는 전문 사주상담 서비스예요 🐾\n가격은 ${formatPriceFrom(CONSULTATION.priceFrom)}이고, 약 50분 동안 진행해요.`,
-    next: ["teachers", "consult-method", "consult-fields", "price"],
+    answer: `인생곡과 별도로 이용하실 수 있는\n전문 사주상담 서비스예요 🐾\n\n가격은 ${formatPriceFrom(CONSULTATION.priceFrom)}이고,\n약 50분 동안 진행해요.`,
+    next: ["teachers", "consult-method", "consult-options", "schedule-change"],
   },
   "consult-fields": {
     label: "상담 분야",
     answer:
-      "이런 분야를 살펴볼 수 있어요 🐾\n전체적인 운세 · 재물·금전 · 직장·사업 · 연애·인연 · 결혼·궁합 · 가족 · 진로 · 올해의 흐름",
+      "이런 분야를 살펴볼 수 있어요 🐾\n\n전체적인 운세 · 재물·금전\n직장·사업 · 연애·인연\n결혼·궁합 · 가족\n진로 · 올해의 흐름",
     next: ["teachers", "consult-method", "apply", "more"],
   },
   teachers: {
     label: "선생님 소개",
     answer: [
       "등록된 상담 분야를 기준으로 알려드릴게요 🐾",
-      ...TEACHERS.map((teacher) => `· ${teacher.name} — ${teacher.role}`),
-      "신청 화면에서 원하시는 선생님을 직접 고르실 수 있어요.",
-    ].join("\n"),
+      TEACHERS.map((teacher) => `· ${teacher.name}\n  ${teacher.role}`).join("\n\n"),
+      "신청 화면에서 원하시는 선생님을\n직접 고르실 수 있어요.",
+    ].join("\n\n"),
     next: ["consult-fields", "consult-method", "apply", "more"],
   },
   "consult-method": {
     label: "상담 방법",
     answer:
-      "카카오톡 상담과 전화 상담 중 하나를 고르시면 돼요 🐾\n약 50분 동안 진행하고, 화상 상담은 하지 않아요.",
-    next: ["consult-fields", "teachers", "apply", "more"],
+      "카카오톡 상담과 전화 상담 중\n하나를 고르시면 돼요 🐾\n\n약 50분 동안 진행하고,\n화상 상담은 하지 않아요.",
+    next: ["schedule-change", "consult-fields", "teachers", "apply"],
   },
   apply: {
     label: "신청은 어떻게 해요?",
     answer:
-      "상품을 고르시고 → 신청 정보를 입력하신 뒤 → 확인 및 결제까지 하시면 돼요 🐾\n하단 메뉴의 인생곡과 상담에서 바로 신청하실 수 있어요.",
+      "상품을 고르시고 →\n신청 정보를 입력하신 뒤 →\n확인 및 결제까지 하시면 돼요 🐾\n\n하단 메뉴의 인생곡과 상담에서\n바로 신청하실 수 있어요.",
     mood: "yes",
-    next: ["duration", "price", "contact", "more"],
+    next: ["duration", "payment", "my-orders", "more"],
   },
   duration: {
     label: "제작 기간은 얼마나 걸리나요?",
     answer:
-      "제작 기간은 상품에 따라 다르지만 보통 7~14일 정도 걸려요 🐾\n제작 내용과 진행 상황에 따라 기간이 달라질 수 있어요.",
-    next: ["apply", "price", "contact", "more"],
+      "제작 기간은 상품에 따라 다르지만\n보통 7~14일 정도 걸려요 🐾\n\n제작 내용과 진행 상황에 따라\n기간이 달라질 수 있어요.",
+    next: ["delivery", "my-orders", "apply", "more"],
   },
   price: {
     label: "가격이 궁금해요",
     answer: [
-      "상품과 선택하신 옵션에 따라 달라져요 🐾",
+      "상품과 선택하신 옵션에 따라 달라져요 🐾\n",
       `· 이야기로 만드는 인생곡 ${productPriceFrom("story")}`,
       `· 사주 인생곡 ${productPriceFrom("saju-song")}`,
       `· 프리미엄 인생곡 ${productPriceFrom("premium")}`,
       `· 1:1 사주상담 ${formatPriceFrom(CONSULTATION.priceFrom)}`,
     ].join("\n"),
-    next: ["video", "duration", "apply", "contact"],
+    next: ["payment", "coupon", "video", "apply"],
+  },
+  coupon: {
+    label: "쿠폰이 궁금해요",
+    answer:
+      "받으신 쿠폰은 MY → 쿠폰함에서 확인하실 수 있어요 🐾\n로그인하시면 보여요.\n\n쿠폰 코드를 직접 입력하는 칸은 따로 없어요.\n받으신 쿠폰이 쿠폰함에 바로 들어가요.\n\n사용은 신청 마지막 확인 및 결제 단계에서\n무료 쿠폰을 골라 주시면 돼요.\n\n쿠폰마다 사용할 수 있는 상품이 정해져 있고,\n이미 사용한 쿠폰은 다시 쓸 수 없어요.",
+    next: ["apply", "price", "contact", "more"],
+  },
+  payment: {
+    label: "결제 방법이 궁금해요",
+    answer:
+      "신청 마지막 확인 및 결제 단계에서\n결제 수단을 고르실 수 있어요 🐾\n\n· 신용/체크카드\n· 무통장 입금\n· 카카오페이\n· 네이버페이\n\n결제가 잘 되었는지 확인이 필요하시면\n상담원에게 문의를 남겨 주세요.",
+    next: ["refund", "apply", "contact", "more"],
+  },
+  refund: {
+    label: "환불·취소 규정이 궁금해요",
+    answer:
+      "제작이나 상담이 시작되기 전에는\n취소와 전액 환불을 요청하실 수 있어요 🐾\n\n제작이 시작된 뒤에는\n진행된 작업 범위에 따라\n환불이 제한되거나 비용이 공제될 수 있어요.\n\n음원과 영상처럼 완성물 제공이 시작된 경우에는\n청약철회가 제한될 수 있어요.\n영상 같은 추가 옵션도 같은 원칙이에요.\n\n이미 신청하신 건의 취소나 환불은\n상담원에게 문의를 남겨 주세요.",
+    next: ["payment", "contact", "apply", "more"],
+  },
+  "lyric-edit": {
+    label: "가사 수정은 몇 번 되나요?",
+    answer: `기본 가사 수정 1회가 포함되어 있어요 🐾\n\n더 고치고 싶으시면\n가사 수정 1회 추가 옵션(+${formatPrice(ORDER_OPTION_PRICES["lyric-edit"])})을\n선택하실 수 있어요.`,
+    next: ["delivery", "duration", "apply", "more"],
+  },
+  delivery: {
+    label: "완성곡은 어떻게 받아요?",
+    answer:
+      "완성된 노래는 음원 파일로 전달해 드려요 🐾\n\n뮤직비디오 옵션을 선택하신 경우에는\n영상도 함께 전달해 드려요.",
+    next: ["copyright", "duration", "lyric-edit", "more"],
+  },
+  copyright: {
+    label: "완성곡을 어디까지 쓸 수 있어요?",
+    answer:
+      "인생곡 제작물의 저작권은\n비앤비 어드바이저리에 있어요 🐾\n\n개인 감상과 소장, 선물 용도로는\n편하게 쓰실 수 있어요.\n\n상업적 이용, 재판매, 무단 배포,\n2차 저작물 제작은 사전 동의가 필요해요.",
+    next: ["delivery", "contact", "apply", "more"],
+  },
+  account: {
+    label: "회원가입·로그인이 궁금해요",
+    answer:
+      "회원가입은 휴대폰 인증으로 하실 수 있어요 🐾\n\n로그인은 세 가지 방법이 있어요.\n· 휴대폰 번호와 비밀번호\n· 카카오 로그인\n· 네이버 로그인\n\n비밀번호를 잊으셨다면\n로그인 화면의 비밀번호 찾기에서\n휴대폰 인증으로 다시 설정하실 수 있어요.\n\n상담원 문의는 로그인하지 않아도\n남기실 수 있어요.",
+    next: ["apply", "contact", "coupon", "more"],
+  },
+  "my-orders": {
+    label: "신청 내역은 어디서 봐요?",
+    answer:
+      "MY 화면에서 확인하실 수 있어요 🐾\n\n· 나의 주문 내역\n· 1:1 사주상담 내역\n\n로그인하시면 보여요.\n\n제가 개별 진행 상황까지는 확인해 드릴 수 없어서,\n궁금하시면 상담원에게 문의를 남겨 주세요.",
+    next: ["account", "contact", "duration", "more"],
+  },
+  photo: {
+    label: "사진은 언제 보내요?",
+    answer:
+      "사진은 지금 올리지 않으셔도 괜찮아요 🐾\n\n얼굴 사진과 추억 사진은\n결제 후 카카오톡으로 연락드려 받아요.",
+    next: ["video", "apply", "duration", "more"],
+  },
+  "schedule-change": {
+    label: "상담 일정을 바꾸고 싶어요",
+    answer:
+      "상담이 시작되기 전에는\n취소를 요청하실 수 있어요 🐾\n\n상담 일정 변경은 고객센터를 통해\n요청해 주시면 돼요.\n\n실제 변경이나 취소는\n아래에서 상담원에게 문의를 남겨 주세요.",
+    next: ["contact", "consult-method", "refund", "more"],
+  },
+  "consult-options": {
+    label: "상담 추가 옵션이 궁금해요",
+    answer: `1:1 사주상담에는 두 가지 옵션이 있어요 🐾\n\n· 상담 기록 요약 리포트 +${formatPrice(CONSULT_OPTION_PRICES.report)}\n\n· 추가 인원 1명(궁합) +${formatPrice(CONSULT_OPTION_PRICES.extraPerson)}\n\n상담 신청 화면에서 원하시는 옵션을\n골라 주시면 돼요.`,
+    next: ["consulting", "consult-method", "apply", "more"],
+  },
+  "help-pages": {
+    label: "공지사항·자주 묻는 질문",
+    answer:
+      "하단 메뉴 MY에서 찾으실 수 있어요 🐾\n\n· 공지사항 — 이용 안내와 변경 사항\n· 자주 묻는 질문 — 제작 기간, 수정,\n  상담 진행 같은 안내\n\n주소로는 /notice 와 /faq 예요.",
+    next: ["contact", "apply", "more"],
   },
   more: {
     label: "다른 질문 보기",
     answer: "어떤 게 궁금하세요? 🐾",
     mood: "curious",
-    next: ROOT_CHOICES,
+    next: [...ROOT_CHOICES, "help-pages"],
   },
   contact: {
     label: "실제 상담원에게 문의하기",
     answer:
-      "아래 문의 남기기에서 이름과 연락처를 적어 주시면\n상담원이 확인 후 연락드릴게요 🐾",
+      "아래 문의 남기기에서\n이름과 연락처를 적어 주시면\n상담원이 확인 후 연락드릴게요 🐾",
     mood: "waiting",
     display: "emphasis",
     next: ["more"],
@@ -306,9 +400,9 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   fallback: {
     label: "다른 질문 보기",
     answer:
-      "제가 정확하게 안내드리기 어려운 내용이에요 🐾\n실제 상담원에게 문의를 남겨주시면 확인 후 연락드리겠습니다.",
+      "제가 정확하게 안내드리기 어려운 내용이에요 🐾\n\n실제 상담원에게 문의를 남겨주시면\n확인 후 연락드리겠습니다.",
     mood: "waiting",
-    next: ["contact", "more"],
+    next: ["contact", "help-pages", "account", "more"],
   },
 };
 
@@ -366,23 +460,26 @@ const LOCAL_GREETING_REPLIES: {
 }[] = [
   {
     keywords: ["안녕하세요", "안녕", "하이", "hello", "hi"],
-    text: "안녕하세요 🐾 사주로그 AI 상담원 도령이에요.\n궁금한 게 있으시면 편하게 물어보세요.",
+    text: "안녕하세요 🐾\n사주로그 AI 상담원 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요.",
     mood: "greeting",
   },
   {
     keywords: ["고마워", "고마워요", "감사합니다", "감사해"],
-    text: "도움이 되었다니 다행이에요 🐾\n또 궁금한 게 생기면 언제든 편하게 물어보세요.",
+    text: "도움이 되었다니 다행이에요 🐾\n\n또 궁금한 게 생기면\n언제든 편하게 물어보세요.",
     mood: "goodday",
   },
   {
     keywords: ["안녕히가세요", "안녕히 가세요", "잘가", "다음에", "바이", "bye"],
-    text: "좋은 하루 보내세요 🐾\n궁금한 게 생기면 다음에 또 찾아주세요.",
+    text: "좋은 하루 보내세요 🐾\n\n궁금한 게 생기면\n다음에 또 찾아주세요.",
     mood: "goodday",
   },
 ];
 
 /** 연락받을 방법. 상담 신청 화면에서 쓰는 방식과 같은 어휘를 쓴다. */
-const CONTACT_METHODS = ["카카오톡", "전화", "문자"] as const;
+const CONTACT_METHODS = ["카카오톡", "문자"] as const;
+
+/** 관리자 "문의" 탭에서 다른 접수와 구분하는 값. 서버가 같은 값을 확인한다. */
+const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
 
 type ContactMethod = (typeof CONTACT_METHODS)[number];
 
@@ -434,7 +531,7 @@ function DoryeongBubble({
           />
         </span>
       )}
-      <p className="max-w-[84%] whitespace-pre-line rounded-2xl rounded-tl-md bg-[#f5efe6] px-4 py-3.5 text-[17px] leading-[1.7] text-[#403A49]">
+      <p className="max-w-[88%] whitespace-pre-line break-keep rounded-2xl rounded-tl-md bg-[#f5efe6] px-4 py-3.5 text-[17px] leading-[1.75] text-[#403A49] [overflow-wrap:anywhere]">
         {text}
       </p>
     </div>
@@ -484,6 +581,48 @@ const NODE_KEYWORDS: { id: ChatNodeId; keywords: readonly string[] }[] = [
     id: "duration",
     keywords: ["제작 기간", "제작기간", "기간", "제작 기간은 얼마나 걸리나요"],
   },
+  {
+    id: "coupon",
+    keywords: ["쿠폰", "쿠폰함", "할인쿠폰", "할인 쿠폰", "쿠폰이 궁금해요"],
+  },
+  {
+    id: "payment",
+    keywords: ["결제", "결제 방법", "결제방법", "무통장", "카카오페이", "네이버페이", "카드 결제"],
+  },
+  { id: "refund", keywords: ["환불", "취소", "청약철회", "환불 규정", "취소 규정"] },
+  { id: "lyric-edit", keywords: ["가사 수정", "가사수정", "수정"] },
+  { id: "delivery", keywords: ["완성곡", "음원 파일", "전달 방식", "음원"] },
+  { id: "copyright", keywords: ["저작권", "상업적 이용", "재판매"] },
+  {
+    id: "my-orders",
+    keywords: ["신청 내역", "주문 내역", "상담 내역", "내역"],
+  },
+  { id: "photo", keywords: ["사진", "사진 준비", "얼굴 사진", "추억 사진"] },
+  {
+    id: "schedule-change",
+    keywords: ["상담 일정 변경", "상담 날짜 변경", "상담 시간 변경", "상담 취소"],
+  },
+  {
+    id: "consult-options",
+    keywords: ["상담 옵션", "상담 추가 옵션", "리포트", "상담 리포트", "궁합"],
+  },
+  {
+    id: "help-pages",
+    keywords: ["공지사항", "공지", "faq", "자주 묻는 질문", "이용 안내"],
+  },
+  {
+    id: "account",
+    keywords: [
+      "회원가입",
+      "가입",
+      "로그인",
+      "카카오 로그인",
+      "네이버 로그인",
+      "비밀번호",
+      "비밀번호 찾기",
+      "비밀번호 재설정",
+    ],
+  },
 ];
 
 /**
@@ -500,19 +639,11 @@ const PERSONAL_WORDS = [
   "내 사주",
   "제 사주",
   "궁합 좀",
-  "주문",
   "배송",
-  "환불",
-  "결제 취소",
-  "언제 나와",
   "제가 신청",
   "신청한 노래",
   "제 노래",
   "내 노래",
-  "언제 나와요",
-  "진행 상황",
-  "진행상황",
-  "어떻게 됐",
   "확인해 주세요",
 ];
 
@@ -547,6 +678,49 @@ const NODE_RULES: {
   none?: readonly string[];
 }[] = [
   {
+    // 내 주문·신청이 지금 어디까지 왔는지는 계정마다 달라 상담원에게 넘긴다.
+    id: "contact",
+    all: [
+      ["주문", "신청", "제작", "작업", "진행"],
+      [
+        "언제 나와",
+        "언제 완성",
+        "언제 받",
+        "어디까지",
+        "얼마나 됐",
+        "됐어요",
+        "됐나요",
+        "어떻게 됐",
+        "확인해 주",
+        "확인해줘",
+      ],
+    ],
+  },
+  {
+    // 로그인·인증이 실제로 막힌 상황은 계정마다 달라 상담원에게 넘긴다.
+    id: "contact",
+    all: [
+      ["로그인", "계정", "인증", "인증 문자", "문자", "비밀번호"],
+      ["안 돼", "안돼", "안 되", "안되", "안 와", "안와", "못 받", "실패", "오류", "막혀", "잠겼"],
+    ],
+  },
+  {
+    // 결제·환불의 개별 처리나 상태 확인은 챗봇이 판단하지 않고 상담원에게 넘긴다.
+    id: "contact",
+    all: [
+      ["결제", "환불", "취소", "입금"],
+      ["해 주", "해주", "해줘", "언제", "안 됐", "안됐", "실패", "중복", "두 번", "두번", "확인해"],
+    ],
+  },
+  {
+    // 내 쿠폰이 실제로 어떤 상태인지 확인해야 하는 질문은 상담원에게 넘긴다.
+    id: "contact",
+    all: [
+      ["쿠폰"],
+      ["적용이 안", "안 돼", "안돼", "안 되", "안되", "사라졌", "없어졌", "못 쓰", "오류", "문제"],
+    ],
+  },
+  {
     id: "gift-parents",
     all: [["부모님", "부모", "엄마", "어머니", "아빠", "아버지", "장인", "장모"], GIFT_INTENT_WORDS],
   },
@@ -560,6 +734,37 @@ const NODE_RULES: {
   {
     id: "gift-family",
     all: [["반려동물", "강아지", "고양이", "가족", "딸", "아들", "손주", "손자", "손녀"], GIFT_INTENT_WORDS],
+  },
+  {
+    id: "schedule-change",
+    all: [["상담"], ["날짜 변경", "시간 변경", "일정 변경", "변경", "바꿀", "바꾸", "취소", "미루", "옮기"]],
+  },
+  {
+    id: "photo",
+    all: [["사진"], ["언제", "어디", "보내", "올려", "올리", "준비", "나중에", "필요"]],
+  },
+  { id: "my-orders", all: [["신청 내역", "주문 내역", "상담 내역"]] },
+  {
+    id: "my-orders",
+    all: [
+      ["신청 내역", "주문 내역", "상담 내역", "내역", "진행 상황", "진행상황", "신청", "주문"],
+      ["어디", "확인", "볼 수", "보나요", "봐요", "보려면", "조회"],
+    ],
+  },
+  {
+    id: "consult-options",
+    all: [["상담 내용", "상담 기록"], ["정리", "요약", "받을 수", "주나요", "되나요", "남겨"]],
+  },
+  {
+    id: "consult-options",
+    all: [
+      ["리포트", "궁합", "추가 인원", "두 명", "둘이", "상담 옵션"],
+      ["상담", "같이", "함께", "받을 수", "되나요", "돼요", "가능", "얼마", "정리"],
+    ],
+  },
+  {
+    id: "help-pages",
+    all: [["공지", "faq", "자주 묻는 질문", "이용 안내"], ["어디", "있어요", "있나요", "볼 수", "봐요", "확인"]],
   },
   { id: "compare", all: [["차이", "달라", "다른 점", "다른점", "비교"]] },
   {
@@ -617,6 +822,29 @@ const NODE_RULES: {
     ],
     // 돈 이야기는 기간이 아니라 가격 안내로 보낸다.
     none: ["가격", "비용", "금액"],
+  },
+  { id: "coupon", all: [["쿠폰"]] },
+  {
+    id: "account",
+    all: [
+      ["회원가입", "가입", "로그인", "비밀번호", "계정"],
+      ["어떻게", "방법", "하나요", "해야", "되나요", "돼요", "가능", "찾", "잊", "재설정", "바꾸"],
+    ],
+  },
+  { id: "copyright", all: [["저작권", "상업적", "재판매", "2차 저작", "유튜브에 올려", "판매해도"]] },
+  {
+    id: "lyric-edit",
+    all: [["가사"], ["수정", "고치", "고쳐", "바꿀", "바꾸", "몇 번", "다시"]],
+  },
+  {
+    id: "delivery",
+    all: [["완성곡", "완성된 노래", "음원", "노래", "영상"], ["어떻게 받", "받아요", "받나요", "전달", "파일"]],
+  },
+  { id: "refund", all: [["환불", "청약철회"]] },
+  { id: "refund", all: [["취소"], ["규정", "가능", "돼요", "되나요", "할 수", "방법"]] },
+  {
+    id: "payment",
+    all: [["결제", "무통장", "카카오페이", "네이버페이", "카드"], ["방법", "수단", "되나요", "돼요", "가능", "어떻게", "할 수"]],
   },
   { id: "price", all: [["가격", "비용", "금액", "얼마"]] },
   { id: "gift", all: [["선물"], ["하고 싶", "할까", "만들", "노래", "추천", "하려"]] },
@@ -685,6 +913,10 @@ export function ChatWidget() {
   const [inquiryMethod, setInquiryMethod] = useState<ContactMethod>("카카오톡");
   const [inquiryContact, setInquiryContact] = useState("");
   const [inquiryText, setInquiryText] = useState("");
+  const [inquiryAgreed, setInquiryAgreed] = useState(false);
+  // 전송 중에는 버튼을 잠가 같은 문의가 두 번 접수되지 않게 한다.
+  const [inquirySending, setInquirySending] = useState(false);
+  const [inquiryError, setInquiryError] = useState("");
 
   useEffect(() => {
     // 팝업이 열려 있을 때만 ESC를 듣는다.
@@ -775,26 +1007,63 @@ export function ChatWidget() {
   const canSubmitInquiry =
     inquiryName.trim().length > 0 &&
     inquiryContact.trim().length > 0 &&
-    inquiryText.trim().length > 0;
+    inquiryText.trim().length > 0 &&
+    inquiryAgreed &&
+    !inquirySending;
 
   /**
-   * 문의 폼 제출. 아직 서버에 저장하지 않고 화면에만 접수 안내를 남긴다.
-   * 실제 접수는 이후 단계에서 붙인다.
+   * 문의 폼 제출. 기존 문의 접수 API(createInquiry)에 그대로 보낸다.
+   * 저장에 성공했을 때만 접수 안내를 남기고 폼을 비운다.
+   * 실패하면 입력값을 그대로 두고 다시 시도할 수 있게 한다.
    */
-  const submitInquiry = () => {
+  const submitInquiry = async () => {
     if (!canSubmitInquiry) return;
+    setInquirySending(true);
+    setInquiryError("");
+
+    const name = inquiryName.trim();
+    const phone = inquiryContact.trim();
+    const message = inquiryText.trim();
+
+    try {
+      const response = await fetch("/api/app", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "createInquiry",
+          name,
+          phone,
+          method: inquiryMethod,
+          product: CHAT_INQUIRY_PRODUCT,
+          message,
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+      if (!response.ok || !result?.ok) {
+        setInquiryError(result?.error ?? "문의 접수에 실패했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+    } catch {
+      setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
+      return;
+    } finally {
+      setInquirySending(false);
+    }
+
     const seq = (seqRef.current += 1);
     setMessages((previous) => [
       ...previous,
       {
         id: `u-${seq}`,
         role: "user",
-        text: `상담원 문의\n이름: ${inquiryName.trim()}\n연락 방법: ${inquiryMethod}\n연락처: ${inquiryContact.trim()}\n내용: ${inquiryText.trim()}`,
+        text: `상담원 문의\n이름: ${name}\n연락 방법: ${inquiryMethod}\n휴대폰 번호: ${phone}\n내용: ${message}`,
       },
       {
         id: `d-${seq}`,
         role: "doryeong",
-        text: "문의 잘 전달해둘게요 🐾\n상담원이 확인 후 연락드리겠습니다.\n조금만 기다려주세요.",
+        text: "문의가 접수되었어요 🐾\n\n상담원이 확인 후 연락드리겠습니다.",
         mood: "waiting",
         display: "emphasis",
       },
@@ -804,6 +1073,8 @@ export function ChatWidget() {
     setInquiryMethod("카카오톡");
     setInquiryContact("");
     setInquiryText("");
+    setInquiryAgreed(false);
+    setInquiryError("");
   };
 
   return (
@@ -878,7 +1149,7 @@ export function ChatWidget() {
           <div className="flex-1 space-y-4 overflow-y-auto bg-[#faf8f5] px-4 py-4">
             <div className="space-y-2">
               <DoryeongBubble
-                text={"안녕하세요 🐾 사주로그 AI 상담원 도령이에요.\n궁금한 게 있으시면 편하게 물어보세요."}
+                text={"안녕하세요 🐾\n사주로그 AI 상담원 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요."}
                 mood="greeting"
                 display="emphasis"
                 onFaceClick={() => setProfileOpen(true)}
@@ -933,12 +1204,12 @@ export function ChatWidget() {
                   </div>
 
                   <label className="block">
-                    <span className="text-[13px] font-bold text-[#403A49]">연락처</span>
+                    <span className="text-[13px] font-bold text-[#403A49]">휴대폰 번호</span>
                     <input
                       type="tel"
                       value={inquiryContact}
                       onChange={(event) => setInquiryContact(event.target.value)}
-                      placeholder="연락받을 번호나 아이디"
+                      placeholder="010-0000-0000"
                       className="mt-1 h-11 w-full rounded-xl border border-[#e8dfd4] bg-[#fffdf9] px-3 text-[15px] text-[#403A49] outline-none focus:border-[#403A49]"
                     />
                   </label>
@@ -954,6 +1225,31 @@ export function ChatWidget() {
                     />
                   </label>
 
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={inquiryAgreed}
+                      onChange={(event) => setInquiryAgreed(event.target.checked)}
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[#403A49]"
+                    />
+                    <span className="text-[13px] leading-relaxed text-[#6B6570]">
+                      상담 문의 접수를 위해 이름, 휴대폰 번호, 문의 내용을 수집·이용하는 것에
+                      동의합니다.{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-[#403A49] underline"
+                      >
+                        개인정보 처리방침
+                      </a>
+                    </span>
+                  </label>
+
+                  {inquiryError ? (
+                    <p className="text-[13px] leading-relaxed text-red-600">{inquiryError}</p>
+                  ) : null}
+
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -968,7 +1264,7 @@ export function ChatWidget() {
                       disabled={!canSubmitInquiry}
                       className="h-11 flex-1 rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
                     >
-                      문의 남기기
+                      {inquirySending ? "접수 중…" : "문의 남기기"}
                     </button>
                   </div>
                 </div>

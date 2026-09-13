@@ -27,6 +27,12 @@ import {
   commitOrder,
 } from "@/lib/server/applyOrder";
 import { maskName } from "@/lib/constants/reviews";
+
+/** 챗봇 상담원 문의를 다른 접수와 구분하는 값. 관리자 "문의" 탭에 그대로 보인다. */
+const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
+
+/** 챗봇에서 고를 수 있는 연락 방법. 챗봇 문의에만 적용하고 다른 접수는 그대로 둔다. */
+const CHAT_INQUIRY_METHODS = ["카카오톡", "문자"];
 import type {
   AppData,
   CouponProduct,
@@ -606,19 +612,37 @@ export async function POST(request: Request) {
       : null;
     const name = String(body.name ?? member?.name ?? "").trim();
     const phone = String(body.phone ?? member?.phone ?? "").trim();
+    const product = String(body.product ?? "").trim();
+    const method = String(body.method ?? "카카오톡 상담").trim();
+    const message = String(body.message ?? "").trim();
+    // 챗봇에서 온 문의만 더 엄격하게 본다. 기존 무료상담·이벤트 접수 조건은 그대로 둔다.
+    const fromChat = product === CHAT_INQUIRY_PRODUCT;
     if (!name) {
       return NextResponse.json({ error: "이름을 입력해 주세요." }, { status: 400 });
     }
     if (normalizePhone(phone).length < 10) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
+    if (fromChat) {
+      // 연락 방법과 상관없이 휴대폰 번호만 받는다. 카카오톡 아이디는 받지 않는다.
+      if (!/^01[016789]\d{7,8}$/.test(normalizePhone(phone))) {
+        return NextResponse.json({ error: "휴대폰 번호를 정확히 입력해 주세요." }, { status: 400 });
+      }
+      if (!CHAT_INQUIRY_METHODS.includes(method)) {
+        return NextResponse.json({ error: "연락받을 방법을 선택해 주세요." }, { status: 400 });
+      }
+      if (!message) {
+        return NextResponse.json({ error: "문의 내용을 입력해 주세요." }, { status: 400 });
+      }
+    }
     const item: Inquiry = {
       id: nowId(),
-      name,
-      phone,
-      method: String(body.method ?? "카카오톡 상담"),
-      product: String(body.product ?? ""),
-      message: String(body.message ?? ""),
+      // app_store는 한 덩어리로 저장되므로 지나치게 긴 값은 잘라서 담는다.
+      name: name.slice(0, 40),
+      phone: phone.slice(0, 40),
+      method: method.slice(0, 40),
+      product: product.slice(0, 120),
+      message: message.slice(0, 1000),
       createdAt: new Date().toISOString(),
     };
     if (member) {
