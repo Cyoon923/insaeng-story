@@ -22,6 +22,8 @@ export interface ChatInquiryView {
   contactMethod: string;
   createdAt: string;
   lastMessageAt: string;
+  /** 목록에서만 채운다. 상세·생성 응답에는 담지 않는다. */
+  unreadAgentCount?: number;
 }
 
 export function toInquiryView(inquiry: ChatInquiry): ChatInquiryView {

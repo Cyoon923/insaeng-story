@@ -11,7 +11,13 @@
  * - 권한 확인(관리자 로그인 여부)은 여기서 하지 않는다. API에서 한다.
  */
 import { createHash, randomBytes } from "crypto";
-import { ensureTable, nowId, normalizePhone, sqlClient } from "@/lib/server/store";
+import {
+  ensureChatInquiriesMigration,
+  ensureTable,
+  nowId,
+  normalizePhone,
+  sqlClient,
+} from "@/lib/server/store";
 
 export type ChatInquiryStatus = "new" | "in_progress" | "closed";
 export type ChatInquirySender = "customer" | "agent";
@@ -118,6 +124,8 @@ async function requireSql() {
     throw new Error("상담원 문의는 데이터베이스가 있어야 이용할 수 있습니다.");
   }
   await ensureTable(sql);
+  // 예전에 만들어진 테이블에 customer_read_at을 더한다. 인스턴스당 한 번만 실행된다.
+  await ensureChatInquiriesMigration(sql);
   return sql;
 }
 
@@ -208,8 +216,9 @@ export async function createChatInquiry(
   const [inquiryRows, messageRows] = (await sql.transaction((txn) => [
     txn.query(
       `
-        INSERT INTO chat_inquiries (id, user_id, guest_token_hash, name, phone, contact_method)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO chat_inquiries
+          (id, user_id, guest_token_hash, name, phone, contact_method, customer_read_at)
+        VALUES ($1, $2, $3, $4, $5, $6, now())
         RETURNING ${INQUIRY_COLUMNS}
       `,
       [inquiryId, userId, guestTokenHash, name, phone, contactMethod],
@@ -230,36 +239,106 @@ export async function createChatInquiry(
   };
 }
 
-/** 회원이 가진 문의방. 최근 대화가 위로 온다. */
-export async function listChatInquiriesByUserId(userId: string): Promise<ChatInquiry[]> {
-  if (!userId) return [];
+/** 고객 목록 한 줄. 아직 읽지 않은 상담원 답변 수를 함께 담는다. */
+export interface ChatInquiryWithUnread extends ChatInquiry {
+  unreadAgentCount: number;
+}
+
+/**
+ * 고객이 아직 읽지 않은 상담원 답변 수.
+ * 방마다 메시지를 따로 읽지 않도록 목록 질의 안에 스칼라 서브쿼리로 넣는다.
+ * chat_inquiry_messages (inquiry_id, created_at) 인덱스를 그대로 쓴다.
+ *
+ * customer_read_at은 방을 만들 때 채우고 마이그레이션에서도 채우므로 비어 있지 않다.
+ * 그래도 열이 비어 있는 행이 생기면 그 방의 상담원 답변을 모두 세지 않도록 지금 시각을 쓴다.
+ */
+const UNREAD_COUNT_SQL = `
+  (
+    SELECT COUNT(*) FROM chat_inquiry_messages m
+    WHERE m.inquiry_id = i.id
+      AND m.sender = 'agent'
+      AND m.created_at > COALESCE(i.customer_read_at, now())
+  ) AS unread_agent_count
+`;
+
+/** 목록 질의는 회원·비회원이 같고 소유 열만 다르다. */
+async function listChatInquiriesBy(
+  column: "user_id" | "guest_token_hash",
+  value: string,
+): Promise<ChatInquiryWithUnread[]> {
+  if (!value) return [];
   const sql = await requireSql();
   const rows = (await sql.query(
     `
-      SELECT ${INQUIRY_COLUMNS} FROM chat_inquiries
-      WHERE user_id = $1
-      ORDER BY last_message_at DESC
+      SELECT
+        i.id, i.user_id, i.name, i.phone, i.contact_method, i.status,
+        i.created_at, i.updated_at, i.last_message_at,
+        ${UNREAD_COUNT_SQL}
+      FROM chat_inquiries i
+      WHERE i.${column} = $1
+      ORDER BY i.last_message_at DESC
     `,
-    [userId],
-  )) as InquiryRow[];
-  return rows.map(mapInquiry);
+    [value],
+  )) as (InquiryRow & { unread_agent_count: string | number })[];
+
+  return rows.map((row) => ({
+    ...mapInquiry(row),
+    // COUNT는 드라이버에 따라 문자열로 올 수 있어 숫자로 맞춘다.
+    unreadAgentCount: Number(row.unread_agent_count) || 0,
+  }));
+}
+
+/** 회원이 가진 문의방. 최근 대화가 위로 온다. */
+export async function listChatInquiriesByUserId(
+  userId: string,
+): Promise<ChatInquiryWithUnread[]> {
+  return listChatInquiriesBy("user_id", userId);
 }
 
 /** 비회원이 가진 문의방. 토큰 해시가 맞아야만 보인다. */
 export async function listChatInquiriesByGuestTokenHash(
   guestTokenHash: string,
-): Promise<ChatInquiry[]> {
-  if (!guestTokenHash) return [];
+): Promise<ChatInquiryWithUnread[]> {
+  return listChatInquiriesBy("guest_token_hash", guestTokenHash);
+}
+
+/**
+ * 고객이 방을 읽었다고 표시한다. 소유 열을 함께 보므로 남의 방은 바뀌지 않는다.
+ * 없는 방과 남의 방은 똑같이 false다. 여러 번 불러도 시각만 갱신될 뿐 부작용이 없다.
+ */
+async function markChatInquiryReadBy(
+  column: "user_id" | "guest_token_hash",
+  inquiryId: string,
+  value: string,
+): Promise<boolean> {
+  if (!inquiryId || !value) return false;
   const sql = await requireSql();
   const rows = (await sql.query(
     `
-      SELECT ${INQUIRY_COLUMNS} FROM chat_inquiries
-      WHERE guest_token_hash = $1
-      ORDER BY last_message_at DESC
+      UPDATE chat_inquiries
+      SET customer_read_at = now()
+      WHERE id = $1 AND ${column} = $2
+      RETURNING id
     `,
-    [guestTokenHash],
-  )) as InquiryRow[];
-  return rows.map(mapInquiry);
+    [inquiryId, value],
+  )) as { id: string }[];
+  return Boolean(rows[0]);
+}
+
+/** 회원의 읽음 처리. id와 userId가 모두 맞아야 한다. */
+export async function markChatInquiryReadForUser(
+  inquiryId: string,
+  userId: string,
+): Promise<boolean> {
+  return markChatInquiryReadBy("user_id", inquiryId, userId);
+}
+
+/** 비회원의 읽음 처리. id와 토큰 해시가 모두 맞아야 한다. */
+export async function markChatInquiryReadForGuest(
+  inquiryId: string,
+  guestTokenHash: string,
+): Promise<boolean> {
+  return markChatInquiryReadBy("guest_token_hash", inquiryId, guestTokenHash);
 }
 
 async function loadMessages(

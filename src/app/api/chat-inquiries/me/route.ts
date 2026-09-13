@@ -24,7 +24,12 @@ export async function GET() {
       ? await listChatInquiriesByUserId(userId)
       : await listChatInquiriesByGuestTokenHash(guestTokenHash as string);
 
-    return NextResponse.json({ inquiries: inquiries.map(toInquiryView) });
+    return NextResponse.json({
+      inquiries: inquiries.map((inquiry) => ({
+        ...toInquiryView(inquiry),
+        unreadAgentCount: inquiry.unreadAgentCount,
+      })),
+    });
   } catch (error) {
     return handleChatError(error);
   }

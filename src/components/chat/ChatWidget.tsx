@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Send, X } from "lucide-react";
 import {
@@ -490,6 +490,8 @@ interface ChatInquiryView {
   contactMethod: string;
   createdAt: string;
   lastMessageAt: string;
+  /** 아직 읽지 않은 사람 상담원 답변 수. 목록 응답에만 들어 있다. */
+  unreadAgentCount?: number;
 }
 
 /** 문의방 안의 메시지 한 줄. customer는 고객, agent는 사람 상담원이다. */
@@ -965,15 +967,18 @@ export function ChatWidget() {
 
   // 사람 상담원과의 대화 화면. 도령이 자동 안내와 같은 패널 안의 별도 화면이다.
   const [agentOpen, setAgentOpen] = useState(false);
-  const [agentInquiry, setAgentInquiry] = useState<ChatInquiryView | null>(null);
+  const [agentInquiryId, setAgentInquiryId] = useState("");
   const [agentMessages, setAgentMessages] = useState<ChatInquiryMessageView[]>([]);
   const [agentInput, setAgentInput] = useState("");
   // 전송 중에는 버튼을 잠가 같은 메시지가 두 번 올라가지 않게 한다.
   const [agentSending, setAgentSending] = useState(false);
   const [agentError, setAgentError] = useState("");
   const agentEndRef = useRef<HTMLDivElement>(null);
-  // 패널을 처음 열 때 한 번만 문의방을 찾아본다. polling은 하지 않는다.
-  const inquiryLoadedRef = useRef(false);
+  /**
+   * 내 문의방 목록. 배지 숫자와 "대화 이어가기" 버튼이 같은 값을 쓴다.
+   * 챗봇을 열지 않아도 새 답변을 알아야 해서 주기적으로 다시 읽는다.
+   */
+  const [inquiries, setInquiries] = useState<ChatInquiryView[]>([]);
 
   useEffect(() => {
     // 팝업이 열려 있을 때만 ESC를 듣는다.
@@ -996,29 +1001,56 @@ export function ChatWidget() {
     agentEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [agentOpen, agentMessages]);
 
-  useEffect(() => {
-    // 패널을 처음 열 때 한 번만 내 문의방을 찾아본다.
-    // 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
-    if (!open || inquiryLoadedRef.current) return;
-    inquiryLoadedRef.current = true;
+  /**
+   * 내 문의방 목록을 한 번 읽는다. 배지와 "대화 이어가기" 버튼이 모두 이 결과를 쓴다.
+   * 목록 조회는 이 함수 하나로만 한다. 같은 조회가 여러 곳에서 겹치지 않게 하려는 것이다.
+   * 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
+   */
+  const loadInquiries = useCallback(async () => {
+    try {
+      const response = await fetch("/api/chat-inquiries/me");
+      if (!response.ok) return;
+      const result = (await response.json()) as { inquiries?: ChatInquiryView[] };
+      setInquiries(result.inquiries ?? []);
+    } catch {
+      // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 다음 주기에 다시 읽는다.
+    }
+  }, []);
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const response = await fetch("/api/chat-inquiries/me");
-        if (!response.ok) return;
-        const result = (await response.json()) as { inquiries?: ChatInquiryView[] };
-        // 목록은 최근 대화가 앞에 온다. 그중 아직 진행 중인 방 하나만 이어 쓴다.
-        const found = result.inquiries?.find((item) => isOpenInquiry(item)) ?? null;
-        if (!cancelled && found) setAgentInquiry(found);
-      } catch {
-        // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
-      }
-    })();
-    return () => {
-      cancelled = true;
+  useEffect(() => {
+    /**
+     * 배지는 챗봇을 닫아 둔 동안에도 새 답변을 알려야 해서 주기적으로 확인한다.
+     * 화면이 보이지 않는 동안에는 멈추고, 다시 보이면 곧바로 한 번 읽는다.
+     * 타이머는 언제나 하나만 돈다.
+     */
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const stop = () => {
+      if (timer === null) return;
+      clearInterval(timer);
+      timer = null;
     };
-  }, [open]);
+
+    const start = () => {
+      if (timer === null) timer = setInterval(loadInquiries, 60_000);
+    };
+
+    const sync = () => {
+      if (document.visibilityState === "visible") {
+        loadInquiries();
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      stop();
+    };
+  }, [loadInquiries]);
 
   /**
    * UI 확인용 임시 동작. 질문을 그대로 사용자 말풍선에 넣고,
@@ -1098,6 +1130,38 @@ export function ChatWidget() {
     inquiryAgreed &&
     !inquirySending;
 
+  // 지금 열어 둔 문의방과, 아직 진행 중인 문의방. 둘 다 목록에서 끌어온다.
+  const agentInquiry = inquiries.find((item) => item.id === agentInquiryId) ?? null;
+  const openInquiry = inquiries.find((item) => isOpenInquiry(item)) ?? null;
+  /**
+   * 배지 숫자. 진행 중인 방의 안 읽은 답변만 센다.
+   * 끝난 방은 지금 챗봇에서 다시 열 수 없어 배지를 지울 방법이 없기 때문이다.
+   * 지난 대화 열람 기능이 생기면 그때 함께 넓힌다.
+   */
+  const totalUnread = inquiries.reduce(
+    (sum, item) => (isOpenInquiry(item) ? sum + (item.unreadAgentCount ?? 0) : sum),
+    0,
+  );
+
+  /**
+   * 읽음 표시. 실패해도 화면을 막지 않는다. 다음 주기 조회에서 다시 맞춰진다.
+   * 성공하면 배지가 곧바로 줄도록 목록의 안 읽은 수를 0으로 둔다.
+   */
+  const markInquiryRead = async (inquiryId: string) => {
+    try {
+      const response = await fetch(
+        `/api/chat-inquiries/me/${encodeURIComponent(inquiryId)}/read`,
+        { method: "POST" },
+      );
+      if (!response.ok) return;
+      setInquiries((list) =>
+        list.map((item) => (item.id === inquiryId ? { ...item, unreadAgentCount: 0 } : item)),
+      );
+    } catch {
+      // 다음 주기 조회에서 다시 맞춘다.
+    }
+  };
+
   /**
    * 상담원 대화 화면 열기. 전체 타임라인을 서버에서 다시 읽어 온다.
    * 실패하면 화면을 바꾸지 않고 간단한 안내만 남긴다.
@@ -1114,12 +1178,23 @@ export function ChatWidget() {
         inquiry: ChatInquiryView;
         messages: ChatInquiryMessageView[];
       };
-      setAgentInquiry(result.inquiry);
+      // 목록 쪽 값도 서버가 준 최신 상태로 맞춘다. 안 읽은 수는 아래 읽음 표시에서 지운다.
+      setInquiries((list) =>
+        list.map((item) =>
+          item.id === result.inquiry.id ? { ...item, ...result.inquiry } : item,
+        ),
+      );
       setAgentMessages(result.messages);
+      setAgentInquiryId(result.inquiry.id);
       setAgentOpen(true);
     } catch {
       setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
+      return;
     }
+
+    // 대화를 실제로 띄운 뒤에 읽음으로 표시한다.
+    // 상세를 불러오지 못했는데 읽음만 되어 답변을 놓치는 일이 없게 하려는 것이다.
+    void markInquiryRead(inquiryId);
   };
 
   /**
@@ -1158,8 +1233,16 @@ export function ChatWidget() {
       }
 
       // 접수 안내로 끝내지 않고 바로 상담원 대화 화면으로 넘어간다.
-      setAgentInquiry(result.inquiry);
+      // 새 방은 만들 때 읽은 시각을 채우므로 안 읽은 답변이 0에서 시작한다.
+      const created = result.inquiry;
+      setInquiries((list) => {
+        const next = { ...created, unreadAgentCount: 0 };
+        return list.some((item) => item.id === created.id)
+          ? list.map((item) => (item.id === created.id ? { ...item, ...next } : item))
+          : [next, ...list];
+      });
       setAgentMessages(result.messages ?? []);
+      setAgentInquiryId(created.id);
       setAgentOpen(true);
       setAgentError("");
       setAgentInput("");
@@ -1374,11 +1457,11 @@ export function ChatWidget() {
               <p className="text-[13px] leading-relaxed text-[#6B6570]">
                 AI 안내로 해결되지 않으셨나요?
               </p>
-              {isOpenInquiry(agentInquiry) && agentInquiry ? (
+              {openInquiry ? (
                 // 이미 진행 중인 대화가 있으면 새 폼을 또 쓰게 하지 않는다.
                 <button
                   type="button"
-                  onClick={() => openAgentChat(agentInquiry.id)}
+                  onClick={() => openAgentChat(openInquiry.id)}
                   className="mt-2 h-11 w-full rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] active:bg-[#f5efe6]"
                 >
                   상담원과 대화 이어가기
@@ -1572,6 +1655,12 @@ export function ChatWidget() {
               height={727}
               className="relative h-[92px] w-[84px] object-contain drop-shadow-[0_3px_8px_rgba(64,58,73,0.25)]"
             />
+            {totalUnread > 0 ? (
+              // 안 읽은 상담원 답변 수. 버튼 안의 표시일 뿐 따로 누르는 곳이 아니다.
+              <span className="absolute right-0 top-1 flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-[#fffdf9] bg-[#d64545] px-1 text-[12px] font-bold leading-none text-white">
+                {totalUnread > 99 ? "99+" : totalUnread}
+              </span>
+            ) : null}
           </button>
         </div>
       )}

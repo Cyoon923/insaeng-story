@@ -126,7 +126,10 @@ async function createTables(sql: NonNullable<ReturnType<typeof sqlClient>>) {
         status TEXT NOT NULL DEFAULT 'new',
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        last_message_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        last_message_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        -- 고객이 이 방을 마지막으로 읽은 시각. 이 시각 뒤에 온 상담원 답변이 안 읽은 답변이다.
+        -- 방을 만들 때 now()를 넣으므로 정상 운영 중에는 비어 있지 않다.
+        customer_read_at TIMESTAMPTZ
       )
     `),
     txn.query(`
@@ -210,6 +213,37 @@ function ensurePaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient>>)
     });
   }
   return paymentsMigration;
+}
+
+/**
+ * 예전에 만들어진 chat_inquiries에 읽은 시각 열을 더한다.
+ * ALTER는 바꿀 것이 없어도 테이블 잠금을 잡기 때문에 ensureTable이 아니라 여기에 둔다.
+ * 기존 payments 마이그레이션과 같은 방식이고, 여러 번 실행해도 안전하다.
+ *
+ * 이미 있던 방은 지금 시각으로 한 번 채운다.
+ * 그러지 않으면 예전에 받은 상담원 답변이 한꺼번에 안 읽은 답변으로 잡힌다.
+ * 이 UPDATE는 열이 비어 있는 행만 건드리므로 두 번째부터는 아무 행도 바꾸지 않는다.
+ */
+async function runChatInquiriesMigration(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+  await sql.transaction((txn) => [
+    txn.query(`ALTER TABLE chat_inquiries ADD COLUMN IF NOT EXISTS customer_read_at TIMESTAMPTZ`),
+    txn.query(`UPDATE chat_inquiries SET customer_read_at = now() WHERE customer_read_at IS NULL`),
+  ]);
+}
+
+/** 서버 인스턴스당 한 번만 실행하기 위한 기억. 실패하면 지워서 다음에 다시 시도한다. */
+let chatInquiriesMigration: Promise<void> | null = null;
+
+export function ensureChatInquiriesMigration(
+  sql: NonNullable<ReturnType<typeof sqlClient>>,
+): Promise<void> {
+  if (!chatInquiriesMigration) {
+    chatInquiriesMigration = runChatInquiriesMigration(sql).catch((error) => {
+      chatInquiriesMigration = null;
+      throw error;
+    });
+  }
+  return chatInquiriesMigration;
 }
 
 function mergeData(value: unknown): AppData {
