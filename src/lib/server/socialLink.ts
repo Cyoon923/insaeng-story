@@ -12,6 +12,7 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { readData, writeData } from "@/lib/server/store";
+import type { AppData } from "@/lib/types/app";
 
 const COOKIE = "social_link";
 
@@ -140,6 +141,50 @@ export async function consumeSocialLinkPending(): Promise<SocialLinkPending | nu
 
   if (saved.expiresAt < Date.now()) return null;
   return parsePending(saved.code, saved.expiresAt);
+}
+
+/**
+ * 연결을 확정할 때 쓰는 대기 상태. 저장 키를 함께 돌려주므로
+ * 호출부가 연결·토큰 소비와 같은 writeData 한 번으로 이 항목까지 지울 수 있다.
+ */
+export interface SocialLinkPendingClaim {
+  pending: SocialLinkPending;
+  /** latest.codes에서 이 키를 지우면 대기 상태가 소비된다. */
+  storageKey: string;
+}
+
+/**
+ * 대기 상태를 넘겨받은 저장 내용에서 읽기만 한다. 저장하지도, 쿠키를 지우지도 않는다.
+ *
+ * consumeSocialLinkPending과 달리 먼저 소비하지 않는 이유는,
+ * 연결 저장이 실패했을 때 대기 상태가 이미 사라져 사용자가 소셜 로그인부터
+ * 다시 해야 하는 상황을 막기 위해서다. 소비는 호출부가 실제 연결과 함께
+ * 한 번의 writeData로 확정한다.
+ *
+ * 넘기는 data는 저장 직전에 다시 읽은 최신 내용이어야 한다.
+ */
+export async function readSocialLinkPendingForCommit(
+  data: AppData,
+): Promise<SocialLinkPendingClaim | null> {
+  const store = await cookies();
+  const token = store.get(COOKIE)?.value;
+  if (!token) return null;
+
+  const key = storageKey(token);
+  const saved = data.codes[key];
+  if (!saved || saved.expiresAt < Date.now()) return null;
+
+  const pending = parsePending(saved.code, saved.expiresAt);
+  return pending ? { pending, storageKey: key } : null;
+}
+
+/**
+ * 대기 상태 쿠키만 지운다. 저장이 끝난 뒤에 부른다.
+ * 저장 전에 지우면 실패했을 때 다시 시도할 방법이 없어진다.
+ */
+export async function clearSocialLinkCookie(): Promise<void> {
+  const store = await cookies();
+  store.delete(COOKIE);
 }
 
 /** 사용자가 연결을 그만두는 경우처럼, 값을 쓰지 않고 정리만 할 때 쓴다. */

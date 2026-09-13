@@ -159,16 +159,22 @@ export async function createWithdrawVerification(input: {
 export async function consumeWithdrawVerification(): Promise<WithdrawVerification | null> {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
-  store.delete(COOKIE);
   if (!token) return null;
 
   const key = storageKey(token);
   const data = await readData();
   const saved = data.codes[key];
-  if (!saved) return null;
+  if (!saved) {
+    // 저장된 값이 없으면 쓸 것도 없다. 쿠키만 정리한다.
+    store.delete(COOKIE);
+    return null;
+  }
 
   delete data.codes[key];
+  // 저장이 끝난 뒤에 쿠키를 지운다. 먼저 지우면 저장에 실패했을 때
+  // 본인 확인을 처음부터 다시 해야 하고, 소셜 연결을 이미 끊은 뒤라면 그 길마저 막힌다.
   await writeData(data);
+  store.delete(COOKIE);
 
   if (saved.expiresAt < Date.now()) return null;
   return parseVerification(saved.code, saved.expiresAt);

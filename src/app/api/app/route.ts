@@ -4,7 +4,10 @@ import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
 import { normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
-import { consumeSocialLinkPending } from "@/lib/server/socialLink";
+import {
+  clearSocialLinkCookie,
+  readSocialLinkPendingForCommit,
+} from "@/lib/server/socialLink";
 import {
   anonymizeWithdrawnUser,
   findWithdrawBlockers,
@@ -473,24 +476,35 @@ export async function POST(request: Request) {
       return expired();
     }
 
-    // B. 소셜 정보는 오직 여기서만 얻는다. 읽는 즉시 폐기되어 재사용할 수 없다.
-    const pending = await consumeSocialLinkPending();
-    if (!pending) {
-      return NextResponse.json(
+    const socialExpired = () =>
+      NextResponse.json(
         { error: "소셜 로그인 정보가 만료되었습니다. 다시 로그인해 주세요." },
         { status: 400 },
       );
-    }
-    const providerKey = pending.provider === "kakao" ? "kakaoId" : "naverId";
-    const providerLabel = pending.provider === "kakao" ? "카카오" : "네이버";
 
-    // C. 실제 쓰기 직전에 최신 상태를 다시 읽는다. pending을 폐기하며 저장소가 바뀌었고,
+    // B. 소셜 정보는 오직 서버 대기 상태에서만 얻는다. 여기서는 읽기만 한다.
+    //    먼저 폐기하면 아래 저장이 실패했을 때 대기 상태가 사라져
+    //    사용자가 소셜 로그인부터 다시 해야 한다. 폐기는 연결과 같은 저장에서 함께 한다.
+    const claimed = await readSocialLinkPendingForCommit(data);
+    if (!claimed) {
+      return socialExpired();
+    }
+    const providerKey = claimed.pending.provider === "kakao" ? "kakaoId" : "naverId";
+    const providerLabel = claimed.pending.provider === "kakao" ? "카카오" : "네이버";
+
+    // C. 실제 쓰기 직전에 최신 상태를 다시 읽는다.
     //    그 사이 같은 번호나 같은 소셜 ID가 먼저 등록됐을 수 있다.
     const latest = await readData();
     const latestToken = latest.codes[key];
     if (!latestToken || latestToken.expiresAt < Date.now() || latestToken.code !== linkToken) {
       return expired();
     }
+    // 대기 상태도 최신 내용에서 다시 확인한다. 그사이 다른 요청이 소비했을 수 있다.
+    const latestClaim = await readSocialLinkPendingForCommit(latest);
+    if (!latestClaim || latestClaim.pending.providerUserId !== claimed.pending.providerUserId) {
+      return socialExpired();
+    }
+    const pending = latestClaim.pending;
 
     // 같은 소셜 ID가 이미 다른 회원에게 붙어 있으면 연결하지 않는다.
     const ownedBySocial = latest.users.find((item) => item[providerKey] === pending.providerUserId);
@@ -527,8 +541,14 @@ export async function POST(request: Request) {
       registerUser(latest, user);
     }
 
+    // 링크 토큰과 소셜 대기 상태를 연결과 같은 저장 한 번으로 함께 소비한다.
+    // 저장이 실패하면 셋 다 그대로 남아 처음부터 다시 하지 않아도 된다.
     delete latest.codes[key];
+    delete latest.codes[latestClaim.storageKey];
     await writeData(latest);
+
+    // 저장이 끝난 뒤에만 대기 상태 쿠키를 지운다.
+    await clearSocialLinkCookie();
     await setUserId(user.id);
 
     // 신청 화면에서 로그인으로 넘어온 경우 그 자리로 되돌려 보낸다.
@@ -765,8 +785,21 @@ export async function POST(request: Request) {
      */
     const latest = await readData();
     const target = latest.users.find((item) => item.id === user.id);
-    if (!isActiveUser(target)) {
+    if (!target) {
       return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+    }
+    // 이 회원의 탈퇴가 이미 끝나 있으면(같은 요청이 두 번 들어왔거나 앞선 시도가 저장까지 마쳤다면)
+    // 실패로 돌려보내지 않는다. 세션만 정리하고 끝난 것으로 안내한다.
+    // 대상은 세션 회원 본인(user.id)으로 찾은 행이므로 남의 탈퇴를 성공으로 바꾸지 않는다.
+    if (!isActiveUser(target)) {
+      await clearUserId();
+      return NextResponse.json({
+        ok: true,
+        withdrawn: true,
+        orderDetailsScrubbed: true,
+        paymentSnapshotScrubbed: true,
+        needsManualCleanup: false,
+      });
     }
 
     // 3) 진행 중인 서비스가 있으면 탈퇴하지 않는다. 여기까지 아무것도 저장하지 않았다.
@@ -788,7 +821,9 @@ export async function POST(request: Request) {
      *    끊지 못하면 데이터를 건드리지 않고 여기서 멈춘다(되돌릴 것이 없다).
      *    이미 끊겨 있던 경우는 목적이 이뤄진 것으로 보고 계속 진행한다.
      */
-    if (kakaoAccessToken) {
+    // 지난 시도에서 이미 끊고 저장만 실패했을 수 있다. 그때는 끊을 대상이 남아 있지 않으므로
+    // 다시 끊으려 하지 않는다. 여기서 막으면 탈퇴가 영원히 끝나지 않는다.
+    if (kakaoAccessToken && target.kakaoId) {
       const unlinked = await unlinkKakao(kakaoAccessToken);
       if (unlinked === "failed") {
         return NextResponse.json(
@@ -806,7 +841,7 @@ export async function POST(request: Request) {
      *    탈퇴가 끝나면 naverId가 지워져 어떤 계정을 해제해야 하는지 알 수 없게 된다.
      *    토큰이 없으면 해제 자체가 불가능하므로 진행하지 않고 여기서 멈춘다.
      */
-    if (isNaverWithdraw) {
+    if (isNaverWithdraw && target.naverId) {
       const revoked = naverAccessToken ? await unlinkNaver(naverAccessToken) : "failed";
       if (revoked === "failed") {
         return NextResponse.json(
