@@ -316,6 +316,8 @@ export async function POST(request: Request) {
         {
           orderId: orderIdForPayment(merchantOrderId),
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
+          // 승인이 끝난 뒤에만 유료 금액을 확정할 수 있다. 위 claimPaymentApproved가 성공한 지점이다.
+          mode: "paid-approved",
         },
       );
       if (!result.ok) {
@@ -342,6 +344,8 @@ export async function POST(request: Request) {
       {
         consultationId: consultationIdForPayment(merchantOrderId),
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
+        // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.
+        mode: "paid-approved",
       },
     );
     if (!result.ok) {

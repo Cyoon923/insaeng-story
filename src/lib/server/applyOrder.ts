@@ -162,6 +162,34 @@ export type CommitWriter = (data: AppData, order: Order) => Promise<void>;
 export type CommitResult<T> = ({ ok: true } & T) | { ok: false; error: string; status: number };
 
 /**
+ * 확정 모드. 돈을 받아야 하는 건을 받지 않고 확정하는 일을 막는다.
+ *
+ * free-only    서버가 계산한 최종금액이 0원일 때만 확정한다. 기본값이다.
+ * paid-approved 결제 승인이 끝난 뒤에만 쓴다. 유료 금액도 확정한다.
+ *
+ * 이 값은 서버 코드에서만 넘긴다. 요청 본문에서 읽지 않는다.
+ * 기본값을 free-only로 둔 이유는, 앞으로 새 호출부가 생겨도 모드를 잊으면
+ * 유료 건이 통과되는 쪽이 아니라 막히는 쪽으로 기울게 하기 위해서다.
+ */
+export type CommitMode = "free-only" | "paid-approved";
+
+/** 승인 없이 유료 건을 확정하려 할 때의 응답. 화면 문구가 아니라 서버 경고다. */
+const PAYMENT_REQUIRED = {
+  ok: false as const,
+  error: "결제 승인이 확인되지 않아 신청을 확정할 수 없습니다.",
+  status: 402,
+};
+
+/**
+ * 저장 직전의 마지막 관문.
+ * 최종금액이 0원이면 어느 모드에서나 통과하고, 1원이라도 남으면 승인 경로만 통과한다.
+ * 금액은 쿠폰·추천인·적립금을 모두 적용한 뒤의 서버 계산값이어야 한다.
+ */
+function paidCommitAllowed(amount: number, mode: CommitMode): boolean {
+  return amount <= 0 || mode === "paid-approved";
+}
+
+/**
  * NICEPAY 승인 경로가 쓸 주문 id. 같은 merchantOrderId면 항상 같은 값이라
  * 승인 callback이 두 번 들어와도 orders의 ON CONFLICT (id) DO NOTHING이 실제로 동작한다.
  * merchantOrderId는 서버(preparePayment)가 만든 값이며 사용자 입력이 아니다.
@@ -183,8 +211,9 @@ export async function commitOrder(
   data: AppData,
   user: User,
   input: OrderInput,
-  options: { orderId?: string; write?: CommitWriter } = {},
+  options: { orderId?: string; write?: CommitWriter; mode?: CommitMode } = {},
 ): Promise<CommitResult<{ order: Order }>> {
+  const mode: CommitMode = options.mode ?? "free-only";
   const userId = user.id;
   const details = input.details;
   // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
@@ -206,6 +235,14 @@ export async function commitOrder(
     return { ok: false, error: referred.error, status: 400 };
   }
   const pointed = applyPoints(user, referred.details, referred.amount);
+
+  // 돈이 남아 있는데 승인 경로가 아니면 여기서 끝낸다.
+  // 위 apply*가 사본이 아닌 data와 user를 직접 바꾸지만 아직 아무것도 저장하지 않았고,
+  // 아래 주문·알림 추가와 write도 실행되지 않으므로 이 요청은 흔적을 남기지 않는다.
+  if (!paidCommitAllowed(pointed.amount, mode)) {
+    return PAYMENT_REQUIRED;
+  }
+
   const order: Order = {
     id: options.orderId ?? nowId(),
     userId,
@@ -243,8 +280,9 @@ export async function commitConsultation(
   data: AppData,
   user: User,
   input: ConsultationInput,
-  options: { consultationId?: string; write?: CommitWriter } = {},
+  options: { consultationId?: string; write?: CommitWriter; mode?: CommitMode } = {},
 ): Promise<CommitResult<{ consultation: Consultation; order: Order }>> {
+  const mode: CommitMode = options.mode ?? "free-only";
   const userId = user.id;
   const teacher = String(input.teacher ?? "유비 선생");
   const datetime = String(input.datetime ?? "");
@@ -279,6 +317,11 @@ export async function commitConsultation(
     return { ok: false, error: referred.error, status: 400 };
   }
   const pointed = applyPoints(user, referred.details, referred.amount);
+
+  // 주문과 같은 관문. 상담을 만들기 전에 막으므로 슬롯도 점유되지 않는다.
+  if (!paidCommitAllowed(pointed.amount, mode)) {
+    return PAYMENT_REQUIRED;
+  }
 
   // 상담과 결제 귀속용 주문이 같은 건임을 알 수 있도록 id와 시각을 공유한다.
   const id = options.consultationId ?? `c-${nowId()}`;
