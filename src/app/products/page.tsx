@@ -39,7 +39,7 @@ const ITEMS = [
     description: LIFE_SONG_PRODUCTS[1].description,
     price: formatPriceFrom(LIFE_SONG_PRODUCTS[1].priceFrom),
     image: LIFE_SONG_PRODUCTS[1].heroImage,
-    features: ["사주상담", "스토리상담", "뮤직비디오"],
+    features: ["사주상담", "스토리상담", "인생곡 제작"],
   },
   {
     id: "saju-song",
@@ -87,7 +87,7 @@ const EASY_ITEMS = [
   {
     href: LIFE_SONG_PRODUCTS[1].href,
     title: "프리미엄 인생곡",
-    description: "사주상담부터 노래, 영상까지 함께합니다",
+    description: "사주상담부터 이야기, 노래까지 함께합니다",
     price: formatPriceFrom(LIFE_SONG_PRODUCTS[1].priceFrom),
   },
   {

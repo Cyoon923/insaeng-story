@@ -15,7 +15,7 @@ const PROGRAMS = [
     id: "premium",
     href: "/products/premium",
     title: "프리미엄 인생곡",
-    desc: "사주상담, 스토리상담, 인생곡, 뮤직비디오까지 함께 진행합니다.",
+    desc: "사주상담, 스토리상담, 인생곡 제작까지 함께 진행합니다.",
     cta: "자세히 보기",
     image: "/images/photo-program-premium.webp",
   },

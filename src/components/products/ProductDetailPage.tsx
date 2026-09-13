@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ChevronRight, MessageCircle, Music, Clapperboard, Star } from "lucide-react";
+import { ChevronRight, MessageCircle, Music, Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/Button";
@@ -212,5 +212,4 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
 export const STORY_FEATURES: ProductFeature[] = [
   { icon: <MessageCircle className="h-5 w-5" />, label: "스토리상담", sub: "인생 이야기" },
   { icon: <Music className="h-5 w-5" />, label: "인생곡 제작", sub: "맞춤 음악" },
-  { icon: <Clapperboard className="h-5 w-5" />, label: "뮤직비디오", sub: "영상 제작" },
 ];
