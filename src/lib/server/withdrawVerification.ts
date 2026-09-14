@@ -14,6 +14,11 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { readData, writeData } from "@/lib/server/store";
+import {
+  consumeVerification,
+  deleteVerification,
+  putToken,
+} from "@/lib/server/verificationCodes";
 import type { SocialProvider } from "@/lib/server/socialLink";
 
 const COOKIE = "withdraw_verify";
@@ -123,10 +128,10 @@ export async function createWithdrawVerification(input: {
 
   const token = createToken();
   const issuedAt = Date.now();
-  const data = await readData();
-  if (previous) delete data.codes[storageKey(previous)];
-  data.codes[storageKey(token)] = {
-    // VerificationCode.code는 문자열이라 그대로 쓴다. 구조를 바꾸지 않기 위해서다.
+  if (previous) await deleteVerification(storageKey(previous));
+  await putToken({
+    storageKey: storageKey(token),
+    // 저장 칸이 문자열 하나라 그대로 쓴다. 구조를 바꾸지 않기 위해서다.
     code: JSON.stringify({
       userId: input.userId,
       provider: input.provider,
@@ -135,8 +140,7 @@ export async function createWithdrawVerification(input: {
       issuedAt,
     }),
     expiresAt: issuedAt + TTL_MS,
-  };
-  await writeData(data);
+  });
 
   store.set(COOKIE, token, {
     httpOnly: true,
@@ -161,22 +165,11 @@ export async function consumeWithdrawVerification(): Promise<WithdrawVerificatio
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
 
-  const key = storageKey(token);
-  const data = await readData();
-  const saved = data.codes[key];
-  if (!saved) {
-    // 저장된 값이 없으면 쓸 것도 없다. 쿠키만 정리한다.
-    store.delete(COOKIE);
-    return null;
-  }
-
-  delete data.codes[key];
-  // 저장이 끝난 뒤에 쿠키를 지운다. 먼저 지우면 저장에 실패했을 때
+  // 지우면서 값을 받는다. 저장이 끝난 뒤에 쿠키를 지운다. 먼저 지우면 저장에 실패했을 때
   // 본인 확인을 처음부터 다시 해야 하고, 소셜 연결을 이미 끊은 뒤라면 그 길마저 막힌다.
-  await writeData(data);
+  const saved = await consumeVerification(storageKey(token), null);
   store.delete(COOKIE);
-
-  if (saved.expiresAt < Date.now()) return null;
+  if (!saved) return null;
   return parseVerification(saved.code, saved.expiresAt);
 }
 
@@ -187,8 +180,11 @@ export async function clearWithdrawVerification(): Promise<void> {
   store.delete(COOKIE);
   if (!token) return;
 
-  const data = await readData();
   const key = storageKey(token);
+  await deleteVerification(key);
+
+  // 전환 이전에 남은 값도 함께 치운다.
+  const data = await readData();
   if (!data.codes[key]) return;
   delete data.codes[key];
   await writeData(data);

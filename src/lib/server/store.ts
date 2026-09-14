@@ -410,6 +410,129 @@ export async function writeData(data: AppData): Promise<void> {
 }
 
 /**
+ * 함께 소비할 인증 1건. code가 null이면 키가 있고 만료되지 않았는지만 본다.
+ * 토큰 자체가 비밀인 경우(소셜 연결 대기)는 키 소유가 곧 인증이라 code를 보지 않는다.
+ */
+export interface VerificationConsume {
+  storageKey: string;
+  code: string | null;
+}
+
+/**
+ * 저장 결과. version 충돌은 예전처럼 AppStoreConflictError로 던지고,
+ * 인증 값이 맞지 않는 경우만 값으로 돌려준다.
+ * 둘을 섞으면 400이어야 할 응답이 409가 되어 뜻이 달라진다.
+ */
+export type VerificationConsumeResult = { ok: true } | { ok: false; reason: "code" };
+
+/** VALUES 목록. 인자 형이 정해지지 않아 그냥 두면 안 되므로 text로 박아 둔다. */
+function consumeValues(consumes: VerificationConsume[], start: number): string {
+  return consumes
+    .map((_, index) => `($${start + index * 2}::text, $${start + index * 2 + 1}::text)`)
+    .join(", ");
+}
+
+/**
+ * 넘긴 인증이 모두 살아 있는지 세는 조건식. 이 값이 건수와 같을 때만 저장한다.
+ * 만료된 값은 세지 않으므로 지나간 코드로는 통과할 수 없다.
+ */
+function consumeMatchCount(consumes: VerificationConsume[], start: number): string {
+  return `
+    SELECT count(*) FROM verification_codes v
+    JOIN (VALUES ${consumeValues(consumes, start)}) AS w(k, c) ON v.storage_key = w.k
+    WHERE (w.c IS NULL OR v.code = w.c) AND v.expires_at > now()
+  `;
+}
+
+/**
+ * app_store 저장과 인증 소비를 한 문장으로 묶는다.
+ *
+ * 예전에는 인증번호가 app_store JSONB 안에 있어서 CAS 하나로 원자성이 따라왔다.
+ * 테이블을 나눈 뒤에도 같은 보장을 유지하려고 양쪽을 서로의 조건으로 건다.
+ *
+ * - 인증이 하나라도 맞지 않으면 CAS의 WHERE가 거짓이 되어 app_store도 바뀌지 않는다.
+ * - CAS가 0행이면 DELETE의 EXISTS가 거짓이 되어 인증도 지워지지 않는다.
+ * - 여러 건이면 count가 건수와 같을 때만 통과하므로 하나만 지워지는 일이 없다.
+ *
+ * 넘긴 data 안에서 이미 지운 app_store.codes 값(전환 이전 인증)은 같은 JSONB에 들어 있어
+ * 이 문장 하나로 함께 확정된다. 따로 묶을 것이 없다.
+ */
+export async function writeDataWithVerificationConsumes(
+  data: AppData,
+  consumes: VerificationConsume[],
+): Promise<VerificationConsumeResult> {
+  const sql = sqlClient();
+  // 소비할 것이 없거나 파일 모드면 예전 저장 그대로다.
+  if (!sql || consumes.length === 0) {
+    await writeData(data);
+    return { ok: true };
+  }
+
+  await ensureTable(sql);
+  await ensureAppStoreVersion(sql);
+  const expected = expectedVersionOf(data);
+  const n = casParamCount(expected);
+  const first = n + 1;
+  const countParam = n + consumes.length * 2 + 1;
+  const match = consumeMatchCount(consumes, first);
+
+  // 행이 아직 없는 경우에도 인증 선조건을 걸어야 해서 casHead를 그대로 쓰지 못한다.
+  const head =
+    expected === NO_ROW_VERSION
+      ? `
+        WITH cas AS (
+          INSERT INTO app_store (id, data, version)
+          SELECT 1, $1::jsonb, 0
+          WHERE (${match}) = $${countParam}
+          ON CONFLICT (id) DO NOTHING
+          RETURNING version
+        )
+      `
+      : `
+        WITH cas AS (
+          UPDATE app_store
+          SET data = $1::jsonb, version = version + 1
+          WHERE id = 1 AND version = $2 AND (${match}) = $${countParam}
+          RETURNING version
+        )
+      `;
+
+  const rows = (await sql.query(
+    `
+      ${head},
+      consumed AS (
+        DELETE FROM verification_codes v
+        USING (VALUES ${consumeValues(consumes, first)}) AS w(k, c)
+        WHERE v.storage_key = w.k
+          AND (w.c IS NULL OR v.code = w.c)
+          AND v.expires_at > now()
+          AND EXISTS (SELECT 1 FROM cas)
+        RETURNING v.storage_key
+      )
+      SELECT
+        (SELECT version FROM cas) AS version,
+        (SELECT count(*) FROM consumed) AS consumed,
+        (${match}) AS matched
+    `,
+    [
+      ...casParams(data, expected),
+      ...consumes.flatMap((item) => [item.storageKey, item.code]),
+      consumes.length,
+    ],
+  )) as { version: string | number | null; matched: string | number }[];
+
+  const row = rows[0];
+  if (row && row.version !== null && row.version !== undefined) {
+    advanceVersion(data, Number(row.version));
+    return { ok: true };
+  }
+  // 저장되지 않은 이유를 가른다. 인증이 모자랐으면 인증 실패,
+  // 인증은 멀쩡한데 저장이 안 됐으면 다른 요청과 겹친 것이다.
+  if (Number(row?.matched ?? 0) < consumes.length) return { ok: false, reason: "code" };
+  throw new AppStoreConflictError();
+}
+
+/**
  * 주문 저장. JSONB 전체와 orders 테이블에 같은 주문을 한 트랜잭션으로 남긴다.
  * 아직 읽기는 JSONB만 쓰므로, 테이블 쪽은 이후 전환을 위한 이중 기록이다.
  * DATABASE_URL이 없으면 기존 파일 저장으로 그대로 위임한다.

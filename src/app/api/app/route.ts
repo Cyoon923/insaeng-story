@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -17,6 +17,16 @@ import {
   scrubUserRecords,
 } from "@/lib/server/withdrawAccount";
 import { consumeWithdrawVerification } from "@/lib/server/withdrawVerification";
+import {
+  checkCode,
+  consumeVerification,
+  deleteIssuedCode,
+  issueCode,
+  putToken,
+  readVerification,
+} from "@/lib/server/verificationCodes";
+import type { VerificationSource } from "@/lib/server/verificationCodes";
+import type { VerificationConsume } from "@/lib/server/store";
 import { unlinkKakao } from "@/lib/server/kakaoUnlink";
 import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
@@ -85,29 +95,31 @@ function cooldownLeft(saved: VerificationCode | undefined): number {
 }
 
 /**
- * 인증번호 검증 결과. 실패 시 시도 횟수를 올리고, 5회를 넘기면 코드를 폐기한다.
- * 저장은 호출한 쪽에서 writeData로 마무리한다.
+ * 회원 변경과 함께 지울 인증 목록을 만든다.
+ *
+ * 새 테이블에 있는 값은 저장 문장에 함께 묶어 보내고,
+ * 전환 이전에 발급되어 app_store.codes에 남아 있는 값은 여기서 바로 지운다.
+ * 후자는 어차피 같은 JSONB 안에 있어서 저장 한 번이면 함께 확정된다.
  */
-function checkCode(data: AppData, key: string, input: string): { ok: boolean; error?: string } {
-  const saved = data.codes[key];
-  if (!saved || saved.expiresAt < Date.now()) {
+function consumeList(
+  data: AppData,
+  key: string,
+  code: string | null,
+  source: VerificationSource,
+): VerificationConsume[] {
+  if (source === "legacy") {
     delete data.codes[key];
-    return { ok: false, error: "인증번호가 올바르지 않습니다." };
+    return [];
   }
-  if (saved.code === input && input.length > 0) {
-    delete data.codes[key];
-    return { ok: true };
-  }
-  const attempts = (saved.attempts ?? 0) + 1;
-  if (attempts >= MAX_VERIFY_ATTEMPTS) {
-    delete data.codes[key];
-    return {
-      ok: false,
-      error: "인증 시도 횟수를 초과했습니다. 인증번호를 다시 받아주세요.",
-    };
-  }
-  saved.attempts = attempts;
-  return { ok: false, error: "인증번호가 올바르지 않습니다." };
+  return [{ storageKey: key, code }];
+}
+
+/** 인증이 그사이 바뀌어 저장하지 못한 경우. 기존 문구를 그대로 쓴다. */
+function verificationExpired() {
+  return NextResponse.json(
+    { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
+    { status: 400 },
+  );
 }
 
 /**
@@ -247,16 +259,28 @@ async function handlePost(request: Request) {
     }
 
     // 같은 번호(또는 이메일)로의 재발송은 60초 쿨다운을 둔다.
-    const wait = cooldownLeft(data.codes[key]);
-    if (wait > 0) {
+    // 전환 이전에 발급된 값이 남아 있을 수 있어 그쪽 쿨다운도 함께 본다.
+    const legacyWait = cooldownLeft(data.codes[key]);
+    if (legacyWait > 0) {
       return NextResponse.json(
-        { error: `인증번호는 ${wait}초 후에 다시 요청할 수 있습니다.` },
+        { error: `인증번호는 ${legacyWait}초 후에 다시 요청할 수 있습니다.` },
         { status: 429 },
       );
     }
 
-    data.codes[key] = { code, expiresAt: now + CODE_TTL_MS, attempts: 0, sentAt: now };
-    await writeData(data);
+    const issued = await issueCode({
+      storageKey: key,
+      code,
+      expiresAt: now + CODE_TTL_MS,
+      sentAt: now,
+      cooldownMs: RESEND_COOLDOWN_MS,
+    });
+    if (!issued.ok) {
+      return NextResponse.json(
+        { error: `인증번호는 ${issued.waitSeconds}초 후에 다시 요청할 수 있습니다.` },
+        { status: 429 },
+      );
+    }
 
     // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
     // 개발에서는 발송하지 않고 devCode로 확인한다. 이메일 채널은 아직 발송 연동이 없다.
@@ -278,12 +302,7 @@ async function handlePost(request: Request) {
         // 단, 그 사이 다른 요청이 같은 key에 새 코드를 저장했을 수 있으므로
         // code와 sentAt이 모두 이번 요청이 저장한 값일 때만 삭제한다.
         // 실패 원인(SOLAPI 응답·키 정보)은 응답에 담지 않는다.
-        const current = await readData();
-        const saved = current.codes[key];
-        if (saved && saved.code === code && saved.sentAt === now) {
-          delete current.codes[key];
-          await writeData(current);
-        }
+        await deleteIssuedCode({ storageKey: key, code, sentAt: now });
         return NextResponse.json(
           { error: "인증번호를 보내지 못했습니다. 잠시 후 다시 시도해 주세요." },
           { status: 502 },
@@ -303,9 +322,17 @@ async function handlePost(request: Request) {
       if (!isValidEmail(email)) {
         return NextResponse.json({ error: "이메일을 입력해 주세요." }, { status: 400 });
       }
-      const checked = checkCode(data, emailCodeKey(email), String(body.code ?? ""));
+      const emailKey = emailCodeKey(email);
+      const emailCode = String(body.code ?? "");
+      const checked = await checkCode({
+        data,
+        storageKey: emailKey,
+        input: emailCode,
+        maxAttempts: MAX_VERIFY_ATTEMPTS,
+      });
       if (!checked.ok) {
-        await writeData(data);
+        // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
+        if (checked.source === "legacy") await writeData(data);
         return NextResponse.json({ error: checked.error }, { status: 400 });
       }
 
@@ -318,7 +345,14 @@ async function handlePost(request: Request) {
         data.notifications[user.id] = [];
         data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
       }
-      await writeData(data);
+      // 인증 소비와 회원 생성을 한 문장으로 확정한다.
+      const saved = await writeDataWithVerificationConsumes(
+        data,
+        consumeList(data, emailKey, emailCode, checked.source),
+      );
+      if (!saved.ok) {
+        return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+      }
       await setUserId(user.id);
       return NextResponse.json({ ok: true, user: toPublicUser(user) });
     }
@@ -327,12 +361,17 @@ async function handlePost(request: Request) {
     if (phone.length < 10) {
       return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
     }
-    if (action === "login") {
-      const checked = checkCode(data, phone, String(body.code ?? ""));
-      if (!checked.ok) {
-        await writeData(data);
-        return NextResponse.json({ error: checked.error }, { status: 400 });
-      }
+    const loginCode = String(body.code ?? "");
+    const checked = await checkCode({
+      data,
+      storageKey: phone,
+      input: loginCode,
+      maxAttempts: MAX_VERIFY_ATTEMPTS,
+    });
+    if (!checked.ok) {
+      // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
+      if (checked.source === "legacy") await writeData(data);
+      return NextResponse.json({ error: checked.error }, { status: 400 });
     }
     let user = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (!user) {
@@ -343,7 +382,14 @@ async function handlePost(request: Request) {
       data.notifications[user.id] = [];
       data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
     }
-    await writeData(data);
+    // 인증 소비와 회원 생성을 한 문장으로 확정한다.
+    const saved = await writeDataWithVerificationConsumes(
+      data,
+      consumeList(data, phone, loginCode, checked.source),
+    );
+    if (!saved.ok) {
+      return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+    }
     await setUserId(user.id);
     return NextResponse.json({ ok: true, user: toPublicUser(user) });
   }
@@ -359,21 +405,32 @@ async function handlePost(request: Request) {
     if (!isVerifyPurpose(purpose)) {
       return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
     }
-    const checked = checkCode(data, phone, String(body.code ?? ""));
+    const verifyInput = String(body.code ?? "");
+    const checked = await checkCode({
+      data,
+      storageKey: phone,
+      input: verifyInput,
+      maxAttempts: MAX_VERIFY_ATTEMPTS,
+    });
     if (!checked.ok) {
-      await writeData(data);
+      // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
+      if (checked.source === "legacy") await writeData(data);
       return NextResponse.json({ error: checked.error }, { status: 400 });
     }
+    // 인증만 확인하는 단계라 app_store와 묶을 것이 없다. 그 자리에서 소비한다.
+    if (checked.source === "legacy") {
+      delete data.codes[phone];
+      await writeData(data);
+    } else {
+      await consumeVerification(phone, verifyInput);
+    }
+    const tokenExpiresAt = Date.now() + 15 * 60 * 1000;
 
     if (purpose === "link") {
       // 소셜 계정 연결: 이미 가입된 번호도 인증할 수 있어야 한다.
       // 여기서는 본인 확인만 하고, 실제 연결은 completeSocialLink에서 한다.
       const linkToken = generateToken();
-      data.codes[`link:${phone}`] = {
-        code: linkToken,
-        expiresAt: Date.now() + 15 * 60 * 1000,
-      };
-      await writeData(data);
+      await putToken({ storageKey: `link:${phone}`, code: linkToken, expiresAt: tokenExpiresAt });
       // 소셜 정보는 서버 대기 상태에만 있으므로 토큰 외에는 아무것도 돌려주지 않는다.
       return NextResponse.json({ ok: true, linkToken });
     }
@@ -382,7 +439,6 @@ async function handlePost(request: Request) {
     if (existing) {
       if (purpose === "signup") {
         // 회원가입 진입점에서는 기존 회원을 로그인시키지 않고 로그인 화면으로 보낸다.
-        await writeData(data);
         return NextResponse.json(
           { error: "이미 가입된 번호입니다. 비밀번호로 로그인해 주세요." },
           { status: 400 },
@@ -391,16 +447,15 @@ async function handlePost(request: Request) {
       if (purpose === "reset") {
         // 비밀번호 재설정: 인증만 확인하고 단기 토큰을 발급한다.
         const resetToken = generateToken();
-        data.codes[`reset:${phone}`] = {
+        await putToken({
+          storageKey: `reset:${phone}`,
           code: resetToken,
-          expiresAt: Date.now() + 15 * 60 * 1000,
-        };
-        await writeData(data);
+          expiresAt: tokenExpiresAt,
+        });
         return NextResponse.json({ ok: true, isNew: false, resetToken });
       }
     }
     if (purpose === "reset") {
-      await writeData(data);
       return NextResponse.json(
         { error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." },
         { status: 400 },
@@ -409,11 +464,11 @@ async function handlePost(request: Request) {
 
     // 신규 회원: 가입 단계에서 인증을 다시 요구하지 않도록 단기 토큰만 발급한다.
     const signupToken = generateToken();
-    data.codes[`signup:${phone}`] = {
+    await putToken({
+      storageKey: `signup:${phone}`,
       code: signupToken,
-      expiresAt: Date.now() + 15 * 60 * 1000,
-    };
-    await writeData(data);
+      expiresAt: tokenExpiresAt,
+    });
     return NextResponse.json({ ok: true, isNew: true, signupToken });
   }
 
@@ -421,12 +476,9 @@ async function handlePost(request: Request) {
     const phone = normalizePhone(String(body.phone ?? ""));
     const token = String(body.signupToken ?? "");
     const key = `signup:${phone}`;
-    const saved = data.codes[key];
-    if (!saved || saved.expiresAt < Date.now() || saved.code !== token) {
-      return NextResponse.json(
-        { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
-        { status: 400 },
-      );
+    const saved = await readVerification(key, data);
+    if (!saved || saved.code !== token) {
+      return verificationExpired();
     }
     const name = String(body.name ?? "").trim();
     if (!name) {
@@ -450,8 +502,11 @@ async function handlePost(request: Request) {
     // 인증 사이에 같은 번호로 가입된 경우 중복 생성하지 않는다.
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
-      delete data.codes[key];
-      await writeData(data);
+      const committed = await writeDataWithVerificationConsumes(
+        data,
+        consumeList(data, key, token, saved.source),
+      );
+      if (!committed.ok) return verificationExpired();
       await setUserId(existing.id);
       return NextResponse.json({ ok: true, isNew: false, user: toPublicUser(existing) });
     }
@@ -466,8 +521,11 @@ async function handlePost(request: Request) {
     data.wishlists[user.id] = [];
     data.notifications[user.id] = [];
     data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
-    delete data.codes[key];
-    await writeData(data);
+    const committed = await writeDataWithVerificationConsumes(
+      data,
+      consumeList(data, key, token, saved.source),
+    );
+    if (!committed.ok) return verificationExpired();
     await setUserId(user.id);
     return NextResponse.json({ ok: true, isNew: true, user: toPublicUser(user) });
   }
@@ -488,8 +546,8 @@ async function handlePost(request: Request) {
 
     // A. 휴대폰 인증 토큰 확인.
     const key = `link:${phone}`;
-    const saved = data.codes[key];
-    if (!linkToken || !saved || saved.expiresAt < Date.now() || saved.code !== linkToken) {
+    const saved = await readVerification(key, data);
+    if (!linkToken || !saved || saved.code !== linkToken) {
       return expired();
     }
 
@@ -512,8 +570,8 @@ async function handlePost(request: Request) {
     // C. 실제 쓰기 직전에 최신 상태를 다시 읽는다.
     //    그 사이 같은 번호나 같은 소셜 ID가 먼저 등록됐을 수 있다.
     const latest = await readData();
-    const latestToken = latest.codes[key];
-    if (!latestToken || latestToken.expiresAt < Date.now() || latestToken.code !== linkToken) {
+    const latestToken = await readVerification(key, latest);
+    if (!latestToken || latestToken.code !== linkToken) {
       return expired();
     }
     // 대기 상태도 최신 내용에서 다시 확인한다. 그사이 다른 요청이 소비했을 수 있다.
@@ -558,11 +616,14 @@ async function handlePost(request: Request) {
       registerUser(latest, user);
     }
 
-    // 링크 토큰과 소셜 대기 상태를 연결과 같은 저장 한 번으로 함께 소비한다.
+    // 링크 토큰과 소셜 대기 상태를 연결과 같은 저장 한 문장으로 함께 소비한다.
     // 저장이 실패하면 셋 다 그대로 남아 처음부터 다시 하지 않아도 된다.
-    delete latest.codes[key];
-    delete latest.codes[latestClaim.storageKey];
-    await writeData(latest);
+    const committed = await writeDataWithVerificationConsumes(latest, [
+      ...consumeList(latest, key, linkToken, latestToken.source),
+      // 대기 상태는 키 자체가 비밀 토큰이라 값까지 맞춰 볼 필요가 없다.
+      ...consumeList(latest, latestClaim.storageKey, null, latestClaim.source),
+    ]);
+    if (!committed.ok) return expired();
 
     // 저장이 끝난 뒤에만 대기 상태 쿠키를 지운다.
     await clearSocialLinkCookie();
@@ -611,12 +672,9 @@ async function handlePost(request: Request) {
     const phone = normalizePhone(String(body.phone ?? ""));
     const token = String(body.resetToken ?? "");
     const key = `reset:${phone}`;
-    const saved = data.codes[key];
-    if (!saved || saved.expiresAt < Date.now() || saved.code !== token) {
-      return NextResponse.json(
-        { error: "인증이 만료되었습니다. 처음부터 다시 진행해 주세요." },
-        { status: 400 },
-      );
+    const saved = await readVerification(key, data);
+    if (!saved || saved.code !== token) {
+      return verificationExpired();
     }
     const password = String(body.password ?? "");
     if (password.length < 6) {
@@ -630,8 +688,11 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: "가입되지 않은 번호입니다." }, { status: 400 });
     }
     user.passwordHash = hashPassword(password);
-    delete data.codes[key];
-    await writeData(data);
+    const committed = await writeDataWithVerificationConsumes(
+      data,
+      consumeList(data, key, token, saved.source),
+    );
+    if (!committed.ok) return verificationExpired();
     return NextResponse.json({ ok: true });
   }
 

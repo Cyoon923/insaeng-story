@@ -12,6 +12,13 @@
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { readData, writeData } from "@/lib/server/store";
+import {
+  consumeVerification,
+  deleteVerification,
+  putToken,
+  readVerification,
+} from "@/lib/server/verificationCodes";
+import type { VerificationSource } from "@/lib/server/verificationCodes";
 import type { AppData } from "@/lib/types/app";
 
 const COOKIE = "social_link";
@@ -83,17 +90,16 @@ export async function createSocialLinkPending(input: {
   nickname?: string;
 }): Promise<string> {
   const token = createToken();
-  const data = await readData();
-  data.codes[storageKey(token)] = {
-    // VerificationCode.code는 문자열이라 그대로 쓴다. 구조를 바꾸지 않기 위해서다.
+  await putToken({
+    storageKey: storageKey(token),
+    // 저장 칸이 문자열 하나라 그대로 쓴다. 구조를 바꾸지 않기 위해서다.
     code: JSON.stringify({
       provider: input.provider,
       providerUserId: input.providerUserId,
       nickname: (input.nickname ?? "").trim(),
     }),
     expiresAt: Date.now() + PENDING_TTL_MS,
-  };
-  await writeData(data);
+  });
 
   const store = await cookies();
   store.set(COOKIE, token, {
@@ -116,8 +122,8 @@ export async function readSocialLinkPending(): Promise<SocialLinkPending | null>
   if (!token) return null;
 
   const data = await readData();
-  const saved = data.codes[storageKey(token)];
-  if (!saved || saved.expiresAt < Date.now()) return null;
+  const saved = await readVerification(storageKey(token), data);
+  if (!saved) return null;
   return parsePending(saved.code, saved.expiresAt);
 }
 
@@ -131,15 +137,8 @@ export async function consumeSocialLinkPending(): Promise<SocialLinkPending | nu
   store.delete(COOKIE);
   if (!token) return null;
 
-  const key = storageKey(token);
-  const data = await readData();
-  const saved = data.codes[key];
+  const saved = await consumeVerification(storageKey(token), null);
   if (!saved) return null;
-
-  delete data.codes[key];
-  await writeData(data);
-
-  if (saved.expiresAt < Date.now()) return null;
   return parsePending(saved.code, saved.expiresAt);
 }
 
@@ -149,8 +148,10 @@ export async function consumeSocialLinkPending(): Promise<SocialLinkPending | nu
  */
 export interface SocialLinkPendingClaim {
   pending: SocialLinkPending;
-  /** latest.codes에서 이 키를 지우면 대기 상태가 소비된다. */
+  /** 이 키를 지우면 대기 상태가 소비된다. */
   storageKey: string;
+  /** 값을 어디서 읽었는지. 소비 방법이 달라서 함께 들고 다닌다. */
+  source: VerificationSource;
 }
 
 /**
@@ -171,11 +172,11 @@ export async function readSocialLinkPendingForCommit(
   if (!token) return null;
 
   const key = storageKey(token);
-  const saved = data.codes[key];
-  if (!saved || saved.expiresAt < Date.now()) return null;
+  const saved = await readVerification(key, data);
+  if (!saved) return null;
 
   const pending = parsePending(saved.code, saved.expiresAt);
-  return pending ? { pending, storageKey: key } : null;
+  return pending ? { pending, storageKey: key, source: saved.source } : null;
 }
 
 /**
@@ -194,8 +195,11 @@ export async function clearSocialLinkPending(): Promise<void> {
   store.delete(COOKIE);
   if (!token) return;
 
-  const data = await readData();
   const key = storageKey(token);
+  await deleteVerification(key);
+
+  // 전환 이전에 남은 값도 함께 치운다.
+  const data = await readData();
   if (!data.codes[key]) return;
   delete data.codes[key];
   await writeData(data);
