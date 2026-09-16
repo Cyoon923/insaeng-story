@@ -182,7 +182,7 @@ function SignupFlow() {
     setError("");
     setLoading(true);
     try {
-      const result = await postApp({ action: "sendCode", channel: "phone", phone });
+      const result = await postApp({ action: "sendCode", purpose: "signup", phone });
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
     } catch (err) {

@@ -41,7 +41,7 @@ export function VerifyPhoneForm({ provider }: { provider: SocialProvider }) {
     setError("");
     setLoading(true);
     try {
-      const result = await postApp({ action: "sendCode", channel: "phone", phone });
+      const result = await postApp({ action: "sendCode", purpose: "link", phone });
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
     } catch (err) {

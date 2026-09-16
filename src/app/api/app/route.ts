@@ -79,6 +79,18 @@ function isVerifyPurpose(value: string): value is VerifyPurpose {
   return (VERIFY_PURPOSES as readonly string[]).includes(value);
 }
 
+/**
+ * 인증번호를 담는 키. 목적마다 다른 키를 쓰므로 가입용으로 받은 번호를
+ * 비밀번호 재설정에 쓰는 식의 교차 사용이 되지 않는다.
+ *
+ * 앞에 code:를 붙이는 이유는 인증 뒤에 발급하는 단기 토큰이 이미
+ * `signup:<phone>` 같은 키를 쓰고 있어서다. 접두사가 없으면 가입 흐름에서
+ * 인증번호와 토큰이 같은 키를 놓고 서로 덮어쓴다.
+ */
+function verifyCodeKey(purpose: VerifyPurpose, phone: string): string {
+  return `code:${purpose}:${phone}`;
+}
+
 /** 예측 가능한 Math.random 대신 crypto 기반으로 6자리 인증번호를 만든다. */
 function generateCode(): string {
   return String(randomInt(0, 1000000)).padStart(6, "0");
@@ -329,12 +341,17 @@ async function handlePost(request: Request) {
     const code = DEV_CODE ?? generateCode();
     const now = Date.now();
 
-    // 인증번호는 휴대폰으로만 보낸다. 저장 키는 정규화한 번호 그 자체다.
+    // 인증번호는 휴대폰으로만 보낸다.
     const phone = normalizePhone(String(body.phone ?? ""));
-    const key = phone.length >= 10 ? phone : null;
-    if (!key) {
+    if (phone.length < 10) {
       return NextResponse.json({ error: "연락처를 확인해 주세요." }, { status: 400 });
     }
+    // 목적을 받아 두고 그 목적의 키에만 저장한다. 목적이 없거나 모르는 값이면 받지 않는다.
+    const purpose = String(body.purpose ?? "");
+    if (!isVerifyPurpose(purpose)) {
+      return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    }
+    const key = verifyCodeKey(purpose, phone);
 
     // 같은 번호로의 재발송은 60초 쿨다운을 둔다.
     // 전환 이전에 발급된 값이 남아 있을 수 있어 그쪽 쿨다운도 함께 본다.
@@ -404,9 +421,11 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
     }
     const verifyInput = String(body.code ?? "");
+    // 인증번호는 목적별 키에 들어 있다. 발급한 목적과 같아야 찾을 수 있다.
+    const codeKey = verifyCodeKey(purpose, phone);
     const checked = await checkCode({
       data,
-      storageKey: phone,
+      storageKey: codeKey,
       input: verifyInput,
       maxAttempts: MAX_VERIFY_ATTEMPTS,
     });
@@ -417,10 +436,10 @@ async function handlePost(request: Request) {
     }
     // 인증만 확인하는 단계라 app_store와 묶을 것이 없다. 그 자리에서 소비한다.
     if (checked.source === "legacy") {
-      delete data.codes[phone];
+      delete data.codes[codeKey];
       await writeData(data);
     } else {
-      await consumeVerification(phone, verifyInput);
+      await consumeVerification(codeKey, verifyInput);
     }
     const tokenExpiresAt = Date.now() + 15 * 60 * 1000;
 

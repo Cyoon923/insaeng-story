@@ -173,7 +173,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await postApp({ action: "sendCode", channel: "phone", phone: resetPhone });
+      const result = await postApp({ action: "sendCode", purpose: "reset", phone: resetPhone });
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
       setResetStep("code");
@@ -256,7 +256,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await postApp({ action: "sendCode", channel: "phone", phone: setIdPhone });
+      const result = await postApp({ action: "sendCode", purpose: "setid", phone: setIdPhone });
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
       setSetIdStep("code");
