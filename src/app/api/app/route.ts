@@ -72,7 +72,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
 
 /** 실제 사용 중인 verifyCode 목적만 허용한다. */
-const VERIFY_PURPOSES = ["signup", "reset", "link"] as const;
+const VERIFY_PURPOSES = ["signup", "reset", "link", "setid"] as const;
 type VerifyPurpose = (typeof VERIFY_PURPOSES)[number];
 
 function isVerifyPurpose(value: string): value is VerifyPurpose {
@@ -234,6 +234,73 @@ const RESERVED_LOGIN_IDS = new Set([
   "undefined",
   "me",
 ]);
+
+/**
+ * 아이디 형식·예약어 검사. signupComplete와 setLoginId가 같은 규칙을 쓰도록 여기에 모은다.
+ * 오류 문구도 함께 두어 두 경로의 안내가 갈라지지 않게 한다.
+ */
+function checkLoginIdInput(
+  raw: unknown,
+): { ok: true; loginId: string } | { ok: false; error: string } {
+  const loginId = normalizeLoginId(String(raw ?? ""));
+  if (!loginId) {
+    return { ok: false, error: "아이디를 입력해 주세요." };
+  }
+  if (!isValidLoginId(loginId)) {
+    return {
+      ok: false,
+      error: "아이디는 영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.",
+    };
+  }
+  if (RESERVED_LOGIN_IDS.has(loginId)) {
+    return { ok: false, error: "사용할 수 없는 아이디입니다. 다른 아이디를 입력해 주세요." };
+  }
+  return { ok: true, loginId };
+}
+
+/**
+ * 이미 쓰고 있는 아이디인지. 활성 회원만 보고, 아이디가 없는 회원(소셜 가입)은
+ * 빈 값끼리 겹치지 않도록 뺀다. 탈퇴 회원은 아이디가 지워지므로 자연히 빠진다.
+ *
+ * 인자로 받은 loginId는 normalizeLoginId를 통과한 값이어야 한다.
+ */
+function isLoginIdTaken(data: AppData, loginId: string): boolean {
+  return data.users.some(
+    (item) =>
+      isActiveUser(item) &&
+      normalizeLoginId(item.loginId ?? "") !== "" &&
+      normalizeLoginId(item.loginId ?? "") === loginId,
+  );
+}
+
+/**
+ * 아이디를 설정할 수 있는 회원인지. 토큰 발급(verifyCode)과 최종 저장(setLoginId)이
+ * 같은 판정을 쓰도록 여기에 모은다. 저장 시점에 다시 부르는 것이 중요하다.
+ * 인증과 저장 사이에 다른 요청이 아이디를 먼저 넣었을 수 있기 때문이다.
+ */
+function findLoginIdTarget(
+  data: AppData,
+  phone: string,
+): { ok: true; user: User } | { ok: false; error: string } {
+  const target = data.users.find(
+    (item) => isActiveUser(item) && normalizePhone(item.phone) === phone,
+  );
+  if (!target) {
+    return { ok: false, error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." };
+  }
+  if (!target.passwordHash) {
+    // 소셜 전용 계정. 아이디·비밀번호 로그인을 쓰지 않으므로 아이디를 만들지 않는다.
+    return {
+      ok: false,
+      error: "카카오·네이버로 가입하신 계정입니다. 간편 로그인을 이용해 주세요.",
+    };
+  }
+  if (normalizeLoginId(target.loginId ?? "") !== "") {
+    // 이미 있는 아이디를 번호 인증만으로 바꿀 수 있으면 계정을 뺏기는 길이 된다.
+    return { ok: false, error: "이미 아이디가 설정되어 있습니다. 아이디로 로그인해 주세요." };
+  }
+  return { ok: true, user: target };
+}
 
 export async function POST(request: Request) {
   try {
@@ -457,6 +524,22 @@ async function handlePost(request: Request) {
       return NextResponse.json({ ok: true, linkToken });
     }
 
+    if (purpose === "setid") {
+      // 아이디 없이 가입했던 기존 일반회원이 아이디를 정하는 흐름.
+      // 자격을 여기서 한 번 보고, 저장하는 setLoginId에서 같은 판정을 다시 한다.
+      const target = findLoginIdTarget(data, phone);
+      if (!target.ok) {
+        return NextResponse.json({ error: target.error }, { status: 400 });
+      }
+      const loginIdToken = generateToken();
+      await putToken({
+        storageKey: `setid:${phone}`,
+        code: loginIdToken,
+        expiresAt: tokenExpiresAt,
+      });
+      return NextResponse.json({ ok: true, loginIdToken });
+    }
+
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
       if (purpose === "signup") {
@@ -522,25 +605,11 @@ async function handlePost(request: Request) {
     }
 
     // 일반 가입은 아이디가 반드시 있어야 한다. 카카오·네이버 가입은 이 경로를 쓰지 않는다.
-    const loginId = normalizeLoginId(String(body.loginId ?? ""));
-    if (!loginId) {
-      return NextResponse.json({ error: "아이디를 입력해 주세요." }, { status: 400 });
+    const checkedLoginId = checkLoginIdInput(body.loginId);
+    if (!checkedLoginId.ok) {
+      return NextResponse.json({ error: checkedLoginId.error }, { status: 400 });
     }
-    if (!isValidLoginId(loginId)) {
-      return NextResponse.json(
-        {
-          error:
-            "아이디는 영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.",
-        },
-        { status: 400 },
-      );
-    }
-    if (RESERVED_LOGIN_IDS.has(loginId)) {
-      return NextResponse.json(
-        { error: "사용할 수 없는 아이디입니다. 다른 아이디를 입력해 주세요." },
-        { status: 400 },
-      );
-    }
+    const loginId = checkedLoginId.loginId;
 
     // 인증 사이에 같은 번호로 가입된 경우 중복 생성하지 않는다.
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
@@ -580,19 +649,8 @@ async function handlePost(request: Request) {
       );
     }
 
-    /**
-     * 아이디 중복. 이메일과 같은 기준으로 본다.
-     * 활성 회원만 보고, 아이디가 없는 회원(소셜 가입)은 빈 값끼리 겹치지 않도록 뺀다.
-     * 탈퇴 회원은 여기서 빠지므로 같은 아이디를 다시 쓸 수 있다. 다만 탈퇴 시 아이디를
-     * 비우는 처리는 아직 없어서, 아이디로 회원을 찾는 쪽이 생기면 활성 회원만 보아야 한다.
-     */
-    const loginIdTaken = data.users.some(
-      (item) =>
-        isActiveUser(item) &&
-        normalizeLoginId(item.loginId ?? "") !== "" &&
-        normalizeLoginId(item.loginId ?? "") === loginId,
-    );
-    if (loginIdTaken) {
+    // 아이디 중복. 이메일과 같은 기준(활성 회원·빈 값 제외)으로 본다.
+    if (isLoginIdTaken(data, loginId)) {
       return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 400 });
     }
 
@@ -778,6 +836,48 @@ async function handlePost(request: Request) {
       consumeList(data, key, token, saved.source),
     );
     if (!committed.ok) return verificationExpired();
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "setLoginId") {
+    /**
+     * 아이디 없이 가입했던 기존 일반회원의 아이디 설정.
+     * 새 회원을 만들지 않고, 이미 있는 회원의 비어 있는 loginId만 채운다.
+     *
+     * 토큰은 setid 전용 키를 쓴다. 비밀번호 재설정(reset:)이나 가입(signup:),
+     * 소셜 연결(link:) 토큰으로는 이 경로를 통과할 수 없다.
+     */
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const token = String(body.loginIdToken ?? "");
+    const key = `setid:${phone}`;
+    const saved = await readVerification(key, data);
+    if (!saved || saved.code !== token) {
+      return verificationExpired();
+    }
+
+    // 인증할 때 봤던 자격을 저장 직전에 다시 본다. 그사이 탈퇴하거나
+    // 다른 요청이 아이디를 먼저 넣었을 수 있다.
+    const target = findLoginIdTarget(data, phone);
+    if (!target.ok) {
+      return NextResponse.json({ error: target.error }, { status: 400 });
+    }
+
+    const checkedLoginId = checkLoginIdInput(body.loginId);
+    if (!checkedLoginId.ok) {
+      return NextResponse.json({ error: checkedLoginId.error }, { status: 400 });
+    }
+    const loginId = checkedLoginId.loginId;
+    if (isLoginIdTaken(data, loginId)) {
+      return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 400 });
+    }
+
+    target.user.loginId = loginId;
+    const committed = await writeDataWithVerificationConsumes(
+      data,
+      consumeList(data, key, token, saved.source),
+    );
+    if (!committed.ok) return verificationExpired();
+    // 로그인은 시키지 않는다. 설정한 아이디로 직접 로그인하게 안내한다.
     return NextResponse.json({ ok: true });
   }
 

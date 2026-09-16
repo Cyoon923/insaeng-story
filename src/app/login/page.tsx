@@ -12,8 +12,14 @@ import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
  * 로그인은 휴대폰 번호 + 비밀번호로 진행한다.
  * SMS 인증은 회원가입(/signup)과 아래 비밀번호 재설정에서만 사용한다.
  */
-type Mode = "login" | "reset";
+type Mode = "login" | "reset" | "setId";
 type ResetStep = "phone" | "code" | "password" | "done";
+/** 아이디 설정 단계. 비밀번호 찾기와 같은 모양으로 진행한다. */
+type SetIdStep = "phone" | "code" | "loginId" | "done";
+
+/** 아이디 형식. 서버(store.ts의 isValidLoginId) 및 회원가입 화면과 같은 규칙이다. */
+const LOGIN_ID_RULE = /^[a-z][a-z0-9_]{3,19}$/;
+const LOGIN_ID_HELP = "영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)을 사용할 수 있습니다.";
 
 /**
  * 이 브라우저에서 마지막에 고른 로그인 방식. 안내 표시에만 쓰고 서버로 보내지 않는다.
@@ -59,6 +65,11 @@ export default function LoginPage() {
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+
+  const [setIdStep, setSetIdStep] = useState<SetIdStep>("phone");
+  const [setIdPhone, setSetIdPhone] = useState("");
+  const [loginIdToken, setLoginIdToken] = useState("");
+  const [newLoginId, setNewLoginId] = useState("");
 
   const [error, setError] = useState("");
   const [recentLogin, setRecentLogin] = useState<RecentLoginMethod | null>(null);
@@ -107,6 +118,18 @@ export default function LoginPage() {
     setResetToken("");
     setNewPassword("");
     setNewPasswordConfirm("");
+    setError("");
+  };
+
+  const openSetId = () => {
+    setMode("setId");
+    setSetIdStep("phone");
+    setSetIdPhone(phone);
+    setCode("");
+    setSentCode("");
+    setCodeSent(false);
+    setLoginIdToken("");
+    setNewLoginId("");
     setError("");
   };
 
@@ -225,6 +248,90 @@ export default function LoginPage() {
     backToLogin();
   };
 
+  const sendSetIdCode = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await postApp({ action: "sendCode", channel: "phone", phone: setIdPhone });
+      setSentCode(result.devCode ?? "");
+      setCodeSent(true);
+      setSetIdStep("code");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifySetIdCode = async () => {
+    setError("");
+    // 뒤로 왔다가 다시 진행하는 경우: 이미 받은 토큰을 그대로 쓴다.
+    if (loginIdToken) {
+      setSetIdStep("loginId");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await postApp({
+        action: "verifyCode",
+        purpose: "setid",
+        phone: setIdPhone,
+        code,
+      });
+      setLoginIdToken(result.loginIdToken);
+      setSetIdStep("loginId");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "인증에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitLoginId = async () => {
+    setError("");
+    const trimmedLoginId = newLoginId.trim().toLowerCase();
+    if (!trimmedLoginId) {
+      setError("아이디를 입력해 주세요.");
+      return;
+    }
+    if (!LOGIN_ID_RULE.test(trimmedLoginId)) {
+      setError("아이디는 영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await postApp({
+        action: "setLoginId",
+        phone: setIdPhone,
+        loginIdToken,
+        loginId: trimmedLoginId,
+      });
+      setSetIdStep("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "아이디를 설정하지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 아이디 설정 뒤로가기: 직전 단계로만 이동하고 입력값은 유지한다.
+  const goBackSetId = () => {
+    setError("");
+    if (setIdStep === "done") {
+      setSetIdStep("loginId");
+      return;
+    }
+    if (setIdStep === "loginId") {
+      setSetIdStep("code");
+      return;
+    }
+    if (setIdStep === "code") {
+      setSetIdStep("phone");
+      return;
+    }
+    backToLogin();
+  };
+
   const startKakao = () => {
     // 카카오 인가 화면(외부 도메인)으로 넘어가는 서버 리다이렉트라
     // 클라이언트 라우터가 아니라 문서 전체를 이동시켜야 한다.
@@ -240,6 +347,169 @@ export default function LoginPage() {
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/auth/naver/start";
   };
+
+  if (mode === "setId") {
+    return (
+      <MobileShell bgClass="bg-[#FFFFFF]">
+        <AppHeader variant="page" title="아이디 설정" showActions={false} onBack={goBackSetId} />
+
+        {setIdStep === "done" ? (
+          <section className="px-4 py-10 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#403A49] text-[36px] text-white">
+              ✓
+            </div>
+            <h2 className="mt-6 font-serif text-[24px] font-bold text-[#403A49]">
+              아이디를 설정했습니다
+            </h2>
+            <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+              이제 설정한 아이디로 로그인해 주세요.
+            </p>
+            <button
+              type="button"
+              onClick={backToLogin}
+              className="mt-8 flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white"
+            >
+              로그인하러 가기
+            </button>
+          </section>
+        ) : (
+          <>
+            <section className="px-4 pb-2 pt-6">
+              <h2 className="font-serif text-[24px] font-bold leading-snug text-[#403A49]">
+                {setIdStep === "phone"
+                  ? "휴대폰 인증이 필요합니다"
+                  : setIdStep === "code"
+                    ? "인증번호를 입력해 주세요"
+                    : "사용할 아이디를 정해주세요"}
+              </h2>
+              <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
+                {setIdStep === "phone"
+                  ? "이전에 가입하신 분은 아이디를 새로 설정해 주세요."
+                  : setIdStep === "code"
+                    ? `${setIdPhone} 로 보낸 인증번호를 입력해 주세요.`
+                    : "앞으로 이 아이디로 로그인합니다."}
+              </p>
+            </section>
+
+            <div className="space-y-5 px-4 pb-8">
+              {setIdStep === "phone" ? (
+                <>
+                  <div>
+                    <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+                      휴대폰 번호 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={setIdPhone}
+                        onChange={(e) => setSetIdPhone(e.target.value)}
+                        placeholder="예) 010-1234-5678"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={sendSetIdCode}
+                        disabled={loading}
+                        className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
+                      >
+                        인증번호
+                      </button>
+                    </div>
+                  </div>
+
+                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+                </>
+              ) : setIdStep === "code" ? (
+                <>
+                  <div>
+                    <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+                      인증번호 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="숫자 6자리"
+                      className={inputClass}
+                    />
+                    {sentCode ? (
+                      <p className="mt-2 text-[14px] text-[#403A49]">
+                        인증번호 {sentCode} 를 입력해 주세요.
+                      </p>
+                    ) : codeSent ? (
+                      <p className="mt-2 text-[14px] text-[#403A49]">
+                        인증번호를 문자로 보냈습니다.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+
+                  <button
+                    type="button"
+                    onClick={verifySetIdCode}
+                    disabled={loading}
+                    className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
+                  >
+                    인증하고 계속하기
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label
+                      htmlFor="login-set-id"
+                      className="mb-2 block text-[16px] font-medium text-[#3d2b1f]"
+                    >
+                      아이디 <span className="text-red-500">*</span>
+                    </label>
+                    {/* autoCapitalize·autoCorrect는 휴대폰 자판이 첫 글자를 대문자로 바꾸거나
+                        철자를 고치지 않게 한다. 대문자 입력 자체는 막지 않고 서버가 소문자로 맞춘다. */}
+                    <input
+                      id="login-set-id"
+                      type="text"
+                      value={newLoginId}
+                      onChange={(e) => setNewLoginId(e.target.value)}
+                      placeholder="아이디를 입력해 주세요"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      autoComplete="username"
+                      inputMode="text"
+                      className={inputClass}
+                    />
+                    <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
+                      {LOGIN_ID_HELP}
+                    </p>
+                  </div>
+
+                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+
+                  <button
+                    type="button"
+                    onClick={submitLoginId}
+                    disabled={loading}
+                    className="flex h-16 w-full items-center justify-center rounded-xl bg-[#403A49] text-[18px] font-bold text-white disabled:opacity-40"
+                  >
+                    아이디 설정하기
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={goBackSetId}
+                className="flex h-14 w-full items-center justify-center rounded-xl border border-[#403A49] bg-[#FFFFFF] text-[16px] font-semibold text-[#403A49]"
+              >
+                {setIdStep === "phone" ? "로그인으로 돌아가기" : "이전"}
+              </button>
+            </div>
+          </>
+        )}
+      </MobileShell>
+    );
+  }
 
   if (mode === "reset") {
     return (
@@ -461,6 +731,14 @@ export default function LoginPage() {
         </form>
 
         <div className="flex items-center justify-center gap-4 text-[16px]">
+          <button
+            type="button"
+            onClick={openSetId}
+            className="font-semibold text-[#6B6570] underline underline-offset-4"
+          >
+            아이디 설정
+          </button>
+          <span className="text-[#e8dfd4]">|</span>
           <button
             type="button"
             onClick={openReset}
