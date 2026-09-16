@@ -526,3 +526,33 @@ export async function findOpenChatInquiryByGuestTokenHash(
 ): Promise<ChatInquiry | null> {
   return findOpenChatInquiryBy("guest_token_hash", guestTokenHash);
 }
+
+/**
+ * 탈퇴한 회원의 문의방에서 직접 개인정보(이름·연락처)만 익명화한다.
+ *
+ * 행을 지우지 않는다. 상담 이력·상태·날짜는 운영 기록이라 그대로 둔다.
+ * chat_inquiry_messages는 건드리지 않는다. 상담 내용 자체이기 때문이다.
+ * user_id도 남긴다. 주문·결제와 같은 방침이다.
+ *
+ * 대상은 user_id가 일치하는 행뿐이다. user_id가 없는 비회원 문의는 매칭되지 않는다.
+ * 대체할 이름은 인자로 받는다. withdrawAccount.ts를 import하면 순환 의존이 되기 때문이다
+ * (호출부: src/app/api/app/route.ts의 withdrawAccount 액션).
+ * DATABASE_URL이 없는 환경에는 이 테이블 자체가 없으므로 아무것도 하지 않는다.
+ */
+export async function scrubChatInquiriesByUser(
+  userId: string,
+  withdrawnName: string,
+): Promise<void> {
+  if (!userId) return;
+  const sql = sqlClient();
+  if (!sql) return;
+  await ensureTable(sql);
+  await sql.query(
+    `
+      UPDATE chat_inquiries
+      SET name = $2, phone = '', updated_at = now()
+      WHERE user_id = $1
+    `,
+    [userId, withdrawnName],
+  );
+}

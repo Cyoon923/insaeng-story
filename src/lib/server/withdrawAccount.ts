@@ -195,6 +195,13 @@ export function scrubUserRecords(data: AppData, userId: string): void {
   for (const item of data.consultations) {
     if (item.userId === userId) item.details = pickKeptDetails(item.details);
   }
+  // 무료상담·이벤트 접수 문의. 이름·연락처만 지우고 문의 내용과 userId는 그대로 둔다.
+  // userId가 없는 비회원 접수는 대상이 아니다.
+  for (const inquiry of data.inquiries) {
+    if (inquiry.userId !== userId) continue;
+    inquiry.name = WITHDRAWN_NAME;
+    inquiry.phone = "";
+  }
 }
 
 /** 탈퇴하지 않은 회원인지. 세션이 남아 있어도 탈퇴 회원은 로그인으로 인정하지 않는다. */

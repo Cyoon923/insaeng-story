@@ -15,8 +15,10 @@ import {
   isActiveUser,
   KEPT_DETAIL_KEYS,
   scrubUserRecords,
+  WITHDRAWN_NAME,
 } from "@/lib/server/withdrawAccount";
 import { consumeWithdrawVerification } from "@/lib/server/withdrawVerification";
+import { scrubChatInquiriesByUser } from "@/lib/server/chatInquiries";
 import {
   checkCode,
   consumeVerification,
@@ -1056,7 +1058,21 @@ async function handlePost(request: Request) {
       paymentSnapshotScrubbed = false;
     }
 
-    // 9) 마지막으로 세션을 끊는다. 탈퇴 자체는 6)의 writeData에서 이미 확정됐다.
+    /**
+     * 9) 상담원 문의방의 이름·연락처 익명화. chat_inquiries는 app_store가 아니라
+     *    별도 테이블이라 6)의 writeData로는 닿지 않는다.
+     *    메시지 본문과 user_id는 건드리지 않는다. 7)·8)과 같이 실패해도 되돌리지 않는다.
+     */
+    let chatInquiriesScrubbed = true;
+    try {
+      await scrubChatInquiriesByUser(withdrawnUserId, WITHDRAWN_NAME);
+    } catch {
+      chatInquiriesScrubbed = false;
+      // 운영자가 같은 함수를 다시 실행해 정리해야 한다. 개인정보는 로그에 남기지 않는다.
+      console.error("[withdraw] chat_inquiries scrub failed");
+    }
+
+    // 10) 마지막으로 세션을 끊는다. 탈퇴 자체는 6)의 writeData에서 이미 확정됐다.
     await clearUserId();
     return NextResponse.json({
       ok: true,
@@ -1064,7 +1080,8 @@ async function handlePost(request: Request) {
       orderDetailsScrubbed,
       paymentSnapshotScrubbed,
       // 남은 사본이 있으면 운영자 확인이 필요하다는 사실을 응답에도 남긴다.
-      needsManualCleanup: !orderDetailsScrubbed || !paymentSnapshotScrubbed,
+      needsManualCleanup:
+        !orderDetailsScrubbed || !paymentSnapshotScrubbed || !chatInquiriesScrubbed,
     });
   }
 
