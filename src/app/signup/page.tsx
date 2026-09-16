@@ -20,6 +20,13 @@ const inputClass =
 
 const EMAIL_DOMAINS = ["naver.com", "gmail.com", "daum.net", "kakao.com", "직접입력"];
 
+/**
+ * 아이디 형식. 서버(store.ts의 isValidLoginId)와 같은 규칙이다.
+ * 대문자로 입력해도 서버가 소문자로 맞추므로 여기서는 소문자로 바꿔서 확인만 한다.
+ */
+const LOGIN_ID_RULE = /^[a-z][a-z0-9_]{3,19}$/;
+const LOGIN_ID_HELP = "영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)을 사용할 수 있습니다.";
+
 function AgreeRow({
   checked,
   onChange,
@@ -117,6 +124,7 @@ function SignupFlow() {
   const [agreePrivacy, setAgreePrivacy] = useState(resumed?.agreePrivacy ?? false);
   const [agreeMarketing, setAgreeMarketing] = useState(resumed?.agreeMarketing ?? false);
 
+  const [loginId, setLoginId] = useState("");
   const [name, setName] = useState("");
   const [emailLocal, setEmailLocal] = useState("");
   const [emailDomain, setEmailDomain] = useState(EMAIL_DOMAINS[0]);
@@ -205,6 +213,15 @@ function SignupFlow() {
 
   const submit = async () => {
     setError("");
+    const trimmedLoginId = loginId.trim().toLowerCase();
+    if (!trimmedLoginId) {
+      setError("아이디를 입력해 주세요.");
+      return;
+    }
+    if (!LOGIN_ID_RULE.test(trimmedLoginId)) {
+      setError("아이디는 영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.");
+      return;
+    }
     if (!name.trim()) {
       setError("이름을 입력해 주세요.");
       return;
@@ -228,6 +245,7 @@ function SignupFlow() {
         action: "signupComplete",
         phone,
         signupToken,
+        loginId: trimmedLoginId,
         name: name.trim(),
         email,
         password,
@@ -431,6 +449,28 @@ function SignupFlow() {
 
       <div className="space-y-5 px-4 pb-8">
         <div>
+          <label htmlFor="signup-login-id" className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
+            아이디 <span className="text-red-500">*</span>
+          </label>
+          {/* autoCapitalize·autoCorrect는 휴대폰 자판이 첫 글자를 대문자로 바꾸거나
+              철자를 고치지 않게 한다. 대문자 입력 자체는 막지 않고 서버가 소문자로 맞춘다. */}
+          <input
+            id="signup-login-id"
+            type="text"
+            value={loginId}
+            onChange={(e) => setLoginId(e.target.value)}
+            placeholder="아이디를 입력해 주세요"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="username"
+            inputMode="text"
+            className={inputClass}
+          />
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">{LOGIN_ID_HELP}</p>
+        </div>
+
+        <div>
           <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
             이름 <span className="text-red-500">*</span>
           </label>
@@ -452,7 +492,7 @@ function SignupFlow() {
               type="text"
               value={emailLocal}
               onChange={(e) => setEmailLocal(e.target.value)}
-              placeholder="아이디"
+              placeholder="이메일 앞부분"
               className={inputClass}
             />
             <span className="shrink-0 text-[17px] text-[#6B6570]">@</span>

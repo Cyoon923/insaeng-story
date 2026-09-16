@@ -90,8 +90,8 @@ export async function findWithdrawBlockers(
 
 /**
  * 회원의 개인정보를 지우고 탈퇴 상태로 만든다. 회원 행 자체는 남는다.
- * 재식별과 로그인에 쓰이는 값(연락처·이메일·비밀번호·소셜 id)을 모두 비우므로
- * 같은 번호나 같은 소셜 계정으로 다시 가입할 수 있다.
+ * 재식별과 로그인에 쓰이는 값(아이디·연락처·이메일·비밀번호·소셜 id)을 모두 비우므로
+ * 같은 아이디나 같은 번호, 같은 소셜 계정으로 다시 가입할 수 있다.
  *
  * 후기(reviews)와 주문·상담·결제 기록은 이 함수가 건드리지 않는다.
  * 저장은 호출한 쪽에서 writeData로 마무리한다.
@@ -101,6 +101,7 @@ export function anonymizeWithdrawnUser(data: AppData, user: User): User {
   user.phone = "";
   user.email = "";
   user.name = WITHDRAWN_NAME;
+  delete user.loginId;
   delete user.passwordHash;
   delete user.kakaoId;
   delete user.naverId;

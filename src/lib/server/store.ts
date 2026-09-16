@@ -1272,11 +1272,14 @@ export function nowId(): string {
  * 신규 회원의 기본값. 로그인 경로(연락처 / 이메일 / 카카오)가 여러 곳이라
  * 같은 모양의 회원이 만들어지도록 이 함수 하나만 사용한다.
  */
-export function emptyUser(phone = "", name = "", email = ""): User {
+export function emptyUser(phone = "", name = "", email = "", loginId = ""): User {
   return {
     id: nowId(),
     phone: phone ? formatPhone(phone) : "",
     email: email ? normalizeEmail(email) : "",
+    // 값을 주지 않으면 필드를 만들지 않는다. 소셜 회원처럼 아이디가 없는 회원과
+    // 빈 문자열만 가진 회원이 뒤섞이지 않게 하기 위해서다.
+    ...(loginId ? { loginId: normalizeLoginId(loginId) } : {}),
     name,
     gender: "",
     birth: "",
@@ -1326,6 +1329,28 @@ export function normalizeEmail(email: string): string {
 
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+/**
+ * 일반 로그인 아이디의 비교 기준. 대소문자를 구분하지 않으므로
+ * 저장할 때도 찾을 때도 이 함수를 통과한 값만 쓴다. normalizeEmail과 같은 방식이다.
+ */
+export function normalizeLoginId(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * 아이디로 쓸 수 있는 값인지. 판정은 normalizeLoginId를 거친 값을 기준으로 한다.
+ *
+ * - 4~20자
+ * - 첫 글자는 영문 소문자
+ * - 나머지는 영문 소문자·숫자·밑줄
+ *
+ * 첫 글자를 영문으로 제한하면 숫자만으로 된 아이디가 함께 막혀
+ * 연락처처럼 보이는 값이 아이디가 되지 않는다.
+ */
+export function isValidLoginId(value: string): boolean {
+  return /^[a-z][a-z0-9_]{3,19}$/.test(normalizeLoginId(value));
 }
 
 export function emailCodeKey(email: string): string {

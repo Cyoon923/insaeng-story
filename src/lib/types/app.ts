@@ -18,6 +18,12 @@ export interface User {
   bloodType: string;
   points: number;
   createdAt: string;
+  /**
+   * 일반 로그인에 쓰는 아이디. 내부 식별자인 id와는 완전히 별개의 값이다.
+   * 소문자로 정규화해 저장한다(store.ts의 normalizeLoginId).
+   * 카카오·네이버 회원은 없이도 존재할 수 있어 선택 항목이다.
+   */
+  loginId?: string;
   /** scrypt 해시(`salt:hash`). 가입 시에만 설정되며 기존 회원에는 없다. */
   passwordHash?: string;
   /** 마케팅 정보 수신 동의(선택 항목). */

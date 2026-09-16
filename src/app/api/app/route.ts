@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, normalizeLoginId, isValidLoginId, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -214,6 +214,26 @@ export async function GET() {
     myReviews: myReviews(data, userId),
   });
 }
+
+/**
+ * 아이디로 쓸 수 없는 값. 관리자 사칭과 시스템 예약어를 막는 최소 목록이다.
+ * 비교는 normalizeLoginId를 거친 소문자 값으로 한다.
+ */
+const RESERVED_LOGIN_IDS = new Set([
+  "admin",
+  "administrator",
+  "root",
+  "system",
+  "master",
+  "sajulog",
+  "insaengstory",
+  "help",
+  "support",
+  "guest",
+  "null",
+  "undefined",
+  "me",
+]);
 
 export async function POST(request: Request) {
   try {
@@ -501,6 +521,27 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: "이메일을 확인해 주세요." }, { status: 400 });
     }
 
+    // 일반 가입은 아이디가 반드시 있어야 한다. 카카오·네이버 가입은 이 경로를 쓰지 않는다.
+    const loginId = normalizeLoginId(String(body.loginId ?? ""));
+    if (!loginId) {
+      return NextResponse.json({ error: "아이디를 입력해 주세요." }, { status: 400 });
+    }
+    if (!isValidLoginId(loginId)) {
+      return NextResponse.json(
+        {
+          error:
+            "아이디는 영문자로 시작하는 4~20자의 영문, 숫자, 밑줄(_)만 사용할 수 있습니다.",
+        },
+        { status: 400 },
+      );
+    }
+    if (RESERVED_LOGIN_IDS.has(loginId)) {
+      return NextResponse.json(
+        { error: "사용할 수 없는 아이디입니다. 다른 아이디를 입력해 주세요." },
+        { status: 400 },
+      );
+    }
+
     // 인증 사이에 같은 번호로 가입된 경우 중복 생성하지 않는다.
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
@@ -539,8 +580,24 @@ async function handlePost(request: Request) {
       );
     }
 
+    /**
+     * 아이디 중복. 이메일과 같은 기준으로 본다.
+     * 활성 회원만 보고, 아이디가 없는 회원(소셜 가입)은 빈 값끼리 겹치지 않도록 뺀다.
+     * 탈퇴 회원은 여기서 빠지므로 같은 아이디를 다시 쓸 수 있다. 다만 탈퇴 시 아이디를
+     * 비우는 처리는 아직 없어서, 아이디로 회원을 찾는 쪽이 생기면 활성 회원만 보아야 한다.
+     */
+    const loginIdTaken = data.users.some(
+      (item) =>
+        isActiveUser(item) &&
+        normalizeLoginId(item.loginId ?? "") !== "" &&
+        normalizeLoginId(item.loginId ?? "") === loginId,
+    );
+    if (loginIdTaken) {
+      return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 400 });
+    }
+
     const user: User = {
-      ...emptyUser(phone, name, email),
+      ...emptyUser(phone, name, email, loginId),
       passwordHash: hashPassword(password),
       marketingAgreed: Boolean(body.marketingAgreed),
     };
