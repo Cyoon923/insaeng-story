@@ -272,6 +272,10 @@ export default function AdminPage() {
   const [chatReplySending, setChatReplySending] = useState(false);
   const [chatReplyError, setChatReplyError] = useState("");
   const [chatStatusSaving, setChatStatusSaving] = useState(false);
+  // 재접수 중인 결제의 주문번호. 같은 버튼을 두 번 누르지 못하게 하는 데 쓴다.
+  const [recommitting, setRecommitting] = useState("");
+  // 재접수 결과 안내. 주문번호별로 한 줄씩 보여 준다.
+  const [recommitMessage, setRecommitMessage] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -399,6 +403,54 @@ export default function AdminPage() {
     setPassword("");
     setLoading(true);
     await loadData();
+  }
+
+  /**
+   * 승인은 끝났는데 주문이 연결되지 않은 결제를 다시 접수한다.
+   *
+   * 실제 판단은 전부 서버(/api/admin/payments/recommit)가 한다.
+   * 이 화면은 주문번호만 보내고 결과 문구를 보여 줄 뿐이며, 실패해도 다시 부르지 않는다.
+   * 자동 재시도는 같은 건을 여러 번 처리하려는 시도가 되어 위험하다.
+   */
+  async function handleRecommit(merchantOrderId: string) {
+    // 이미 처리 중이면 아무것도 하지 않는다. 같은 버튼을 두 번 누른 경우다.
+    if (recommitting) return;
+    setRecommitting(merchantOrderId);
+    setRecommitMessage((current) => ({ ...current, [merchantOrderId]: "" }));
+    try {
+      const res = await fetch("/api/admin/payments/recommit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantOrderId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        // recommitted(새로 접수) / linkedOnly(연결만) / alreadyLinked(이미 끝남) 모두 성공이다.
+        setRecommitMessage((current) => ({
+          ...current,
+          [merchantOrderId]: data.alreadyLinked
+            ? "이미 접수가 연결되어 있습니다."
+            : data.linkedOnly
+              ? "기존 접수에 결제를 연결했습니다."
+              : "재접수했습니다.",
+        }));
+        // 목록을 다시 불러 처리된 건이 빠지게 한다.
+        await loadData();
+        return;
+      }
+      setRecommitMessage((current) => ({
+        ...current,
+        [merchantOrderId]:
+          data.reason ?? data.error ?? "재접수하지 못했습니다. 결제 상태를 확인해 주세요.",
+      }));
+    } catch {
+      setRecommitMessage((current) => ({
+        ...current,
+        [merchantOrderId]: "재접수 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      }));
+    } finally {
+      setRecommitting("");
+    }
   }
 
   async function handleLogout() {
@@ -813,6 +865,19 @@ export default function AdminPage() {
                 <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
                   결제는 완료되었으나 주문 접수가 완료되지 않았습니다.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => handleRecommit(item.merchantOrderId)}
+                  disabled={recommitting === item.merchantOrderId}
+                  className="mt-3 h-11 w-full rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-50"
+                >
+                  {recommitting === item.merchantOrderId ? "처리 중..." : "재접수"}
+                </button>
+                {recommitMessage[item.merchantOrderId] ? (
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
+                    {recommitMessage[item.merchantOrderId]}
+                  </p>
+                ) : null}
               </article>
             ))}
           </div>
