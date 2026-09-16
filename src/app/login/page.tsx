@@ -9,8 +9,8 @@ import { postApp } from "@/lib/client/api";
 import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 
 /**
- * 로그인은 휴대폰 번호 + 비밀번호로 진행한다.
- * SMS 인증은 회원가입(/signup)과 아래 비밀번호 재설정에서만 사용한다.
+ * 로그인은 아이디 + 비밀번호로 진행한다.
+ * SMS 인증은 회원가입(/signup)과 아래 비밀번호 재설정·아이디 설정에서만 사용한다.
  */
 type Mode = "login" | "reset" | "setId";
 type ResetStep = "phone" | "code" | "password" | "done";
@@ -53,7 +53,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
 
-  const [phone, setPhone] = useState("");
+  const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
 
   const [resetStep, setResetStep] = useState<ResetStep>("phone");
@@ -112,7 +112,7 @@ export default function LoginPage() {
   const openReset = () => {
     setMode("reset");
     setResetStep("phone");
-    setResetPhone(phone);
+    setResetPhone("");
     setCode("");
     setSentCode("");
     setResetToken("");
@@ -124,7 +124,7 @@ export default function LoginPage() {
   const openSetId = () => {
     setMode("setId");
     setSetIdStep("phone");
-    setSetIdPhone(phone);
+    setSetIdPhone("");
     setCode("");
     setSentCode("");
     setCodeSent(false);
@@ -153,7 +153,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await postApp({ action: "passwordLogin", phone, password });
+      await postApp({
+        action: "passwordLogin",
+        loginId: loginId.trim().toLowerCase(),
+        password,
+      });
       saveRecentLogin("password");
       // 신청 화면에서 넘어왔다면 그 자리로 되돌려 보낸다.
       router.push(nextPath || LOGIN_DEFAULT_PATH);
@@ -684,21 +688,32 @@ export default function LoginPage() {
           오신 것을 환영합니다
         </h2>
         <p className="mt-3 text-[16px] leading-relaxed text-[#6B6570]">
-          휴대폰 번호와 비밀번호로 로그인해 주세요.
+          아이디와 비밀번호로 로그인해 주세요.
         </p>
       </section>
 
       <div className="space-y-5 px-4 pb-8">
         <form onSubmit={handleLoginSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-[16px] font-medium text-[#3d2b1f]">
-              휴대폰 번호 <span className="text-red-500">*</span>
+            <label
+              htmlFor="login-id"
+              className="mb-2 block text-[16px] font-medium text-[#3d2b1f]"
+            >
+              아이디 <span className="text-red-500">*</span>
             </label>
+            {/* 휴대폰 자판이 첫 글자를 대문자로 바꾸지 않게 한다.
+                대문자 입력 자체는 막지 않고 보낼 때 소문자로 맞춘다. */}
             <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="예) 010-1234-5678"
+              id="login-id"
+              type="text"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              placeholder="아이디를 입력해 주세요"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="text"
               className={inputClass}
             />
           </div>

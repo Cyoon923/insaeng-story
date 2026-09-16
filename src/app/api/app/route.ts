@@ -781,31 +781,26 @@ async function handlePost(request: Request) {
   }
 
   if (action === "passwordLogin") {
-    // 기존 회원 로그인: SMS 없이 휴대폰 번호 + 비밀번호로 확인한다.
-    const phone = normalizePhone(String(body.phone ?? ""));
+    // 일반 회원 로그인: SMS 없이 아이디 + 비밀번호로 확인한다.
+    const loginId = normalizeLoginId(String(body.loginId ?? ""));
     const password = String(body.password ?? "");
-    if (phone.length < 10) {
-      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
+    if (!loginId) {
+      return NextResponse.json({ error: "아이디를 입력해 주세요." }, { status: 400 });
     }
     if (!password) {
       return NextResponse.json({ error: "비밀번호를 입력해 주세요." }, { status: 400 });
     }
-    const user = data.users.find((item) => normalizePhone(item.phone) === phone);
-    if (!user) {
+    // 탈퇴 회원은 아이디가 지워지지만, 판정은 isActiveUser로 명시해 둔다.
+    const user = data.users.find(
+      (item) => isActiveUser(item) && normalizeLoginId(item.loginId ?? "") === loginId,
+    );
+    if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+      // 아이디가 없는 경우와 비밀번호가 틀린 경우를 구분해서 알려주지 않는다.
+      // 구분하면 어떤 아이디가 쓰이고 있는지 밖에서 확인할 수 있다.
       return NextResponse.json(
-        { error: "가입되지 않은 번호입니다. 회원가입을 진행해 주세요." },
+        { error: "아이디 또는 비밀번호가 올바르지 않습니다." },
         { status: 400 },
       );
-    }
-    if (!user.passwordHash) {
-      // 비밀번호 이전에 만들어진 계정: 재설정으로 안내한다.
-      return NextResponse.json(
-        { error: "비밀번호가 설정되어 있지 않습니다. 비밀번호 찾기로 설정해 주세요." },
-        { status: 400 },
-      );
-    }
-    if (!verifyPassword(password, user.passwordHash)) {
-      return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 400 });
     }
     await setUserId(user.id);
     return NextResponse.json({ ok: true, user: toPublicUser(user) });
