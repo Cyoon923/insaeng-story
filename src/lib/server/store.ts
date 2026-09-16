@@ -524,6 +524,7 @@ export async function writeDataWithVerificationConsumes(
   const row = rows[0];
   if (row && row.version !== null && row.version !== undefined) {
     advanceVersion(data, Number(row.version));
+    console.log("[verification] consume success");
     return { ok: true };
   }
   // 저장되지 않은 이유를 가른다. 인증이 모자랐으면 인증 실패,

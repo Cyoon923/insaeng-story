@@ -167,7 +167,10 @@ export async function issueCode(input: {
       toSeconds(input.sentAt - input.cooldownMs),
     ],
   )) as { storage_key: string }[];
-  if (rows[0]) return { ok: true };
+  if (rows[0]) {
+    console.log("[verification] issue success");
+    return { ok: true };
+  }
 
   // 저장되지 않았다면 쿨다운이 남아 있다는 뜻이다. 남은 초를 다시 읽어 알려 준다.
   const current = (await sql.query(
@@ -308,7 +311,10 @@ export async function consumeVerification(
       `,
       [storageKey, expectedCode],
     )) as CodeRow[];
-    if (rows[0]) return toRecord(rows[0]);
+    if (rows[0]) {
+      console.log("[verification] consume success");
+      return toRecord(rows[0]);
+    }
   }
 
   // fallback. 파일 모드에서는 이 경로만 쓴다.
@@ -355,6 +361,7 @@ export async function checkCode(input: {
   }
 
   if (saved.code === input.input && input.input.length > 0) {
+    console.log("[verification] check success");
     return { ok: true, source: saved.source };
   }
 
