@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, normalizeLoginId, isValidLoginId, emailCodeKey, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -325,29 +325,18 @@ async function handlePost(request: Request) {
   const data = await readData();
 
   if (action === "sendCode") {
-    const channel = String(body.channel ?? "phone");
     // 실제 SMS 연동 전까지는 개발용 고정 코드를 쓴다. 운영에서는 crypto 난수를 쓴다.
     const code = DEV_CODE ?? generateCode();
     const now = Date.now();
 
-    const key =
-      channel === "email"
-        ? (() => {
-            const email = normalizeEmail(String(body.email ?? ""));
-            return isValidEmail(email) ? emailCodeKey(email) : null;
-          })()
-        : (() => {
-            const phone = normalizePhone(String(body.phone ?? ""));
-            return phone.length >= 10 ? phone : null;
-          })();
+    // 인증번호는 휴대폰으로만 보낸다. 저장 키는 정규화한 번호 그 자체다.
+    const phone = normalizePhone(String(body.phone ?? ""));
+    const key = phone.length >= 10 ? phone : null;
     if (!key) {
-      return NextResponse.json(
-        { error: channel === "email" ? "이메일을 확인해 주세요." : "연락처를 확인해 주세요." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "연락처를 확인해 주세요." }, { status: 400 });
     }
 
-    // 같은 번호(또는 이메일)로의 재발송은 60초 쿨다운을 둔다.
+    // 같은 번호로의 재발송은 60초 쿨다운을 둔다.
     // 전환 이전에 발급된 값이 남아 있을 수 있어 그쪽 쿨다운도 함께 본다.
     const legacyWait = cooldownLeft(data.codes[key]);
     if (legacyWait > 0) {
@@ -372,8 +361,8 @@ async function handlePost(request: Request) {
     }
 
     // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
-    // 개발에서는 발송하지 않고 devCode로 확인한다. 이메일 채널은 아직 발송 연동이 없다.
-    if (IS_PRODUCTION && channel !== "email") {
+    // 개발에서는 발송하지 않고 devCode로 확인한다.
+    if (IS_PRODUCTION) {
       try {
         await sendVerificationSms(String(body.phone ?? ""), code);
       } catch (error) {
@@ -401,86 +390,6 @@ async function handlePost(request: Request) {
 
     // 운영에서는 인증번호를 응답에 절대 담지 않는다.
     return NextResponse.json(IS_PRODUCTION ? { ok: true } : { ok: true, devCode: code });
-  }
-
-  if (action === "login") {
-    const channel = String(body.channel ?? "phone");
-
-    if (action === "login" && channel === "email") {
-      const email = normalizeEmail(String(body.email ?? ""));
-      if (!isValidEmail(email)) {
-        return NextResponse.json({ error: "이메일을 입력해 주세요." }, { status: 400 });
-      }
-      const emailKey = emailCodeKey(email);
-      const emailCode = String(body.code ?? "");
-      const checked = await checkCode({
-        data,
-        storageKey: emailKey,
-        input: emailCode,
-        maxAttempts: MAX_VERIFY_ATTEMPTS,
-      });
-      if (!checked.ok) {
-        // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
-        if (checked.source === "legacy") await writeData(data);
-        return NextResponse.json({ error: checked.error }, { status: 400 });
-      }
-
-      let user = data.users.find((item) => normalizeEmail(item.email) === email);
-      if (!user) {
-        user = emptyUser("", "", email);
-        data.users.push(user);
-        data.coupons[user.id] = [welcomeCoupon()];
-        data.wishlists[user.id] = [];
-        data.notifications[user.id] = [];
-        data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
-      }
-      // 인증 소비와 회원 생성을 한 문장으로 확정한다.
-      const saved = await writeDataWithVerificationConsumes(
-        data,
-        consumeList(data, emailKey, emailCode, checked.source),
-      );
-      if (!saved.ok) {
-        return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
-      }
-      await setUserId(user.id);
-      return NextResponse.json({ ok: true, user: toPublicUser(user) });
-    }
-
-    const phone = normalizePhone(String(body.phone ?? ""));
-    if (phone.length < 10) {
-      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
-    }
-    const loginCode = String(body.code ?? "");
-    const checked = await checkCode({
-      data,
-      storageKey: phone,
-      input: loginCode,
-      maxAttempts: MAX_VERIFY_ATTEMPTS,
-    });
-    if (!checked.ok) {
-      // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
-      if (checked.source === "legacy") await writeData(data);
-      return NextResponse.json({ error: checked.error }, { status: 400 });
-    }
-    let user = data.users.find((item) => normalizePhone(item.phone) === phone);
-    if (!user) {
-      user = emptyUser(phone);
-      data.users.push(user);
-      data.coupons[user.id] = [welcomeCoupon()];
-      data.wishlists[user.id] = [];
-      data.notifications[user.id] = [];
-      data.notificationSettings[user.id] = { order: true, consult: true, notice: false };
-    }
-    // 인증 소비와 회원 생성을 한 문장으로 확정한다.
-    const saved = await writeDataWithVerificationConsumes(
-      data,
-      consumeList(data, phone, loginCode, checked.source),
-    );
-    if (!saved.ok) {
-      return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
-    }
-    await setUserId(user.id);
-    return NextResponse.json({ ok: true, user: toPublicUser(user) });
   }
 
   if (action === "verifyCode") {
