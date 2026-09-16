@@ -862,6 +862,37 @@ export async function markPaymentApproved(input: {
 }
 
 /**
+ * 이미 만들어진 주문/상담에 결제를 연결하기만 한다.
+ *
+ * 관리자 재접수에서 "주문은 있는데 payments.order_id만 비어 있는" 건에만 쓴다.
+ * 상태(status)·승인금액·pg_tid·raw는 건드리지 않는다. 승인 기록을 다시 쓰지 않는 것이
+ * 이 함수의 존재 이유다(markPaymentApproved는 raw를 통째로 덮어쓴다).
+ *
+ * 조건에 order_id IS NULL과 status = 'paid'가 들어 있어 이미 연결된 건을 바꾸지 못하고,
+ * 승인되지 않은 건에 주문을 붙일 수도 없다. 0행이면 연결하지 않았다는 뜻이다.
+ */
+export async function linkPaymentToOrder(input: {
+  merchantOrderId: string;
+  orderId: string;
+}): Promise<boolean> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET order_id = $2, updated_at = now()
+      WHERE merchant_order_id = $1
+        AND order_id IS NULL
+        AND status = 'paid'
+      RETURNING id
+    `,
+    [input.merchantOrderId, input.orderId],
+  )) as { id: string }[];
+  return Boolean(rows[0]);
+}
+
+/**
  * 승인 API를 부르기 전에 결제 1건을 선점한다.
  * 단일 UPDATE 문이라 그 자체로 원자적이다. 같은 결제에 콜백이 동시에 두 번 들어오면
  * 뒤에 온 요청은 행 잠금이 풀린 뒤 조건을 다시 평가해 0행이 되므로,
