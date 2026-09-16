@@ -786,8 +786,10 @@ async function handlePost(request: Request) {
     const has = (key: string) => Object.prototype.hasOwnProperty.call(profile, key);
 
     if (has("name")) next.name = String(profile.name ?? "");
-    if (has("phone")) next.phone = String(profile.phone ?? "");
-    if (has("email")) next.email = String(profile.email ?? "");
+    // 연락처와 이메일은 로그인 식별자다. 여기서 바꾸면 인증 없이 남의 번호를 적을 수 있고
+    // 같은 번호를 가진 회원이 둘이 되어 로그인·가입·비밀번호 찾기가 엉뚱한 계정을 찾는다.
+    // 그래서 클라이언트가 보내와도 무시하고 기존 값을 그대로 둔다.
+    // 번호 변경은 인증을 거치는 별도 흐름이 생길 때 다시 연다.
     if (has("birth")) next.birth = String(profile.birth ?? "");
     if (has("birthTime")) next.birthTime = String(profile.birthTime ?? "");
     if (has("bloodType")) next.bloodType = String(profile.bloodType ?? "");

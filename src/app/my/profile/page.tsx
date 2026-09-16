@@ -11,6 +11,10 @@ import type { User } from "@/lib/types/app";
 const inputClass =
   "h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]";
 
+/** 바꿀 수 없는 값. 읽기 전용임이 보이도록 배경만 다르게 한다. */
+const readOnlyInputClass =
+  "h-12 w-full rounded-xl border border-[#e8dfd4] bg-[#f5efe6] px-4 text-[16px] text-[#6B6570] outline-none";
+
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 /** ▼ 목록은 10분 단위. 직접 타이핑은 00~59 모두 가능하다. */
 const MINUTE_OPTIONS = ["00", "10", "20", "30", "40", "50"];
@@ -58,7 +62,7 @@ export default function ProfilePage() {
         action: "updateProfile",
         profile: {
           name,
-          phone,
+          // 연락처는 로그인에 쓰는 값이라 이 화면에서 바꾸지 않는다. 서버도 받지 않는다.
           gender,
           birth,
           birthTime: unknownTime ? "" : `${hour}:${minute}`,
@@ -102,7 +106,11 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">연락처</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+            <input type="tel" value={phone} readOnly disabled className={readOnlyInputClass} />
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[#6B6570]">
+              연락처는 로그인에 사용하는 정보라 직접 바꿀 수 없습니다. 변경이 필요하면 상담으로
+              문의해 주세요.
+            </p>
           </div>
           <div>
             <label className="mb-1.5 block text-[15px] font-medium text-[#3d2b1f]">성별</label>
