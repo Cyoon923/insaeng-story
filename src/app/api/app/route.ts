@@ -513,6 +513,32 @@ async function handlePost(request: Request) {
       return NextResponse.json({ ok: true, isNew: false, user: toPublicUser(existing) });
     }
 
+    /**
+     * 이메일은 로그인 식별자가 아니라 회원 연락정보이지만, 활성 회원 사이에서는
+     * 중복되지 않도록 관리한다.
+     *
+     * 비교는 normalizeEmail(소문자·앞뒤 공백 제거)로 맞춘다. 저장할 때도 emptyUser가
+     * 같은 함수를 쓰므로 기준이 어긋나지 않는다.
+     * 탈퇴 회원은 이메일을 비운 채 행만 남으므로(withdrawAccount의 비식별화) 대상에서 뺀다.
+     * 소셜 가입처럼 이메일이 없는 회원도 빈 문자열끼리 겹치지 않도록 함께 뺀다.
+     *
+     * 같은 phone으로 이미 User가 있는 재진입은 위에서 기존 User를 돌려주고 끝나므로,
+     * 이 검사는 새로 User를 만드는 신규 phone 가입에만 적용된다.
+     */
+    const normalizedEmail = normalizeEmail(email);
+    const emailTaken = data.users.some(
+      (item) =>
+        isActiveUser(item) &&
+        normalizeEmail(item.email ?? "") !== "" &&
+        normalizeEmail(item.email ?? "") === normalizedEmail,
+    );
+    if (emailTaken) {
+      return NextResponse.json(
+        { error: "이미 사용 중인 이메일입니다. 다른 이메일을 입력해 주세요." },
+        { status: 400 },
+      );
+    }
+
     const user: User = {
       ...emptyUser(phone, name, email),
       passwordHash: hashPassword(password),
@@ -786,10 +812,13 @@ async function handlePost(request: Request) {
     const has = (key: string) => Object.prototype.hasOwnProperty.call(profile, key);
 
     if (has("name")) next.name = String(profile.name ?? "");
-    // 연락처와 이메일은 로그인 식별자다. 여기서 바꾸면 인증 없이 남의 번호를 적을 수 있고
-    // 같은 번호를 가진 회원이 둘이 되어 로그인·가입·비밀번호 찾기가 엉뚱한 계정을 찾는다.
+    // 연락처(phone)는 본인인증·계정복구의 기준이고, 이메일은 회원 연락정보다.
+    // 일반 로그인은 앞으로 별도 ID + 비밀번호로 처리한다.
+    // 여기서 바꾸면 인증 없이 남의 번호를 적을 수 있고, 같은 번호를 가진 회원이 둘이 되어
+    // 본인인증·가입·계정복구가 엉뚱한 계정을 찾는다. 이메일도 활성 회원 간 유일하게
+    // 관리하는 값이라 검증 없이 덮어쓰면 중복이 생긴다.
     // 그래서 클라이언트가 보내와도 무시하고 기존 값을 그대로 둔다.
-    // 번호 변경은 인증을 거치는 별도 흐름이 생길 때 다시 연다.
+    // phone·email 변경은 인증을 거치는 별도 흐름이 생길 때 다시 연다.
     if (has("birth")) next.birth = String(profile.birth ?? "");
     if (has("birthTime")) next.birthTime = String(profile.birthTime ?? "");
     if (has("bloodType")) next.bloodType = String(profile.bloodType ?? "");
