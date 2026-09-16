@@ -72,7 +72,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
 
 /** 실제 사용 중인 verifyCode 목적만 허용한다. */
-const VERIFY_PURPOSES = ["signup", "reset", "link", "setid"] as const;
+const VERIFY_PURPOSES = ["signup", "reset", "link", "setid", "findid"] as const;
 type VerifyPurpose = (typeof VERIFY_PURPOSES)[number];
 
 function isVerifyPurpose(value: string): value is VerifyPurpose {
@@ -468,12 +468,38 @@ async function handlePost(request: Request) {
       return NextResponse.json({ ok: true, loginIdToken });
     }
 
+    if (purpose === "findid") {
+      /**
+       * 아이디 찾기. 인증번호는 위에서 이미 소비됐고, 여기서는 읽기만 한다.
+       * 토큰을 발급하지 않고 세션도 만들지 않는다. 뒤에 남는 동작이 없기 때문이다.
+       */
+      const target = data.users.find(
+        (item) => isActiveUser(item) && normalizePhone(item.phone) === phone,
+      );
+      if (target?.passwordHash && normalizeLoginId(target.loginId ?? "") !== "") {
+        // 본인 번호로 온 인증번호를 맞힌 사람에게만 닿는 자리다.
+        return NextResponse.json({ ok: true, loginId: normalizeLoginId(target.loginId ?? "") });
+      }
+      if (target?.passwordHash) {
+        // 아이디 없이 가입했던 회원. 임의로 만들어 주지 않고 설정 화면으로 보낸다.
+        return NextResponse.json({ ok: true, needsSetup: true });
+      }
+      // 소셜 전용·미가입·탈퇴는 구분해서 알려주지 않는다. 계정 상태를 밖에서 읽을 수 없게 한다.
+      return NextResponse.json(
+        { error: "아이디를 찾을 수 없습니다. 가입 여부를 확인해 주세요." },
+        { status: 400 },
+      );
+    }
+
     const existing = data.users.find((item) => normalizePhone(item.phone) === phone);
     if (existing) {
       if (purpose === "signup") {
         // 회원가입 진입점에서는 기존 회원을 로그인시키지 않고 로그인 화면으로 보낸다.
         return NextResponse.json(
-          { error: "이미 가입된 번호입니다. 비밀번호로 로그인해 주세요." },
+          {
+            error:
+              "이미 가입된 번호입니다. 아이디와 비밀번호로 로그인해 주세요. 아이디가 기억나지 않으면 아이디 찾기를 이용해 주세요.",
+          },
           { status: 400 },
         );
       }
