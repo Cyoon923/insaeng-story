@@ -1108,7 +1108,16 @@ export async function countPendingPaymentsByUser(userId: string): Promise<number
     `
       SELECT count(*)::int AS count
       FROM payments
-      WHERE status IN ('ready', 'processing')
+      -- processing은 승인 여부가 불확실해 시간 제한 없이 막는다.
+      -- ready는 결제창을 띄우기 전에 만들어져 이탈하면 그대로 남으므로 최근 것만 센다.
+      -- 10분은 listPaymentsNeedingReview가 쓰는 결제 지연 판단 기준을 그대로 재사용한다.
+      WHERE (
+              status = 'processing'
+              OR (
+                status = 'ready'
+                AND created_at > now() - interval '10 minutes'
+              )
+            )
         AND order_snapshot->>'userId' = $1
     `,
     [userId],
