@@ -33,6 +33,7 @@ import {
   readData,
   writeDataWithOrderForPayment,
 } from "@/lib/server/store";
+import { isActiveUser } from "@/lib/server/withdrawAccount";
 import type { CouponProduct, Order } from "@/lib/types/app";
 
 export const runtime = "nodejs";
@@ -167,7 +168,10 @@ export async function POST(request: Request) {
   const data = await readData();
   const draft = structuredClone(data);
   const draftUser = draft.users.find((item) => item.id === userId);
-  if (!draftUser) {
+  // 탈퇴한 회원의 결제는 승인하지 않는다. 결제창을 연 뒤 다른 탭에서 탈퇴했을 수 있다.
+  // 회원 행은 탈퇴해도 남으므로 존재 여부만으로는 가려낼 수 없다.
+  // 여기는 승인 API를 부르기 전이라 이 시점에 막으면 돈이 나가지 않는다.
+  if (!isActiveUser(draftUser)) {
     return failed("회원 정보를 확인하지 못했습니다.");
   }
 
@@ -290,7 +294,10 @@ export async function POST(request: Request) {
   //        쿠폰 사용·적립금 차감·추천인 적립은 여기(commit*)에서 처음 실제로 반영된다.
   const liveData = await readData();
   const liveUser = liveData.users.find((item) => item.id === userId);
-  if (!liveUser) {
+  // 승인과 이 사이에 탈퇴가 끝났을 수도 있다. 그때는 주문을 만들지 않는다.
+  // 다만 돈은 이미 승인된 뒤라 실패라고 말하지 않는다. 기존처럼 pending으로 두고
+  // paid + order_id NULL 상태를 운영자 복구 대상으로 남긴다.
+  if (!isActiveUser(liveUser)) {
     return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
   }
   // 할인 의도는 snapshot.discount가 기준이다. details의 할인 문자열로 덮이지 않게 한다.
