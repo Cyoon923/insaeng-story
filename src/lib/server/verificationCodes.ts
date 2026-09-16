@@ -105,9 +105,12 @@ export async function readVerification(
       }
       return record;
     }
+    // DB 모드에서는 verification_codes가 유일한 저장소다.
+    // 값이 없으면 없는 것으로 확정하고 app_store.codes로 내려가지 않는다.
+    return null;
   }
 
-  // fallback. 전환 이전에 발급되어 아직 살아 있는 인증만 여기서 나온다.
+  // 파일 모드 전용 경로. DATABASE_URL이 없을 때만 여기까지 온다.
   const saved = data?.codes?.[storageKey];
   if (!saved) return null;
   if (saved.expiresAt < now) return null;
@@ -315,9 +318,12 @@ export async function consumeVerification(
       console.log("[verification] consume success");
       return toRecord(rows[0]);
     }
+    // DB 모드에서는 지우지 못했으면 소비 실패로 확정한다.
+    // app_store.codes로 내려가면 관계없는 app_store version이 올라간다.
+    return null;
   }
 
-  // fallback. 파일 모드에서는 이 경로만 쓴다.
+  // 파일 모드 전용 경로. DATABASE_URL이 없을 때만 여기까지 온다.
   const data = await readData();
   const saved = data.codes[storageKey];
   if (!saved) return null;
