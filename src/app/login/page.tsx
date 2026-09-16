@@ -93,9 +93,11 @@ export default function LoginPage() {
     // 최초 진입 시 1회만 실행되며 되돌아온 실패 사유를 그대로 보여준다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(
-      reason.endsWith("_cancelled")
-        ? `${label} 로그인을 취소했습니다.`
-        : `${label} 로그인에 실패했습니다. 다시 시도해 주세요.`,
+      reason.endsWith("_logged_in")
+        ? "이미 로그인되어 있습니다. 다른 소셜 계정을 연결하려면 로그아웃 후 다시 시도해 주세요."
+        : reason.endsWith("_cancelled")
+          ? `${label} 로그인을 취소했습니다.`
+          : `${label} 로그인에 실패했습니다. 다시 시도해 주세요.`,
     );
     window.history.replaceState(null, "", "/login");
   }, []);

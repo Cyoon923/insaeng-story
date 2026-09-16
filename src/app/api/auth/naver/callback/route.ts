@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
+import {
+  LOGIN_DEFAULT_PATH,
+  LOGIN_NEXT_COOKIE,
+  SOCIAL_LINK_VERIFY_PATH,
+  safeNextPath,
+} from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
-import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import { getActiveUserId, isActiveUser } from "@/lib/server/withdrawAccount";
 import {
   createWithdrawVerification,
   OAUTH_PURPOSE_COOKIE,
@@ -9,7 +14,8 @@ import {
   WITHDRAW_PURPOSE,
   WITHDRAW_VERIFIED_PATH,
 } from "@/lib/server/withdrawVerification";
-import { emptyUser, readData, registerUser, writeData } from "@/lib/server/store";
+import { readData, writeData } from "@/lib/server/store";
+import { createSocialLinkPending } from "@/lib/server/socialLink";
 import { loginErrorUrl } from "@/lib/server/kakao";
 import {
   NAVER_STATE_COOKIE,
@@ -37,7 +43,7 @@ interface NaverUserResponse {
 
 /**
  * 네이버 인가 코드를 받아 토큰 교환 → 프로필 조회까지 마친 뒤,
- * 네이버 고유 사용자 ID로 기존 회원을 찾는다. 이미 연결된 계정이면 그대로 로그인하고,
+ * 네이버 고유 사용자 ID로 기존 활성 회원을 찾는다. 이미 연결된 계정이면 그대로 로그인하고,
  * 처음 보는 계정이면 회원을 만들지 않고 대기 상태만 남긴 뒤 휴대폰 인증 화면으로 보낸다.
  * 세션은 기존 연락처 로그인과 동일하게 setUserId() 쿠키를 그대로 쓴다.
  * 어떤 단계에서 실패하든 사용자는 /login 으로 안전하게 되돌아간다.
@@ -159,20 +165,41 @@ export async function GET(request: Request) {
   const displayName = realName || nickname;
 
   const data = await readData();
-  let user = data.users.find((item) => item.naverId === naverId);
+  const user = data.users.find((item) => isActiveUser(item) && item.naverId === naverId);
+
   if (!user) {
     /**
-     * 처음 보는 네이버 계정: 휴대폰 인증을 받지 않고 바로 회원을 만든다.
-     * 번호는 비워 둔다. 주문·상담은 신청 1단계에서 번호를 직접 받으므로 진행에 지장이 없다.
+     * 이미 로그인한 상태에서 처음 보는 네이버 계정으로 들어온 경우.
+     * 대기 상태를 만들기 전에 여기서 끝낸다. 만들어 두면 휴대폰 인증까지 진행한 뒤
+     * 마지막 단계(completeSocialLink)에서야 막혀 헛걸음이 된다.
+     * 세션은 그대로 두고 회원도 만들지 않으며 연결도 하지 않는다.
+     */
+    if (await getActiveUserId()) {
+      return fail("naver_logged_in");
+    }
+
+    /**
+     * 처음 보는 네이버 계정: 여기서는 회원을 만들지 않는다.
+     * provider 정보만 서버 대기 상태에 남기고 휴대폰 인증 화면으로 보낸다.
+     * 인증을 마치면 그 번호의 회원에 연결하거나, 없을 때만 회원을 하나 만든다.
+     * (연결·생성은 completeSocialLink가 한다)
      *
      * 같은 번호나 같은 이름의 기존 회원과 자동으로 합치지 않는다.
-     * 계정 연결은 본인이 원할 때 completeSocialLink(휴대폰 인증)로만 한다.
+     * access token은 대기 상태에 담지 않는다.
      */
-    user = registerUser(data, {
-      ...emptyUser("", displayName || "네이버 회원"),
-      naverId,
+    await createSocialLinkPending({
+      provider: "naver",
+      providerUserId: naverId,
+      nickname: displayName,
     });
-  } else if (displayName && !user.name) {
+    const pendingResponse = NextResponse.redirect(new URL(SOCIAL_LINK_VERIFY_PATH, origin));
+    pendingResponse.cookies.delete(NAVER_STATE_COOKIE);
+    pendingResponse.cookies.delete(OAUTH_PURPOSE_COOKIE);
+    // 복귀 경로는 연결을 마친 뒤 completeSocialLink가 읽는다. 여기서 지우지 않는다.
+    return pendingResponse;
+  }
+
+  if (displayName && !user.name) {
     // 이미 이름이 있는 회원은 건드리지 않는다. 본인이 고친 이름을 로그인이 덮으면 안 된다.
     user.name = displayName;
   }

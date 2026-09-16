@@ -630,6 +630,25 @@ async function handlePost(request: Request) {
   if (action === "completeSocialLink") {
     // SMS 인증을 마친 휴대폰 번호를 기준으로 소셜 계정을 연결한다.
     // provider / providerUserId는 클라이언트에서 받지 않고 서버 대기 상태에서만 읽는다.
+
+    /**
+     * 이미 로그인한 상태라면 여기서 멈춘다. 이 경로는 인증한 번호의 회원으로
+     * 세션을 만들기 때문에, 그대로 두면 로그인 중인 계정이 다른 계정으로 바뀐다.
+     * 지금 로그인한 회원에게 소셜을 붙이는 기능은 따로 만들기 전까지 열지 않는다.
+     *
+     * 판정은 회원을 찾거나 만들기 전에 한다. 쓰기 뒤에 막으면 계정이 이미 바뀐 뒤가 된다.
+     * 현재 세션은 건드리지 않는다. 로그아웃시키지도, 다른 회원으로 바꾸지도 않는다.
+     */
+    if (await getActiveUserId()) {
+      return NextResponse.json(
+        {
+          error:
+            "이미 로그인되어 있습니다. 로그아웃한 뒤 다시 시도해 주세요.",
+        },
+        { status: 400 },
+      );
+    }
+
     const phone = normalizePhone(String(body.phone ?? ""));
     const linkToken = String(body.linkToken ?? "");
     if (phone.length < 10) {
@@ -679,9 +698,15 @@ async function handlePost(request: Request) {
     const pending = latestClaim.pending;
 
     // 같은 소셜 ID가 이미 다른 회원에게 붙어 있으면 연결하지 않는다.
-    const ownedBySocial = latest.users.find((item) => item[providerKey] === pending.providerUserId);
+    // 탈퇴 회원은 보지 않는다. 탈퇴하면 소셜 id가 지워지지만, 어떤 이유로 남아 있더라도
+    // 그 값 때문에 살아 있는 회원의 연결이 영영 막히면 안 된다.
+    const ownedBySocial = latest.users.find(
+      (item) => isActiveUser(item) && item[providerKey] === pending.providerUserId,
+    );
     // 연결 대상은 인증한 번호의 회원이다. 여기서 phone도 다시 확인된다.
-    const target = latest.users.find((item) => normalizePhone(item.phone) === phone);
+    const target = latest.users.find(
+      (item) => isActiveUser(item) && normalizePhone(item.phone) === phone,
+    );
 
     if (ownedBySocial && (!target || ownedBySocial.id !== target.id)) {
       return NextResponse.json(
