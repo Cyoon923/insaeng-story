@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   ChevronRight,
   Music,
-  Headphones,
   Heart,
   Ticket,
   Megaphone,
@@ -26,10 +25,14 @@ import {
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe } from "@/lib/client/api";
-import type { Order, User } from "@/lib/types/app";
+import { formatPrice } from "@/lib/constants/products";
+import { buildMyOrderItems } from "@/lib/myOrders";
+import type { MyOrderItem } from "@/lib/myOrders";
+import type { Consultation, Order, User } from "@/lib/types/app";
 
 const MENU_GRID = [
-  { icon: Headphones, label: "1:1 사주상담 내역", href: "/my/consultations" },
+  // "1:1 사주상담 내역"은 아래 "나의 주문 내역"에 합쳐져서 뺐다.
+  // 상담 내역·상세 화면(/my/consultations)은 그대로 두고 거기서 계속 연결된다.
   { icon: ClipboardList, label: "이벤트 신청", href: "/my/inquiries" },
   { icon: Star, label: "후기", href: "/my/reviews" },
   { icon: Heart, label: "찜한 상품", href: "/my/wishlist" },
@@ -51,6 +54,8 @@ const IMAGES: Record<string, string> = {
   story: "/images/photo-writing.jpg",
   premium: "/images/photo-premium-life.png",
   "saju-song": "/images/photo-ohaeng.png",
+  // 1:1 사주상담 화면이 쓰는 이미지를 그대로 쓴다.
+  consultation: "/images/photo-hero-saju-analysis.png",
 };
 
 function formatDate(value: string) {
@@ -66,16 +71,18 @@ function referralCodeFor(user: User): string {
 export default function MyPage() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [items, setItems] = useState<MyOrderItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchMe().then((data) => {
       setUser(data.user ?? null);
-      // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
-      setOrders(
-        ((data.orders ?? []) as Order[]).filter((order) => order.product !== "consultation"),
-      );
+      const allOrders = (data.orders ?? []) as Order[];
+      // 위 "주문 및 제작 현황"은 인생곡 제작 단계를 보여주는 자리라 그대로 둔다.
+      setOrders(allOrders.filter((order) => order.product !== "consultation"));
+      // 아래 "나의 주문 내역"만 인생곡과 사주상담을 함께 보여준다.
+      setItems(buildMyOrderItems(allOrders, (data.consultations ?? []) as Consultation[]));
       setLoaded(true);
     });
   }, []);
@@ -200,30 +207,39 @@ export default function MyPage() {
           <ChevronRight className="h-5 w-5 text-[#8b6f5c]" />
         </Link>
         <div className="space-y-3">
-          {loaded && orders.length === 0 ? (
+          {loaded && items.length === 0 ? (
             <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
               아직 신청한 주문이 없습니다.
             </p>
           ) : null}
-          {orders.slice(0, 3).map((order) => (
+          {items.slice(0, 3).map((item) => (
             <Link
-              key={order.id}
-              href={`/my/orders/${order.id}`}
+              key={`${item.kind}-${item.id}`}
+              href={item.href}
               className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-[#ebe3d8]"
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f5efe6]">
-                <Image src={IMAGES[order.product] ?? "/images/photo-hero.jpg"} alt="" fill className="object-cover" sizes="56px" />
+                <Image src={IMAGES[item.product] ?? "/images/photo-hero.jpg"} alt="" fill className="object-cover" sizes="56px" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-semibold text-[#403A49]">{order.title}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="break-keep text-[15px] font-semibold text-[#403A49]">{item.title}</span>
                   <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#403A49]">
-                    {order.status}
+                    {item.status}
                   </span>
                 </div>
-                <p className="mt-1 text-[12px] text-[#6B6570]">신청일 {formatDate(order.createdAt)}</p>
+                <p className="mt-1 text-[12px] text-[#6B6570]">신청일 {formatDate(item.createdAt)}</p>
+                {item.kind === "consultation" ? (
+                  <p className="mt-0.5 break-keep text-[12px] text-[#6B6570]">
+                    {[item.teacher, item.datetime, formatPrice(item.amount)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                ) : null}
               </div>
-              <span className="text-[12px] text-[#403A49]">상세보기 &gt;</span>
+              <span className="shrink-0 text-[12px] text-[#403A49]">
+                {item.kind === "consultation" ? "상담 상세보기" : "상세보기"} &gt;
+              </span>
             </Link>
           ))}
         </div>
