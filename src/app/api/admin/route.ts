@@ -23,6 +23,10 @@ import {
   upcomingConsultDates,
   listSlotStatuses,
 } from "@/lib/server/consultationSlots";
+import {
+  applyConsultationCompletion,
+  deliveredAtForStatus,
+} from "@/lib/server/serviceCompletion";
 import type { ConsultStatus, OrderStatus } from "@/lib/types/app";
 
 const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
@@ -269,7 +273,22 @@ async function handlePost(request: Request) {
     const data = await readData();
     // 이중 기록(dual-write)을 유지한다. JSONB에도 같은 주문이 있으면 함께 맞춰 둔다.
     const mirrored = data.orders.find((item) => item.id === id);
-    if (mirrored) mirrored.status = status;
+    if (mirrored) {
+      mirrored.status = status;
+      /*
+       * 결과물을 처음 전달한 시각을 남긴다 (Privacy-Retention-Completion-Evidence-1).
+       *
+       * 개인정보 보관 기간의 기산점이라 한 번만 기록하고 절대 덮어쓰지 않는다.
+       * 상태가 "완료"로 더 간다고 해서 기산점이 뒤로 밀리면 안 된다.
+       * 어느 상태에서 남기는지는 serviceCompletion 한 곳이 정한다.
+       *
+       * JSONB에만 남긴다. orders 테이블에 같은 뜻의 열을 만들지 않는다.
+       * 만들면 일반 주문 조회 경로가 그 열을 읽게 되고, 관리자가 정리를 부르기도
+       * 전에 스키마 변경이 일반 요청에서 일어난다.
+       */
+      const deliveredAt = deliveredAtForStatus(status, new Date().toISOString());
+      if (deliveredAt && !mirrored.deliveredAt) mirrored.deliveredAt = deliveredAt;
+    }
     if (data.notificationSettings[order.userId]?.order !== false) {
       data.notifications[order.userId] = [
         {
@@ -304,6 +323,12 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: "사주상담을 찾을 수 없습니다." }, { status: 404 });
     }
     item.status = status;
+    /*
+     * 상담이 끝난 시각을 남긴다 (Privacy-Retention-Completion-Evidence-1).
+     * 최초 1회만 기록하고 덮어쓰지 않는다. 규칙은 serviceCompletion 한 곳이 정한다.
+     * 상담은 전용 테이블이 없어 원래 JSONB만 쓴다. 새 열을 만들지 않는다.
+     */
+    applyConsultationCompletion(item, status, new Date().toISOString());
     if (data.notificationSettings[item.userId]?.consult !== false) {
       data.notifications[item.userId] = [
         {

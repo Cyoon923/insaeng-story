@@ -410,6 +410,31 @@ export async function writeData(data: AppData): Promise<void> {
 }
 
 /**
+ * app_store 저장 규약을 밖에서 그대로 쓰기 위한 좁은 통로 (Privacy-Retention-Store-Split-1).
+ *
+ * 값을 새로 만들지 않는다. 위에 이미 있는 helper를 가리키기만 한다.
+ * 규약(version 비교·증가, 행이 없을 때의 INSERT 분기, 충돌 판정)의 정의는
+ * 여전히 이 파일 한 곳뿐이다. 복제하면 한쪽만 고쳐졌을 때 저장소가 조용히 어긋난다.
+ *
+ * 쓰는 쪽은 app_store 저장과 같은 문장 안에서 다른 테이블까지 함께 바꿔야 하는
+ * 경우뿐이다(예: 보관 만료 정리). 그렇지 않으면 readData/writeData를 쓴다.
+ */
+export const appStoreCas = {
+  /** CAS 문장의 머리(CTE). 행이 없으면 INSERT 분기가 된다. */
+  head: casHead,
+  /** CAS 문장에 넘길 앞쪽 인자. */
+  params: casParams,
+  /** 뒤따르는 값 인자의 시작 번호. */
+  paramCount: casParamCount,
+  /** 읽은 시점의 version. */
+  expectedVersion: expectedVersionOf,
+  /** 저장이 성립한 뒤 새 version을 기록한다. */
+  advance: advanceVersion,
+  /** 테이블·version 열 준비. */
+  ensureVersionColumn: ensureAppStoreVersion,
+} as const;
+
+/**
  * 함께 소비할 인증 1건. code가 null이면 키가 있고 만료되지 않았는지만 본다.
  * 토큰 자체가 비밀인 경우(소셜 연결 대기)는 키 소유가 곧 인증이라 code를 보지 않는다.
  */

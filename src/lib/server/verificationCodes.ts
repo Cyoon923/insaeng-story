@@ -329,6 +329,85 @@ export async function consumeVerification(
 }
 
 /**
+ * 만료 인증값 정리 결과.
+ *
+ * supported: false는 실패가 아니라 "이 저장소에는 할 일이 없다"는 뜻이다.
+ * 파일 모드에는 verification_codes 테이블 자체가 없다. 그때 deleted: 0을 돌려주면
+ * "지울 것이 없었다"와 구분되지 않아 정리가 끝난 것처럼 읽힌다. 그래서 칸을 나눈다.
+ *
+ * DB 오류는 이 값으로 돌려주지 않는다. 그대로 올린다(아래 함수 주석 참고).
+ */
+export type VerificationCleanupResult =
+  | { supported: true; deleted: number }
+  | { supported: false };
+
+/**
+ * 기한이 지난 인증값을 지운다. 지우는 조건은 expires_at 하나뿐이다.
+ *
+ * ── 왜 이 조건 하나면 되는가 ──
+ *
+ * 만료된 값을 읽는 경로가 없다. readVerification은 만료면 없는 것으로 보고 그 자리에서
+ * 치우고, consumeVerification과 writeDataWithVerificationConsumes는
+ * expires_at > now()를 요구한다. 즉 만료된 행은 이미 없는 것으로 취급되고 있고,
+ * 이 함수는 그 사실을 실제로 반영할 뿐이다.
+ *
+ * 그런데 readVerification의 정리는 **그 키를 다시 읽을 때만** 일어난다. 인증번호를
+ * 받고 입력하지 않았거나, 소셜 로그인·탈퇴 재인증을 중간에 그만둔 값은 아무도 다시
+ * 읽지 않아 그대로 남는다. 그런 값까지 같은 규칙으로 치우는 것이 이 함수다.
+ *
+ * ── 조건을 늘리지 않는다 ──
+ *
+ * storage_key·code·purpose로 가르지 않는다. 접두사는 관례일 뿐이고, 종류를 나누면
+ * 새 접두사가 생길 때마다 지워지지 않는 값이 조용히 늘어난다.
+ * created_at은 그 키가 처음 만들어진 시각이지 지금 값이 발급된 시각이 아니고
+ * (재발급은 ON CONFLICT DO UPDATE라 created_at을 갱신하지 않는다),
+ * sent_at·attempts는 살아 있는 값에만 뜻이 있다. 셋 다 보지 않는다.
+ *
+ * 쿨다운을 없애지 않는다. 발급은 expires_at = sent_at + 5분이고 쿨다운은 60초라,
+ * 만료된 행의 쿨다운은 이미 4분 전에 끝나 있다.
+ *
+ * ── 경계 ──
+ *
+ * 기준 시각은 밖에서 받는다. 시각에 따라 답이 달라지는 일이라 함수 안에서 만들지
+ * 않는다(경계를 테스트로 고정할 수 있어야 한다). 받은 값을 SQL에도 그대로 넘겨
+ * 판정하는 시각이 한 곳뿐이게 한다.
+ *
+ * 정확히 expires_at === now인 행은 지우지 않는다(<). 그 순간까지는 아직 쓸 수 있는
+ * 값으로 보는 쪽이 사용자에게 불리하지 않다.
+ *
+ * ── 돌려주는 값 ──
+ *
+ * 지운 건수만 돌려준다. storage_key에는 휴대폰 번호가 그대로 들어 있고 code에는
+ * 인증번호·토큰·소셜 정보·접근 토큰이 들어 있어, 하나도 밖으로 내보내지 않는다.
+ * 세는 일은 DB 안에서 끝낸다(RETURNING한 값이 이 과정을 떠나지 않는다).
+ *
+ * 실패는 감추지 않는다. DB 오류는 잡지 않고 그대로 올려 호출부가 알 수 있게 한다.
+ * 오류 내용을 여기서 따로 기록하지도 않는다. 그 안에 값이 섞여 나올 수 있다.
+ */
+export async function deleteExpiredVerifications(
+  now: Date,
+): Promise<VerificationCleanupResult> {
+  const sql = sqlClient();
+  // 파일 모드에는 이 테이블이 없다. app_store.codes는 건드리지 않는다.
+  if (!sql) return { supported: false };
+
+  await ensureTable(sql);
+  const rows = (await sql.query(
+    `
+      WITH removed AS (
+        DELETE FROM verification_codes
+        WHERE expires_at < $1::timestamptz
+        RETURNING 1
+      )
+      SELECT count(*)::int AS deleted FROM removed
+    `,
+    [now.toISOString()],
+  )) as { deleted: number }[];
+
+  return { supported: true, deleted: Number(rows[0]?.deleted ?? 0) };
+}
+
+/**
  * 인증번호 검증 결과. 맞으면 어디서 읽었는지(source)를 함께 돌려준다.
  * 소비는 여기서 하지 않는다. 회원 변경과 함께 지워야 하는 경로가 있기 때문이다.
  */

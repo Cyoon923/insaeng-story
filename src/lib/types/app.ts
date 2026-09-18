@@ -55,6 +55,24 @@ export interface Order {
   payment: string;
   details: Record<string, string>;
   createdAt: string;
+  /**
+   * 서비스 결과물을 처음 전달한 시각(UTC ISO).
+   *
+   * status가 처음 "완성/전달"이 될 때 서버가 남긴다. 개인정보 보관 기간의
+   * 기산점으로 쓰기 위한 값이라, 한 번 기록되면 절대 덮어쓰지 않는다.
+   *
+   * 이 구조가 생기기 전의 주문에는 없다. 없으면 "기록 없음"이며, createdAt이나
+   * updatedAt으로 대신 채우지 않는다(다른 뜻의 값이다).
+   */
+  deliveredAt?: string;
+  /**
+   * 보관 기간이 끝나 콘텐츠성 개인정보를 지운 시각(UTC ISO).
+   *
+   * 뜻은 하나다. "이 주문에 대해 보관 만료 scrub이 **전부** 성공했다."
+   * 한 번 기록되면 덮어쓰지 않는다. 값이 없는 것은 "아직 하지 않음"이며,
+   * 완료 증빙이나 updatedAt으로 대신 판단하지 않는다.
+   */
+  retentionScrubbedAt?: string;
 }
 
 export interface Consultation {
@@ -62,13 +80,35 @@ export interface Consultation {
   userId: string;
   teacher: string;
   datetime: string;
-  purpose: string;
+  /**
+   * 상담 목적. 신청 화면의 고정 선택지를 " / "로 이은 값이다.
+   *
+   * 선택 항목인 이유는 보관 기간이 끝난 건에서 빠지기 때문이다
+   * (lib/server/retentionScrub.ts scrubConsultationForRetention).
+   * 값이 없는 것은 "적지 않았거나 보관 기간이 끝나 지워졌음"이며, 읽는 쪽은
+   * 언제나 선택적 접근으로 다룬다. 빈 문자열을 대신 넣지 않는다.
+   */
+  purpose?: string;
   method: string;
   option: string;
   status: ConsultStatus;
   amount: number;
   details: Record<string, string>;
   createdAt: string;
+  /**
+   * 상담이 끝난 시각(UTC ISO).
+   *
+   * status가 처음 "상담 완료"가 될 때 서버가 남긴다. 개인정보 보관 기간의
+   * 기산점으로 쓰기 위한 값이라, 한 번 기록되면 절대 덮어쓰지 않는다.
+   */
+  completedAt?: string;
+  /**
+   * 보관 기간이 끝나 이 상담의 콘텐츠성 개인정보를 지운 시각(UTC ISO).
+   *
+   * **짝이 되는 주문이 없는 상담에만** 쓴다. 주문이 있는 상담은 그 주문의
+   * Order.retentionScrubbedAt이 완료 증빙이며, 같은 뜻의 시각을 두 벌 두지 않는다.
+   */
+  retentionScrubbedAt?: string;
 }
 
 export interface Inquiry {
