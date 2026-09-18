@@ -1,5 +1,5 @@
 /**
- * PG 응답 원문 보유 현황 규칙 테스트 (Privacy-Payment-Raw-Presence-1).
+ * PG 응답 원문 보유 현황 규칙 테스트 (Privacy-Payment-Raw-Presence-1, -5).
  *
  * 실행: node --test src/lib/server/paymentRawPresence.test.ts
  *
@@ -11,6 +11,7 @@ import test from "node:test";
 import {
   PAYMENT_RAW_COLUMN_SQL,
   PAYMENT_RAW_PRESENCE_SQL,
+  PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL,
   readCount,
   readIso,
   runPaymentRawPresence,
@@ -19,14 +20,21 @@ import {
 
 const NOW = "2026-09-19T00:00:00.000Z";
 
-/** 모든 칸이 채워진 한 행. 실제 질의가 돌려주는 모양과 같다. */
-function fullRow(): Record<string, unknown> {
+/** 취소 열이 없을 때 돌아오는 행. 취소 쪽 칸이 아예 없다. */
+function rawOnlyRow(): Record<string, unknown> {
   return {
     total_payments: 120,
     raw_present: 30,
     raw_emptyish: 4,
     raw_oldest: "2025-01-01T00:00:00.000Z",
     raw_newest: "2025-06-01T00:00:00.000Z",
+  };
+}
+
+/** 취소 열이 있을 때 돌아오는 행. */
+function fullRow(): Record<string, unknown> {
+  return {
+    ...rawOnlyRow(),
     cancel_raw_present: 2,
     cancel_raw_emptyish: 0,
     cancel_raw_oldest: "2025-03-01T00:00:00.000Z",
@@ -36,38 +44,48 @@ function fullRow(): Record<string, unknown> {
 
 interface Calls {
   column: number;
-  presence: number;
+  rawOnly: number;
+  withCancel: number;
 }
+
+type Rows = readonly Record<string, unknown>[] | (() => never);
 
 function deps(options: {
   databaseMode?: boolean;
-  column?: readonly Record<string, unknown>[] | (() => never);
-  presence?: readonly Record<string, unknown>[] | (() => never);
+  column?: Rows;
+  rawOnly?: Rows;
+  withCancel?: Rows;
   calls?: Calls;
 }) {
-  const calls = options.calls ?? { column: 0, presence: 0 };
-  const run = (value: readonly Record<string, unknown>[] | (() => never) | undefined) => {
+  const calls = options.calls ?? { column: 0, rawOnly: 0, withCancel: 0 };
+  const run = (value: Rows | undefined, fallback: readonly Record<string, unknown>[]) => {
     if (typeof value === "function") value();
-    return (value ?? []) as readonly Record<string, unknown>[];
+    return (value ?? fallback) as readonly Record<string, unknown>[];
   };
   return {
     databaseMode: () => options.databaseMode ?? true,
     queryColumn: async () => {
       calls.column += 1;
-      return run(options.column ?? [{ found: 1 }]);
+      return run(options.column, [{ found: 1 }]);
     },
-    queryPresence: async () => {
-      calls.presence += 1;
-      return run(options.presence ?? [fullRow()]);
+    queryRawOnly: async () => {
+      calls.rawOnly += 1;
+      return run(options.rawOnly, [rawOnlyRow()]);
+    },
+    queryWithCancel: async () => {
+      calls.withCancel += 1;
+      return run(options.withCancel, [fullRow()]);
     },
   };
 }
 
-/* ── 정상 ───────────────────────────────────────────── */
+/* ── 열이 있을 때 ───────────────────────────────────── */
 
-test("두 열의 현황을 건수와 시각으로만 돌려준다", async () => {
-  const response = await runPaymentRawPresence(deps({}), NOW);
+test("열이 있으면 양쪽을 실제로 집계한다", async () => {
+  const calls: Calls = { column: 0, rawOnly: 0, withCancel: 0 };
+  const response = await runPaymentRawPresence(deps({ column: [{ found: 1 }], calls }), NOW);
   assert.equal(response.status, 200);
+  assert.deepEqual(calls, { column: 1, rawOnly: 0, withCancel: 1 });
   const body = response.body as PaymentRawPresenceBody;
   assert.equal(body.action, "payment-raw-presence");
   assert.equal(body.checkedAt, NOW);
@@ -79,12 +97,75 @@ test("두 열의 현황을 건수와 시각으로만 돌려준다", async () => 
     newestCreatedAt: "2025-06-01T00:00:00.000Z",
   });
   assert.deepEqual(body.cancelResponseRaw, {
+    columnExists: true,
     present: 2,
     emptyish: 0,
     oldestCreatedAt: "2025-03-01T00:00:00.000Z",
     newestCreatedAt: "2025-04-01T00:00:00.000Z",
   });
 });
+
+/* ── 열이 없을 때 ───────────────────────────────────── */
+
+test("열이 없어도 raw는 실제로 집계하고 취소 쪽은 전부 null이다", async () => {
+  const calls: Calls = { column: 0, rawOnly: 0, withCancel: 0 };
+  const response = await runPaymentRawPresence(deps({ column: [{ found: 0 }], calls }), NOW);
+  assert.equal(response.status, 200, "열이 없다고 오류로 처리했다");
+  const body = response.body as PaymentRawPresenceBody;
+  // raw는 실제 값이다. 열 부재와 무관하게 센다.
+  assert.equal(body.totalPayments, 120);
+  assert.deepEqual(body.raw, {
+    present: 30,
+    emptyish: 4,
+    oldestCreatedAt: "2025-01-01T00:00:00.000Z",
+    newestCreatedAt: "2025-06-01T00:00:00.000Z",
+  });
+  assert.deepEqual(body.cancelResponseRaw, {
+    columnExists: false,
+    present: null,
+    emptyish: null,
+    oldestCreatedAt: null,
+    newestCreatedAt: null,
+  });
+});
+
+test("열이 없으면 그 열을 참조하는 질의를 보내지 않는다", async () => {
+  const calls: Calls = { column: 0, rawOnly: 0, withCancel: 0 };
+  await runPaymentRawPresence(
+    deps({
+      column: [{ found: 0 }],
+      calls,
+      withCancel: () => {
+        throw new Error("없는 열을 참조하는 질의를 보냈다");
+      },
+    }),
+    NOW,
+  );
+  assert.equal(calls.withCancel, 0, "취소 열을 참조하는 질의를 보냈다");
+  assert.equal(calls.rawOnly, 1);
+});
+
+test("열 없음과 실제 0건을 다른 값으로 적는다", async () => {
+  const missing = (await runPaymentRawPresence(deps({ column: [{ found: 0 }] }), NOW))
+    .body as PaymentRawPresenceBody;
+  const zero = (
+    await runPaymentRawPresence(
+      deps({
+        column: [{ found: 1 }],
+        withCancel: [{ ...fullRow(), cancel_raw_present: 0, cancel_raw_emptyish: 0, cancel_raw_oldest: null, cancel_raw_newest: null }],
+      }),
+      NOW,
+    )
+  ).body as PaymentRawPresenceBody;
+
+  assert.equal(missing.cancelResponseRaw.columnExists, false);
+  assert.equal(missing.cancelResponseRaw.present, null);
+  assert.equal(zero.cancelResponseRaw.columnExists, true);
+  assert.equal(zero.cancelResponseRaw.present, 0);
+  assert.notDeepEqual(missing.cancelResponseRaw, zero.cancelResponseRaw);
+});
+
+/* ── 응답 모양 ──────────────────────────────────────── */
 
 test("응답에 정해 둔 키 말고 다른 것이 없다", async () => {
   const response = await runPaymentRawPresence(deps({}), NOW);
@@ -96,22 +177,19 @@ test("응답에 정해 둔 키 말고 다른 것이 없다", async () => {
     "raw",
     "totalPayments",
   ]);
-  for (const group of [body.raw, body.cancelResponseRaw]) {
-    assert.deepEqual(Object.keys(group).sort(), [
-      "emptyish",
-      "newestCreatedAt",
-      "oldestCreatedAt",
-      "present",
-    ]);
-  }
-});
-
-test("스키마 상태를 성공 응답에 담지 않는다", async () => {
-  const response = await runPaymentRawPresence(deps({}), NOW);
-  const serialized = JSON.stringify(response.body);
-  for (const leaked of ["schema", "found", "cancelResponseRawColumn", "column"]) {
-    assert.equal(serialized.includes(leaked), false, `${leaked}가 응답에 있다`);
-  }
+  assert.deepEqual(Object.keys(body.raw).sort(), [
+    "emptyish",
+    "newestCreatedAt",
+    "oldestCreatedAt",
+    "present",
+  ]);
+  assert.deepEqual(Object.keys(body.cancelResponseRaw).sort(), [
+    "columnExists",
+    "emptyish",
+    "newestCreatedAt",
+    "oldestCreatedAt",
+    "present",
+  ]);
 });
 
 test("행에 섞여 온 값은 응답에 담기지 않는다", async () => {
@@ -126,7 +204,7 @@ test("행에 섞여 온 값은 응답에 담기지 않는다", async () => {
     order_snapshot: { details: { phone: "01000000000" } },
     user_id: "u-1",
   };
-  const response = await runPaymentRawPresence(deps({ presence: [row] }), NOW);
+  const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
   const serialized = JSON.stringify(response.body);
   for (const leaked of [
     "홍길동",
@@ -155,19 +233,19 @@ test("0건이면 건수는 0이고 시각은 null이다", async () => {
     cancel_raw_oldest: null,
     cancel_raw_newest: null,
   };
-  const response = await runPaymentRawPresence(deps({ presence: [empty] }), NOW);
+  const response = await runPaymentRawPresence(deps({ withCancel: [empty] }), NOW);
   assert.equal(response.status, 200);
   const body = response.body as PaymentRawPresenceBody;
   assert.equal(body.totalPayments, 0);
   assert.equal(body.raw.present, 0);
   assert.equal(body.raw.oldestCreatedAt, null);
+  assert.equal(body.cancelResponseRaw.present, 0);
   assert.equal(body.cancelResponseRaw.newestCreatedAt, null);
 });
 
 test("emptyish가 present와 같아도 그대로 돌려준다", async () => {
-  // 열은 차 있지만 내용이 없는 경우. 두 값을 합치거나 감추지 않는다.
   const row = { ...fullRow(), raw_present: 7, raw_emptyish: 7 };
-  const response = await runPaymentRawPresence(deps({ presence: [row] }), NOW);
+  const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
   const body = response.body as PaymentRawPresenceBody;
   assert.equal(body.raw.present, 7);
   assert.equal(body.raw.emptyish, 7);
@@ -175,7 +253,7 @@ test("emptyish가 present와 같아도 그대로 돌려준다", async () => {
 
 test("드라이버가 건수를 문자열로 줘도 숫자로 읽는다", async () => {
   const row = { ...fullRow(), total_payments: "120", cancel_raw_present: "0" };
-  const response = await runPaymentRawPresence(deps({ presence: [row] }), NOW);
+  const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
   const body = response.body as PaymentRawPresenceBody;
   assert.equal(body.totalPayments, 120);
   assert.equal(body.cancelResponseRaw.present, 0);
@@ -183,7 +261,7 @@ test("드라이버가 건수를 문자열로 줘도 숫자로 읽는다", async 
 
 test("Date로 온 시각도 ISO 문자열로 담는다", async () => {
   const row = { ...fullRow(), raw_oldest: new Date("2025-01-01T00:00:00.000Z") };
-  const response = await runPaymentRawPresence(deps({ presence: [row] }), NOW);
+  const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
   const body = response.body as PaymentRawPresenceBody;
   assert.equal(body.raw.oldestCreatedAt, "2025-01-01T00:00:00.000Z");
 });
@@ -191,52 +269,47 @@ test("Date로 온 시각도 ISO 문자열로 담는다", async () => {
 /* ── fail-closed ────────────────────────────────────── */
 
 test("DB 모드가 아니면 어떤 질의도 보내지 않고 409로 거절한다", async () => {
-  const calls: Calls = { column: 0, presence: 0 };
+  const calls: Calls = { column: 0, rawOnly: 0, withCancel: 0 };
   const response = await runPaymentRawPresence(deps({ databaseMode: false, calls }), NOW);
-  assert.deepEqual(calls, { column: 0, presence: 0 }, "질의를 보냈다");
+  assert.deepEqual(calls, { column: 0, rawOnly: 0, withCancel: 0 }, "질의를 보냈다");
   assert.equal(response.status, 409);
   assert.equal((response.body as { error: string }).error, "DATABASE_MODE_REQUIRED");
   assert.equal("raw" in response.body, false, "0건으로 답했다");
 });
 
-test("열이 없으면 0으로 답하지 않고 집계 질의도 보내지 않는다", async () => {
-  const calls: Calls = { column: 0, presence: 0 };
-  const response = await runPaymentRawPresence(deps({ column: [{ found: 0 }], calls }), NOW);
-  assert.equal(calls.column, 1);
-  assert.equal(calls.presence, 0, "열이 없는데 집계를 보냈다");
-  assert.equal(response.status, 409);
-  assert.equal((response.body as { error: string }).error, "SCHEMA_NOT_READY");
-  assert.equal("totalPayments" in response.body, false);
-});
-
-test("열 확인 결과를 읽지 못해도 fail-closed다", async () => {
-  for (const column of [[], [{}], [{ found: "알 수 없음" }], [{ found: -1 }]]) {
-    const response = await runPaymentRawPresence(deps({ column }), NOW);
-    assert.equal(response.status, 409, JSON.stringify(column));
-    assert.equal((response.body as { error: string }).error, "SCHEMA_NOT_READY");
-  }
-});
-
-test("열 확인이 실패하면 받은 오류를 담지 않는다", async () => {
+test("열 확인이 실패하면 집계를 보내지 않고 500으로 답한다", async () => {
+  const calls: Calls = { column: 0, rawOnly: 0, withCancel: 0 };
   const response = await runPaymentRawPresence(
     deps({
+      calls,
       column: () => {
         throw new Error("relation payments does not exist at postgres://u:pw@host/db");
       },
     }),
     NOW,
   );
-  assert.equal(response.status, 409);
+  assert.equal(calls.rawOnly, 0, "확인에 실패했는데 집계를 보냈다");
+  assert.equal(calls.withCancel, 0, "확인에 실패했는데 집계를 보냈다");
+  assert.equal(response.status, 500);
   const serialized = JSON.stringify(response.body);
   assert.equal(serialized.includes("postgres://"), false);
   assert.equal(serialized.includes("does not exist"), false);
-  assert.equal((response.body as { error: string }).error, "SCHEMA_NOT_READY");
+  assert.equal((response.body as { error: string }).error, "SCHEMA_CHECK_FAILED");
+});
+
+test("열 확인 결과를 읽지 못하면 열 없음으로 단정하지 않는다", async () => {
+  for (const column of [[], [{}], [{ found: "알 수 없음" }], [{ found: -1 }]]) {
+    const response = await runPaymentRawPresence(deps({ column }), NOW);
+    assert.equal(response.status, 500, JSON.stringify(column));
+    assert.equal((response.body as { error: string }).error, "SCHEMA_CHECK_FAILED");
+    assert.equal("cancelResponseRaw" in response.body, false);
+  }
 });
 
 test("집계가 실패하면 받은 오류를 담지 않고 500으로 답한다", async () => {
   const response = await runPaymentRawPresence(
     deps({
-      presence: () => {
+      withCancel: () => {
         throw new Error("connect ECONNREFUSED postgres://user:pw@host/db");
       },
     }),
@@ -249,30 +322,41 @@ test("집계가 실패하면 받은 오류를 담지 않고 500으로 답한다"
   assert.equal((response.body as { error: string }).error, "PRESENCE_FAILED");
 });
 
-test("집계 행이 없으면 현황으로 보지 않는다", async () => {
-  const response = await runPaymentRawPresence(deps({ presence: [] }), NOW);
+test("열이 없을 때의 집계가 실패해도 같은 규칙이다", async () => {
+  const response = await runPaymentRawPresence(
+    deps({
+      column: [{ found: 0 }],
+      rawOnly: () => {
+        throw new Error("boom");
+      },
+    }),
+    NOW,
+  );
   assert.equal(response.status, 500);
   assert.equal((response.body as { error: string }).error, "PRESENCE_FAILED");
 });
 
-test("건수를 읽지 못하면 일부만 담아 내보내지 않는다", async () => {
-  for (const key of [
-    "total_payments",
-    "raw_present",
-    "raw_emptyish",
-    "cancel_raw_present",
-    "cancel_raw_emptyish",
-  ]) {
+test("집계 행이 없으면 현황으로 보지 않는다", async () => {
+  const response = await runPaymentRawPresence(deps({ withCancel: [] }), NOW);
+  assert.equal(response.status, 500);
+  assert.equal((response.body as { error: string }).error, "PRESENCE_FAILED");
+});
+
+test("있는 열의 건수를 읽지 못하면 일부만 담아 내보내지 않는다", async () => {
+  for (const key of ["total_payments", "raw_present", "raw_emptyish"]) {
     const row = { ...fullRow(), [key]: "알 수 없음" };
-    const response = await runPaymentRawPresence(deps({ presence: [row] }), NOW);
+    const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
     assert.equal(response.status, 500, `${key}를 읽지 못했는데 200이다`);
   }
 });
 
-test("질의 차례는 열 확인이 먼저다", async () => {
-  const calls: Calls = { column: 0, presence: 0 };
-  await runPaymentRawPresence(deps({ calls }), NOW);
-  assert.deepEqual(calls, { column: 1, presence: 1 }, "각 질의는 한 번씩만 보낸다");
+test("열이 있다고 했는데 취소 건수를 읽지 못하면 null로 눕히지 않는다", async () => {
+  for (const key of ["cancel_raw_present", "cancel_raw_emptyish"]) {
+    const row = { ...fullRow(), [key]: undefined };
+    const response = await runPaymentRawPresence(deps({ withCancel: [row] }), NOW);
+    assert.equal(response.status, 500, `${key}가 없는데 200이다`);
+    assert.equal((response.body as { error: string }).error, "PRESENCE_FAILED");
+  }
 });
 
 /* ── 값 읽기 ────────────────────────────────────────── */
@@ -299,10 +383,11 @@ test("readIso는 없는 값을 지어내지 않는다", () => {
 
 /* ── 질의문 ─────────────────────────────────────────── */
 
-test("두 질의 모두 SELECT 하나이며 바꾸는 문장이 없다", () => {
+test("세 질의 모두 SELECT 하나이며 바꾸는 문장이 없다", () => {
   for (const [name, sql] of [
     ["column", PAYMENT_RAW_COLUMN_SQL],
-    ["presence", PAYMENT_RAW_PRESENCE_SQL],
+    ["rawOnly", PAYMENT_RAW_PRESENCE_SQL],
+    ["withCancel", PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL],
   ] as const) {
     assert.equal([...sql.matchAll(/\bSELECT\b/g)].length, 1, name);
     for (const word of ["INSERT", "UPDATE", "DELETE", "ALTER", "CREATE", "DROP", "TRUNCATE"]) {
@@ -315,44 +400,58 @@ test("두 질의 모두 SELECT 하나이며 바꾸는 문장이 없다", () => {
   }
 });
 
+test("열 없는 질의에는 cancel_response_raw라는 이름이 아예 없다", () => {
+  assert.equal(PAYMENT_RAW_PRESENCE_SQL.includes("cancel_response_raw"), false);
+  assert.equal(PAYMENT_RAW_PRESENCE_SQL.includes("cancel_raw"), false);
+  // 반대로 있는 쪽 질의에는 있어야 한다.
+  assert.ok(PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL.includes("cancel_response_raw"));
+});
+
+test("두 집계 질의는 raw 부분이 완전히 같다", () => {
+  const rawPart = (sql: string) =>
+    sql.slice(sql.indexOf("SELECT"), sql.indexOf("AS raw_newest") + "AS raw_newest".length);
+  assert.equal(
+    rawPart(PAYMENT_RAW_PRESENCE_SQL),
+    rawPart(PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL),
+  );
+});
+
 test("열 확인은 information_schema만 읽는다", () => {
   assert.match(PAYMENT_RAW_COLUMN_SQL, /FROM\s+information_schema\.columns/);
   assert.match(PAYMENT_RAW_COLUMN_SQL, /column_name = 'cancel_response_raw'/);
   assert.equal([...PAYMENT_RAW_COLUMN_SQL.matchAll(/\bFROM\b/g)].length, 1);
 });
 
-test("집계는 payments 전체를 한 행으로 센다", () => {
-  const sql = PAYMENT_RAW_PRESENCE_SQL;
-  assert.match(sql, /FROM\s+payments/);
-  assert.equal([...sql.matchAll(/\bFROM\b/g)].length, 1);
-  // 상태나 연결 여부로 가르지 않는다. WHERE 자체가 없다.
-  assert.equal(/\bWHERE\b(?![^)]*\))/.test(sql.replace(/FILTER \([^)]*\)/g, "")), false);
-  assert.equal(/\bstatus\b/.test(sql), false, "상태로 가르고 있다");
-  assert.equal(/\border_id\b/.test(sql), false, "연결 여부로 가르고 있다");
-  // 고르는 것은 전부 집계 함수다.
-  assert.equal([...sql.matchAll(/\b(count|min|max)\(/g)].length, 9);
+test("두 집계 모두 payments 전체를 한 행으로 센다", () => {
+  for (const sql of [PAYMENT_RAW_PRESENCE_SQL, PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL]) {
+    assert.match(sql, /FROM\s+payments/);
+    assert.equal([...sql.matchAll(/\bFROM\b/g)].length, 1);
+    assert.equal(/\bstatus\b/.test(sql), false, "상태로 가르고 있다");
+    assert.equal(/\border_id\b/.test(sql), false, "연결 여부로 가르고 있다");
+  }
+  assert.equal([...PAYMENT_RAW_PRESENCE_SQL.matchAll(/\b(count|min|max)\(/g)].length, 5);
+  assert.equal(
+    [...PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL.matchAll(/\b(count|min|max)\(/g)].length,
+    9,
+  );
 });
 
 test("집계가 값이나 식별자를 고르지 않는다", () => {
-  const selectList = PAYMENT_RAW_PRESENCE_SQL.slice(
-    PAYMENT_RAW_PRESENCE_SQL.indexOf("SELECT"),
-    PAYMENT_RAW_PRESENCE_SQL.indexOf("FROM payments"),
-  );
-  for (const column of ["pg_tid", "merchant_order_id", "order_snapshot", "user_id", "order_id"]) {
-    assert.equal(selectList.includes(column), false, `${column}을 고르고 있다`);
+  for (const sql of [PAYMENT_RAW_PRESENCE_SQL, PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL]) {
+    const selectList = sql.slice(sql.indexOf("SELECT"), sql.indexOf("FROM payments"));
+    for (const column of ["pg_tid", "merchant_order_id", "order_snapshot", "user_id", "order_id"]) {
+      assert.equal(selectList.includes(column), false, `${column}을 고르고 있다`);
+    }
+    assert.equal(/SELECT\s+\*/.test(sql), false);
+    assert.equal(/AS raw\b/.test(selectList), false);
+    assert.equal(/AS cancel_response_raw\b/.test(selectList), false);
   }
-  assert.equal(/SELECT\s+\*/.test(PAYMENT_RAW_PRESENCE_SQL), false);
-  // raw와 cancel_response_raw는 조건 안에서만 쓰이고 값으로 나오지 않는다.
-  assert.equal(/AS raw\b/.test(selectList), false);
-  assert.equal(/AS cancel_response_raw\b/.test(selectList), false);
-  assert.equal(/,\s*raw\s*[,\n]/.test(selectList), false, "raw를 값으로 고르고 있다");
 });
 
 test("emptyish 판정은 DB 안에서만 한다", () => {
-  const sql = PAYMENT_RAW_PRESENCE_SQL;
-  assert.match(sql, /jsonb_typeof\(raw\) <> 'object' OR raw = '\{\}'::jsonb/);
+  assert.match(PAYMENT_RAW_PRESENCE_SQL, /jsonb_typeof\(raw\) <> 'object' OR raw = '\{\}'::jsonb/);
   assert.match(
-    sql,
+    PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL,
     /jsonb_typeof\(cancel_response_raw\) <> 'object'\s*\n?\s*OR cancel_response_raw = '\{\}'::jsonb/,
   );
 });

@@ -135,16 +135,30 @@ test("route에는 SQL이 없고 모듈의 상수만 보낸다", () => {
   assert.equal(/\bSELECT\b/.test(ROUTE_CODE), false, "route가 질의문을 들고 있다");
   assert.match(ROUTE_CODE, /rows\(PAYMENT_RAW_COLUMN_SQL\)/);
   assert.match(ROUTE_CODE, /rows\(PAYMENT_RAW_PRESENCE_SQL\)/);
+  assert.match(ROUTE_CODE, /rows\(PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL\)/);
   assert.equal([...ROUTE_CODE.matchAll(/sql\.query\(/g)].length, 1);
   assert.equal(/sql\.transaction/.test(ROUTE_CODE), false);
+});
+
+test("어느 집계를 보낼지 route가 정하지 않는다", () => {
+  /*
+   * 열이 있는지에 따라 문장이 갈리는데, 그 판단은 모듈 한 곳에 둔다.
+   * route가 분기하면 같은 규칙이 두 곳에 생기고 한쪽만 고쳐질 수 있다.
+   */
+  const body = ROUTE_CODE.slice(ROUTE_CODE.indexOf("export async function POST"));
+  assert.equal(/columnExists|information_schema|found/.test(body), false);
+  assert.equal(/\bif\s*\(.*CANCEL/.test(body), false);
+  // route가 건네는 것은 이름 붙은 함수 셋뿐이다.
+  const keys = [...body.matchAll(/(queryColumn|queryRawOnly|queryWithCancel):/g)].map((m) => m[1]);
+  assert.deepEqual(keys, ["queryColumn", "queryRawOnly", "queryWithCancel"]);
 });
 
 /* ── 내보내지 않는 것 ──────────────────────────────── */
 
 test("집계가 식별자 컬럼을 고르지 않는다", () => {
   const selectList = MODULE_CODE.slice(
-    MODULE_CODE.indexOf("PAYMENT_RAW_PRESENCE_SQL"),
-    MODULE_CODE.indexOf("FROM payments"),
+    MODULE_CODE.indexOf("const RAW_SELECT"),
+    MODULE_CODE.indexOf("export const PAYMENT_RAW_PRESENCE_SQL"),
   );
   for (const column of [
     "merchant_order_id",
@@ -158,10 +172,43 @@ test("집계가 식별자 컬럼을 고르지 않는다", () => {
   }
 });
 
+test("열 없는 문장에 취소 열 이름이 섞이지 않는다", () => {
+  /*
+   * 없는 열을 고르면 질의가 통째로 죽고, 있는 쪽(raw)의 현황까지 잃는다.
+   * 그래서 두 문장을 조각으로 나눠 두고, 취소 조각은 한쪽에만 붙인다.
+   */
+  const rawPiece = MODULE_CODE.slice(
+    MODULE_CODE.indexOf("const RAW_SELECT"),
+    MODULE_CODE.indexOf("const CANCEL_SELECT"),
+  );
+  assert.equal(rawPiece.includes("cancel_response_raw"), false);
+  assert.match(MODULE_CODE, /export const PAYMENT_RAW_PRESENCE_SQL = `\n  SELECT\$\{RAW_SELECT\}/);
+  assert.match(
+    MODULE_CODE,
+    /export const PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL = `\n  SELECT\$\{RAW_SELECT\}\$\{CANCEL_SELECT\}/,
+  );
+});
+
+test("열이 없을 때 건수를 0으로 적지 않는다", () => {
+  const missing = MODULE_CODE.slice(
+    MODULE_CODE.indexOf("function missingColumn"),
+    MODULE_CODE.indexOf("function missingColumn") + 400,
+  );
+  assert.match(missing, /columnExists: false/);
+  assert.equal(/:\s*0\b/.test(missing), false, "열 없음을 0으로 적고 있다");
+  assert.equal([...missing.matchAll(/null/g)].length >= 4, true);
+});
+
+test("없는 열을 만들려 하지 않는다", () => {
+  for (const [where, source] of BOTH) {
+    assert.equal(/ADD COLUMN/i.test(source), false, `${where}가 열을 만들려 한다`);
+  }
+});
+
 test("두 raw 열은 조건 안에서만 쓰이고 값으로 나오지 않는다", () => {
   const selectList = MODULE_CODE.slice(
-    MODULE_CODE.indexOf("PAYMENT_RAW_PRESENCE_SQL"),
-    MODULE_CODE.indexOf("FROM payments"),
+    MODULE_CODE.indexOf("const RAW_SELECT"),
+    MODULE_CODE.indexOf("export const PAYMENT_RAW_PRESENCE_SQL"),
   );
   // 고르는 이름(AS ...)은 전부 집계 결과의 이름이다.
   const aliases = [...selectList.matchAll(/AS (\w+)/g)].map((m) => m[1]).sort();
@@ -186,8 +233,9 @@ test("응답 타입에 배열이나 자유 키가 없다", () => {
   assert.equal(/\[\]/.test(bodyType), false, "배열이 있다");
   assert.equal(/Record</.test(bodyType), false, "자유 키가 있다");
   assert.equal(/\[key:/.test(bodyType), false, "인덱스 시그니처가 있다");
-  // 스키마 상태를 성공 응답에 담지 않는다.
-  assert.equal(/schema/i.test(bodyType), false, "스키마 상태가 응답 타입에 있다");
+  // 열 부재는 columnExists 하나로만 말한다. 건수 칸은 null을 허용한다.
+  assert.match(bodyType, /columnExists: boolean;/);
+  assert.match(bodyType, /present: number \| null;/);
 });
 
 test("접속 정보를 만지지 않는다", () => {

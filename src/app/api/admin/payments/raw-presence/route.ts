@@ -8,7 +8,8 @@
  * 정해진 두 질의를 보낼 수단을 규칙 모듈에 넘긴다. 판단도 질의문도
  * paymentRawPresence.ts에 있다. 여기에는 SQL도, 조건도, 새 인증도 없다.
  *
- * 아무것도 바꾸지 않는다. 보내는 문장은 SELECT 둘이고, 여러 번 불러도 결과 외에는
+ * 아무것도 바꾸지 않는다. 보내는 문장은 SELECT 둘이고(열 확인 하나와 집계 하나),
+ * 여러 번 불러도 결과 외에는
  * 달라지는 것이 없다. 저장소를 준비하는 경로(ensureTable·ensurePaymentsMigration)에
  * 들어가지 않으므로 CREATE도 ALTER도 나가지 않는다.
  *
@@ -20,6 +21,7 @@ import { requireAdmin } from "@/lib/server/chatInquiryApi";
 import {
   PAYMENT_RAW_COLUMN_SQL,
   PAYMENT_RAW_PRESENCE_SQL,
+  PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL,
   runPaymentRawPresence,
 } from "@/lib/server/paymentRawPresence";
 import { sqlClient } from "@/lib/server/store";
@@ -49,7 +51,9 @@ export async function POST() {
       databaseMode: () => sql !== null,
       // 보낼 문장은 모듈이 정한 상수 둘뿐이다. 이 자리에서 만들지 않는다.
       queryColumn: () => rows(PAYMENT_RAW_COLUMN_SQL),
-      queryPresence: () => rows(PAYMENT_RAW_PRESENCE_SQL),
+      // 어느 쪽을 보낼지는 모듈이 정한다. 여기서는 두 문장을 건네기만 한다.
+      queryRawOnly: () => rows(PAYMENT_RAW_PRESENCE_SQL),
+      queryWithCancel: () => rows(PAYMENT_RAW_PRESENCE_WITH_CANCEL_SQL),
     },
     now,
   );
