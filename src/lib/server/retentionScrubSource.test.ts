@@ -42,15 +42,66 @@ test("결제 문장에 order_id를 넓히는 조건이 없다", () => {
   assert.equal(/order_snapshot->>'userId'/.test(paymentUpdate), false);
 });
 
-test("결제에서 지우는 것은 details 하나뿐이다", () => {
+test("결제에서 지우는 것은 details와 request.purpose 둘뿐이다", () => {
   const paymentUpdate = FUNCTION_SOURCE.slice(FUNCTION_SOURCE.indexOf("scrubbed_payment"));
-  assert.match(paymentUpdate, /order_snapshot = order_snapshot - 'details'/);
-  // 승인 재검증 근거와 귀속 정보는 건드리지 않는다.
+  // 신청 내용 사본은 예전과 같이 통째로 빠진다(두 갈래 모두에서).
+  assert.equal(
+    [...paymentUpdate.matchAll(/order_snapshot - 'details'/g)].length,
+    2,
+    "details 제거가 CASE의 두 갈래에 모두 있어야 한다",
+  );
+  // 상담 목적 사본은 request 안에서 키 하나만 빠진다.
+  assert.match(paymentUpdate, /\(order_snapshot -> 'request'\) - 'purpose'/);
+  assert.match(paymentUpdate, /jsonb_set\(/);
+
+  // request는 통째로 지우지 않는다. 승인 재검증 근거와 귀속 정보도 그대로 둔다.
   for (const key of ["'request'", "'discount'", "'userId'", "'amount'"]) {
     assert.equal(paymentUpdate.includes(`order_snapshot - ${key}`), false, key);
   }
+  // request 안에서도 purpose 말고 다른 키를 빼지 않는다.
+  const innerRemovals = [...paymentUpdate.matchAll(/'request'\) - ('\w+')/g)].map((m) => m[1]);
+  assert.deepEqual(innerRemovals, ["'purpose'"]);
+  // 이번 단계에서 손대지 않기로 한 값들이 문장에 등장하지 않는다.
+  for (const key of ["'version'", "'preparedAt'", "'goodsName'", "'kind'", "'usePoints'"]) {
+    assert.equal(paymentUpdate.includes(key), false, key);
+  }
   // PG 응답 원문은 다른 칸이라 이 문장이 손대지 않는다.
   assert.equal(/\braw\b\s*=/.test(paymentUpdate), false);
+  assert.equal(/cancel_response_raw/.test(paymentUpdate), false);
+});
+
+test("SQL 테스트가 베끼는 결제 문장이 실제 문장과 같다", () => {
+  /*
+   * retentionScrub.test.sql은 같은 문장을 손으로 베껴 실제 PostgreSQL에 돌린다.
+   * 둘이 갈라지면 원자성 테스트가 이제는 쓰이지 않는 문장을 검사하게 된다.
+   * DB 없이도 그 어긋남을 잡기 위해 여기서 글자로 맞춰 본다.
+   */
+  const sqlTest = readFileSync(new URL("./retentionScrub.test.sql", import.meta.url), "utf8");
+
+  /** 주석·공백·매개변수 표기 차이를 걷어낸 결제 CTE. */
+  const paymentCte = (text: string) =>
+    text
+      .slice(text.indexOf("scrubbed_payment"), text.indexOf("SELECT version FROM cas"))
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/--.*$/gm, "")
+      .replace(/\$\$\{n \+ 1\}/g, "$PARAM")
+      .replace(/\$3\b/g, "$PARAM")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  assert.equal(paymentCte(sqlTest), paymentCte(FUNCTION_SOURCE));
+});
+
+test("지울 것이 없는 결제 행은 고르지 않는다", () => {
+  const paymentUpdate = FUNCTION_SOURCE.slice(FUNCTION_SOURCE.indexOf("scrubbed_payment"));
+  // details가 있거나, request가 객체이고 그 안에 purpose가 있을 때만 쓴다.
+  assert.match(paymentUpdate, /order_snapshot \? 'details'/);
+  assert.match(paymentUpdate, /\(order_snapshot -> 'request'\) \? 'purpose'/);
+  // request가 객체가 아닌 경우를 먼저 확인한다(조건과 CASE 양쪽 모두).
+  assert.equal(
+    [...paymentUpdate.matchAll(/jsonb_typeof\(order_snapshot -> 'request'\) = 'object'/g)].length,
+    2,
+  );
 });
 
 test("세 갱신이 모두 CAS 성공에 걸려 있다", () => {

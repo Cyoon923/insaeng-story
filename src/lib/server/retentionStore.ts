@@ -113,7 +113,8 @@ export type RetentionScrubResult =
  *   1) app_store.data.orders[]        대상 Order.details를 allowlist 결과로 교체
  *   2) app_store.data.consultations[] 상담 주문이면 같은 id 상담의 details 교체 + purpose 제거
  *   3) orders 테이블                  같은 id의 details를 **같은 allowlist**로 교체
- *   4) payments                       이 주문에 이미 연결된 결제의 order_snapshot.details 제거
+ *   4) payments                       이 주문에 이미 연결된 결제의 order_snapshot에서
+ *                                     details와 request.purpose 제거
  *   5) orders.retention_scrubbed_at   위가 전부 성립했을 때만 최초 1회 기록
  *
  * 따로 쓰면 "JSONB는 깨끗한데 orders 테이블에는 이름·연락처가 남는" 상태가 생긴다.
@@ -219,13 +220,44 @@ export async function scrubOrderForRetentionOnce(
           WHERE id = $${n + 1} AND EXISTS (SELECT 1 FROM cas)
         ),
         scrubbed_payment AS (
+          /*
+           * 지우는 것은 두 가지다. 신청 내용 사본(details)과 상담 목적 사본
+           * (request.purpose). 둘 다 같은 주문·상담에 확정본이 있었고, 그 확정본은
+           * 이 문장과 같은 성공 경계 안에서 이미 지워진다.
+           *
+           * request는 통째로 지우지 않는다. 남는 키(product·title·options·payment·
+           * report·extraPerson·teacher·datetime·method·option)는 무엇을 어떤 구성으로
+           * 팔았는지에 해당하고, 승인 재검증이 읽는 값과 같은 성격이다.
+           * purpose만 성격이 다르다. "이 사람이 어떤 고민으로 상담했는가"라서
+           * app_store 쪽에서도 키째 지운다(scrubConsultationForRetention).
+           * 여기에 남겨 두면 같은 사실이 한쪽에만 남는다.
+           *
+           * request가 없거나 객체가 아니면 CASE의 ELSE로 가서 details만 빠진다.
+           * purpose가 없으면 (request) - 'purpose'가 원래 값을 그대로 돌려주므로
+           * 결과가 달라지지 않는다. 어느 경우에도 안전하게 아무 일도 하지 않는다.
+           */
           UPDATE payments
-          SET order_snapshot = order_snapshot - 'details',
+          SET order_snapshot = CASE
+                WHEN jsonb_typeof(order_snapshot -> 'request') = 'object'
+                  THEN jsonb_set(
+                         order_snapshot - 'details',
+                         '{request}',
+                         (order_snapshot -> 'request') - 'purpose'
+                       )
+                ELSE order_snapshot - 'details'
+              END,
               updated_at = now()
           -- 이 주문에 이미 연결된 결제만. order_id가 NULL이면 이 조건이 참이 될 수 없어
           -- recommit의 복구 입력은 그대로 남는다. 다른 주문의 결제도 걸리지 않는다.
           WHERE order_id = $${n + 1}
-            AND order_snapshot ? 'details'
+            -- 지울 것이 하나라도 있을 때만 쓴다. 둘 다 없으면 이 행은 건드리지 않는다.
+            AND (
+              order_snapshot ? 'details'
+              OR (
+                jsonb_typeof(order_snapshot -> 'request') = 'object'
+                AND (order_snapshot -> 'request') ? 'purpose'
+              )
+            )
             AND EXISTS (SELECT 1 FROM cas)
         )
         SELECT version FROM cas
