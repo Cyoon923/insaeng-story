@@ -161,7 +161,8 @@ export interface NotificationSettings {
 
 export interface Review {
   id: string;
-  userId: string;
+  /** 작성 회원 id. 탈퇴 비식별화 때 키 자체가 제거되므로 없으면 탈퇴 회원의 후기다. */
+  userId?: string;
   name: string;
   title: string;
   rating: number;

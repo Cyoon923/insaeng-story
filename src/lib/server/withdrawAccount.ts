@@ -6,7 +6,7 @@
  * - 진행 중인 서비스가 있으면 탈퇴를 막는다.
  * - 회원 행은 지우지 않는다. 거래 기록(주문·상담·결제)이 회원 id로 묶여 있기 때문이다.
  *   대신 개인정보만 비우고 withdrawnAt을 남긴다.
- * - 후기는 정책상 손대지 않는다.
+ * - 후기는 내용·공개 상태를 그대로 두고, 작성자 표시만 비식별화한다.
  */
 import { getUserId } from "@/lib/server/session";
 import { countPendingPaymentsByUser, listOrdersByUser, readData } from "@/lib/server/store";
@@ -93,7 +93,7 @@ export async function findWithdrawBlockers(
  * 재식별과 로그인에 쓰이는 값(아이디·연락처·이메일·비밀번호·소셜 id)을 모두 비우므로
  * 같은 아이디나 같은 번호, 같은 소셜 계정으로 다시 가입할 수 있다.
  *
- * 후기(reviews)와 주문·상담·결제 기록은 이 함수가 건드리지 않는다.
+ * 후기(reviews)와 주문·상담·결제 기록은 이 함수가 건드리지 않는다(후기는 scrubUserRecords가 맡는다).
  * 저장은 호출한 쪽에서 writeData로 마무리한다.
  */
 export function anonymizeWithdrawnUser(data: AppData, user: User): User {
@@ -185,8 +185,8 @@ export function pickKeptDetails(details: Record<string, string>): Record<string,
 /**
  * 탈퇴하는 회원의 주문·상담 details에서 개인정보 사본을 지운다. data를 직접 바꾼다.
  *
- * 건드리는 것은 userId가 일치하는 행의 details뿐이다.
- * 금액·상태·상품명 같은 컬럼과 다른 회원의 행, 후기(reviews)는 그대로 둔다.
+ * 건드리는 것은 userId가 일치하는 행의 details와 후기의 작성자 표시뿐이다.
+ * 금액·상태·상품명 같은 컬럼과 다른 회원의 행은 그대로 둔다.
  * 저장은 호출한 쪽에서 writeData로 마무리한다.
  */
 export function scrubUserRecords(data: AppData, userId: string): void {
@@ -202,6 +202,15 @@ export function scrubUserRecords(data: AppData, userId: string): void {
     if (inquiry.userId !== userId) continue;
     inquiry.name = WITHDRAWN_NAME;
     inquiry.phone = "";
+  }
+  // 후기. 내용(text·별점·상품명·작성일)과 공개 상태, 대상(targetKey)은 그대로 두고
+  // 작성자를 가리키는 값만 지운다. userId는 값을 비우지 않고 키째 없앤다.
+  // 키가 사라지면 어떤 회원과도 비교에서 걸리지 않아 다시 이어 붙일 수 없다.
+  // 이미 비식별화된 후기는 userId가 없어 이 조건에 걸리지 않으므로 여러 번 실행해도 결과가 같다.
+  for (const review of data.reviews ?? []) {
+    if (review.userId !== userId) continue;
+    review.name = WITHDRAWN_NAME;
+    delete review.userId;
   }
 }
 
