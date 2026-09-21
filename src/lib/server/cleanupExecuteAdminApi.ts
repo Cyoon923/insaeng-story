@@ -38,6 +38,7 @@ export const CLEANUP_ACTIONS = [
   "retention",
   "legacy-codes",
   "expired-verifications",
+  "expired-inquiries-chat",
 ] as const;
 
 export type CleanupAction = (typeof CLEANUP_ACTIONS)[number];
@@ -50,6 +51,15 @@ export type CleanupAction = (typeof CLEANUP_ACTIONS)[number];
  * 값을 키우는 일은 실제 실행 결과를 보고 따로 정한다.
  */
 export const RETENTION_LIMIT = 1;
+
+/**
+ * 일반 문의·채팅 정리가 한 번에 처리하는 한도.
+ *
+ * legacy 1건 + 채팅 1건이다. 이 정리도 처음 실행이라 몇 건이 지워질지 모른다.
+ * 사전 확인(preflight)이 규모를 알려 주므로, 규모를 보기 전에 여러 건을 지우지 않는다.
+ * retention의 한도와 값이 같아도 다른 정책이라 상수를 따로 둔다.
+ */
+export const INQUIRY_CHAT_CLEANUP_LIMIT = 1;
 
 /* ── 실행 함수가 돌려주는 값의 모양 ─────────────────── */
 
@@ -70,6 +80,12 @@ export type VerificationCleanupOutcome =
 export type LegacyCodesOutcome =
   | { ok: true; deleted: number; attempts: number }
   | { ok: false; attempts: number };
+
+export type ExpiredInquiryOutcome =
+  | { ok: true; deleted: number; attempts: number }
+  | { ok: false; reason: string; attempts: number };
+
+export type ExpiredChatOutcome = { ok: true; deleted: number } | { ok: false; reason: string };
 
 export interface RetentionRunOutcome {
   discovered: number;
@@ -96,6 +112,13 @@ export interface CleanupExecuteDeps {
   runRetention: (now: string, limit: number) => Promise<RetentionRunOutcome>;
   cleanupLegacyCodes: (now: number) => Promise<LegacyCodesOutcome>;
   deleteExpiredVerifications: (now: Date) => Promise<VerificationCleanupOutcome>;
+  /**
+   * 만료된 legacy 문의를 최대 limit건 지운다.
+   * inquiryChatCleanupStore.runExpiredInquiryCleanup과 같은 모양을 여기에 적어 둔다.
+   */
+  cleanupExpiredInquiries: (now: string, limit: number) => Promise<ExpiredInquiryOutcome>;
+  /** 만료된 채팅 방을 최대 limit개 지운다. 메시지는 FK CASCADE가 함께 없앤다. */
+  cleanupExpiredChats: (now: string, limit: number) => Promise<ExpiredChatOutcome>;
 }
 
 /* ── 사유 ───────────────────────────────────────────── */
@@ -202,6 +225,20 @@ export interface LegacyCodesBody {
   ok: boolean;
 }
 
+/**
+ * 일반 문의·채팅 정리 결과.
+ *
+ * 두 갈래를 한 몸에 담되 서로의 성패를 가리지 않는다. legacy가 실패하면 채팅은
+ * 실행하지 않으며(ran=false), 그 사실이 응답에 그대로 드러난다.
+ * 사유는 정해 둔 고정 문자열뿐이고 받은 오류·SQL·개인정보는 담지 않는다.
+ */
+export interface ExpiredInquiriesChatBody {
+  action: "expired-inquiries-chat";
+  ranAt: string;
+  legacy: { ran: boolean; ok: boolean; deleted: number; attempts: number; reason?: string };
+  chat: { ran: boolean; ok: boolean; deleted: number; reason?: string };
+}
+
 export interface ExpiredVerificationsBody {
   action: "expired-verifications";
   ranAt: string;
@@ -214,7 +251,8 @@ export type CleanupResponseBody =
   | PrepareSchemaBody
   | RetentionBody
   | LegacyCodesBody
-  | ExpiredVerificationsBody;
+  | ExpiredVerificationsBody
+  | ExpiredInquiriesChatBody;
 
 export interface CleanupExecuteResponse {
   status: number;
@@ -275,6 +313,11 @@ export async function runCleanupExecute(
 
   if (action === "retention" && !isAllowedLimit(body?.limit)) return refuse("INVALID_LIMIT");
 
+  // 일반 문의·채팅 정리도 한도를 적어야 한다. 값은 이번 버전이 허용하는 1 하나뿐이다.
+  if (action === "expired-inquiries-chat" && body?.limit !== INQUIRY_CHAT_CLEANUP_LIMIT) {
+    return refuse("INVALID_LIMIT");
+  }
+
   try {
     return await execute(deps, action, now);
   } catch {
@@ -318,6 +361,40 @@ async function execute(
         // 후보를 읽지 못했다는 사실을 지우지 않는다.
         discoveryFailed: summary.discoveryFailed,
         reasons: countRetentionReasons(summary.results),
+      },
+    };
+  }
+
+  if (action === "expired-inquiries-chat") {
+    /*
+     * 두 저장소를 차례로 정리한다. 한도는 각각 1건이고, 기준 시각(now)은 하나다.
+     *
+     * legacy가 끝나지 못했으면 채팅으로 넘어가지 않는다. 한쪽이 밀린 채로 다른 쪽만
+     * 지우면 응답이 "절반은 됐다"를 "됐다"처럼 보이게 만든다. 멈추고 그대로 적는다.
+     */
+    const legacy = await deps.cleanupExpiredInquiries(now, INQUIRY_CHAT_CLEANUP_LIMIT);
+    if (!legacy.ok) {
+      return {
+        status: 200,
+        body: {
+          action,
+          ranAt: now,
+          legacy: { ran: true, ok: false, deleted: 0, attempts: legacy.attempts, reason: legacy.reason },
+          chat: { ran: false, ok: false, deleted: 0 },
+        },
+      };
+    }
+
+    const chat = await deps.cleanupExpiredChats(now, INQUIRY_CHAT_CLEANUP_LIMIT);
+    return {
+      status: 200,
+      body: {
+        action,
+        ranAt: now,
+        legacy: { ran: true, ok: true, deleted: legacy.deleted, attempts: legacy.attempts },
+        chat: chat.ok
+          ? { ran: true, ok: true, deleted: chat.deleted }
+          : { ran: true, ok: false, deleted: 0, reason: chat.reason },
       },
     };
   }

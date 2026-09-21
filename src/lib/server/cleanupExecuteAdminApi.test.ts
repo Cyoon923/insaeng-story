@@ -14,6 +14,7 @@ import test from "node:test";
 import {
   CLEANUP_ACTIONS,
   CLEANUP_ERRORS,
+  INQUIRY_CHAT_CLEANUP_LIMIT,
   RETENTION_LIMIT,
   countRetentionReasons,
   runCleanupExecute,
@@ -45,6 +46,8 @@ interface Harness {
     retention: { now: string; limit: number }[];
     legacy: number[];
     expired: Date[];
+    inquiries: { now: string; limit: number }[];
+    chats: { now: string; limit: number }[];
   };
   /** 실행 함수를 통틀어 몇 번 불렀는지. */
   total: () => number;
@@ -58,6 +61,8 @@ function harness(
     schemaSupported?: boolean;
     expiredSupported?: boolean;
     legacyOk?: boolean;
+    inquiryOk?: boolean;
+    chatOk?: boolean;
     throwOn?: keyof Omit<CleanupExecuteDeps, "databaseMode">;
   } = {},
 ): Harness {
@@ -66,8 +71,16 @@ function harness(
     runRetention: 0,
     cleanupLegacyCodes: 0,
     deleteExpiredVerifications: 0,
+    cleanupExpiredInquiries: 0,
+    cleanupExpiredChats: 0,
   };
-  const seen: Harness["seen"] = { retention: [], legacy: [], expired: [] };
+  const seen: Harness["seen"] = {
+    retention: [],
+    legacy: [],
+    expired: [],
+    inquiries: [],
+    chats: [],
+  };
   const boom = (name: keyof typeof calls) => {
     if (options.throwOn === name) {
       throw new Error("SELECT phone FROM orders WHERE phone = '010-0000-0000'");
@@ -103,6 +116,22 @@ function harness(
         ? { supported: false }
         : { supported: true, deleted: 7 };
     },
+    cleanupExpiredInquiries: async (now, limit) => {
+      calls.cleanupExpiredInquiries += 1;
+      seen.inquiries.push({ now, limit });
+      boom("cleanupExpiredInquiries");
+      return options.inquiryOk === false
+        ? { ok: false, reason: "cas-conflict", attempts: 3 }
+        : { ok: true, deleted: 1, attempts: 1 };
+    },
+    cleanupExpiredChats: async (now, limit) => {
+      calls.cleanupExpiredChats += 1;
+      seen.chats.push({ now, limit });
+      boom("cleanupExpiredChats");
+      return options.chatOk === false
+        ? { ok: false, reason: "database-required" }
+        : { ok: true, deleted: 1 };
+    },
   };
 
   return {
@@ -115,9 +144,11 @@ function harness(
 
 /** 그 action을 실행하는 데 필요한 최소 본문. */
 function bodyFor(action: CleanupAction): Record<string, unknown> {
-  return action === "retention"
-    ? { action, confirm: action, limit: RETENTION_LIMIT }
-    : { action, confirm: action };
+  if (action === "retention") return { action, confirm: action, limit: RETENTION_LIMIT };
+  if (action === "expired-inquiries-chat") {
+    return { action, confirm: action, limit: INQUIRY_CHAT_CLEANUP_LIMIT };
+  }
+  return { action, confirm: action };
 }
 
 /** console.warn을 가로채 무엇이 남았는지 본다. */
@@ -138,16 +169,27 @@ async function captureWarnings(run: () => Promise<void>): Promise<string[]> {
 test("실행할 수 있는 것이 넷뿐이다", () => {
   assert.deepEqual(
     [...CLEANUP_ACTIONS],
-    ["prepare-schema", "retention", "legacy-codes", "expired-verifications"],
+    [
+      "prepare-schema",
+      "retention",
+      "legacy-codes",
+      "expired-verifications",
+      "expired-inquiries-chat",
+    ],
   );
 });
 
-test("action마다 정해진 함수 하나만 부른다", async () => {
-  const expected: Record<CleanupAction, keyof Harness["calls"]> = {
-    "prepare-schema": "prepareSchema",
-    retention: "runRetention",
-    "legacy-codes": "cleanupLegacyCodes",
-    "expired-verifications": "deleteExpiredVerifications",
+test("action마다 정해진 함수만 부른다", async () => {
+  /*
+   * 대부분은 함수 하나만 부른다. 일반 문의·채팅 정리만 저장소가 둘이라
+   * (app_store JSONB와 chat_inquiries 테이블) 정해 둔 두 함수를 차례로 부른다.
+   */
+  const expected: Record<CleanupAction, (keyof Harness["calls"])[]> = {
+    "prepare-schema": ["prepareSchema"],
+    retention: ["runRetention"],
+    "legacy-codes": ["cleanupLegacyCodes"],
+    "expired-verifications": ["deleteExpiredVerifications"],
+    "expired-inquiries-chat": ["cleanupExpiredInquiries", "cleanupExpiredChats"],
   };
 
   for (const action of CLEANUP_ACTIONS) {
@@ -155,8 +197,8 @@ test("action마다 정해진 함수 하나만 부른다", async () => {
     const response = await runCleanupExecute(h.deps, bodyFor(action), NOW);
 
     assert.equal(response.status, 200, action);
-    assert.equal(h.total(), 1, `${action}: 실행 함수를 한 번만 불러야 한다`);
-    assert.equal(h.calls[expected[action]], 1, action);
+    assert.equal(h.total(), expected[action].length, `${action}: 정해진 수만 불러야 한다`);
+    for (const name of expected[action]) assert.equal(h.calls[name], 1, `${action}:${name}`);
   }
 });
 
@@ -498,6 +540,7 @@ test("받은 오류가 응답에도 기록에도 새지 않는다", async () => 
       retention: "runRetention",
       "legacy-codes": "cleanupLegacyCodes",
       "expired-verifications": "deleteExpiredVerifications",
+      "expired-inquiries-chat": "cleanupExpiredInquiries",
     } as const;
     const h = harness({ throwOn: throwOn[action] });
 

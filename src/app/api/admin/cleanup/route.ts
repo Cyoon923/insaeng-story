@@ -21,6 +21,11 @@ import {
   ensureRetentionSchema,
   runRetentionCleanupOnce,
 } from "@/lib/server/retentionStore";
+import {
+  defaultInquiryCleanupDeps,
+  runExpiredChatCleanup,
+  runExpiredInquiryCleanup,
+} from "@/lib/server/inquiryChatCleanupStore";
 import { sqlClient } from "@/lib/server/store";
 import { deleteExpiredVerifications } from "@/lib/server/verificationCodes";
 
@@ -49,6 +54,13 @@ export async function POST(request: Request) {
       runRetention: runRetentionCleanupOnce,
       cleanupLegacyCodes: cleanupLegacyVerificationCodes,
       deleteExpiredVerifications,
+      /*
+       * 일반 문의·채팅 정리. 한도는 규칙 모듈이 정한 값을 그대로 받아 넘긴다.
+       * 이 자리에서 한도를 만들지 않는다(호출부가 정하게 해 둔 구조를 지킨다).
+       */
+      cleanupExpiredInquiries: (now, limit) =>
+        runExpiredInquiryCleanup(defaultInquiryCleanupDeps(), now, limit),
+      cleanupExpiredChats: runExpiredChatCleanup,
     },
     body,
     now,
