@@ -5,6 +5,8 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import type {
   AdminPromo,
   Consultation,
+  ComplaintCategory,
+  ComplaintRecord,
   ConsultStatus,
   Coupon,
   CouponProduct,
@@ -131,6 +133,23 @@ function chatStatusLabel(status: string): string {
 }
 
 /** 상태 변경 버튼에 쓰는 값과 문구. 데이터 계층이 허용하는 세 값 그대로다. */
+/** 불만 분류. 서버 enum과 한 글자도 어긋나면 안 된다. 최종 판정은 서버가 한다. */
+const COMPLAINT_CATEGORY_OPTIONS: { value: ComplaintCategory; label: string }[] = [
+  { value: "service", label: "서비스" },
+  { value: "payment", label: "결제" },
+  { value: "consultation", label: "상담" },
+  { value: "delivery", label: "전달" },
+  { value: "privacy", label: "개인정보" },
+  { value: "other", label: "기타" },
+];
+
+/** 요지 상한. 서버 규칙(complaintRecordRules)과 같은 값이며 서버가 최종 관문이다. */
+const COMPLAINT_SUMMARY_MAX = 500;
+
+function complaintCategoryLabel(value: string) {
+  return COMPLAINT_CATEGORY_OPTIONS.find((item) => item.value === value)?.label ?? value;
+}
+
 const CHAT_STATUS_OPTIONS: { value: "new" | "in_progress" | "closed"; label: string }[] = [
   { value: "new", label: "새 문의" },
   { value: "in_progress", label: "상담 중" },
@@ -260,6 +279,18 @@ export default function AdminPage() {
 
   // 새 상담원 문의방(chat_inquiries). 기존 legacy 문의와 별개로 담는다.
   const [chatThreads, setChatThreads] = useState<AdminChatInquiry[]>([]);
+  /**
+   * 불만·분쟁 기록. 서버가 { items, loaded } 모양으로 준다.
+   * loaded가 false면 "기록 없음"이 아니라 "읽지 못함"이다.
+   */
+  const [complaintRecords, setComplaintRecords] = useState<{
+    items: ComplaintRecord[];
+    loaded: boolean;
+  }>({ items: [], loaded: false });
+  const [complaintCategory, setComplaintCategory] = useState<ComplaintCategory>("service");
+  const [complaintSummary, setComplaintSummary] = useState("");
+  const [complaintSaving, setComplaintSaving] = useState(false);
+  const [complaintError, setComplaintError] = useState("");
   // 목록을 한 번이라도 불러왔는지. 탭을 오갈 때 같은 조회를 반복하지 않기 위해 둔다.
   const [chatLoaded, setChatLoaded] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -299,6 +330,12 @@ export default function AdminPage() {
     setConsultations(data.consultations ?? []);
     setReviews((data.reviews ?? []) as ReviewItem[]);
     setInquiries(data.inquiries ?? []);
+    setComplaintRecords(
+      (data.complaintRecords ?? { items: [], loaded: false }) as {
+        items: ComplaintRecord[];
+        loaded: boolean;
+      },
+    );
     const nextDates = (data.dates ?? []) as string[];
     setScheduleDates(nextDates);
     setScheduleDate((current) => current || nextDates[0] || "");
@@ -658,6 +695,70 @@ export default function AdminPage() {
   }
 
   /** 상담 상태 변경. 실패하면 기존 상태를 그대로 둔다. */
+  /**
+   * 이 문의를 불만·분쟁 기록으로 승격한다.
+   *
+   * 보내는 값은 분류·요지와 어디에서 온 건인지뿐이다. 이름·연락처·대화 전문·원본 id는
+   * 보내지 않고, 상태·시각·처리자도 서버가 정한다.
+   * 요지는 상담원이 직접 적는다. 대화 내용을 자동으로 채우지 않는다.
+   */
+  async function handleCreateComplaint(sourceType: "chat" | "inquiry", userId: string | null) {
+    const summary = complaintSummary.trim();
+    if (!summary || complaintSaving) return;
+    setComplaintSaving(true);
+    setComplaintError("");
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "createComplaintRecord",
+          sourceType,
+          category: complaintCategory,
+          summary,
+          userId,
+          // 주문을 특정할 수 있는 화면이 아니라면 비워 둔다. 짐작해서 채우지 않는다.
+          orderId: null,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) {
+        setComplaintError(data?.error ?? "기록하지 못했습니다.");
+        return;
+      }
+      setComplaintSummary("");
+      await loadData();
+    } catch {
+      setComplaintError("기록하지 못했습니다.");
+    } finally {
+      setComplaintSaving(false);
+    }
+  }
+
+  /** 불만 기록을 처리 완료로 표시한다. 보내는 값은 어떤 기록인지뿐이다. */
+  async function handleMarkComplaintHandled(complaintRecordId: string) {
+    if (complaintSaving) return;
+    setComplaintSaving(true);
+    setComplaintError("");
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markComplaintHandled", complaintRecordId }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) {
+        setComplaintError(data?.error ?? "처리하지 못했습니다.");
+        return;
+      }
+      await loadData();
+    } catch {
+      setComplaintError("처리하지 못했습니다.");
+    } finally {
+      setComplaintSaving(false);
+    }
+  }
+
   async function handleUpdateChatStatus(id: string, status: "new" | "in_progress" | "closed") {
     const current = chatThreads.find((item) => item.id === id);
     if (!current || current.status === status || chatStatusSaving) return;
@@ -1404,6 +1505,56 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                {/* 불만으로 기록. 대화 내용을 옮겨 적지 않고 상담원이 요지만 정리한다. */}
+                <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <p className="text-[15px] font-bold text-[#403A49]">불만으로 기록</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
+                    실제 불만·분쟁으로 판단한 경우에만 남깁니다. 대화 전문이 아니라 요지만 적어 주세요.
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {COMPLAINT_CATEGORY_OPTIONS.map((option) => {
+                      const active = complaintCategory === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setComplaintCategory(option.value)}
+                          aria-pressed={active}
+                          className={`h-10 rounded-xl border text-[14px] font-medium ${
+                            active
+                              ? "border-[#403A49] bg-[#403A49] text-white"
+                              : "border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <textarea
+                    value={complaintSummary}
+                    maxLength={COMPLAINT_SUMMARY_MAX}
+                    onChange={(event) => setComplaintSummary(event.target.value)}
+                    rows={3}
+                    placeholder="어떤 요구가 있었고 어떻게 처리할지 요지만 적어 주세요"
+                    className="mt-3 w-full resize-none rounded-xl border border-[#d4c8ba] bg-white px-3 py-2 text-[15px] leading-relaxed text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                  />
+                  <p className="mt-1 text-right text-[12px] text-[#6B6570]">
+                    {complaintSummary.length}/{COMPLAINT_SUMMARY_MAX}
+                  </p>
+                  {complaintError ? (
+                    <p className="mt-2 text-[14px] text-[#b42318]">{complaintError}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => handleCreateComplaint("chat", null)}
+                    disabled={complaintSummary.trim().length === 0 || complaintSaving}
+                    className="mt-3 h-11 w-full rounded-xl border border-[#403A49] bg-white text-[15px] font-semibold text-[#403A49] disabled:opacity-40"
+                  >
+                    {complaintSaving ? "기록 중…" : "불만으로 기록"}
+                  </button>
+                </div>
+
                 <div className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   {chatDetailLoading ? (
                     <p className="text-[14px] text-[#6B6570]">대화를 불러오는 중...</p>
@@ -1537,6 +1688,49 @@ export default function AdminPage() {
                 ) : null}
               </>
             )}
+            {/* 불만·분쟁 기록. 이름·연락처·대화 전문·금액은 담지 않는다. */}
+            <section className="space-y-2 pt-2">
+              <p className="text-[13px] font-semibold text-[#6B6570]">불만·분쟁 기록</p>
+              {!complaintRecords.loaded ? (
+                <p className="rounded-2xl bg-[#fdf2f2] px-4 py-3 text-[14px] text-[#b42318]">
+                  기록을 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.
+                </p>
+              ) : complaintRecords.items.length === 0 ? (
+                <p className="rounded-2xl bg-white px-4 py-3 text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
+                  아직 기록이 없습니다.
+                </p>
+              ) : (
+                complaintRecords.items.map((item) => (
+                  <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[15px] font-bold text-[#403A49]">
+                        {complaintCategoryLabel(item.category)}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-[#f5efe6] px-2 py-1 text-[12px] font-medium text-[#5c3d2e]">
+                        {item.status === "handled" ? "처리 완료" : "처리 중"}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-[#5c3d2e]">
+                      {item.summary}
+                    </p>
+                    <p className="mt-2 text-[13px] text-[#6B6570]">
+                      {item.sourceType} · 접수 {formatDate(item.createdAt)}
+                      {item.handledAt ? ` · 완료 ${formatDate(item.handledAt)}` : ""}
+                    </p>
+                    {item.status === "open" ? (
+                      <button
+                        type="button"
+                        onClick={() => handleMarkComplaintHandled(item.id)}
+                        disabled={complaintSaving}
+                        className="mt-3 h-10 w-full rounded-xl border border-[#d4c8ba] bg-white text-[14px] font-semibold text-[#5c3d2e] disabled:opacity-40"
+                      >
+                        처리 완료
+                      </button>
+                    ) : null}
+                  </article>
+                ))
+              )}
+            </section>
           </div>
         ) : null}
 

@@ -243,3 +243,46 @@ export interface AppData {
   adminPromo: AdminPromo | null;
   testResetAt?: string;
 }
+
+/**
+ * 불만·분쟁 처리 기록 (Privacy-Complaint-Implementation-1).
+ *
+ * 일반 문의·채팅과 완전히 별개다. 일반 문의·채팅은 운영 보존정책에 따라 만료되지만,
+ * 관리자가 실제 불만·분쟁으로 판단해 승격한 건만 이 기록으로 남는다.
+ *
+ * 담지 않는 것: 이름·연락처·guest token·대화 본문·금액·PG 정보·원본 문의 id.
+ * 거래 사실은 orders·payments가, 환불 처리는 refund_requests가 따로 보유한다.
+ * 여기에는 "어떤 성격의 불만이 언제 접수되어 어떻게 끝났는가"만 남는다.
+ */
+export type ComplaintSourceType = "chat" | "inquiry" | "other";
+
+export type ComplaintCategory =
+  | "service"
+  | "payment"
+  | "consultation"
+  | "delivery"
+  | "privacy"
+  | "other";
+
+/** open(접수·처리 중) → handled(처리 완료). 되돌아가는 전이는 없다. */
+export type ComplaintStatus = "open" | "handled";
+
+export interface ComplaintRecord {
+  id: string;
+  /** 어느 경로에서 제기됐는지. 원본 id는 남기지 않는다(원본은 먼저 만료된다). */
+  sourceType: ComplaintSourceType;
+  category: ComplaintCategory;
+  /** 상담원이 정리한 요지. 대화 전문을 옮기지 않는다. */
+  summary: string;
+  /** 승격(접수 기록) 시각(UTC ISO). 서버가 만든다. */
+  createdAt: string;
+  status: ComplaintStatus;
+  /** 처리 완료 시각(UTC ISO). 한 번 기록하면 덮어쓰지 않는다. */
+  handledAt: string | null;
+  /** 회원이 제기한 건일 때만. 이름·연락처 대신 쓰는 최소 식별자다. */
+  userId: string | null;
+  /** 특정 주문에 관한 건일 때만. 거래 증빙으로 가는 참조이며 FK는 두지 않는다. */
+  orderId: string | null;
+  /** 처리한 관리자 표식. 고객 개인정보가 아니다. */
+  handledBy: string | null;
+}

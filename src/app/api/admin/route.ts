@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   clearAdminSession,
+  CURRENT_ADMIN_ACTOR,
   getAdminPassword,
   isAdminAuthenticated,
   setAdminAuthenticated,
@@ -27,7 +28,18 @@ import {
   applyConsultationCompletion,
   deliveredAtForStatus,
 } from "@/lib/server/serviceCompletion";
-import type { ConsultStatus, OrderStatus } from "@/lib/types/app";
+import {
+  markComplaintHandledFailureResponse,
+  readCreateComplaintRecordBody,
+  readMarkComplaintHandledBody,
+} from "@/lib/server/complaintAdminApi";
+import {
+  createComplaintRecord,
+  listComplaintRecordsForAdmin,
+  markComplaintHandled,
+} from "@/lib/server/complaintRecords";
+import { ComplaintRecordError } from "@/lib/server/complaintRecordRules";
+import type { ComplaintRecord, ConsultStatus, OrderStatus } from "@/lib/types/app";
 
 const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
 const CONSULT_STATUSES: ConsultStatus[] = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"];
@@ -50,10 +62,24 @@ export async function GET() {
     paymentsNeedingReview = { stale: [], unlinked: [] };
   }
 
+  /*
+   * 불만·분쟁 기록. 환불 문의와 같은 이유로 이 필드에만 실패를 가둔다.
+   * 읽지 못한 것과 기록이 없는 것을 구분해야 하므로 loaded를 함께 준다.
+   * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
+   */
+  let complaintRecords: { items: ComplaintRecord[]; loaded: boolean };
+  try {
+    complaintRecords = { items: await listComplaintRecordsForAdmin(), loaded: true };
+  } catch (error) {
+    console.error("[admin] complaint records failed", error);
+    complaintRecords = { items: [], loaded: false };
+  }
+
   return NextResponse.json({
     users: data.users,
     paymentsNeedingReview,
     orders: await listAllOrders(),
+    complaintRecords,
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],
     reviews: data.reviews ?? [],
@@ -112,6 +138,73 @@ async function handlePost(request: Request) {
 
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
+  }
+
+  if (action === "createComplaintRecord") {
+    /**
+     * 일반 문의·채팅을 불만·분쟁 기록으로 승격한다.
+     *
+     * 관리자가 정하는 값은 어디에서 온 건인지(sourceType), 어떤 분류인지(category),
+     * 요지(summary)와 선택적 연결(userId·orderId)뿐이다. id·접수 시각·상태는 서버가
+     * 만들고, body의 status·createdAt·handledAt·handledBy는 읽지 않는다.
+     *
+     * 이름·연락처·guest token·원본 문의 id·대화 본문·금액·PG 정보를 읽는 자리가 없다.
+     * 읽지 않으므로 함께 보내도 저장 계층에 닿지 않는다.
+     *
+     * 같은 주문에 환불 문의가 있다는 이유만으로 거절하지 않는다. 환불의 정본은
+     * 그대로 refund_requests이며, 여기서 중복 판정을 새로 만들지 않는다.
+     */
+    const parsed = readCreateComplaintRecordBody(body);
+    try {
+      // 분류·요지 규칙은 저장 계층이 complaintRecordRules로 거른다.
+      const record = await createComplaintRecord(parsed.body);
+      return NextResponse.json({ ok: true, complaintRecord: record });
+    } catch (error) {
+      if (error instanceof ComplaintRecordError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      // 실패한 이유는 서버 기록에만 남긴다. SQL·스택은 응답에 담지 않는다.
+      console.error("[admin] complaint record create failed", error);
+      return NextResponse.json(
+        { error: "기록하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (action === "markComplaintHandled") {
+    /**
+     * 불만 기록을 처리 완료로 표시한다.
+     *
+     * 관리자가 정하는 값은 어떤 기록인지(complaintRecordId) 하나뿐이다.
+     * 실행자는 서버 상수(CURRENT_ADMIN_ACTOR)를 쓰고 body의 handledBy는 읽지 않는다.
+     * 처리 시각도 저장 계층이 서버에서 만든다.
+     *
+     * open일 때만 바뀐다. 이미 처리된 기록과 없는 기록을 성공으로 돌려주지 않는다.
+     */
+    const parsed = readMarkComplaintHandledBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    let result;
+    try {
+      result = await markComplaintHandled({
+        complaintRecordId: parsed.complaintRecordId,
+        handledBy: CURRENT_ADMIN_ACTOR,
+      });
+    } catch (error) {
+      console.error("[admin] complaint record handle failed", error);
+      return NextResponse.json(
+        { error: "처리하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 500 },
+      );
+    }
+    if (!result.ok) {
+      const failure = markComplaintHandledFailureResponse(result.reason);
+      return NextResponse.json({ error: failure.error }, { status: failure.status });
+    }
+    // 바뀐 결과만 돌려준다. 근거는 목록(GET)이 이미 준다.
+    return NextResponse.json({ ok: true, complaintRecord: result.record });
   }
 
   if (action === "toggleBlockSlot") {
