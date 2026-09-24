@@ -328,6 +328,10 @@ export async function consumeVerification(
   return toLegacyRecord(saved);
 }
 
+/* ------------------------------------------------------------------ *
+ * 만료 인증값 정리 (Privacy-Verification-Cleanup-1)
+ * ------------------------------------------------------------------ */
+
 /**
  * 만료 인증값 정리 결과.
  *

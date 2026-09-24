@@ -7,7 +7,18 @@
  * 이 파일의 함수들은 요청·세션·쿠키를 전혀 모르고, 필요한 값을 인자로만 받는다.
  */
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
-import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
+import {
+  isSlotAvailable,
+  parseDatetime,
+  resolveConfirmedScheduledAt,
+  resolveScheduledAt,
+} from "@/lib/server/consultationSlots";
+import {
+  buildCopyrightConsent,
+  buildOrderConsent,
+  checkCopyrightConsent,
+  checkOrderConsent,
+} from "@/lib/server/consents";
 import { nowId, writeDataWithOrder } from "@/lib/server/store";
 import type { AppData, Consultation, CouponProduct, Order, User } from "@/lib/types/app";
 
@@ -211,11 +222,71 @@ export async function commitOrder(
   data: AppData,
   user: User,
   input: OrderInput,
-  options: { orderId?: string; write?: CommitWriter; mode?: CommitMode } = {},
+  options: {
+    orderId?: string;
+    write?: CommitWriter;
+    mode?: CommitMode;
+    /**
+     * 신청 단계 [필수] 동의를 반드시 받아야 하는지. 기본값 true다.
+     *
+     * false는 "이미 승인이 끝난 결제를 복구하는 경우"에만 쓴다. 이 기능이
+     * 생기기 전에 준비된 결제의 snapshot에는 동의 값이 없는데, 승인이 끝난 뒤에
+     * 막으면 결제만 되고 주문은 없는 상태가 된다. 그쪽이 더 나쁘다.
+     */
+    requireConsent?: boolean;
+    /**
+     * 서버가 이 신청의 [필수] 동의를 **최초로 검증한** 시각(UTC ISO).
+     *
+     * 카드결제는 preparePayment가 검증 직후 만들어 결제 스냅샷에 담고,
+     * 승인 경로가 그 값을 여기로 넘긴다. 그래야 증빙에 남는 시각이
+     * "NICEPAY 승인이 끝난 시각"이 아니라 "동의를 확인한 시각"이 된다.
+     *
+     * 넘기지 않으면 검증이 이 요청 안에서 처음 일어난 것으로 보고 지금 시각을 쓴다
+     * (0원 신청). 단 requireConsent:false인 복구 경로에서는 검증이 여기서
+     * 일어나지 않으므로 시각을 만들지 않는다. 아래 consentedAt 참고.
+     */
+    consentedAt?: string;
+  } = {},
 ): Promise<CommitResult<{ order: Order }>> {
   const mode: CommitMode = options.mode ?? "free-only";
+  const requireConsent = options.requireConsent ?? true;
   const userId = user.id;
   const details = input.details;
+
+  /**
+   * 신청 단계 [필수] 동의. details의 문자열 "1"만 동의로 본다.
+   * 취소·환불과 저작권은 화면에서 체크박스가 따로 있고 따로 눌리므로 따로 본다.
+   * 시각과 버전은 서버가 채운다. 클라이언트 값은 쓰지 않는다.
+   */
+  const consentAgreed = String(details.applyConsent ?? "") === "1";
+  const consentCheck = checkOrderConsent(consentAgreed);
+  if (!consentCheck.ok && requireConsent) {
+    return { ok: false, error: consentCheck.error, status: 400 };
+  }
+  /**
+   * 저작권·창작물 이용 [필수] 동의. 인생곡 3종에만 있는 항목이다
+   * (상담은 commitConsultation이 맡고 이 동의를 요구하지 않는다).
+   * 화면 버튼이 이미 막고 있지만, API를 직접 부르는 경우까지 여기서 막는다.
+   */
+  const copyrightAgreed = String(details.copyrightConsent ?? "") === "1";
+  const copyrightCheck = checkCopyrightConsent(copyrightAgreed);
+  if (!copyrightCheck.ok && requireConsent) {
+    return { ok: false, error: copyrightCheck.error, status: 400 };
+  }
+  /**
+   * 증빙에 남길 동의시각.
+   *
+   * 넘어온 값이 있으면 그것이 서버가 최초로 검증한 시각이다(카드결제).
+   * 없고 이 요청이 검증을 했다면(requireConsent) 그 시각은 지금이다(0원 신청).
+   * 없고 검증도 하지 않았다면(복구 경로) 시각을 모른다. 이때는 만들지 않는다.
+   * createdAt이나 지금 시각으로 추정해 채우면 모르는 값을 아는 것처럼 기록하게 된다.
+   */
+  const consentedAt =
+    options.consentedAt ?? (requireConsent ? new Date().toISOString() : undefined);
+  const refundConsent = consentAgreed ? buildOrderConsent(consentedAt) : undefined;
+  // 두 레코드는 같은 시각을 나눠 쓰지만 동의 여부는 각자의 플래그로만 정해진다.
+  const copyrightConsent = copyrightAgreed ? buildCopyrightConsent(consentedAt) : undefined;
+
   // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
   const priced = calcOrderAmount(input.product, input.options);
   if (!priced) {
@@ -254,6 +325,9 @@ export async function commitOrder(
     payment: settledPayment(pointed.amount, pointed.details, String(input.payment ?? "")),
     details: pointed.details,
     createdAt: new Date().toISOString(),
+    // 동의가 확인된 경우에만 담는다. 복구 경로에서 값이 없으면 키를 만들지 않는다.
+    ...(refundConsent ? { refundConsent } : {}),
+    ...(copyrightConsent ? { copyrightConsent } : {}),
   };
   data.orders.unshift(order);
   if (data.notificationSettings[userId]?.order !== false) {
@@ -280,9 +354,49 @@ export async function commitConsultation(
   data: AppData,
   user: User,
   input: ConsultationInput,
-  options: { consultationId?: string; write?: CommitWriter; mode?: CommitMode } = {},
+  options: {
+    consultationId?: string;
+    write?: CommitWriter;
+    mode?: CommitMode;
+    /**
+     * 예약 절대시각(scheduledAt)을 반드시 만들 수 있어야 하는지.
+     *
+     * 기본값 true다. 새 상담은 유효한 scheduledDate 없이 만들어지지 않는다.
+     *
+     * false는 "이미 승인이 끝난 결제를 복구하는 경우"에만 쓴다. 이 기능이
+     * 생기기 전에 준비된 결제의 snapshot에는 scheduledDate가 없는데,
+     * 승인이 끝난 뒤에 막으면 결제만 되고 상담은 없는 상태가 된다.
+     * 그쪽이 더 나쁘므로 복구 경로는 값이 없으면 그냥 넘어간다.
+     * (값이 있는데 검증에 실패하면 false에서도 막는다)
+     */
+    requireSchedule?: boolean;
+    /**
+     * 예약 날짜를 "지금 판매 중인 날짜 목록"으로 다시 확인할지.
+     *
+     * 기본값 true다. 새 예약은 언제나 지금 판매 중인 날짜여야 한다.
+     *
+     * false는 "이미 승인이 끝난 결제를 확정하는 경우"에만 쓴다. 그 예약은
+     * preparePayment에서 이미 같은 규칙으로 검증되어 결제 snapshot에 고정되었다.
+     * 판매 가능 목록은 한국 날짜 기준으로 매일 앞으로 밀리므로, 결제 준비와 승인
+     * 사이에 자정이 지나면 같은 예약이 목록에서 빠진다. 그때 여기서 막으면
+     * 결제만 되고 상담이 없는 상태가 된다.
+     *
+     * false여도 검증을 그만두는 것이 아니다. 날짜 형식·실재 여부, 표시 문구와의
+     * 짝, 시각 문구, 슬롯 충돌은 그대로 본다(resolveConfirmedScheduledAt 주석 참고).
+     * requireSchedule과는 다른 축이다. 저쪽은 "값이 없어도 되는가"이고,
+     * 이쪽은 "있는 값을 어느 기준으로 보는가"다.
+     */
+    verifyOfferedDate?: boolean;
+    /** 신청 단계 [필수] 동의를 반드시 받아야 하는지. 기본값 true. (commitOrder와 같다) */
+    requireConsent?: boolean;
+    /** 서버가 동의를 최초로 검증한 시각(UTC ISO). commitOrder와 같은 뜻이다. */
+    consentedAt?: string;
+  } = {},
 ): Promise<CommitResult<{ consultation: Consultation; order: Order }>> {
   const mode: CommitMode = options.mode ?? "free-only";
+  const requireSchedule = options.requireSchedule ?? true;
+  const verifyOfferedDate = options.verifyOfferedDate ?? true;
+  const requireConsent = options.requireConsent ?? true;
   const userId = user.id;
   const teacher = String(input.teacher ?? "유비 선생");
   const datetime = String(input.datetime ?? "");
@@ -299,6 +413,22 @@ export async function commitConsultation(
   }
 
   const details = input.details;
+
+  // 신청 단계 [필수] 동의. 상담 화면의 "취소·환불 규정에 동의합니다"가 이 값이다.
+  const consentAgreed = String(details.applyConsent ?? "") === "1";
+  const consentCheck = checkOrderConsent(consentAgreed);
+  if (!consentCheck.ok && requireConsent) {
+    return { ok: false, error: consentCheck.error, status: 400 };
+  }
+  /*
+   * 저작권 동의는 상담에서 요구하지도, 만들지도 않는다. 상담에는 그 체크박스가
+   * 없어 동의 행위 자체가 일어나지 않고, 저작권 문구의 대상은 인생곡 제작물이다.
+   * details에 copyrightConsent가 섞여 와도 읽지 않는다.
+   */
+  const consentedAt =
+    options.consentedAt ?? (requireConsent ? new Date().toISOString() : undefined);
+  const refundConsent = consentAgreed ? buildOrderConsent(consentedAt) : undefined;
+
   // 상담 금액도 서버에서 기본가 + 옵션가로 다시 계산한다.
   const priced = calcConsultationAmount({
     report: input.report,
@@ -328,6 +458,31 @@ export async function commitConsultation(
   const createdAt = new Date().toISOString();
   const consultTeacher = teacher;
   const consultDatetime = datetime;
+  /**
+   * 예약 절대시각. 화면이 함께 보낸 한국 날짜("YYYY-MM-DD")를 쓴다.
+   *
+   * details는 클라이언트가 임의 키를 섞을 수 있는 값이라 그대로 믿지 않는다.
+   * isOfferedDate로 "지금 서버가 내주는 날짜 목록에 있고 표시 문구와도 짝이 맞는"
+   * 값만 통과시킨 뒤, toScheduledAt이 +09:00을 명시해 UTC ISO로 바꾼다.
+   *
+   * 검증을 통과하지 못하면 상담을 만들지 않고 400으로 끝낸다. 표시 문구에서
+   * 연도를 추론해 만들어 넣지 않는다. 예외는 requireSchedule=false인
+   * 복구 경로에서 값이 아예 없는 경우뿐이다.
+   *
+   * 승인 후 확정(verifyOfferedDate=false)에서는 "지금 판매 중인 날짜"인지만 보지
+   * 않는다. 나머지 검증은 같다. 왜 그런지는 위 verifyOfferedDate 주석에 적어 두었다.
+   */
+  const scheduledDate = String(details.scheduledDate ?? "").trim();
+  const scheduledAt =
+    (verifyOfferedDate
+      ? resolveScheduledAt(scheduledDate, parsed.date, parsed.time)
+      : resolveConfirmedScheduledAt(scheduledDate, parsed.date, parsed.time)) ?? undefined;
+  // 값이 없어도 되는 경우는 복구 경로뿐이다(위 requireSchedule 주석 참고).
+  // 값이 들어왔다면 복구 경로에서도 유효해야 한다.
+  if (!scheduledAt && (requireSchedule || scheduledDate)) {
+    return { ok: false, error: "상담 시간을 다시 선택해 주세요.", status: 400 };
+  }
+
   const consultPurpose = String(input.purpose ?? "");
   const consultMethod = String(input.method ?? "카카오톡 상담");
   const consultOption = String(input.option ?? "없음");
@@ -337,6 +492,8 @@ export async function commitConsultation(
     userId,
     teacher: consultTeacher,
     datetime: consultDatetime,
+    // 위 검증을 통과한 값만 담긴다. 복구 경로에서 값이 없을 때만 키가 빠진다.
+    ...(scheduledAt ? { scheduledAt } : {}),
     purpose: consultPurpose,
     method: consultMethod,
     option: consultOption,
@@ -367,6 +524,8 @@ export async function commitConsultation(
       option: consultOption,
     },
     createdAt,
+    // 상담 동의도 이 주문 1곳에만 남긴다. Consultation과 id가 같아 중복 저장이 필요없다.
+    ...(refundConsent ? { refundConsent } : {}),
   };
   data.orders.unshift(consultOrder);
   if (data.notificationSettings[userId]?.consult !== false) {

@@ -86,8 +86,18 @@ export default function ConsultationStep4Page() {
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[15px] font-bold text-[#403A49]">취소·환불 안내</p>
         <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
-          상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다. 상담 시간이 지난 뒤에는 환불이 어려울 수
-          있습니다.
+          상담 시작 3시간 전까지 요청하시면 일반 취소·환불 절차로 처리해 드립니다.
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
+          상담 시작까지 3시간이 남지 않았거나 예약하신 상담 시각이 지난 뒤에 요청하신 경우에도 자동으로
+          거절하지 않습니다. 진행 내용을 확인한 뒤 개별적으로 안내해 드립니다.
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
+          자세한 기준은{" "}
+          <Link href="/refund" className="font-medium text-[#403A49] underline underline-offset-2">
+            취소·환불 정책
+          </Link>
+          에서 확인하실 수 있습니다.
         </p>
         <label className="mt-3 flex items-start gap-3">
           <input
@@ -131,8 +141,13 @@ export default function ConsultationStep4Page() {
           amount={finalPrice}
           payment={payment}
           details={{
+            // 이 화면의 [필수] 동의. 서버가 시각·버전을 채워 증빙으로 저장한다.
+            applyConsent: agreed ? "1" : "",
             teacher: draft.teacher || "",
             datetime: draft.datetime || "",
+            // 서버가 예약 절대시각(scheduledAt)을 만드는 데 쓰는 한국 날짜.
+            // 서버가 목록과 대조해 검증하므로 이 값만으로 예약이 확정되지는 않는다.
+            scheduledDate: draft.scheduledDate || "",
             purpose: draft.purpose || "",
             method: draft.method || "카카오톡 상담",
             option: draft.option || "없음",

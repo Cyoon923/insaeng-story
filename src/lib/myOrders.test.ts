@@ -8,8 +8,13 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMyOrderItems, filterMyOrderItems } from "./myOrders.ts";
-import type { Consultation, Order } from "@/lib/types/app";
+import { REFUND_COMPLETED_STATUS, buildMyOrderItems, filterMyOrderItems } from "./myOrders.ts";
+import type {
+  Consultation,
+  LatestRefundRequestsView,
+  Order,
+  RefundRequestStatus,
+} from "@/lib/types/app";
 
 /** 결제일. 정렬을 보기 위해 날짜만 다르게 준다. */
 function at(day: number): string {
@@ -181,4 +186,122 @@ test("필터는 원래 목록을 바꾸지 않는다", () => {
 
 test("아무것도 없으면 빈 목록이다", () => {
   assert.deepEqual(buildMyOrderItems([], []), []);
+});
+
+/* ── 환불 완료 표시 (Refund-Completed-My-List-Presentation-1) ── */
+
+/** 주문별 최신 환불 문의 묶음. 기본은 "조회 성공 + 이력 없음"이다. */
+function refunds(
+  items: { orderId: string; status: RefundRequestStatus }[] = [],
+  loaded = true,
+): LatestRefundRequestsView {
+  return {
+    items: items.map((item, index) => ({
+      id: `r-${index + 1}`,
+      orderId: item.orderId,
+      status: item.status,
+      requestedAt: at(9),
+    })),
+    loaded,
+  };
+}
+
+test("환불이 끝난 인생곡은 대표 상태가 환불 완료다", () => {
+  const [item] = buildMyOrderItems(
+    [order()],
+    [],
+    refunds([{ orderId: "o-song-1", status: "completed" }]),
+  );
+  assert.equal(item.displayStatus, REFUND_COMPLETED_STATUS);
+  assert.equal(item.refundCompleted, true);
+  // 저장된 진행 상태는 그대로 남는다. 대표 값만 다르게 고른 것이다.
+  assert.equal(item.status, "제작중");
+});
+
+test("환불이 끝난 상담도 대표 상태가 환불 완료다", () => {
+  const [item] = buildMyOrderItems(
+    [consultOrder()],
+    [consultation()],
+    refunds([{ orderId: "c-1", status: "completed" }]),
+  );
+  assert.equal(item.displayStatus, REFUND_COMPLETED_STATUS);
+  assert.equal(item.refundCompleted, true);
+  assert.equal(item.status, "선생님과 1:1 상담");
+});
+
+test("환불이 끝나지 않은 상태는 기존 진행 상태를 그대로 쓴다", () => {
+  for (const status of ["requested", "reviewing", "approved", "rejected"] as const) {
+    const [item] = buildMyOrderItems([order()], [], refunds([{ orderId: "o-song-1", status }]));
+    assert.equal(item.displayStatus, "제작중", status);
+    assert.equal(item.refundCompleted, false, status);
+  }
+});
+
+test("환불 목록을 읽지 못했으면 환불 완료로 추정하지 않는다", () => {
+  const [item] = buildMyOrderItems(
+    [order()],
+    [],
+    refunds([{ orderId: "o-song-1", status: "completed" }], false),
+  );
+  assert.equal(item.displayStatus, "제작중");
+  assert.equal(item.refundCompleted, false);
+});
+
+test("환불 목록을 넘기지 않으면 기존과 똑같이 그린다", () => {
+  const [item] = buildMyOrderItems([order()], []);
+  assert.equal(item.displayStatus, "제작중");
+  assert.equal(item.refundCompleted, false);
+});
+
+test("다른 주문의 환불 완료는 이 카드에 영향을 주지 않는다", () => {
+  const [item] = buildMyOrderItems(
+    [order()],
+    [],
+    refunds([{ orderId: "o-other", status: "completed" }]),
+  );
+  assert.equal(item.displayStatus, "제작중");
+  assert.equal(item.refundCompleted, false);
+});
+
+test("환불이 끝나도 병합된 상담 카드는 한 장 그대로다", () => {
+  const items = buildMyOrderItems(
+    [consultOrder()],
+    [consultation()],
+    refunds([{ orderId: "c-1", status: "completed" }]),
+  );
+  assert.equal(items.length, 1);
+  // 선생님·예약·금액·링크 같은 기존 정보도 사라지지 않는다.
+  assert.equal(items[0].href, "/my/consultations/c-1");
+  assert.equal(items[0].teacher, "유비 선생");
+  assert.equal(items[0].datetime, "8월 12일(화) 오전 10:00");
+  assert.equal(items[0].amount, 100000);
+});
+
+test("짝이 되는 주문이 없는 상담은 환불 완료로 추정하지 않는다", () => {
+  const orphan = consultation({ id: "c-orphan", createdAt: at(5) });
+  const items = buildMyOrderItems(
+    [],
+    [orphan],
+    // 같은 id로 환불 이력이 있는 것처럼 보내도 짝 주문이 없으면 그대로 둔다.
+    refunds([{ orderId: "c-other", status: "completed" }]),
+  );
+  assert.equal(items[0].refundCompleted, false);
+  assert.equal(items[0].displayStatus, "선생님과 1:1 상담");
+});
+
+test("환불 완료가 섞여도 정렬과 필터는 그대로다", () => {
+  const items = buildMyOrderItems(
+    [order({ id: "o-old", createdAt: at(8) }), order({ id: "o-new", createdAt: at(10) }), consultOrder()],
+    [consultation(), consultation({ id: "c-orphan", createdAt: at(5) })],
+    refunds([
+      { orderId: "o-new", status: "completed" },
+      { orderId: "c-1", status: "completed" },
+    ]),
+  );
+  assert.deepEqual(
+    items.map((item) => item.id),
+    ["c-1", "o-new", "o-old", "c-orphan"],
+  );
+  assert.equal(filterMyOrderItems(items, "song").length, 2);
+  assert.equal(filterMyOrderItems(items, "consultation").length, 2);
 });

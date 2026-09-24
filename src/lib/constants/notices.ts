@@ -1,3 +1,5 @@
+import { COPYRIGHT_NOTICE_TEXT } from "@/lib/constants/legal";
+
 /**
  * 공지사항. /notice 화면과 챗봇 안내가 같은 값을 본다.
  * 내용을 고치면 두 곳에 함께 반영된다.
@@ -12,7 +14,7 @@ export const NOTICES: NoticeItem[] = [
   {
     date: "2026.08.15",
     title: "인생곡 이용 및 저작권 안내",
-    body: "인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수 있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.",
+    body: COPYRIGHT_NOTICE_TEXT,
   },
   {
     date: "2026.08.15",

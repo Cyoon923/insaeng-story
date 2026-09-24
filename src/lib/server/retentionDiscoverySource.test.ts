@@ -87,6 +87,7 @@ test("다른 뜻의 시각이나 상태로 추정하지 않는다", () => {
     "updated_at",
     "production_started_at",
     "refund_consent",
+    "copyright_consent",
     "status",
   ]) {
     assert.equal(CODE.includes(column), false, column);

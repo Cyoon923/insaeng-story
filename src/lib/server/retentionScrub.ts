@@ -93,7 +93,8 @@ export function pickRetentionDetails(
  *
  * 바꾸는 것은 details뿐이다. id·userId·product·title·status·amount·baseAmount·
  * payment·createdAt과 완료 증빙(productionStartedAt·deliveredAt), 신청 동의
- * 증빙(refundConsent)은 그대로 둔다. 거래가 있었다는 사실과 그 근거는 남는다.
+ * 증빙(refundConsent·copyrightConsent)은 그대로 둔다.
+ * 거래가 있었다는 사실과 그 근거는 남는다.
  *
  * 원본을 바꾸지 않고 새 객체를 돌려준다. 호출부가 원본과 결과를 비교할 수 있어야
  * "무엇이 빠지는지" 확인한 뒤에 반영할 수 있기 때문이다.

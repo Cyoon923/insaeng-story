@@ -9,7 +9,12 @@ import { fetchMe } from "@/lib/client/api";
 import { formatPrice } from "@/lib/constants/products";
 import { buildMyOrderItems, filterMyOrderItems } from "@/lib/myOrders";
 import type { MyOrderFilter, MyOrderItem } from "@/lib/myOrders";
-import type { Consultation, Order, User } from "@/lib/types/app";
+import type {
+  Consultation,
+  LatestRefundRequestsView,
+  Order,
+  User,
+} from "@/lib/types/app";
 
 const IMAGES: Record<string, string> = {
   story: "/images/photo-writing.jpg",
@@ -57,6 +62,8 @@ export default function MyOrdersPage() {
         buildMyOrderItems(
           (data.orders ?? []) as Order[],
           (data.consultations ?? []) as Consultation[],
+          // 환불이 끝난 건을 대표 상태로 보여주기 위해 함께 넘긴다(추가 조회 없음).
+          data.latestRefundRequests as LatestRefundRequestsView | undefined,
         ),
       );
       setLoaded(true);
@@ -139,8 +146,14 @@ export default function MyOrdersPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="break-keep text-[17px] font-bold text-[#403A49]">{item.title}</h3>
-                  <span className="rounded-full bg-[#f5efe6] px-2.5 py-0.5 text-[12px] font-medium text-[#403A49]">
-                    {item.status}
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
+                      item.refundCompleted
+                        ? "bg-[#403A49] text-white"
+                        : "bg-[#f5efe6] text-[#403A49]"
+                    }`}
+                  >
+                    {item.displayStatus}
                   </span>
                 </div>
                 <p className="mt-1 text-[14px] text-[#6B6570]">신청일 {formatDate(item.createdAt)}</p>
@@ -155,9 +168,12 @@ export default function MyOrdersPage() {
               </div>
             ) : null}
 
-            <p className="mt-3 break-keep text-[14px] leading-relaxed text-[#403A49]">
-              {processText(item)}
-            </p>
+            {/* 환불이 끝난 건에는 진행 단계를 보여주지 않는다. 지금도 진행 중으로 읽힌다. */}
+            {item.refundCompleted ? null : (
+              <p className="mt-3 break-keep text-[14px] leading-relaxed text-[#403A49]">
+                {processText(item)}
+              </p>
+            )}
 
             {item.kind === "consultation" ? (
               <p className="mt-2 text-[14px] font-semibold text-[#403A49]">상담 상세보기 &gt;</p>

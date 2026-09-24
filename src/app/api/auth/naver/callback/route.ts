@@ -36,8 +36,6 @@ interface NaverUserResponse {
   response?: {
     id?: string;
     nickname?: string;
-    /** 회원이름. 개발자센터에서 '이름' 제공정보에 동의받은 경우에만 내려온다. */
-    name?: string;
   };
 }
 
@@ -88,8 +86,6 @@ export async function GET(request: Request) {
 
   let naverId = "";
   let nickname = "";
-  // 회원이름. 제공정보에 '이름'이 없으면 빈 문자열로 남고 nickname으로 대체된다.
-  let realName = "";
   // 탈퇴 재인증에서만 쓴다. 일반 로그인 경로에서는 사용하지 않고 응답에도 담지 않는다.
   let accessToken = "";
   try {
@@ -116,7 +112,6 @@ export async function GET(request: Request) {
 
     naverId = String(profile.response.id);
     nickname = (profile.response.nickname ?? "").trim();
-    realName = (profile.response.name ?? "").trim();
     accessToken = token.access_token;
   } catch {
     return fail("naver_network");
@@ -161,8 +156,9 @@ export async function GET(request: Request) {
     return verified;
   }
 
-  // 이름은 실명을 우선한다. 없으면 별명, 둘 다 없으면 기본값으로 둔다.
-  const displayName = realName || nickname;
+  // 이름은 별명만 쓴다. 실명은 받지도 읽지도 않는다.
+  // 별명이 없으면 빈 문자열이며, 신규 가입에서 기본값("네이버 회원")으로 채워진다.
+  const displayName = nickname;
 
   const data = await readData();
   const user = data.users.find((item) => isActiveUser(item) && item.naverId === naverId);

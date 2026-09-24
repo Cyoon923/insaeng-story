@@ -1,5 +1,6 @@
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { BUSINESS_INFO, COPYRIGHT_NOTICE_PARAGRAPHS } from "@/lib/constants/legal";
 
 const SERVICES = [
   {
@@ -77,10 +78,17 @@ export default async function GuidePage({
         <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">취소·환불</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
-            제작이나 상담이 시작되기 전에는 취소와 환불을 요청할 수 있습니다.
+            결제를 마치신 것만으로 제작이 시작되지는 않습니다. 실제 제작이나 상담이 시작되기 전에는
+            취소와 전액 환불을 요청하실 수 있습니다.
           </p>
           <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
-            제작이 시작된 뒤, 또는 상담 시간이 지난 뒤에는 환불이 어려울 수 있습니다.
+            제작이 시작된 뒤에 요청하신 경우에도 자동으로 거절하지 않습니다. 실제로 진행된 작업과
+            제공 상태, 관계 법령에 따라 확인한 뒤 안내해 드립니다.
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
+            1:1 사주상담은 예약하신 시각 기준 정확히 3시간 전까지 요청하시면 일반 취소·환불 절차로
+            처리해 드립니다. 3시간이 채 남지 않은 때, 상담 시각이 지난 뒤, 상담에 참여하지 못하신
+            경우에도 자동으로 거절하지 않고 개별적으로 확인해 드립니다.
           </p>
         </div>
       </section>
@@ -88,18 +96,21 @@ export default async function GuidePage({
       <section className="px-4 pb-6">
         <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">사업자 정보</h3>
         <div className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: 비앤비어드바이저리</p>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: 정문경</p>
+          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">상호: {BUSINESS_INFO.name}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">대표: {BUSINESS_INFO.ceo}</p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
-            사업자등록번호: 158-25-00095
+            사업자등록번호: {BUSINESS_INFO.registrationNumber}
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
-            주소: 경기도 안산시 단원구 시화호수로 623, 2825호 (성곡동, 아티스큐브2차)
+            통신판매업 신고번호: {BUSINESS_INFO.mailOrderNumber}
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
+            주소: {BUSINESS_INFO.address}
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#3d2b1f]">
             고객센터:{" "}
-            <a href="mailto:code8jmk@gmail.com" className="underline underline-offset-2">
-              code8jmk@gmail.com
+            <a href={`mailto:${BUSINESS_INFO.email}`} className="underline underline-offset-2">
+              {BUSINESS_INFO.email}
             </a>
           </p>
         </div>
@@ -108,17 +119,18 @@ export default async function GuidePage({
       <section className="px-4 pb-8">
         <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">저작권 안내</h3>
         <div className="rounded-2xl bg-[#f5efe6] p-4">
-          <p className="text-[15px] leading-relaxed text-[#3d2b1f]">
-            인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
-            있습니다.
-          </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
-            상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.
-          </p>
-          <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
-            이 문구는 서비스 안내입니다. 출시 전 법률 검토가 필요하며, 변호사 확인 전까지 최종 약관으로 쓰지
-            않습니다.
-          </p>
+          {COPYRIGHT_NOTICE_PARAGRAPHS.map((text, index) => (
+            <p
+              key={text}
+              className={
+                index === 0
+                  ? "text-[15px] leading-relaxed text-[#3d2b1f]"
+                  : "mt-2 text-[14px] leading-relaxed text-[#6B6570]"
+              }
+            >
+              {text}
+            </p>
+          ))}
         </div>
       </section>
     </MobileShell>

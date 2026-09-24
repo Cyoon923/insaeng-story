@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { RefundCompletedBanner } from "@/components/my/RefundCompletedBanner";
+import { RefundRequestSection } from "@/components/my/RefundRequestSection";
 import { formatPrice } from "@/lib/constants/products";
 import { getOrderById } from "@/lib/server/store";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
@@ -77,6 +79,9 @@ export default async function OrderDetailPage({
   return (
     <MobileShell>
       <AppHeader variant="page" title="주문 상세" backHref="/my/orders" />
+
+      {/* 환불이 끝난 건에서만 나온다. 아래 진행 단계는 그대로 두고 이력으로 남긴다. */}
+      <RefundCompletedBanner orderId={order.id} />
 
       <section className="px-4 py-5">
         <div className="flex items-center gap-3">
@@ -156,6 +161,9 @@ export default async function OrderDetailPage({
           <p className="mt-1 text-[22px] font-bold text-[#403A49]">{formatPrice(order.amount)}</p>
         </div>
       </section>
+
+      {/* 환불 문의. 이 화면은 서버 컴포넌트라 상태 조회·접수는 클라이언트 쪽에서 한다. */}
+      <RefundRequestSection orderId={order.id} />
     </MobileShell>
   );
 }

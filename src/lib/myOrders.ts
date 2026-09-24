@@ -12,7 +12,15 @@
  *
  * 금액은 Order.amount(할인까지 끝난 실제 결제 금액)를 쓴다. 기본가(baseAmount)가 아니다.
  */
-import type { Consultation, Order, OrderProduct } from "@/lib/types/app";
+// 상대경로에 확장자를 붙인 이유는 다른 순수 모듈들과 같다(Node 내장 테스트 러너로 직접 실행).
+import { hasCompletedRefundForOrder } from "./refundRequestSection.ts";
+import type { Consultation, LatestRefundRequestsView, Order, OrderProduct } from "@/lib/types/app";
+
+/**
+ * 환불이 끝난 건의 대표 배지 문구.
+ * 진행 상태를 덮어쓰는 것이 아니라, 무엇을 먼저 보여 줄지 고른 값이다.
+ */
+export const REFUND_COMPLETED_STATUS = "환불 완료";
 
 /** 목록에서 고르는 분류. 화면의 필터 버튼과 같은 값이다. */
 export type MyOrderFilter = "all" | "song" | "consultation";
@@ -24,8 +32,21 @@ export interface MyOrderItem {
   kind: "song" | "consultation";
   product: OrderProduct;
   title: string;
-  /** 인생곡은 제작 진행 상태, 상담은 상담 진행 상태. 서로 섞지 않는다. */
+  /**
+   * 인생곡은 제작 진행 상태, 상담은 상담 진행 상태. 서로 섞지 않는다.
+   * 저장된 값 그대로이며 환불 때문에 바뀌지 않는다.
+   */
   status: string;
+  /**
+   * 환불이 끝난 건인지. 화면 표시용 파생값이며 저장되는 값이 아니다.
+   * 진행 단계 문구처럼 "지금도 진행 중"으로 읽히는 표시를 감출 때 쓴다.
+   */
+  refundCompleted: boolean;
+  /**
+   * 카드 대표 배지에 쓸 값. 환불이 끝났으면 "환불 완료", 아니면 위 status 그대로다.
+   * 두 상태를 같은 무게로 나란히 두지 않기 위해 대표 값을 하나로 정한다.
+   */
+  displayStatus: string;
   /** 실제 결제 금액. 할인이 적용됐으면 할인 뒤 금액이다. */
   amount: number;
   /** 구매·신청 시각. 정렬 기준이며 상담 예약일이 아니다. */
@@ -54,18 +75,29 @@ function text(value: unknown): string | undefined {
 export function buildMyOrderItems(
   orders: Order[],
   consultations: Consultation[],
+  /**
+   * 주문별 최신 환불 문의. GET /api/app이 이미 주는 값을 그대로 넘긴다.
+   * 넘기지 않으면 환불을 모르는 것으로 보고 기존과 똑같이 그린다.
+   * 읽지 못한 응답(loaded=false)도 환불 완료로 추정하지 않는다(helper가 막는다).
+   */
+  latestRefunds?: LatestRefundRequestsView | null,
 ): MyOrderItem[] {
   const consultById = new Map(consultations.map((item) => [item.id, item]));
   const usedConsultIds = new Set<string>();
+  // 환불 여부는 주문 id로만 본다. 짝이 되는 주문이 없는 상담에는 환불 문의도 없다.
+  const refunded = (orderId: string) => hasCompletedRefundForOrder(latestRefunds, orderId);
 
   const items: MyOrderItem[] = orders.map((order) => {
     if (order.product !== "consultation") {
+      const refundCompleted = refunded(order.id);
       return {
         id: order.id,
         kind: "song",
         product: order.product,
         title: order.title,
         status: order.status,
+        refundCompleted,
+        displayStatus: refundCompleted ? REFUND_COMPLETED_STATUS : order.status,
         amount: order.amount,
         createdAt: order.createdAt,
         href: `/my/orders/${order.id}`,
@@ -76,12 +108,16 @@ export function buildMyOrderItems(
     // 실제 진행 상태는 같은 id의 Consultation이 관리하므로 그쪽을 쓴다.
     const consult = consultById.get(order.id);
     if (consult) usedConsultIds.add(order.id);
+    const status = consult?.status ?? order.status;
+    const refundCompleted = refunded(order.id);
     return {
       id: order.id,
       kind: "consultation",
       product: order.product,
       title: order.title,
-      status: consult?.status ?? order.status,
+      status,
+      refundCompleted,
+      displayStatus: refundCompleted ? REFUND_COMPLETED_STATUS : status,
       amount: order.amount,
       createdAt: order.createdAt,
       href: `/my/consultations/${order.id}`,
@@ -94,12 +130,18 @@ export function buildMyOrderItems(
   // 예전에 만들어진 자료가 목록에서 사라지지 않도록 함께 담는다.
   for (const consult of consultations) {
     if (usedConsultIds.has(consult.id)) continue;
+    /*
+     * 짝이 되는 주문이 없으므로 환불 문의도 있을 수 없다. 환불 완료로 추정하지 않고
+     * 기존 상담 상태를 그대로 대표 값으로 둔다.
+     */
     items.push({
       id: consult.id,
       kind: "consultation",
       product: "consultation",
       title: "1:1 사주상담",
       status: consult.status,
+      refundCompleted: false,
+      displayStatus: consult.status,
       amount: consult.amount,
       createdAt: consult.createdAt,
       href: `/my/consultations/${consult.id}`,

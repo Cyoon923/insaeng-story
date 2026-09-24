@@ -41,7 +41,12 @@ test("허용된 준비 셋만 순서대로 부른다", () => {
 test("더하는 열이 retention_scrubbed_at 하나뿐이다", () => {
   const alters = SOURCE.match(/ADD COLUMN IF NOT EXISTS [\w ]+/g) ?? [];
   assert.deepEqual(alters, ["ADD COLUMN IF NOT EXISTS retention_scrubbed_at TIMESTAMPTZ"]);
-  for (const column of ["delivered_at", "production_started_at", "refund_consent"]) {
+  for (const column of [
+    "delivered_at",
+    "production_started_at",
+    "refund_consent",
+    "copyright_consent",
+  ]) {
     assert.equal(SOURCE.includes(`ADD COLUMN IF NOT EXISTS ${column}`), false, column);
   }
 });

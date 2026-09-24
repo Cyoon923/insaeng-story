@@ -1,13 +1,21 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { deliveredAtForStatus } from "@/lib/server/serviceCompletion";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
+import { classifyPaidPayments } from "@/lib/server/paymentLookup";
+import { prepareRestoredPoints } from "@/lib/server/pointsRestoreApply";
+import type { ReconciliationSource } from "@/lib/server/refundPaymentReconciliation";
+import type { OrderPaymentLookup } from "@/lib/server/paymentLookup";
 import type {
   AppData,
+  ConsentRecord,
   Coupon,
   Order,
   OrderStatus,
   Payment,
+  PaymentCancelExecutionStatus,
+  PaymentCancelResultKind,
   PaymentStatus,
   User,
 } from "@/lib/types/app";
@@ -215,11 +223,68 @@ async function runPaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient
       CREATE UNIQUE INDEX IF NOT EXISTS payments_merchant_order_id_key
         ON payments (merchant_order_id)
     `),
+    /*
+     * 취소 시도 감사 열.
+     *
+     * 승인 응답(raw)과 승인 금액·시각은 건드리지 않고, 취소 시도의 흔적만 여기에 남긴다.
+     * 두 기록을 한 칸에 담으면 취소를 시도하는 순간 승인 증거가 사라진다.
+     * 기존 행은 NULL로 남으며("시도한 적 없음") 값을 소급해 만들지 않는다.
+     */
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_attempted_at TIMESTAMPTZ`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_result_kind TEXT`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_result_code TEXT`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_result_message TEXT`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_response_raw JSONB`),
+    /*
+     * 취소 실행 단계와 선점 시각.
+     *
+     * 결제 상태(status)와 다른 축이다. status는 PG가 말하는 사실이고 이 열은
+     * 우리가 취소 실행을 어디까지 진행했는지를 담는다. 그래서 PaymentStatus에
+     * cancelProcessing 같은 값을 더하지 않고 따로 둔다.
+     * 기존 행은 NULL("실행을 시작한 적 없음")이며 값을 소급해 만들지 않는다.
+     */
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_execution_status TEXT`),
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_claimed_at TIMESTAMPTZ`),
   ]);
 }
 
 /** 서버 인스턴스당 한 번만 실행하기 위한 기억. 실패하면 지워서 다음에 다시 시도한다. */
 let paymentsMigration: Promise<void> | null = null;
+
+/**
+ * 예전에 만들어진 orders에 production_started_at·refund_consent·
+ * copyright_consent·delivered_at 열을 더한다.
+ * 기존 행은 NULL로 남는다("기록 없음"). 값을 채워 넣지 않는다.
+ *
+ * ALTER는 바꿀 것이 없어도 테이블 잠금을 잡으므로 ensureTable이 아니라
+ * 여기에 두고 서버 인스턴스당 한 번만 실행한다. 여러 번 실행해도 안전하다.
+ */
+async function runOrdersMigration(sql: NonNullable<ReturnType<typeof sqlClient>>) {
+  await sql.transaction((txn) => [
+    txn.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS production_started_at TIMESTAMPTZ`),
+    // 신청 단계 [필수] 동의 증빙. agreed/agreedAt/version을 그대로 담는다.
+    txn.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_consent JSONB`),
+    // 저작권·창작물 이용 [필수] 동의 증빙. 동의 축이 달라 컬럼도 따로 둔다.
+    txn.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS copyright_consent JSONB`),
+    /*
+     * 결과물을 처음 전달한 시각. 개인정보 보관 기간의 기산점으로 쓴다.
+     * 기존 행은 NULL로 남는다("기록 없음"). 소급해 채우지 않는다.
+     */
+    txn.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`),
+  ]);
+}
+
+let ordersMigration: Promise<void> | null = null;
+
+function ensureOrdersMigration(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
+  if (!ordersMigration) {
+    ordersMigration = runOrdersMigration(sql).catch((error) => {
+      ordersMigration = null;
+      throw error;
+    });
+  }
+  return ordersMigration;
+}
 
 function ensurePaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient>>): Promise<void> {
   if (!paymentsMigration) {
@@ -568,6 +633,14 @@ export async function writeDataWithOrder(data: AppData, order: Order): Promise<v
 
   // DDL은 문장 밖에서 먼저 보장한다.
   await ensureTable(sql);
+  /*
+   * 아래 INSERT가 refund_consent·copyright_consent를 쓴다. 두 열은 ensureTable이
+   * 만드는 것이 아니라 이 마이그레이션이 더하는 열이라, 여기서 직접 보장한다.
+   * 다른 조회 경로가 먼저 실행되어 이미 마이그레이션되어 있을 것이라는 호출 순서에
+   * 기대지 않는다. 실패하면 아래 문장을 보내지 않고 그대로 던진다(열이 없는 채로
+   * INSERT를 시도하면 그 자리에서 깨진다).
+   */
+  await ensureOrdersMigration(sql);
   await ensureAppStoreVersion(sql);
   const expected = expectedVersionOf(data);
   const n = casParamCount(expected);
@@ -579,11 +652,13 @@ export async function writeDataWithOrder(data: AppData, order: Order): Promise<v
       saved AS (
         INSERT INTO orders (
           id, user_id, product, title, status,
-          amount, base_amount, payment, details, created_at, updated_at
+          amount, base_amount, payment, details, created_at, updated_at,
+          refund_consent, copyright_consent
         )
         SELECT $${n + 1}, $${n + 2}, $${n + 3}, $${n + 4}, $${n + 5},
                $${n + 6}, $${n + 7}, $${n + 8}, $${n + 9}::jsonb,
-               $${n + 10}::timestamptz, $${n + 10}::timestamptz
+               $${n + 10}::timestamptz, $${n + 10}::timestamptz,
+               $${n + 11}::jsonb, $${n + 12}::jsonb
         WHERE EXISTS (SELECT 1 FROM cas)
         ON CONFLICT (id) DO NOTHING
       )
@@ -601,6 +676,8 @@ export async function writeDataWithOrder(data: AppData, order: Order): Promise<v
       order.payment,
       JSON.stringify(order.details ?? {}),
       order.createdAt,
+      order.refundConsent ? JSON.stringify(order.refundConsent) : null,
+      order.copyrightConsent ? JSON.stringify(order.copyrightConsent) : null,
     ],
   )) as { version: string | number }[];
   commitVersion(data, rows);
@@ -617,6 +694,10 @@ interface OrderRow {
   payment: string;
   details: unknown;
   created_at: string | Date;
+  production_started_at: string | Date | null;
+  delivered_at: string | Date | null;
+  refund_consent: unknown;
+  copyright_consent: unknown;
 }
 
 /** orders 테이블 행을 기존 Order 형태로 되돌린다. */
@@ -624,6 +705,8 @@ function toOrder(row: OrderRow): Order {
   const details = (row.details ?? {}) as Record<string, string>;
   const createdAt =
     row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+  const productionStartedAt = toIso(row.production_started_at);
+  const deliveredAt = toIso(row.delivered_at);
   return {
     id: row.id,
     userId: row.user_id,
@@ -636,11 +719,22 @@ function toOrder(row: OrderRow): Order {
     payment: row.payment,
     details,
     createdAt,
+    // 컬럼이 NULL이면 키를 만들지 않는다. "기록 없음"과 빈 문자열을 섞지 않기 위해서다.
+    ...(productionStartedAt ? { productionStartedAt } : {}),
+    // 같은 규칙. 전달 기록이 없는 주문에는 키 자체를 만들지 않는다.
+    ...(deliveredAt ? { deliveredAt } : {}),
+    // 컬럼이 NULL이면 키를 만들지 않는다. 예전 주문에는 동의 증빙이 없다.
+    ...(row.refund_consent ? { refundConsent: row.refund_consent as ConsentRecord } : {}),
+    // 같은 규칙. 저작권 동의가 없는 주문(상담·과거 주문)에는 키를 만들지 않는다.
+    ...(row.copyright_consent
+      ? { copyrightConsent: row.copyright_consent as ConsentRecord }
+      : {}),
   };
 }
 
 const ORDER_COLUMNS = `id, user_id, product, title, status,
-  amount, base_amount, payment, details, created_at`;
+  amount, base_amount, payment, details, created_at, production_started_at,
+  delivered_at, refund_consent, copyright_consent`;
 
 /** 목록 정렬은 기존 unshift 순서(최신 먼저)를 그대로 재현한다. */
 const ORDER_SORT = "ORDER BY created_at DESC, id DESC";
@@ -653,6 +747,7 @@ export async function listOrdersByUser(userId: string): Promise<Order[]> {
     return data.orders.filter((item) => item.userId === userId);
   }
   await ensureTable(sql);
+  await ensureOrdersMigration(sql);
   const rows = (await sql.query(
     `SELECT ${ORDER_COLUMNS} FROM orders WHERE user_id = $1 ${ORDER_SORT}`,
     [userId],
@@ -668,6 +763,7 @@ export async function listAllOrders(): Promise<Order[]> {
     return data.orders;
   }
   await ensureTable(sql);
+  await ensureOrdersMigration(sql);
   const rows = (await sql.query(
     `SELECT ${ORDER_COLUMNS} FROM orders ${ORDER_SORT}`,
   )) as OrderRow[];
@@ -682,6 +778,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
     return data.orders.find((item) => item.id === id) ?? null;
   }
   await ensureTable(sql);
+  await ensureOrdersMigration(sql);
   const rows = (await sql.query(
     `SELECT ${ORDER_COLUMNS} FROM orders WHERE id = $1`,
     [id],
@@ -690,34 +787,273 @@ export async function getOrderById(id: string): Promise<Order | null> {
 }
 
 /**
+ * 주문 진행 상태 변경 결과.
+ *
+ * blocked는 오류가 아니라 규칙이다. 환불이 끝난 주문이라 바꾸지 않았다는 뜻이며,
+ * 이때 orders도 app_store도 하나도 바뀌지 않는다.
+ */
+export type OrderStatusWriteResult = { applied: true } | { applied: false; reason: "refund-completed" };
+
+/**
  * 주문 진행 상태 변경. JSONB와 orders 테이블이 어긋나지 않도록 함께 갱신한다.
+ *
+ * 상태가 처음 "제작중"이 될 때 production_started_at을 함께 남긴다.
+ * 상태가 처음 "완성/전달"이 될 때는 delivered_at을 같은 방식으로 남긴다
+ * (개인정보 보관 기간의 기산점. Privacy-Retention-Completion-Evidence-1).
+ * 시각은 이 함수가 서버에서 만든다. 호출부나 클라이언트에서 받지 않는다.
+ * 둘 다 COALESCE로 넣으므로 이미 값이 있으면 절대 덮어쓰지 않고,
+ * 같은 주문에 요청이 겹쳐도 먼저 기록된 시각이 그대로 남는다.
+ * 상태가 되돌아갔다가 다시 같은 상태가 되어도 처음 시각이 유지된다.
+ *
+ * ── 환불이 끝난 주문 잠금 (Refund-Completed-Progress-Lock-1) ──
+ * 같은 문장 안에서 completed 환불 문의가 있는지 보고, 있으면 **아무것도 쓰지 않는다**.
+ * 호출부가 미리 확인하더라도 그 사이에 환불이 끝날 수 있어, 마지막 관문을 여기에 둔다.
+ * 조건을 app_store 갱신과 orders 갱신 양쪽에 함께 걸었으므로 둘이 갈라지지 않는다
+ * (막히면 둘 다 그대로, 통과하면 둘 다 바뀐다).
+ *
+ * 진행 상태를 환불 때문에 자동으로 바꾸지는 않는다. 바꾸지 못하게 막기만 한다.
  */
 export async function writeDataWithOrderStatus(
   data: AppData,
   id: string,
   status: OrderStatus,
-): Promise<void> {
+): Promise<OrderStatusWriteResult> {
+  // 해당 전환이 아니면 null을 넘긴다. COALESCE가 기존 값을 그대로 둔다.
+  const startedAt = status === "제작중" ? new Date().toISOString() : null;
+  // 어느 상태에서 남기는지는 규칙 모듈이 정한다(상담 쪽과 같은 규칙을 쓴다).
+  const deliveredAt = deliveredAtForStatus(status, new Date().toISOString());
+
+  // JSONB 사본도 같은 값으로 맞춘다. 이미 값이 있으면 건드리지 않는다.
+  // DB가 없는 파일 모드에서도 이 기록이 남아야 하므로 sql 확인보다 앞에 둔다.
+  const mirrored = data.orders.find((item) => item.id === id);
+  if (mirrored && startedAt && !mirrored.productionStartedAt) {
+    mirrored.productionStartedAt = startedAt;
+  }
+  // 전달 시각도 같은 규칙. 이미 기록이 있으면 덮어쓰지 않는다(최초값 보존).
+  if (mirrored && deliveredAt && !mirrored.deliveredAt) {
+    mirrored.deliveredAt = deliveredAt;
+  }
+
   const sql = sqlClient();
-  if (!sql) return writeData(data);
+  if (!sql) {
+    // 파일 모드에는 환불 문의 저장 자체가 없다. 막을 근거가 없으므로 기존대로 저장한다.
+    await writeData(data);
+    return { applied: true };
+  }
 
   await ensureTable(sql);
+  await ensureOrdersMigration(sql);
   await ensureAppStoreVersion(sql);
+  await refundRequestsModule().then((m) => m.ensureRefundRequests(sql));
   const expected = expectedVersionOf(data);
   const n = casParamCount(expected);
 
+  /*
+   * 한 문장 안에서 잠금 여부를 먼저 정하고, 그 결과를 두 갱신에 똑같이 건다.
+   * locked가 참이면 cas도 touched도 0행이 되어 아무것도 바뀌지 않는다.
+   */
   const rows = (await sql.query(
     `
-      ${casHead(expected)},
+      WITH locked AS (
+        SELECT EXISTS (
+          SELECT 1 FROM refund_requests WHERE order_id = $${n + 1} AND status = 'completed'
+        ) AS yes
+      ),
+      cas AS (
+        ${
+          expected === NO_ROW_VERSION
+            ? `INSERT INTO app_store (id, data, version)
+               SELECT 1, $1::jsonb, 0 WHERE NOT (SELECT yes FROM locked)
+               ON CONFLICT (id) DO NOTHING
+               RETURNING version`
+            : `UPDATE app_store SET data = $1::jsonb, version = version + 1
+               WHERE id = 1 AND version = $2 AND NOT (SELECT yes FROM locked)
+               RETURNING version`
+        }
+      ),
       touched AS (
         UPDATE orders
-        SET status = $${n + 2}, updated_at = now()
+        SET status = $${n + 2},
+            production_started_at = COALESCE(production_started_at, $${n + 3}::timestamptz),
+            delivered_at = COALESCE(delivered_at, $${n + 4}::timestamptz),
+            updated_at = now()
         WHERE id = $${n + 1} AND EXISTS (SELECT 1 FROM cas)
       )
-      SELECT version FROM cas
+      SELECT (SELECT yes FROM locked) AS locked, (SELECT version FROM cas) AS version
     `,
-    [...casParams(data, expected), id, status],
-  )) as { version: string | number }[];
-  commitVersion(data, rows);
+    [...casParams(data, expected), id, status, startedAt, deliveredAt],
+  )) as { locked: boolean; version: string | number | null }[];
+
+  // 환불이 끝난 주문이라 막혔다. 저장 충돌(version)과 구분해 그대로 알린다.
+  if (rows[0]?.locked) return { applied: false, reason: "refund-completed" };
+
+  commitVersion(data, rows.filter((row) => row.version !== null) as { version: string | number }[]);
+  return { applied: true };
+}
+
+/**
+ * 환불 문의 모듈을 필요할 때만 읽는다.
+ * 이 파일 맨 위에서 바로 불러오면 두 모듈이 서로를 참조하게 된다.
+ */
+function refundRequestsModule() {
+  return import("@/lib/server/refundRequests");
+}
+
+/** 적립금 원장 모듈도 같은 이유로 필요할 때만 읽는다. */
+function pointTransactionsModule() {
+  return import("@/lib/server/pointTransactions");
+}
+
+/* ------------------------------------------------------------------ *
+ * 적립금 복원 (Refund-Points-Restore-Atomic-1)
+ * ------------------------------------------------------------------ */
+
+/**
+ * 복원 결과.
+ *
+ * 호출자가 "다시 시도하면 되는가"를 구분할 수 있게 사유를 나눠 둔다.
+ * - already-restored : 끝난 일이다. 다시 하지 않는다.
+ * - cas-conflict     : 저장소가 그사이 바뀌었다. 최신 AppData를 다시 읽어 재시도하면 된다.
+ * - order-not-matched: 주문이 없거나 그 주문의 주인이 아니다. 재시도해도 같다.
+ * - user-not-found / invalid-amount : 값이 갖춰지지 않았다. 재시도 대상이 아니다.
+ */
+export type RestoreOrderPointsResult =
+  | { applied: true; amount: number }
+  | {
+      applied: false;
+      reason:
+        | "already-restored"
+        | "cas-conflict"
+        | "order-not-matched"
+        | "user-not-found"
+        | "invalid-amount";
+    };
+
+/**
+ * 환불이 끝난 주문의 사용 적립금을 **정확히 한 번** 돌려준다.
+ *
+ * 잔액(app_store JSONB)과 원장(point_transactions)은 저장소가 다르다. 둘을 따로 쓰면
+ * "원장만 남고 잔액은 그대로" 또는 그 반대가 생긴다. 그래서 한 문장 안에서 함께 성립시킨다
+ * (writeDataWithOrder가 쓰는 것과 같은 방식이다).
+ *
+ * 문장의 의존 관계 — 실행 순서를 추측하지 않고 데이터로 묶는다
+ *  1) cas      : 원장에 이 주문의 복원 기록이 **없을 때만** app_store를 갱신한다.
+ *  2) inserted : 그 cas가 행을 돌려줬을 때만(EXISTS) 원장에 기록한다.
+ *                소유자 확인(o.user_id = 기대 회원)은 같은 조건 안에서 한다. 다만 확인만
+ *                하고 그 값을 원장에 담지는 않는다. 원장은 order_id로 주문을 짚고,
+ *                회원은 그 주문에서 나온다(Privacy-PointTransactions-Minimization-1).
+ *  3) guard    : cas는 성립했는데 원장이 들어가지 않은 경우(주문 없음·소유자 불일치·
+ *                드문 경쟁) 1/0으로 문장을 실패시킨다. 한 문장이라 잔액 갱신까지 함께 되돌아간다.
+ *                → "잔액만 늘고 원장은 없는" 상태가 만들어질 수 없다.
+ *
+ * 멱등성의 최종 방어선은 코드의 사전 조회가 아니라 DB다.
+ * point_transactions의 UNIQUE (order_id, type)과 위 조건이 함께 막는다.
+ *
+ * 이 함수는 환불 문의 상태를 보지 않는다. 언제 부를지는 호출부가 정한다.
+ */
+export async function restoreOrderPointsOnce(
+  data: AppData,
+  input: {
+    /** 주문 주인으로 기대하는 회원. 주문 행과 일치할 때만 기록된다. */
+    userId: string;
+    orderId: string;
+    /** 어느 환불 문의에서 비롯됐는지. 추적용이며 멱등 키가 아니다. */
+    refundRequestId: string | null;
+    amount: number;
+  },
+): Promise<RestoreOrderPointsResult> {
+  const plan = prepareRestoredPoints(data, input.userId, input.amount);
+  if (!plan.ok) return { applied: false, reason: plan.reason };
+
+  const sql = sqlClient();
+  if (!sql) {
+    // 원장은 DATABASE_URL이 있는 환경에서만 다룬다. 결제·환불 기록과 같은 규칙이다.
+    throw new Error("적립금 복원은 DATABASE_URL이 설정된 환경에서만 할 수 있습니다.");
+  }
+  await ensureTable(sql);
+  await ensureAppStoreVersion(sql);
+  // 원장 모듈이 이 파일을 다시 부르므로(ensureTable·sqlClient) 필요할 때만 읽는다.
+  await pointTransactionsModule().then((m) => m.ensurePointTransactions(sql));
+
+  const expected = expectedVersionOf(data);
+  const n = casParamCount(expected);
+
+  /*
+   * 잔액을 올린 상태로 직렬화한다. 저장이 성립하지 않으면 아래에서 되돌린다.
+   * (다른 store 함수들과 같이 data를 직접 바꾼다. version은 객체 동일성으로 추적되므로
+   *  사본을 만들면 기준 version을 잃는다.)
+   */
+  const { user, previousPoints, nextPoints } = plan;
+  user.points = nextPoints;
+
+  let rows: { version: string | number | null; inserted: string | number; existing: string | number }[];
+  try {
+    rows = (await sql.query(
+      `
+        WITH cas AS (
+          UPDATE app_store SET data = $1::jsonb, version = version + 1
+          WHERE id = 1 AND version = $2
+            AND NOT EXISTS (
+              SELECT 1 FROM point_transactions
+              WHERE order_id = $${n + 2} AND type = 'refund-restore'
+            )
+          RETURNING version
+        ),
+        inserted AS (
+          INSERT INTO point_transactions (
+            id, order_id, type, amount, refund_request_id
+          )
+          SELECT $${n + 1}, o.id, 'refund-restore', $${n + 4}, $${n + 5}
+          FROM orders o
+          -- 소유자 확인은 그대로 한다. 확인만 하고 그 값을 원장에 옮겨 담지 않는다.
+          WHERE o.id = $${n + 2} AND o.user_id = $${n + 3}
+            AND EXISTS (SELECT 1 FROM cas)
+          ON CONFLICT (order_id, type) DO NOTHING
+          RETURNING id
+        )
+        SELECT
+          (SELECT version FROM cas) AS version,
+          (SELECT count(*) FROM inserted) AS inserted,
+          (SELECT count(*) FROM point_transactions
+             WHERE order_id = $${n + 2} AND type = 'refund-restore') AS existing,
+          -- 잔액만 늘고 원장이 남지 않는 경우를 문장 실패로 만든다(전체 되돌림).
+          -- 나눗셈의 분모를 상수로 두면 계획 단계에서 접혀 언제나 실패한다. 그래서
+          -- 실제 기록 수를 분모로 써서 "원장이 0행일 때만" 실행 중에 실패하게 한다.
+          CASE
+            WHEN (SELECT count(*) FROM cas) = 1 AND (SELECT count(*) FROM inserted) = 0
+            THEN 1 / (SELECT count(*)::int FROM inserted)
+            ELSE 0
+          END AS guard
+      `,
+      [
+        ...casParams(data, expected),
+        nowId(),
+        input.orderId,
+        input.userId,
+        input.amount,
+        input.refundRequestId,
+      ],
+    )) as typeof rows;
+  } catch (error) {
+    // guard가 걸렸거나 저장에 실패했다. 메모리 잔액도 되돌려 화면·후속 로직이 오해하지 않게 한다.
+    user.points = previousPoints;
+    // division_by_zero는 위 guard가 일부러 낸 것이다. 그 밖의 오류는 그대로 올린다.
+    if (error instanceof Error && /division by zero/i.test(error.message)) {
+      return { applied: false, reason: "order-not-matched" };
+    }
+    throw error;
+  }
+
+  const row = rows[0];
+  if (row?.version !== null && row?.version !== undefined && Number(row.inserted) === 1) {
+    advanceVersion(data, Number(row.version));
+    return { applied: true, amount: input.amount };
+  }
+
+  // 아무것도 바뀌지 않았다. 올려 둔 잔액을 되돌린다.
+  user.points = previousPoints;
+  if (Number(row?.existing ?? 0) > 0) return { applied: false, reason: "already-restored" };
+  return { applied: false, reason: "cas-conflict" };
 }
 
 /* ------------------------------------------------------------------ *
@@ -744,11 +1080,21 @@ interface PaymentRow {
   raw: unknown;
   created_at: string | Date;
   updated_at: string | Date;
+  cancel_attempted_at: string | Date | null;
+  cancel_result_kind: string | null;
+  cancel_result_code: string | null;
+  cancel_result_message: string | null;
+  cancel_response_raw: unknown;
+  cancel_execution_status: string | null;
+  cancel_claimed_at: string | Date | null;
 }
 
 const PAYMENT_COLUMNS = `id, order_id, provider, merchant_order_id, pg_tid,
   requested_amount, approved_amount, cancelled_amount, status, method,
-  approved_at, cancelled_at, order_snapshot, raw, created_at, updated_at`;
+  approved_at, cancelled_at, order_snapshot, raw, created_at, updated_at,
+  cancel_attempted_at, cancel_result_kind, cancel_result_code,
+  cancel_result_message, cancel_response_raw,
+  cancel_execution_status, cancel_claimed_at`;
 
 function toIso(value: string | Date | null): string | null {
   if (value === null) return null;
@@ -778,6 +1124,15 @@ function toPayment(row: PaymentRow): Payment {
     raw: toJsonObject(row.raw),
     createdAt: toIso(row.created_at) ?? "",
     updatedAt: toIso(row.updated_at) ?? "",
+    // 값이 없으면 "취소를 시도한 적 없음"이라는 뜻의 null을 그대로 둔다.
+    cancelAttemptedAt: toIso(row.cancel_attempted_at),
+    cancelResultKind: (row.cancel_result_kind as PaymentCancelResultKind | null) ?? null,
+    cancelResultCode: row.cancel_result_code,
+    cancelResultMessage: row.cancel_result_message,
+    cancelResponseRaw: toJsonObject(row.cancel_response_raw),
+    cancelExecutionStatus:
+      (row.cancel_execution_status as PaymentCancelExecutionStatus | null) ?? null,
+    cancelClaimedAt: toIso(row.cancel_claimed_at),
   };
 }
 
@@ -804,6 +1159,13 @@ export async function createPayment(input: {
 }): Promise<Payment | null> {
   const sql = paymentsClient();
   await ensureTable(sql);
+  /*
+   * 주문 열까지 여기서 함께 보장한다. 이 함수는 결제창을 띄우기 전(preparePayment)에
+   * 불린다. 승인이 끝난 뒤에야 열이 없다는 것을 알면 "돈은 빠져나갔는데 주문이 없는"
+   * 상태가 되므로, 같은 캐시를 쓰는 호출 한 번으로 승인 전에 드러나게 한다.
+   * 캐시가 있어 인스턴스당 ALTER는 한 번뿐이고, 결제 저장 자체의 의미는 바뀌지 않는다.
+   */
+  await ensureOrdersMigration(sql);
   await ensurePaymentsMigration(sql);
   const rows = (await sql.query(
     `
@@ -1034,6 +1396,13 @@ export async function writeDataWithOrderForPayment(
 ): Promise<void> {
   const sql = paymentsClient();
   await ensureTable(sql);
+  /*
+   * 주문 열도 여기서 직접 보장한다. 이 경로는 NICEPAY 승인이 끝난 뒤에 불리므로,
+   * 열이 없는 채로 INSERT가 깨지면 "돈은 빠져나갔는데 주문이 없는" 상태가 된다.
+   * 결제 마이그레이션과 같은 자리에 두어, 어느 쪽도 다른 요청이 먼저 실행되었기를
+   * 기대하지 않는다. 실패하면 아래 문장을 보내지 않고 그대로 던진다.
+   */
+  await ensureOrdersMigration(sql);
   await ensurePaymentsMigration(sql);
   await ensureAppStoreVersion(sql);
   const expected = expectedVersionOf(data);
@@ -1046,11 +1415,13 @@ export async function writeDataWithOrderForPayment(
       saved AS (
         INSERT INTO orders (
           id, user_id, product, title, status,
-          amount, base_amount, payment, details, created_at, updated_at
+          amount, base_amount, payment, details, created_at, updated_at,
+          refund_consent, copyright_consent
         )
         SELECT $${n + 1}, $${n + 2}, $${n + 3}, $${n + 4}, $${n + 5},
                $${n + 6}, $${n + 7}, $${n + 8}, $${n + 9}::jsonb,
-               $${n + 10}::timestamptz, $${n + 10}::timestamptz
+               $${n + 10}::timestamptz, $${n + 10}::timestamptz,
+               $${n + 12}::jsonb, $${n + 13}::jsonb
         WHERE EXISTS (SELECT 1 FROM cas)
         ON CONFLICT (id) DO NOTHING
       ),
@@ -1074,6 +1445,8 @@ export async function writeDataWithOrderForPayment(
       JSON.stringify(order.details ?? {}),
       order.createdAt,
       merchantOrderId,
+      order.refundConsent ? JSON.stringify(order.refundConsent) : null,
+      order.copyrightConsent ? JSON.stringify(order.copyrightConsent) : null,
     ],
   )) as { version: string | number }[];
   commitVersion(data, rows);
@@ -1154,6 +1527,425 @@ function toPaymentReview(row: PaymentReviewRow): PaymentReviewItem {
  * (값을 넣는 곳: src/app/api/app/route.ts의 preparePayment).
  * DATABASE_URL이 없는 환경에는 결제 기록 자체가 없으므로 0을 돌려준다.
  */
+/**
+ * 주문 1건에 귀속된 승인 결제를 찾는다.
+ *
+ * 취소를 생각하기 전에 "이 주문에 승인된 결제가 정확히 하나인지"를 확인하는 용도다.
+ * 판정 규칙은 paymentLookup.ts에 두고 여기서는 읽기만 한다.
+ *
+ * 조건은 order_id와 status = 'paid' 두 가지뿐이다. 최신 1건을 고르지 않고 맞는 행을
+ * 모두 읽어 온다. 둘 이상이면 자동으로 하나를 고르지 않고 ambiguous로 돌려주어
+ * 사람이 확인하게 한다(payments.order_id에는 UNIQUE 제약이 없다).
+ *
+ * 정렬은 payments_order_created_idx(order_id, created_at DESC)를 그대로 따른다.
+ * 결제 식별자를 클라이언트가 고르게 하지 않기 위해, 입력은 주문 id 하나뿐이다.
+ */
+export async function findPaidPaymentForOrder(orderId: string): Promise<OrderPaymentLookup> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT ${PAYMENT_COLUMNS} FROM payments
+      WHERE order_id = $1 AND status = 'paid'
+      ORDER BY created_at DESC, id DESC
+    `,
+    [orderId],
+  )) as PaymentRow[];
+  return classifyPaidPayments(rows.map(toPayment));
+}
+
+/**
+ * 한 주문에 딸린 결제를 상태와 상관없이 모두 읽는다 (읽기 전용).
+ *
+ * findPaidPaymentForOrder와 달리 status로 거르지 않는다. 환불이 끝난 뒤의 적립금 복원은
+ * 이미 'cancelled'가 된 결제의 준비 기록(order_snapshot)에서 근거를 읽어야 하기 때문이다.
+ *
+ * 몇 건인지 판단하지 않는다. 둘 이상이면 자동으로 하나를 고르지 않고 그대로 돌려주어,
+ * 호출부가 사람이 확인할 일로 넘길 수 있게 한다(payments.order_id에는 UNIQUE가 없다).
+ * 정렬은 findPaidPaymentForOrder와 같게 두어 같은 입력을 보게 한다.
+ */
+export async function listPaymentsByOrderId(orderId: string): Promise<Payment[]> {
+  const id = orderId.trim();
+  if (!id) return [];
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT ${PAYMENT_COLUMNS} FROM payments
+      WHERE order_id = $1
+      ORDER BY created_at DESC, id DESC
+    `,
+    [id],
+  )) as PaymentRow[];
+  return rows.map(toPayment);
+}
+
+/**
+ * 여러 주문의 승인 결제를 한 번에 읽는다 (관리자 목록 표시용, 읽기 전용).
+ *
+ * 주문마다 findPaidPaymentForOrder를 부르면 목록 길이만큼 질의가 늘어난다.
+ * 그래서 order_id 목록을 한 번에 넘겨 질의 한 번으로 읽고, 주문별로 묶어 돌려준다.
+ * 조건(status = 'paid')과 정렬은 findPaidPaymentForOrder와 같게 두어, 뒤이어 쓰는
+ * classifyPaidPayments가 같은 입력을 보게 한다. 몇 건인지 세는 판단은 여기서 하지 않는다.
+ *
+ * DATABASE_URL이 없으면 결제 기록 자체가 없으므로 빈 Map을 돌려준다.
+ */
+export async function listPaidPaymentsByOrderIds(
+  orderIds: string[],
+): Promise<Map<string, Payment[]>> {
+  const grouped = new Map<string, Payment[]>();
+  const ids = Array.from(new Set(orderIds.filter((id) => id.trim() !== "")));
+  if (ids.length === 0) return grouped;
+  const sql = sqlClient();
+  if (!sql) return grouped;
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT ${PAYMENT_COLUMNS} FROM payments
+      WHERE order_id = ANY($1::text[]) AND status = 'paid'
+      ORDER BY created_at DESC, id DESC
+    `,
+    [ids],
+  )) as PaymentRow[];
+  for (const row of rows) {
+    const payment = toPayment(row);
+    // 질의가 order_id로 걸렀으므로 값이 있지만, 타입상 null이 가능해 한 번 더 본다.
+    const orderId = payment.orderId;
+    if (!orderId) continue;
+    const list = grouped.get(orderId);
+    if (list) list.push(payment);
+    else grouped.set(orderId, [payment]);
+  }
+  return grouped;
+}
+
+/**
+ * 취소 실행권 선점 결과.
+ *
+ * not-claimable은 "이미 누군가 선점했거나 이미 끝났거나, 승인된 결제가 아니다"를
+ * 한데 묶은 값이다. 어느 쪽이든 지금 이 요청이 PG 취소를 불러서는 안 된다는 뜻이다.
+ */
+export type ClaimPaymentCancellationResult =
+  | { ok: true; payment: Payment }
+  | { ok: false; reason: "not-claimable" };
+
+/**
+ * 취소 실행권을 선점한다. 이 함수를 통과한 요청만 PG 취소를 부를 수 있다.
+ *
+ * 승인 쪽 claimPaymentProcessing과 같은 사고방식이다. 조건부 UPDATE 한 문장이라
+ * 그 자체로 원자적이고, 같은 결제에 요청이 동시에 두 번 들어오면 뒤에 온 요청은
+ * 행 잠금이 풀린 뒤 조건을 다시 평가해 0행이 된다. 정확히 하나만 선점한다.
+ * 먼저 읽고 나중에 쓰는 구조가 아니라 WHERE가 최종 관문이다.
+ *
+ * 선점 조건은 세 가지다.
+ *  - status = 'paid'                     : 승인된 결제만 취소 대상이다.
+ *  - cancel_execution_status IS NULL     : 아직 아무도 실행을 시작하지 않았다.
+ * 끝난 값(succeeded·declined·unknown)에서는 다시 선점되지 않는다. 특히 unknown은
+ * 실제로는 취소되었을 수 있어 자동으로 다시 부르면 이중 환불이 된다.
+ *
+ * processing은 "PG 요청이 성공했다"가 아니라 "실행권을 잡았다"는 뜻이다.
+ * 그래서 여기서는 cancel_attempted_at도 cancel_result_*도 건드리지 않는다.
+ * 아직 PG에 아무것도 보내지 않았기 때문이다.
+ * 결제 상태·취소 금액·취소 시각도 그대로 둔다.
+ */
+export async function claimPaymentCancellation(
+  paymentId: string,
+): Promise<ClaimPaymentCancellationResult> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET cancel_execution_status = 'processing',
+          cancel_claimed_at = now(),
+          updated_at = now()
+      WHERE id = $1
+        AND status = 'paid'
+        AND cancel_execution_status IS NULL
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [paymentId],
+  )) as PaymentRow[];
+  return rows[0] ? { ok: true, payment: toPayment(rows[0]) } : { ok: false, reason: "not-claimable" };
+}
+
+/**
+ * PG 취소 요청의 결과를 남기고 취소 실행을 끝낸다. 결제 상태는 바꾸지 않는다.
+ *
+ * 이 함수가 건드리는 것은 cancel_* 열뿐이다.
+ * status·cancelled_amount·cancelled_at·raw·approved_* 는 그대로 둔다. 취소가 실제로
+ * 끝났는지를 결제 상태에 반영하는 일은 다음 단계의 몫이며, 그때까지 결제는 paid로 남는다.
+ * 특히 unknown은 실패가 아니므로 이 기록만으로 무언가를 되돌리지 않는다.
+ *
+ * WHERE에 cancel_execution_status = 'processing'이 있어, **선점하지 않은 요청은 결과를
+ * 남길 수 없다**(0행). 선점한 요청 하나만 결과를 쓰므로 서로 다른 결과가 덮어쓰이지 않고,
+ * 이미 끝난 결제에 결과가 다시 쓰이지도 않는다.
+ * status = 'paid' 조건도 함께 남아 승인되지 않은 결제에는 기록되지 않는다.
+ *
+ * 결과 종류(cancel_result_kind)와 실행 단계(cancel_execution_status)는 같은 사실이라
+ * 한 UPDATE에서 같은 값으로 쓴다. 둘이 어긋난 상태가 생기지 않는다.
+ * 시각은 DB의 now()를 쓴다. 호출부나 클라이언트가 보낸 시각을 쓰지 않는다.
+ */
+export async function recordPaymentCancelAttempt(input: {
+  paymentId: string;
+  kind: PaymentCancelResultKind;
+  resultCode?: string | null;
+  resultMessage?: string | null;
+  /** 취소 응답 원문. 승인 응답(raw)과 다른 열에 담는다. */
+  raw?: Record<string, unknown> | null;
+}): Promise<Payment | null> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      UPDATE payments
+      SET cancel_attempted_at = now(),
+          cancel_result_kind = $2,
+          -- 결과 종류와 실행 단계는 같은 사실이라 한 문장에서 함께 쓴다.
+          -- 둘을 따로 쓰면 그 사이에 서로 다른 값이 남을 수 있다.
+          cancel_execution_status = $2,
+          cancel_result_code = $3,
+          cancel_result_message = $4,
+          cancel_response_raw = $5::jsonb,
+          updated_at = now()
+      WHERE id = $1
+        AND status = 'paid'
+        AND cancel_execution_status = 'processing'
+      RETURNING ${PAYMENT_COLUMNS}
+    `,
+    [
+      input.paymentId,
+      input.kind,
+      input.resultCode ?? null,
+      input.resultMessage ?? null,
+      input.raw ? JSON.stringify(input.raw) : null,
+    ],
+  )) as PaymentRow[];
+  return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 최종화 입력. reconciliation이 확인해 준 사실에서 필요한 값만 받는다.
+ * 클라이언트가 부르는 API가 아니다.
+ */
+export interface FinalizeRefundPaymentInput {
+  paymentId: string;
+  orderId: string;
+  tid: string;
+  approvedAmount: number;
+  verifiedCancelledAmount: number;
+  /** PG가 알려 준 취소 시각. 없으면 null이며 지어내지 않는다. */
+  pgCancelledAt: string | null;
+  source: ReconciliationSource;
+}
+
+export type FinalizeRefundPaymentResult =
+  | { ok: true; kind: "finalized" }
+  /** 이미 반영이 끝나 있다. 아무것도 바꾸지 않았다. */
+  | { ok: false; kind: "already-finalized" }
+  /** 결제의 지금 값이 확인해 온 사실과 맞지 않는다. */
+  | { ok: false; kind: "payment-mismatch" }
+  /** 환불 문의가 승인 상태가 아니거나 찾을 수 없다. */
+  | { ok: false; kind: "refund-request-mismatch" }
+  /** 한 주문에 승인된 환불 문의가 여럿이다. 하나를 골라 완료하지 않는다. */
+  | { ok: false; kind: "ambiguous-refund-request" }
+  /** 넘어온 금액 자체가 전액취소로 쓸 수 없는 값이다. DB를 보기 전에 막는다. */
+  | { ok: false; kind: "invalid-amount" };
+
+/** source별로 DB에 있어야 하는 취소 실행 단계. 이 값과 다르면 최종화하지 않는다. */
+export function executionStatusForSource(
+  source: ReconciliationSource,
+): PaymentCancelExecutionStatus {
+  if (source === "normal") return "succeeded";
+  if (source === "recovered-unknown") return "unknown";
+  return "processing";
+}
+
+/** 원 단위 정수 금액인지. 소수·음수·NaN은 받지 않는다. */
+function isWonAmount(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+/** PG가 준 취소 시각이 시각으로 읽히는지. 읽히지 않으면 쓰지 않는다. */
+function usablePgTime(value: string | null): string | null {
+  if (!value) return null;
+  return Number.isFinite(Date.parse(value)) ? value : null;
+}
+
+/**
+ * PG 전액취소 사실을 결제와 환불 문의에 함께 반영한다.
+ *
+ * 확인해 온 값(verified)을 그대로 믿지 않는다. 지금 DB 값이 그 사실과 맞을 때만 바뀌도록
+ * 모든 조건을 UPDATE의 WHERE에 넣는다. 먼저 읽고 나중에 쓰는 구조가 아니다.
+ * 값이 위조되었거나 그 사이 상태가 달라졌다면 조건에서 걸려 0행이 된다.
+ *
+ * 두 변경은 한 문장 안에서 일어난다. neon의 트랜잭션은 질의 배열만 받아 중간에 분기할 수
+ * 없으므로, 기존 writeDataWithOrderForPayment와 같은 방식으로 CTE 하나에 묶었다.
+ * 한 문장이라 둘 다 반영되거나 둘 다 반영되지 않는다. 한쪽만 남는 일이 없다.
+ *
+ * 건드리는 것은 결제의 status·cancelled_amount·cancelled_at·cancel_execution_status와
+ * 환불 문의의 status·completed_at뿐이다. 승인 응답(raw)·승인 금액·취소 시도 기록
+ * (cancel_result_*·cancel_response_raw·cancel_attempted_at)과 환불 문의의
+ * decided_at·handled_by는 그대로 둔다.
+ *
+ * 시각 두 개를 섞지 않는다.
+ * - payments.cancelled_at       PG가 준 취소 시각. 없으면 NULL로 둔다(지어내지 않는다).
+ * - refund_requests.completed_at 우리가 종결한 서버 시각. PG 시각이 없어도 남는다.
+ * 종결 시각을 cancelled_at에 채워 넣지 않으며, 그 반대도 하지 않는다.
+ *
+ * 0행일 때 이유를 가리려고 한 번 더 읽지만, 그 읽기는 안내용이고 안전장치는 위 조건이다.
+ */
+export async function finalizeRefundPaymentCancel(
+  input: FinalizeRefundPaymentInput,
+): Promise<FinalizeRefundPaymentResult> {
+  // 전액취소만 다룬다. 확인된 취소 금액은 승인 금액과 정확히 같아야 한다.
+  if (!isWonAmount(input.approvedAmount) || !isWonAmount(input.verifiedCancelledAmount)) {
+    return { ok: false, kind: "invalid-amount" };
+  }
+  if (input.approvedAmount !== input.verifiedCancelledAmount) {
+    return { ok: false, kind: "invalid-amount" };
+  }
+
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  /*
+   * 환불 문의 테이블도 준비되어 있어야 한다. refundRequests 모듈은 이 파일을 쓰고 있어서
+   * 맨 위에서 서로 불러오면 순환이 된다. 그래서 필요할 때만 읽는다.
+   */
+  const refundRequests = await import("@/lib/server/refundRequests");
+  await refundRequests.ensureRefundRequests(sql);
+
+  const execution = executionStatusForSource(input.source);
+  const cancelledAt = usablePgTime(input.pgCancelledAt);
+  /*
+   * 종결 시각. 이 함수가 만드는 서버 시각 하나이며, 아래 한 문장에서만 쓴다.
+   *
+   * 호출부(정상 실행·복구 경로)도, 관리자도, PG도 이 값을 정하지 않는다. 인자로
+   * 받지 않는 이유가 그것이다. PG가 준 취소 시각(cancelledAt)과 섞지 않는다.
+   * 저쪽은 "PG가 언제 환급했는가"이고 이쪽은 "우리가 언제 종결했는가"다.
+   * PG 시각이 없어도(NULL) 종결은 일어나므로 이 값은 언제나 만들어 둔다.
+   */
+  const completedAt = new Date().toISOString();
+
+  const rows = (await sql.query(
+    `
+      WITH target_refund AS (
+        SELECT id FROM refund_requests
+        WHERE order_id = $2 AND status = 'approved'
+        FOR UPDATE
+      ),
+      active_refunds AS (
+        SELECT count(*) AS total FROM refund_requests
+        WHERE order_id = $2 AND status IN ('requested', 'reviewing', 'approved')
+      ),
+      paid AS (
+        UPDATE payments
+        SET status = 'cancelled',
+            cancelled_amount = $6,
+            -- PG가 준 시각만 넣는다. 없으면 NULL로 둔다(아래 함수 주석 참고).
+            cancelled_at = $7::timestamptz,
+            -- 조회로 확정했으므로 실행 단계를 성공으로 정리한다.
+            cancel_execution_status = 'succeeded',
+            updated_at = now()
+        WHERE id = $1
+          AND order_id = $2
+          AND pg_tid = $3
+          AND status = 'paid'
+          AND approved_amount = $4
+          AND cancelled_amount = 0
+          AND cancel_execution_status = $5
+          -- 환불 문의 쪽 조건도 여기서 함께 본다. 하나라도 어긋나면 결제도 바뀌지 않는다.
+          AND (SELECT total FROM active_refunds) = 1
+          AND EXISTS (SELECT 1 FROM target_refund)
+        RETURNING id
+      ),
+      completed AS (
+        UPDATE refund_requests
+        SET status = 'completed',
+            -- 종결한 서버 시각. 이미 값이 있으면 덮어쓰지 않는다(최초값만 남는다).
+            completed_at = COALESCE(completed_at, $8::timestamptz)
+        WHERE id = (SELECT id FROM target_refund)
+          AND status = 'approved'
+          -- 결제가 실제로 바뀐 경우에만 완료로 올린다.
+          AND EXISTS (SELECT 1 FROM paid)
+        RETURNING id
+      )
+      SELECT
+        (SELECT count(*) FROM paid) AS paid_rows,
+        (SELECT count(*) FROM completed) AS completed_rows
+    `,
+    [
+      input.paymentId,
+      input.orderId,
+      input.tid,
+      input.approvedAmount,
+      execution,
+      input.verifiedCancelledAmount,
+      cancelledAt,
+      completedAt,
+    ],
+  )) as { paid_rows: string | number; completed_rows: string | number }[];
+
+  const paidRows = Number(rows[0]?.paid_rows ?? 0);
+  const completedRows = Number(rows[0]?.completed_rows ?? 0);
+  if (paidRows === 1 && completedRows === 1) {
+    return { ok: true, kind: "finalized" };
+  }
+
+  return diagnoseFinalizeFailure(sql, input);
+}
+
+/**
+ * 아무것도 바뀌지 않았을 때 그 이유를 읽어 본다.
+ *
+ * 안내를 위한 조회일 뿐이며 여기서 무언가를 바꾸지 않는다.
+ * 안전장치는 위 UPDATE의 조건이고, 이 함수의 결과가 그것을 대신하지 않는다.
+ */
+async function diagnoseFinalizeFailure(
+  sql: NonNullable<ReturnType<typeof sqlClient>>,
+  input: FinalizeRefundPaymentInput,
+): Promise<FinalizeRefundPaymentResult> {
+  const paymentRows = (await sql.query(
+    `SELECT status, cancelled_amount FROM payments WHERE id = $1`,
+    [input.paymentId],
+  )) as { status: string; cancelled_amount: number }[];
+  const refundRows = (await sql.query(
+    `SELECT status FROM refund_requests WHERE order_id = $1`,
+    [input.orderId],
+  )) as { status: string }[];
+
+  const { ACTIVE_REFUND_REQUEST_STATUSES } = await import("@/lib/server/refundRequests");
+  const payment = paymentRows[0];
+  const completed = refundRows.filter((row) => row.status === "completed").length;
+  const approved = refundRows.filter((row) => row.status === "approved").length;
+  const active = refundRows.filter((row) =>
+    (ACTIVE_REFUND_REQUEST_STATUSES as readonly string[]).includes(row.status),
+  ).length;
+
+  // 이미 끝나 있는 경우. 두 번째 호출이 돈이나 상태를 다시 바꾸지 않았다는 뜻이다.
+  if (
+    payment &&
+    payment.status === "cancelled" &&
+    Number(payment.cancelled_amount) === input.verifiedCancelledAmount &&
+    completed > 0
+  ) {
+    return { ok: false, kind: "already-finalized" };
+  }
+  if (approved > 1 || active > 1) {
+    return { ok: false, kind: "ambiguous-refund-request" };
+  }
+  if (approved !== 1) {
+    return { ok: false, kind: "refund-request-mismatch" };
+  }
+  return { ok: false, kind: "payment-mismatch" };
+}
+
 export async function countPendingPaymentsByUser(userId: string): Promise<number> {
   const sql = sqlClient();
   if (!sql) return 0;

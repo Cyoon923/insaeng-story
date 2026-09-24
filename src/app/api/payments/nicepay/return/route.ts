@@ -17,6 +17,7 @@ import {
   consultationIdForPayment,
   orderIdForPayment,
 } from "@/lib/server/applyOrder";
+import { readServerConsentedAt } from "@/lib/server/consents";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import {
   approveNicepayPayment,
@@ -157,6 +158,15 @@ export async function POST(request: Request) {
   const kind = String(snapshot?.kind ?? "");
   const userId = String(snapshot?.userId ?? "");
   const snapshotAmount = positiveInt(snapshot?.amount);
+  /**
+   * 서버가 동의를 검증한 시각(preparePayment가 담은 값).
+   *
+   * 없거나 형식이 어긋나면 undefined다. 이 값이 없는 것만으로 승인을 막지 않는다.
+   * 이 기능이 생기기 전에 준비된 결제에는 값이 아예 없고, 승인이 끝난 뒤에 막으면
+   * 결제만 되고 주문은 없는 상태가 된다. 그 경우 증빙에는 동의시각을 남기지 않는다
+   * (지금 시각으로 추정해 채우지 않는다).
+   */
+  const consentedAt = readServerConsentedAt(snapshot?.consentedAt);
   if (!snapshot || !request_ || !discount || !userId || snapshotAmount === null) {
     return failed("결제 정보를 확인하지 못했습니다.");
   }
@@ -271,7 +281,12 @@ export async function POST(request: Request) {
 
   // 11-A) 명확한 승인 거절일 때만 failed로 확정한다.
   if (outcome.kind === "declined") {
-    await markPaymentFailed({ merchantOrderId, raw: outcome.raw });
+    /*
+     * PG 응답 전문(outcome.raw)은 넘기지 않는다. 판정에 필요한 값은 아래 구조화된
+     * 열에 이미 들어가고, 응답 전문에는 우리가 보내지 않은 값까지 섞여 올 수 있다.
+     * 저장하지 않는 것이 기본이다(기존 열과 과거 데이터는 그대로 둔다).
+     */
+    await markPaymentFailed({ merchantOrderId });
     return failed(outcome.reason || "카드사 승인이 완료되지 않았습니다.");
   }
 
@@ -283,7 +298,7 @@ export async function POST(request: Request) {
     approvedAmount: recalculated,
     method: outcome.result?.payMethod ?? null,
     approvedAt: outcome.result?.paidAt ?? null,
-    raw: outcome.raw,
+    // 승인 응답 전문은 저장하지 않는다. 위 네 값이 승인 사실을 확정하는 근거다.
   });
   if (!paid) {
     // 내가 선점한 건이 아니게 됐다는 뜻이므로 주문을 만들지 않는다.
@@ -321,7 +336,11 @@ export async function POST(request: Request) {
           details: commitDetails,
         },
         {
-          orderId: orderIdForPayment(merchantOrderId),
+          // 예전 snapshot에는 동의 값이 없다. 승인이 끝난 뒤이므로 막지 않는다.
+        requireConsent: false,
+        // 동의를 검증한 시각. 없으면 넘기지 않고, 증빙에도 시각을 만들지 않는다.
+        ...(consentedAt ? { consentedAt } : {}),
+        orderId: orderIdForPayment(merchantOrderId),
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
           // 승인이 끝난 뒤에만 유료 금액을 확정할 수 있다. 위 claimPaymentApproved가 성공한 지점이다.
           mode: "paid-approved",
@@ -349,6 +368,18 @@ export async function POST(request: Request) {
         details: commitDetails,
       },
       {
+        // 동의 값도 같은 이유로 복구 경로에서는 없으면 넘어간다.
+        requireConsent: false,
+        // 주문과 같다. 값이 있을 때만 넘긴다.
+        ...(consentedAt ? { consentedAt } : {}),
+        // 이 기능이 생기기 전에 준비된 결제에는 snapshot에 scheduledDate가 없다.
+        // 승인이 끝난 뒤이므로 그 건까지 막지 않는다. 새 결제는 preparePayment가
+        // 이미 검증했으므로 여기까지 오면 값이 유효하다.
+        requireSchedule: false,
+        // 판매 가능 날짜 목록은 한국 날짜 기준으로 매일 앞으로 밀린다. 결제 준비와
+        // 승인 사이에 자정이 지나면 같은 예약이 목록에서 빠지므로, 이 예약을 그 목록으로
+        // 다시 보지 않는다. 형식·표시 문구 짝·시각·슬롯 충돌 검증은 그대로다.
+        verifyOfferedDate: false,
         consultationId: consultationIdForPayment(merchantOrderId),
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
         // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.

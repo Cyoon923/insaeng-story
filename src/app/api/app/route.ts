@@ -3,11 +3,21 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeEmail, isValidEmail, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
 } from "@/lib/server/socialLink";
+import {
+  areLegalVersionsConfirmed,
+  isOrderConsentVersionConfirmed,
+} from "@/lib/constants/legal";
+import {
+  buildRequiredConsents,
+  checkCopyrightConsent,
+  checkOrderConsent,
+  checkRequiredConsents,
+} from "@/lib/server/consents";
 import {
   anonymizeWithdrawnUser,
   findWithdrawBlockers,
@@ -19,6 +29,21 @@ import {
 } from "@/lib/server/withdrawAccount";
 import { consumeWithdrawVerification } from "@/lib/server/withdrawVerification";
 import { scrubChatInquiriesByUser } from "@/lib/server/chatInquiries";
+import {
+  createRefundRequest,
+  listActiveRefundRequestsByUser,
+  listLatestRefundRequestsByUser,
+} from "@/lib/server/refundRequests";
+import {
+  loadedLatestRefundRequests,
+  loadedRefundRequests,
+  readCreateRefundRequestBody,
+  refundRequestFailureResponse,
+  toCreateRefundRequestResponse,
+  unavailableLatestRefundRequests,
+  unavailableRefundRequests,
+} from "@/lib/server/refundRequestApi";
+import type { ActiveRefundRequestsView, LatestRefundRequestsView } from "@/lib/types/app";
 import {
   checkCode,
   consumeVerification,
@@ -32,7 +57,7 @@ import type { VerificationConsume } from "@/lib/server/store";
 import { unlinkKakao } from "@/lib/server/kakaoUnlink";
 import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
-import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
+import { isSlotAvailable, parseDatetime, resolveScheduledAt } from "@/lib/server/consultationSlots";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import {
   applyFreeCoupon,
@@ -178,13 +203,74 @@ function publicReviews(data: AppData) {
  * 클라이언트로 내려보내는 회원 사본. 로그인·재식별에 쓰이는 원본 값
  * (비밀번호 해시, 소셜 계정 id)은 화면에서 쓸 일이 없으므로 빼고 보낸다.
  * 저장소의 User 객체는 그대로 두고 사본에서만 지운다.
+ *
+ * 동의 행위 기록(consents.history)도 뺀다. 화면이 쓰는 값이 아니고, 재동의가
+ * 쌓일수록 응답만 길어진다. 현재 상태(terms·privacy)의 공개 여부는 이번에
+ * 바꾸지 않고 지금까지와 같게 둔다.
+ * consents 객체를 함께 사본으로 만들어야 한다. 얕은 복사라 중첩 객체는
+ * 저장소와 같은 것을 가리키고, 거기서 지우면 저장된 기록이 사라진다.
  */
 function toPublicUser(user: User): User {
   const result: User = { ...user };
   delete result.passwordHash;
   delete result.kakaoId;
   delete result.naverId;
+  if (result.consents) {
+    const consents = { ...result.consents };
+    delete consents.history;
+    result.consents = consents;
+  }
   return result;
+}
+
+/**
+ * 주문의 공개 사본. 신청 동의 증빙은 서버 내부 기록이라 담지 않는다.
+ *
+ * 화면이 읽는 값이 아니고, 분쟁·환불 판정에서 보는 값이라 관리자 응답
+ * (/api/admin)에는 그대로 남는다. 저장된 주문은 건드리지 않는다.
+ */
+function toPublicOrder(order: Order): Order {
+  const result: Order = { ...order };
+  delete result.refundConsent;
+  delete result.copyrightConsent;
+  return result;
+}
+
+/**
+ * 활성 환불 문의 조회. 이 한 가지 때문에 MY 화면 전체가 막히지 않도록 감싼다.
+ *
+ * 환불 문의는 이 응답의 곁가지라, 읽지 못했다고 주문·상담까지 못 보게 하는 편이
+ * 더 나쁘다. 그래서 실패해도 응답 전체를 500으로 만들지 않는다.
+ *
+ * 다만 실패를 빈 목록으로 숨기지는 않는다. 읽지 못한 것과 문의가 없는 것은
+ * 화면에서 다르게 다뤄야 하므로 loaded로 구분해 돌려준다.
+ * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
+ */
+async function activeRefundRequests(userId: string): Promise<ActiveRefundRequestsView> {
+  try {
+    return loadedRefundRequests(await listActiveRefundRequestsByUser(userId));
+  } catch (error) {
+    console.error("[app] active refund requests failed", error);
+    return unavailableRefundRequests();
+  }
+}
+
+/**
+ * 주문별 가장 최근 환불 문의. 활성 조회와 같은 이유로 감싼다.
+ *
+ * 이쪽은 끝난 문의(rejected·completed)까지 담으므로, 화면이 "거절되었다"와
+ * "환불이 끝났다"와 "접수한 적이 없다"를 구분할 수 있다. 활성 목록의 뜻은 바꾸지 않는다.
+ *
+ * 실패를 빈 목록으로 숨기지 않는다. 읽지 못한 것과 이력이 없는 것은 다르므로
+ * loaded로 구분해 돌려준다. 오류 내용은 서버 기록에만 남긴다.
+ */
+async function latestRefundRequests(userId: string): Promise<LatestRefundRequestsView> {
+  try {
+    return loadedLatestRefundRequests(await listLatestRefundRequestsByUser(userId));
+  } catch (error) {
+    console.error("[app] latest refund requests failed", error);
+    return unavailableLatestRefundRequests();
+  }
 }
 
 export async function GET() {
@@ -211,7 +297,23 @@ export async function GET() {
       kakao: Boolean(user.kakaoId),
       naver: Boolean(user.naverId),
     },
-    orders: await listOrdersByUser(userId),
+    orders: (await listOrdersByUser(userId)).map(toPublicOrder),
+    /**
+     * 지금 처리 중인 환불 문의. 이 회원의 주문에 걸린 것만, 활성 상태만 담는다.
+     * 끝난 문의(rejected·completed)와 접수 당시 Evidence는 담지 않는다.
+     *
+     * { items, loaded } 모양이다. loaded가 false면 읽지 못한 것이며,
+     * items가 비어 있어도 "문의 없음"으로 읽으면 안 된다.
+     */
+    refundRequests: await activeRefundRequests(userId),
+    /**
+     * 주문별 가장 최근 환불 문의. 활성 여부와 상관없이 마지막 1건을 담는다.
+     * 위 refundRequests의 뜻을 바꾸지 않고 따로 더한 필드다.
+     *
+     * 같은 { items, loaded } 모양이며, loaded가 false면 "이력 없음"이 아니라 "읽지 못함"이다.
+     * 관리자 판단 근거와 결제·PG 정보는 담기지 않는다(네 값만 고른다).
+     */
+    latestRefundRequests: await latestRefundRequests(userId),
     consultations: data.consultations.filter((item) => item.userId === userId),
     inquiries: (data.inquiries ?? []).filter((item) => item.userId === userId),
     wishlist: data.wishlists[userId] ?? [],
@@ -312,6 +414,36 @@ function findLoginIdTarget(
     return { ok: false, error: "이미 아이디가 설정되어 있습니다. 아이디로 로그인해 주세요." };
   }
   return { ok: true, user: target };
+}
+
+/**
+ * 신청 단계 동의 문구 버전이 확정되기 전에는 새 신청을 받지 않는다
+ * (Legal-Consent-Gate-1).
+ *
+ * 확정 전에 신청을 받으면 Order.refundConsent에 자리표시자 버전
+ * ("unconfirmed-draft")이 증빙으로 남는다. 나중에 어느 문구에 동의한 것인지
+ * 특정할 수 없는 기록이라, 저장한 뒤에 고칠 방법이 없다.
+ *
+ * 그래서 **DB에 쓰기 전에** 막는다. 적용하는 곳은 새 신청이 시작되는 세 곳뿐이다.
+ *   · createOrder        (0원 주문 등 결제 없는 신청)
+ *   · createConsultation (0원 상담)
+ *   · preparePayment     (카드 결제 전 단계. 여기서 막아야 PG를 부르지 않는다)
+ *
+ * 반대로 **이미 승인이 끝난 결제**를 주문으로 만드는 경로에는 걸지 않는다.
+ *   · /api/payments/nicepay/return  (승인 콜백)
+ *   · /api/admin/payments/recommit  (결제 복구)
+ * 거기서 막으면 돈은 빠져나갔는데 주문이 없는 상태가 된다. 그쪽이 훨씬 나쁘다.
+ * 두 경로는 commitOrder/commitConsultation의 requireConsent: false와 같은 이유로
+ * 열어 두는 자리다.
+ *
+ * legal.ts의 상수를 확정 시행일로 바꾸면 이 관문은 자동으로 열린다.
+ */
+function orderConsentVersionGate(): NextResponse | null {
+  if (isOrderConsentVersionConfirmed()) return null;
+  return NextResponse.json(
+    { error: "취소·환불 안내 문구가 확정되지 않아 지금은 신청을 받을 수 없습니다." },
+    { status: 503 },
+  );
 }
 
 export async function POST(request: Request) {
@@ -531,6 +663,48 @@ async function handlePost(request: Request) {
     return NextResponse.json({ ok: true, isNew: true, signupToken });
   }
 
+  /**
+   * 아이디 중복확인. 회원가입 화면에서 가입 전에 미리 확인해 보기 위한 읽기 전용 action이다.
+   *
+   * 형식·예약어는 checkLoginIdInput, 중복은 isLoginIdTaken을 그대로 쓴다.
+   * signupComplete와 같은 함수를 써야 "확인은 통과했는데 가입은 실패"가 생기지 않는다.
+   *
+   * 이 action은 UX 보조일 뿐이다. 확인과 가입 사이에 다른 요청이 같은 아이디를
+   * 먼저 쓸 수 있으므로, signupComplete는 저장 시점에 같은 검사를 다시 한다.
+   *
+   * 읽기만 한다. writeData를 부르지 않고, User를 만들거나 고치지 않고,
+   * 세션(setUserId/clearUserId)도 건드리지 않는다.
+   *
+   * 형식 오류와 중복을 화면에서 구분할 수 있도록, 예상된 결과는 모두 200으로
+   * 돌려주고 reason으로 나눈다. (postApp은 !res.ok를 예외로 던진다.)
+   */
+  if (action === "checkLoginId") {
+    const checked = checkLoginIdInput(body.loginId);
+    if (!checked.ok) {
+      return NextResponse.json({
+        ok: true,
+        available: false,
+        reason: "invalid",
+        message: checked.error,
+      });
+    }
+    if (isLoginIdTaken(data, checked.loginId)) {
+      return NextResponse.json({
+        ok: true,
+        available: false,
+        reason: "taken",
+        message: "이미 사용 중인 아이디입니다.",
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      available: true,
+      reason: "available",
+      message: "사용 가능한 아이디입니다.",
+      loginId: checked.loginId,
+    });
+  }
+
   if (action === "signupComplete") {
     const phone = normalizePhone(String(body.phone ?? ""));
     const token = String(body.signupToken ?? "");
@@ -538,6 +712,14 @@ async function handlePost(request: Request) {
     const saved = await readVerification(key, data);
     if (!saved || saved.code !== token) {
       return verificationExpired();
+    }
+    /**
+     * 필수 약관 2종(이용약관 / 회원가입 개인정보 수집·이용) 동의 확인.
+     * 값이 정확히 true가 아니면 가입을 진행하지 않는다.
+     */
+    const consentCheck = checkRequiredConsents(body);
+    if (!consentCheck.ok) {
+      return NextResponse.json({ error: consentCheck.error }, { status: 400 });
     }
     const name = String(body.name ?? "").trim();
     if (!name) {
@@ -550,14 +732,6 @@ async function handlePost(request: Request) {
         { status: 400 },
       );
     }
-    const email = String(body.email ?? "").trim();
-    if (!email) {
-      return NextResponse.json({ error: "이메일을 입력해 주세요." }, { status: 400 });
-    }
-    if (!isValidEmail(email)) {
-      return NextResponse.json({ error: "이메일을 확인해 주세요." }, { status: 400 });
-    }
-
     // 일반 가입은 아이디가 반드시 있어야 한다. 카카오·네이버 가입은 이 경로를 쓰지 않는다.
     const checkedLoginId = checkLoginIdInput(body.loginId);
     if (!checkedLoginId.ok) {
@@ -577,41 +751,31 @@ async function handlePost(request: Request) {
       return NextResponse.json({ ok: true, isNew: false, user: toPublicUser(existing) });
     }
 
-    /**
-     * 이메일은 로그인 식별자가 아니라 회원 연락정보이지만, 활성 회원 사이에서는
-     * 중복되지 않도록 관리한다.
-     *
-     * 비교는 normalizeEmail(소문자·앞뒤 공백 제거)로 맞춘다. 저장할 때도 emptyUser가
-     * 같은 함수를 쓰므로 기준이 어긋나지 않는다.
-     * 탈퇴 회원은 이메일을 비운 채 행만 남으므로(withdrawAccount의 비식별화) 대상에서 뺀다.
-     * 소셜 가입처럼 이메일이 없는 회원도 빈 문자열끼리 겹치지 않도록 함께 뺀다.
-     *
-     * 같은 phone으로 이미 User가 있는 재진입은 위에서 기존 User를 돌려주고 끝나므로,
-     * 이 검사는 새로 User를 만드는 신규 phone 가입에만 적용된다.
-     */
-    const normalizedEmail = normalizeEmail(email);
-    const emailTaken = data.users.some(
-      (item) =>
-        isActiveUser(item) &&
-        normalizeEmail(item.email ?? "") !== "" &&
-        normalizeEmail(item.email ?? "") === normalizedEmail,
-    );
-    if (emailTaken) {
-      return NextResponse.json(
-        { error: "이미 사용 중인 이메일입니다. 다른 이메일을 입력해 주세요." },
-        { status: 400 },
-      );
-    }
-
-    // 아이디 중복. 이메일과 같은 기준(활성 회원·빈 값 제외)으로 본다.
+    // 아이디 중복. 활성 회원만 보고 빈 값은 제외한다.
     if (isLoginIdTaken(data, loginId)) {
       return NextResponse.json({ error: "이미 사용 중인 아이디입니다." }, { status: 400 });
     }
 
+    /**
+     * 동의 증빙을 저장하기 직전 관문.
+     *
+     * 약관 버전이 확정되기 전에는 자리표시자 문자열이 증빙에 남는다.
+     * 그래서 버전이 확정되지 않았으면 User를 만들지 않고 여기서 중단한다.
+     * (lib/constants/legal.ts의 버전 상수를 확정 시행일로 교체하면 열린다.)
+     */
+    if (!areLegalVersionsConfirmed()) {
+      return NextResponse.json(
+        { error: "약관 버전이 확정되지 않아 지금은 회원가입을 진행할 수 없습니다." },
+        { status: 503 },
+      );
+    }
+
     const user: User = {
-      ...emptyUser(phone, name, email, loginId),
+      // 이메일은 받지 않는다. emptyUser가 호환용 기본값 ""로 채운다.
+      ...emptyUser(phone, name, "", loginId),
       passwordHash: hashPassword(password),
-      marketingAgreed: Boolean(body.marketingAgreed),
+      // 버전과 동의 시각은 서버가 채운다. 클라이언트 값은 쓰지 않는다.
+      consents: buildRequiredConsents(),
     };
     data.users.push(user);
     data.coupons[user.id] = [welcomeCoupon()];
@@ -731,9 +895,38 @@ async function handlePost(request: Request) {
     } else {
       // E. 이 번호의 회원이 정말 없을 때만 신규 회원 1명을 만든다.
       //    웰컴 쿠폰과 딸린 컬렉션 초기화는 registerUser가 여기서 한 번만 수행한다.
+
+      /**
+       * 필수 동의 검증. 신규 회원을 만드는 이 분기에서만 요구한다.
+       * 위 분기 D(기존 회원에 provider만 붙이는 경우)는 이미 가입한 회원이므로
+       * 가입 동의를 다시 받지 않는다.
+       */
+      const consentCheck = checkRequiredConsents(body);
+      if (!consentCheck.ok) {
+        return NextResponse.json({ error: consentCheck.error }, { status: 400 });
+      }
+
+      /**
+       * 동의 증빙을 저장하기 직전 관문.
+       *
+       * 약관 버전이 확정되기 전에는 자리표시자 문자열이 증빙에 남는다.
+       * 그래서 버전이 확정되지 않았으면 회원을 만들지 않고 여기서 중단한다.
+       * 아직 아무것도 저장하지 않은 지점이라(registerUser는 latest만 바꾸고,
+       * 영속화는 아래 writeDataWithVerificationConsumes 한 번뿐이다)
+       * linkToken과 소셜 대기 상태도 소비되지 않고 그대로 남는다.
+       */
+      if (!areLegalVersionsConfirmed()) {
+        return NextResponse.json(
+          { error: "약관 버전이 확정되지 않아 지금은 회원가입을 진행할 수 없습니다." },
+          { status: 503 },
+        );
+      }
+
       user = {
         ...emptyUser(phone, pending.nickname || `${providerLabel} 회원`),
         [providerKey]: pending.providerUserId,
+        // 버전과 동의 시각은 서버가 채운다. 클라이언트 값은 쓰지 않는다.
+        consents: buildRequiredConsents(),
       };
       registerUser(latest, user);
     }
@@ -1248,6 +1441,10 @@ async function handlePost(request: Request) {
   }
 
   if (action === "createOrder") {
+    // 동의 문구 버전이 확정되기 전에는 증빙을 만들지 않는다. 저장 전에 막는다.
+    const versionGate = orderConsentVersionGate();
+    if (versionGate) return versionGate;
+
     const result = await commitOrder(data, user, {
       product: body.product,
       title: body.title,
@@ -1258,10 +1455,14 @@ async function handlePost(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
-    return NextResponse.json({ ok: true, order: result.order });
+    return NextResponse.json({ ok: true, order: toPublicOrder(result.order) });
   }
 
   if (action === "createConsultation") {
+    // createOrder와 같은 관문. 상담도 Order.refundConsent에 같은 증빙을 남긴다.
+    const versionGate = orderConsentVersionGate();
+    if (versionGate) return versionGate;
+
     const result = await commitConsultation(data, user, {
       title: body.title,
       report: body.report,
@@ -1280,6 +1481,46 @@ async function handlePost(request: Request) {
     return NextResponse.json({ ok: true, consultation: result.consultation });
   }
 
+  if (action === "createRefundRequest") {
+    /**
+     * 환불 문의 접수.
+     *
+     * 클라이언트가 정하는 값은 orderId·reason·message뿐이다. 회원은 위 로그인
+     * 관문을 지난 세션의 user.id만 쓰고, body에 userId를 섞어 보내도 읽지 않는다.
+     * status·requestedAt·접수 당시 Evidence·정책 버전도 모두 저장 계층이 만든다.
+     *
+     * 주문 소유권 확인, 사유·상세 내용 검증, 활성 요청 중복 방어는
+     * createRefundRequest 한 곳에서 한다. 여기서 다시 판단하지 않는다.
+     */
+    const parsed = readCreateRefundRequestBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    let result;
+    try {
+      result = await createRefundRequest({
+        orderId: parsed.body.orderId,
+        userId: user.id,
+        reason: parsed.body.reason,
+        message: parsed.body.message,
+      });
+    } catch (error) {
+      // 저장에 실패한 이유는 서버 기록에만 남긴다. SQL·스택 같은 내부 사정은
+      // 응답에 담지 않는다.
+      console.error("[app] refund request failed", error);
+      return NextResponse.json(
+        { error: "환불 문의를 접수하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 500 },
+      );
+    }
+    if (!result.ok) {
+      const failure = refundRequestFailureResponse(result.reason);
+      return NextResponse.json({ error: failure.error }, { status: failure.status });
+    }
+    // 접수 사실만 돌려준다. 내부 Evidence는 내보내지 않는다.
+    return NextResponse.json(toCreateRefundRequestResponse(result.request));
+  }
+
   if (action === "preparePayment") {
     const kind = String(body.kind ?? "");
     if (kind !== "order" && kind !== "consultation") {
@@ -1296,6 +1537,50 @@ async function handlePost(request: Request) {
     }
 
     const details = { ...((body.details as Record<string, string>) ?? {}) };
+    /**
+     * 신청 단계 [필수] 동의를 결제 준비 전에 확인한다.
+     * 확정(commitOrder / commitConsultation)과 같은 checkOrderConsent를 쓴다.
+     * 여기서 막지 않으면 카드 승인이 끝난 뒤에야 확정에서 막혀
+     * "결제만 되고 주문은 없는" 상태가 된다.
+     */
+    const consentCheck = checkOrderConsent(String(details.applyConsent ?? "") === "1");
+    if (!consentCheck.ok) {
+      return NextResponse.json({ error: consentCheck.error }, { status: 400 });
+    }
+    /*
+     * 동의는 받았더라도 그 문구의 버전이 확정되지 않았으면 여기서 멈춘다.
+     * 결제 준비(payments 행 생성)와 PG 호출보다 앞이라, 막혀도 돈이 움직이지 않는다.
+     */
+    const versionGate = orderConsentVersionGate();
+    if (versionGate) return versionGate;
+    /**
+     * 인생곡은 저작권·창작물 이용 [필수] 동의도 여기서 함께 확인한다.
+     * 확정(commitOrder)과 같은 checkCopyrightConsent를 쓴다. 상담(kind==="consultation")은
+     * 이 동의 화면이 없어 확인하지 않는다.
+     */
+    if (kind === "order") {
+      const copyrightCheck = checkCopyrightConsent(
+        String(details.copyrightConsent ?? "") === "1",
+      );
+      if (!copyrightCheck.ok) {
+        return NextResponse.json({ error: copyrightCheck.error }, { status: 400 });
+      }
+    }
+    /**
+     * 서버가 이 신청의 [필수] 동의를 최초로 검증한 시각. 여기서 한 번만 만든다.
+     *
+     * 카드결제는 확정이 NICEPAY 승인 뒤에 일어나므로, 이 값을 넘기지 않으면
+     * 증빙에 "승인이 끝난 시각"이 남는다. 아래 orderSnapshot의 top-level에 담아
+     * 승인 경로(return)와 복구 경로(recommit)까지 그대로 운반한다.
+     *
+     * details 안에는 넣지 않는다. 탈퇴·보관만료 정리가 order_snapshot의 details를
+     * 키째 지우므로(scrubPaymentSnapshotDetailsByUser / retentionStore), 그 안에 두면
+     * 승인 전에 정리가 돌았을 때 값이 사라진다.
+     *
+     * 취소·환불과 저작권 두 증빙이 이 한 값을 나눠 쓴다. 동의 여부는 각자의
+     * 플래그로만 정해지므로, 시각을 공유해도 한쪽 동의가 다른 쪽을 만들지 않는다.
+     */
+    const consentedAt = new Date().toISOString();
     // 고객이 요청한 할인 수단. 기존 apply* 가 읽는 것과 같은 방식으로 정규화해 둔다.
     // 승인 단계는 이 값을 근거로 "같은 할인 수단"을 다시 검증한다.
     const requestedCouponId = (details.couponId ?? "").trim() || null;
@@ -1332,6 +1617,19 @@ async function handlePost(request: Request) {
         return NextResponse.json(
           { error: "이미 예약되었거나 선택할 수 없는 시간입니다. 다른 시간을 선택해 주세요." },
           { status: 409 },
+        );
+      }
+      /**
+       * 예약 절대시각을 만들 수 있는지 결제 전에 확인한다.
+       *
+       * 확정(commitConsultation)과 같은 resolveScheduledAt을 쓴다. 여기서 막지 않으면
+       * 카드 승인이 끝난 뒤에야 확정에서 막혀 "결제만 되고 상담은 없는" 상태가 된다.
+       * 통과한 값은 아래 snapshot의 details에 그대로 담겨 승인 경로로 넘어간다.
+       */
+      if (!resolveScheduledAt(String(details.scheduledDate ?? "").trim(), parsed.date, parsed.time)) {
+        return NextResponse.json(
+          { error: "상담 시간을 다시 선택해 주세요." },
+          { status: 400 },
         );
       }
       // 상담 금액도 서버에서 기본가 + 옵션가로 다시 계산한다.
@@ -1400,6 +1698,8 @@ async function handlePost(request: Request) {
           usePoints: pointsUsed,
         },
         details: pointed.details,
+        // 서버가 동의를 검증한 시각. 결제 준비 시각(preparedAt)과 뜻이 달라 따로 담는다.
+        consentedAt,
         preparedAt: new Date().toISOString(),
       },
     });

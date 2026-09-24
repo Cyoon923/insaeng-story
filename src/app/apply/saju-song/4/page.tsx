@@ -8,6 +8,11 @@ import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
 import { ORDER_OPTION_PRICES } from "@/lib/server/pricing";
 import { getDraft } from "@/lib/client/api";
+import {
+  COPYRIGHT_CONSENT_LABEL,
+  COPYRIGHT_NOTICE_PARAGRAPHS,
+  COPYRIGHT_NOTICE_TITLE,
+} from "@/lib/constants/legal";
 
 const BASE_PRICE = LIFE_SONG_PRODUCTS[2].priceFrom;
 /** 서버(src/lib/server/pricing.ts)와 같은 id·가격을 쓴다. 표시용 이름만 여기서 붙인다. */
@@ -44,6 +49,8 @@ function sajuLabel(draft: Record<string, string>) {
 
 export default function ApplyStep6Page() {
   const [agreed, setAgreed] = useState(false);
+  // 취소·환불 [필수] 동의. 저작권 동의(agreed)와 독립적으로 관리한다.
+  const [refundAgreed, setRefundAgreed] = useState(false);
   const [payment, setPayment] = useState("신용/체크카드");
   const [draft, setDraft] = useState<Record<string, string>>({});
 
@@ -82,7 +89,8 @@ export default function ApplyStep6Page() {
     >
       <h2 className="text-[22px] font-bold text-[#403A49]">4. 확인 및 결제</h2>
       <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
-        입력하신 정보를 확인하고 결제를 진행해 주세요. 주문 완료 후 제작이 시작됩니다.
+        입력하신 정보를 확인하고 결제를 진행해 주세요. 결제 후 담당자가 확인한 뒤 제작을 시작하며,
+        제작이 시작되면 주문 상태가 &ldquo;제작중&rdquo;으로 바뀝니다.
       </p>
 
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
@@ -133,11 +141,12 @@ export default function ApplyStep6Page() {
       </div>
 
       <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
-        <h3 className="text-[16px] font-bold text-[#403A49]">저작권 및 이용 안내 [필수]</h3>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
-          인생곡 제작물의 저작권은 비앤비 어드바이저리에 귀속됩니다. 고객은 개인 감상, 소장, 선물 용도로 사용할 수
-          있습니다. 상업적 이용, 재판매, 무단 배포, 2차 저작물 제작은 사전 동의 없이 할 수 없습니다.
-        </p>
+        <h3 className="text-[16px] font-bold text-[#403A49]">{COPYRIGHT_NOTICE_TITLE}</h3>
+        {COPYRIGHT_NOTICE_PARAGRAPHS.map((text) => (
+          <p key={text} className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
+            {text}
+          </p>
+        ))}
         <label className="mt-3 flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -146,7 +155,34 @@ export default function ApplyStep6Page() {
             className="mt-1 h-5 w-5 accent-[#403A49]"
           />
           <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
-            저작권 및 창작물 이용 안내를 확인했으며 동의합니다. [필수]
+            {COPYRIGHT_CONSENT_LABEL}
+          </span>
+        </label>
+      </div>
+
+      {/*
+        취소·환불 [필수] 동의.
+        이 문구가 어느 판인지는 legal.ts의 신청 동의 버전(= 시행일)이 가리킨다.
+        문구를 고치면 그 상수도 함께 올려야 증빙이 가리키는 문구가 갈라지지 않는다.
+      */}
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#403A49]">취소·환불 안내 [필수]</h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
+          맞춤 제작 상품의 특성상 제작 진행 상태에 따라 취소·환불이 제한될 수 있습니다. 자세한 기준은{" "}
+          <Link href="/refund" className="font-semibold underline underline-offset-2">
+            취소·환불 안내
+          </Link>
+          에서 확인하실 수 있습니다.
+        </p>
+        <label className="mt-3 flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={refundAgreed}
+            onChange={(e) => setRefundAgreed(e.target.checked)}
+            className="mt-1 h-5 w-5 accent-[#403A49]"
+          />
+          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
+            취소·환불 안내를 확인했으며 동의합니다. [필수]
           </span>
         </label>
       </div>
@@ -171,7 +207,7 @@ export default function ApplyStep6Page() {
         </div>
       </div>
 
-      {agreed ? (
+      {agreed && refundAgreed ? (
         <PaySubmit
           flow="saju-song"
           kind="order"
@@ -181,6 +217,11 @@ export default function ApplyStep6Page() {
           optionIds={options.map((opt) => opt.id)}
           payment={payment}
           details={{
+            // [필수] 동의 두 건을 각각 전달한다. 화면에서 따로 눌리므로 따로 보낸다.
+            // 보내는 것은 동의 여부뿐이다. 시각과 버전은 서버가 채운다
+            // (refundConsent / copyrightConsent 증빙).
+            applyConsent: refundAgreed ? "1" : "",
+            copyrightConsent: agreed ? "1" : "",
             사주정보: sajuLabel(draft),
             분위기: moodLabel(draft),
             옵션: optionLabel,

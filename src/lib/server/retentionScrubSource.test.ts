@@ -165,7 +165,12 @@ test("완료 증빙과 실제 정리가 같은 문장 안에 있다", () => {
 });
 
 test("완료 증빙·기산점 열을 지우지 않는다", () => {
-  for (const column of ["delivered_at =", "production_started_at =", "refund_consent ="]) {
+  for (const column of [
+    "delivered_at =",
+    "production_started_at =",
+    "refund_consent =",
+    "copyright_consent =",
+  ]) {
     assert.equal(FUNCTION_SOURCE.includes(column), false, column);
   }
 });

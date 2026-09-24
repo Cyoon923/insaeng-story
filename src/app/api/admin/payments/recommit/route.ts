@@ -25,6 +25,7 @@ import {
   orderIdForPayment,
 } from "@/lib/server/applyOrder";
 import { badRequest, readJsonBody, requireAdmin } from "@/lib/server/chatInquiryApi";
+import { readServerConsentedAt } from "@/lib/server/consents";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import {
   getPaymentByMerchantOrderId,
@@ -91,6 +92,12 @@ export async function POST(request: Request) {
   const kind = String(snapshot?.kind ?? "");
   const userId = String(snapshot?.userId ?? "");
   const snapshotAmount = positiveInt(snapshot?.amount);
+  /*
+   * 서버가 동의를 검증한 시각. 없거나 형식이 어긋나면 undefined이며, 그 사실만으로
+   * 복구를 막지 않는다(이 기능이 생기기 전에 준비된 결제에는 값이 없다).
+   * 그 경우 증빙에 동의시각을 추정해 채우지 않는다.
+   */
+  const consentedAt = readServerConsentedAt(snapshot?.consentedAt);
   if (!snapshot || !request_ || !discount || !userId || snapshotAmount === null) {
     return manual("결제 준비 정보가 남아 있지 않습니다.");
   }
@@ -194,6 +201,10 @@ export async function POST(request: Request) {
           details: commitDetails,
         },
         {
+          // 예전 snapshot에는 동의 값이 없다. 복구를 막지 않는다.
+          requireConsent: false,
+          // 동의를 검증한 시각. 없으면 넘기지 않고, 증빙에도 시각을 만들지 않는다.
+          ...(consentedAt ? { consentedAt } : {}),
           orderId: targetId,
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
           // 승인이 이미 끝난 건이라는 사실은 위 3)에서 확인했다.
@@ -220,6 +231,17 @@ export async function POST(request: Request) {
         details: commitDetails,
       },
       {
+        // 동의 값도 같은 이유로 없으면 넘어간다.
+        requireConsent: false,
+        // 주문과 같다. 값이 있을 때만 넘긴다.
+        ...(consentedAt ? { consentedAt } : {}),
+        // 예전 결제 복구가 목적이다. snapshot에 scheduledDate가 없던 시절의 건을
+        // 막으면 결제만 남고 상담이 만들어지지 않는다. 값이 있으면 검증은 그대로 한다.
+        requireSchedule: false,
+        // 판매 가능 날짜 목록은 한국 날짜 기준으로 매일 앞으로 밀린다. 결제 준비와
+        // 승인 사이에 자정이 지나면 같은 예약이 목록에서 빠지므로, 이 예약을 그 목록으로
+        // 다시 보지 않는다. 형식·표시 문구 짝·시각·슬롯 충돌 검증은 그대로다.
+        verifyOfferedDate: false,
         consultationId: targetId,
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
         mode: "paid-approved",

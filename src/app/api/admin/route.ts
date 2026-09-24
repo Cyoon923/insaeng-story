@@ -25,9 +25,39 @@ import {
   listSlotStatuses,
 } from "@/lib/server/consultationSlots";
 import {
+  hasCompletedRefundRequestForOrder,
+  listRefundRequestsForAdmin,
+  transitionRefundRequestByAdmin,
+} from "@/lib/server/refundRequests";
+import {
+  loadedAdminRefundRequests,
+  unavailableAdminRefundRequests,
+} from "@/lib/server/refundRequestAdminView";
+import {
+  progressLockedByRefundResponse,
+  readTransitionRefundRequestBody,
+  toTransitionRefundRequestResponse,
+  transitionFailureResponse,
+} from "@/lib/server/refundRequestAdminApi";
+import {
+  defaultExecuteApprovedRefundDeps,
+  executeApprovedRefund,
+  readExecuteApprovedRefundBody,
+} from "@/lib/server/refundExecuteAdminApi";
+import {
+  defaultRecoverApprovedRefundDeps,
+  readRecoverApprovedRefundBody,
+  recoverApprovedRefund,
+} from "@/lib/server/refundRecoveryAdminApi";
+import {
   applyConsultationCompletion,
   deliveredAtForStatus,
 } from "@/lib/server/serviceCompletion";
+import {
+  defaultRestoreOrderPointsDeps,
+  readRestoreOrderPointsBody,
+  restoreOrderPointsByAdmin,
+} from "@/lib/server/pointsRestoreRecoveryAdminApi";
 import {
   markComplaintHandledFailureResponse,
   readCreateComplaintRecordBody,
@@ -39,7 +69,12 @@ import {
   markComplaintHandled,
 } from "@/lib/server/complaintRecords";
 import { ComplaintRecordError } from "@/lib/server/complaintRecordRules";
-import type { ComplaintRecord, ConsultStatus, OrderStatus } from "@/lib/types/app";
+import type {
+  AdminRefundRequestsView,
+  ComplaintRecord,
+  ConsultStatus,
+  OrderStatus,
+} from "@/lib/types/app";
 
 const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
 const CONSULT_STATUSES: ConsultStatus[] = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"];
@@ -63,6 +98,24 @@ export async function GET() {
   }
 
   /*
+   * 상담은 위에서 읽은 data를 그대로 넘긴다. 저장소를 두 번 읽지 않기 위해서다.
+   *
+   * 실패해도 이 필드에만 가둔다. 환불 문의를 읽지 못했다고 회원·주문·상담까지
+   * 못 보게 하는 편이 더 나쁘다. 다만 실패를 빈 목록으로 숨기지는 않는다.
+   * 읽지 못한 것과 문의가 없는 것은 화면에서 다르게 다뤄야 하므로 loaded로 구분한다.
+   * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
+   */
+  let refundRequests: AdminRefundRequestsView;
+  try {
+    refundRequests = loadedAdminRefundRequests(
+      await listRefundRequestsForAdmin(data.consultations),
+    );
+  } catch (error) {
+    console.error("[admin] refund requests failed", error);
+    refundRequests = unavailableAdminRefundRequests();
+  }
+
+  /*
    * 불만·분쟁 기록. 환불 문의와 같은 이유로 이 필드에만 실패를 가둔다.
    * 읽지 못한 것과 기록이 없는 것을 구분해야 하므로 loaded를 함께 준다.
    * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
@@ -79,6 +132,13 @@ export async function GET() {
     users: data.users,
     paymentsNeedingReview,
     orders: await listAllOrders(),
+    /**
+     * 접수된 환불 문의 전체 이력. 접수 당시 값과 지금 값을 나란히 담는다.
+     * 결제 기록과 같은 이유로, 읽지 못해도 관리자 화면 전체가 깨지지 않게 감싼다.
+     * { items, loaded } 모양이며, loaded가 false면 "문의 없음"이 아니라 "읽지 못함"이다.
+     */
+    refundRequests,
+    /** 불만·분쟁 기록. { items, loaded } 모양이며 loaded가 false면 "읽지 못함"이다. */
     complaintRecords,
     consultations: data.consultations,
     inquiries: data.inquiries ?? [],
@@ -138,6 +198,46 @@ async function handlePost(request: Request) {
 
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
+  }
+
+  if (action === "transitionRefundRequest") {
+    /**
+     * 환불 문의 상태 전이.
+     *
+     * 관리자가 정하는 값은 어떤 문의인지(refundRequestId)와 지금 보고 있는 상태,
+     * 바꿀 상태뿐이다. 실행자는 서버 상수(CURRENT_ADMIN_ACTOR)를 쓰고 body의
+     * handledBy는 읽지 않는다. 결론 시각도 전이 함수가 서버에서 만든다.
+     *
+     * 어떤 전이가 허용되는지는 transitionRefundRequestByAdmin이 판단한다.
+     * 규칙을 여기에 옮겨 적지 않는다. 그래서 클라이언트가 completed 같은 값을
+     * 보내도 상태 머신을 건너뛸 수 없다.
+     */
+    const parsed = readTransitionRefundRequestBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    let result;
+    try {
+      result = await transitionRefundRequestByAdmin({
+        refundRequestId: parsed.body.refundRequestId,
+        expectedCurrentStatus: parsed.body.expectedCurrentStatus,
+        targetStatus: parsed.body.targetStatus,
+        handledBy: CURRENT_ADMIN_ACTOR,
+      });
+    } catch (error) {
+      // 실패한 이유는 서버 기록에만 남긴다. SQL·스택은 응답에 담지 않는다.
+      console.error("[admin] refund request transition failed", error);
+      return NextResponse.json(
+        { error: "처리하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 500 },
+      );
+    }
+    if (!result.ok) {
+      const failure = transitionFailureResponse(result.reason);
+      return NextResponse.json({ error: failure.error }, { status: failure.status });
+    }
+    // 바뀐 결과만 돌려준다. 근거는 목록(GET)이 이미 준다.
+    return NextResponse.json(toTransitionRefundRequestResponse(result.request));
   }
 
   if (action === "createComplaintRecord") {
@@ -205,6 +305,75 @@ async function handlePost(request: Request) {
     }
     // 바뀐 결과만 돌려준다. 근거는 목록(GET)이 이미 준다.
     return NextResponse.json({ ok: true, complaintRecord: result.record });
+  }
+
+  if (action === "executeApprovedRefund") {
+    /**
+     * 승인된 환불 문의의 실제 전액환불 실행.
+     *
+     * 관리자가 정하는 값은 어떤 문의인지(refundRequestId) 하나뿐이다. 주문·결제·거래
+     * 번호·금액·회원은 body에서 읽지 않는다. 실행 대상 주문은 권한 확인이 DB에서 읽어
+     * 준 값만 쓰므로, 그런 이름을 함께 보내도 실행 대상에 닿지 않는다.
+     *
+     * 권한 확인과 실행은 이 요청 안에서 이어서 일어난다. 확인 결과를 응답으로 돌려주고
+     * 나중에 실행하는 구조를 만들지 않는다.
+     */
+    const parsed = readExecuteApprovedRefundBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    // 어떤 결과에서도 이 자리에서 취소나 복구를 다시 부르지 않는다.
+    const response = await executeApprovedRefund(
+      parsed.refundRequestId,
+      await defaultExecuteApprovedRefundDeps(),
+    );
+    return NextResponse.json(response.body, { status: response.status });
+  }
+
+  if (action === "recoverApprovedRefund") {
+    /**
+     * 환불 실행 뒤 불확실·미반영 상태의 확인과 복구.
+     *
+     * 돈을 새로 취소하는 요청이 아니다. 결제사 거래조회로 지금 사실을 확인해
+     * 내부 기록을 맞추기만 한다.
+     *
+     * 관리자가 정하는 값은 어떤 문의인지(refundRequestId) 하나뿐이다. 주문·결제·
+     * 실행 단계·복구 경로는 body에서 읽지 않고 서버가 DB를 보고 정한다.
+     */
+    const parsed = readRecoverApprovedRefundBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    // 복구 경로는 helper가 하나만 고른다. 이 자리에서 취소나 다른 복구를 부르지 않는다.
+    const response = await recoverApprovedRefund(
+      parsed.refundRequestId,
+      await defaultRecoverApprovedRefundDeps(),
+    );
+    return NextResponse.json(response.body, { status: response.status });
+  }
+
+  if (action === "restoreOrderPoints") {
+    /**
+     * 환불이 끝난 주문의 적립금 복원 재시도.
+     *
+     * PG 환불을 다시 실행하는 요청이 아니다. 결제사를 부르지 않고 결제·환불 문의
+     * 상태도 바꾸지 않는다. 환불 완료 뒤 적립금 복원만 빠진 건을 다시 시도한다
+     * (정상·복구 경로는 복원 실패를 삼키고 기록만 남기므로 그런 건이 남을 수 있다).
+     *
+     * 관리자가 정하는 값은 어떤 문의인지(refundRequestId) 하나뿐이다. 주문·회원·
+     * 금액·적립금은 body에서 읽지 않는다. 복원 대상 주문은 권한 확인이 DB에서 읽어
+     * 준 값만 쓰고, 금액과 회원은 복원 흐름이 주문·결제 기록에서 다시 읽는다.
+     */
+    const parsed = readRestoreOrderPointsBody(body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    // 이 자리에서 취소나 환불 복구를 부르지 않는다. 부를 수 있는 것은 복원 흐름뿐이다.
+    const response = await restoreOrderPointsByAdmin(
+      parsed.refundRequestId,
+      await defaultRestoreOrderPointsDeps(),
+    );
+    return NextResponse.json(response.body, { status: response.status });
   }
 
   if (action === "toggleBlockSlot") {
@@ -361,6 +530,19 @@ async function handlePost(request: Request) {
     if (!found) {
       return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
     }
+    /*
+     * 환불이 끝난 주문은 진행 상태를 바꾸지 않는다.
+     * 결제 환불 완료와 제작 완료는 다른 사실이므로, 환불 때문에 진행 상태를
+     * 대신 바꿔 주지도 않는다. 여기서는 막기만 한다.
+     *
+     * 알림을 만들기 **전에** 본다. 막힌 요청에서 고객 알림이 남으면
+     * 환불받은 분에게 "후기를 남기실 수 있습니다" 같은 안내가 가게 된다.
+     */
+    if (await hasCompletedRefundRequestForOrder(id)) {
+      const locked = progressLockedByRefundResponse("order");
+      return NextResponse.json({ error: locked.error }, { status: locked.status });
+    }
+
     const order = { ...found, status };
 
     const data = await readData();
@@ -397,7 +579,16 @@ async function handlePost(request: Request) {
         ...(data.notifications[order.userId] ?? []),
       ];
     }
-    await writeDataWithOrderStatus(data, order.id, status);
+    /*
+     * 마지막 관문. 위 확인과 저장 사이에 환불이 끝났을 수 있어, 저장 문장 안에서
+     * 같은 조건을 한 번 더 본다. 막히면 주문도 app_store도 바뀌지 않는다
+     * (알림도 같은 app_store에 담겨 있으므로 함께 저장되지 않는다).
+     */
+    const written = await writeDataWithOrderStatus(data, order.id, status);
+    if (!written.applied) {
+      const locked = progressLockedByRefundResponse("order");
+      return NextResponse.json({ error: locked.error }, { status: locked.status });
+    }
     return NextResponse.json({ ok: true, order });
   }
 
@@ -415,11 +606,25 @@ async function handlePost(request: Request) {
     if (!item) {
       return NextResponse.json({ error: "사주상담을 찾을 수 없습니다." }, { status: 404 });
     }
+    /*
+     * 상담도 같은 규칙이다. 상담과 결제 귀속 주문은 같은 id를 쓰므로(applyOrder.ts)
+     * 이 id로 환불 문의를 찾는다.
+     *
+     * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 있을 수 없어 false가 나오고,
+     * 기존 동작이 그대로 유지된다.
+     *
+     * 주문과 달리 상담은 app_store JSONB 안에 있어 저장 문장 안에서 같은 조건을
+     * 걸 수 없다. 그래서 이 확인이 유일한 관문이며, 남는 경합은 문서로 남긴다.
+     */
+    if (await hasCompletedRefundRequestForOrder(id)) {
+      const locked = progressLockedByRefundResponse("consultation");
+      return NextResponse.json({ error: locked.error }, { status: locked.status });
+    }
     item.status = status;
     /*
-     * 상담이 끝난 시각을 남긴다 (Privacy-Retention-Completion-Evidence-1).
-     * 최초 1회만 기록하고 덮어쓰지 않는다. 규칙은 serviceCompletion 한 곳이 정한다.
-     * 상담은 전용 테이블이 없어 원래 JSONB만 쓴다. 새 열을 만들지 않는다.
+     * 처음 "상담 완료"가 될 때만 완료 시각을 남긴다(개인정보 보관 기간의 기산점).
+     * 이미 값이 있으면 규칙 함수가 아무것도 바꾸지 않으므로, 상태가 되돌아갔다가
+     * 다시 완료가 되어도 처음 시각이 그대로 남는다. 시각은 서버가 만든다.
      */
     applyConsultationCompletion(item, status, new Date().toISOString());
     if (data.notificationSettings[item.userId]?.consult !== false) {

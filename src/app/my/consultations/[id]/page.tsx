@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { RefundCompletedBanner } from "@/components/my/RefundCompletedBanner";
+import { RefundRequestSection } from "@/components/my/RefundRequestSection";
 import { formatPrice } from "@/lib/constants/products";
-import { readData } from "@/lib/server/store";
+import { canRequestConsultationRefund } from "@/lib/refundRequestSection";
+import { getOrderById, readData } from "@/lib/server/store";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
 
 const STEPS = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"] as const;
@@ -36,6 +39,14 @@ export default async function ConsultationDetailPage({
   const item = data.consultations.find((row) => row.id === id && row.userId === userId);
   if (!item) notFound();
 
+  /*
+   * 환불 문의는 주문에 귀속되므로 상담과 짝이 되는 주문을 서버에서 직접 읽는다.
+   * 주소로 받은 id를 그대로 믿지 않고, 읽어 온 주문의 주인·종류·id를 모두 맞춰 본다.
+   * 짝이 되는 주문이 없는 옛 상담에서는 접수 영역을 띄우지 않는다.
+   */
+  const order = await getOrderById(id);
+  const refundable = canRequestConsultationRefund(order, userId, item.id);
+
   const currentIndex = STEPS.indexOf(item.status);
   const counterpart = item.details.counterpartName
     ? `${item.details.counterpartName} / ${item.details.counterpartBirth || "생년월일 미입력"}`
@@ -46,6 +57,12 @@ export default async function ConsultationDetailPage({
   return (
     <MobileShell>
       <AppHeader variant="page" title="상담 상세" backHref="/my/consultations" />
+
+      {/*
+       * 환불이 끝난 건에서만 나온다. 예약 정보와 진행 단계는 지우지 않되,
+       * 환불 사실이 먼저 읽히도록 이 배너를 위에 둔다.
+       */}
+      {order && refundable ? <RefundCompletedBanner orderId={order.id} /> : null}
 
       <section className="px-4 py-5">
         <div className="flex items-start justify-between gap-3">
@@ -111,6 +128,21 @@ export default async function ConsultationDetailPage({
           <p className="mt-1 text-[22px] font-bold text-[#403A49]">{formatPrice(item.amount)}</p>
         </div>
       </section>
+
+      {/* 환불 문의. 상태 조회·접수는 클라이언트 쪽에서 한다(이 화면은 서버 컴포넌트다). */}
+      {order && refundable ? (
+        <RefundRequestSection orderId={order.id} />
+      ) : (
+        /*
+         * 짝이 되는 결제 주문을 찾지 못한 상담. "환불 불가"가 아니라 이 화면에서
+         * 바로 접수할 수 없다는 뜻이므로, 기존 문의 경로만 짧게 안내한다.
+         */
+        <section className="px-4 pb-8">
+          <p className="rounded-2xl bg-white p-4 text-[15px] leading-relaxed text-[#6B6570] ring-1 ring-[#ebe3d8]">
+            환불 문의는 상담원에게 문의를 남겨 주세요.
+          </p>
+        </section>
+      )}
     </MobileShell>
   );
 }

@@ -28,7 +28,12 @@ import { fetchMe } from "@/lib/client/api";
 import { formatPrice } from "@/lib/constants/products";
 import { buildMyOrderItems } from "@/lib/myOrders";
 import type { MyOrderItem } from "@/lib/myOrders";
-import type { Consultation, Order, User } from "@/lib/types/app";
+import type {
+  Consultation,
+  LatestRefundRequestsView,
+  Order,
+  User,
+} from "@/lib/types/app";
 
 const MENU_GRID = [
   // "1:1 사주상담 내역"은 아래 "나의 주문 내역"에 합쳐져서 뺐다.
@@ -82,12 +87,29 @@ export default function MyPage() {
       // 위 "주문 및 제작 현황"은 인생곡 제작 단계를 보여주는 자리라 그대로 둔다.
       setOrders(allOrders.filter((order) => order.product !== "consultation"));
       // 아래 "나의 주문 내역"만 인생곡과 사주상담을 함께 보여준다.
-      setItems(buildMyOrderItems(allOrders, (data.consultations ?? []) as Consultation[]));
+      setItems(
+        buildMyOrderItems(
+          allOrders,
+          (data.consultations ?? []) as Consultation[],
+          // 환불이 끝난 건을 대표 상태로 보여주기 위해 함께 넘긴다(추가 조회 없음).
+          data.latestRefundRequests as LatestRefundRequestsView | undefined,
+        ),
+      );
       setLoaded(true);
     });
   }, []);
 
-  const currentStatus = orders[0]?.status ?? "신청접수";
+  /*
+   * "주문 및 제작 현황"은 인생곡 제작 단계를 보여주는 자리다. 이번 단계에서 이 영역의
+   * 구조를 다시 설계하지 않는다. 다만 환불이 끝난 주문의 단계를 지금 진행 중인 것처럼
+   * 켜 두면 명백히 틀린 안내가 되므로, 환불된 건은 건너뛰고 그다음 주문을 본다.
+   * 볼 주문이 하나도 없으면 아무 단계도 켜지 않는다(없는 진행을 지어내지 않는다).
+   */
+  const refundedIds = new Set(
+    items.filter((item) => item.refundCompleted).map((item) => item.id),
+  );
+  const progressOrder = orders.find((order) => !refundedIds.has(order.id));
+  const currentStatus = progressOrder?.status ?? (orders.length > 0 ? "" : "신청접수");
   const referralCode = user ? referralCodeFor(user) : "";
 
   const copyReferralCode = async () => {
@@ -224,8 +246,14 @@ export default function MyPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="break-keep text-[15px] font-semibold text-[#403A49]">{item.title}</span>
-                  <span className="rounded-full bg-[#f5efe6] px-2 py-0.5 text-[11px] font-medium text-[#403A49]">
-                    {item.status}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      item.refundCompleted
+                        ? "bg-[#403A49] text-white"
+                        : "bg-[#f5efe6] text-[#403A49]"
+                    }`}
+                  >
+                    {item.displayStatus}
                   </span>
                 </div>
                 <p className="mt-1 text-[12px] text-[#6B6570]">신청일 {formatDate(item.createdAt)}</p>

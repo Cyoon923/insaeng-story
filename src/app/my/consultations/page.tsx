@@ -5,17 +5,25 @@ import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe } from "@/lib/client/api";
-import type { Consultation, User } from "@/lib/types/app";
+import { REFUND_COMPLETED_STATUS } from "@/lib/myOrders";
+import { hasCompletedRefundForOrder } from "@/lib/refundRequestSection";
+import type { Consultation, LatestRefundRequestsView, User } from "@/lib/types/app";
 
 export default function MyConsultationsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [items, setItems] = useState<Consultation[]>([]);
+  /**
+   * 주문별 최신 환불 문의. 이미 받은 응답을 그대로 들고 있는다(추가 조회 없음).
+   * 읽지 못했으면 loaded가 false이고, 그때는 환불 완료로 추정하지 않는다.
+   */
+  const [refunds, setRefunds] = useState<LatestRefundRequestsView | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetchMe().then((data) => {
       setUser(data.user ?? null);
       setItems(data.consultations ?? []);
+      setRefunds((data.latestRefundRequests as LatestRefundRequestsView | undefined) ?? null);
       setLoaded(true);
     });
   }, []);
@@ -51,7 +59,13 @@ export default function MyConsultationsPage() {
             아직 신청한 상담이 없습니다.
           </p>
         ) : null}
-        {items.map((item) => (
+        {items.map((item) => {
+          /*
+           * 상담과 결제 귀속 주문은 같은 id를 쓴다(applyOrder.ts). 그래서 상담 id로 찾는다.
+           * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 없어 언제나 false가 된다.
+           */
+          const refundCompleted = hasCompletedRefundForOrder(refunds, item.id);
+          return (
           <Link
             key={item.id}
             href={`/my/consultations/${item.id}`}
@@ -62,8 +76,12 @@ export default function MyConsultationsPage() {
                 <h3 className="text-[17px] font-bold text-[#403A49]">{item.teacher}</h3>
                 <p className="mt-1 text-[15px] text-[#403A49]">{item.datetime}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-[#e8f3ea] px-2.5 py-0.5 text-[12px] font-medium text-[#3d6b45]">
-                {item.status}
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
+                  refundCompleted ? "bg-[#403A49] text-white" : "bg-[#e8f3ea] text-[#3d6b45]"
+                }`}
+              >
+                {refundCompleted ? REFUND_COMPLETED_STATUS : item.status}
               </span>
             </div>
             <ul className="mt-3 space-y-1 text-[14px] leading-relaxed text-[#6B6570]">
@@ -72,7 +90,8 @@ export default function MyConsultationsPage() {
               <li>상담 옵션: {item.option}</li>
             </ul>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </MobileShell>
   );

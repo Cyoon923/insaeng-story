@@ -2,17 +2,26 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
+import {
+  hasCompletedRefund,
+  pointsRestoreCardView,
+  refundCardActions,
+} from "@/lib/refundCardActions";
 import type {
   AdminPromo,
-  Consultation,
+  AdminRefundRequestItem,
+  AdminRefundRequestsView,
   ComplaintCategory,
   ComplaintRecord,
+  Consultation,
   ConsultStatus,
   Coupon,
   CouponProduct,
   Inquiry,
   Order,
   OrderStatus,
+  RefundRequestReason,
+  RefundRequestStatus,
   User,
 } from "@/lib/types/app";
 
@@ -35,7 +44,7 @@ interface PaymentReviewItem {
   userId: string | null;
 }
 
-type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "reviews" | "events" | "inquiries" | "chat" | "schedule";
+type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "refunds" | "reviews" | "events" | "inquiries" | "chat" | "schedule";
 
 /** 챗봇에서 접수한 문의의 product 값. 저장 시 쓰는 값과 같아야 한다. */
 const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
@@ -54,6 +63,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "users", label: "회원" },
   { id: "orders", label: "주문" },
   { id: "consultations", label: "사주상담" },
+  { id: "refunds", label: "환불 문의" },
   { id: "reviews", label: "후기" },
   { id: "events", label: "이벤트" },
   { id: "inquiries", label: "문의" },
@@ -133,6 +143,12 @@ function chatStatusLabel(status: string): string {
 }
 
 /** 상태 변경 버튼에 쓰는 값과 문구. 데이터 계층이 허용하는 세 값 그대로다. */
+const CHAT_STATUS_OPTIONS: { value: "new" | "in_progress" | "closed"; label: string }[] = [
+  { value: "new", label: "새 문의" },
+  { value: "in_progress", label: "상담 중" },
+  { value: "closed", label: "상담 종료" },
+];
+
 /** 불만 분류. 서버 enum과 한 글자도 어긋나면 안 된다. 최종 판정은 서버가 한다. */
 const COMPLAINT_CATEGORY_OPTIONS: { value: ComplaintCategory; label: string }[] = [
   { value: "service", label: "서비스" },
@@ -149,12 +165,6 @@ const COMPLAINT_SUMMARY_MAX = 500;
 function complaintCategoryLabel(value: string) {
   return COMPLAINT_CATEGORY_OPTIONS.find((item) => item.value === value)?.label ?? value;
 }
-
-const CHAT_STATUS_OPTIONS: { value: "new" | "in_progress" | "closed"; label: string }[] = [
-  { value: "new", label: "새 문의" },
-  { value: "in_progress", label: "상담 중" },
-  { value: "closed", label: "상담 종료" },
-];
 
 function formatAmount(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
@@ -226,6 +236,51 @@ function scheduleStatusLabel(status: SlotStatus) {
   return "가능";
 }
 
+/**
+ * 환불 문의 상태 문구.
+ *
+ * approved를 "환불 완료"로 적지 않는다. 승인은 운영 결정이고 실제 결제 취소는
+ * 아직 일어나지 않았다. 둘을 같은 말로 적으면 운영자가 돈이 나간 줄 안다.
+ */
+const REFUND_STATUS_LABEL: Record<RefundRequestStatus, string> = {
+  requested: "접수",
+  reviewing: "검토 중",
+  approved: "환불 승인 · 결제 취소 대기",
+  rejected: "거절",
+  completed: "환불 완료",
+};
+
+/** 고객이 고른 사유를 사람이 읽는 말로 바꾼다. */
+const REFUND_REASON_LABEL: Record<RefundRequestReason, string> = {
+  "change-of-mind": "단순 변심",
+  schedule: "일정 변경·취소",
+  "service-issue": "서비스 문제",
+  "duplicate-payment": "중복·오결제",
+  other: "기타",
+};
+
+/**
+ * 접수 당시 취소창 판정을 그대로 읽어 준다.
+ *
+ * 서버가 내린 결론은 "일반 문의 / 개별 확인"까지이고, 환불 가능 여부가 아니다.
+ * 그래서 문구에도 "환불 가능"이나 "환불 불가"라고 적지 않는다.
+ */
+function cancelWindowLabel(snapshot: AdminRefundRequestItem["cancelWindowSnapshot"]) {
+  if (!snapshot) return "기록 없음";
+  if (snapshot.kind === "normal-request") {
+    return `일반 문의 범위 (시작까지 ${snapshot.remainingMinutes}분 남음)`;
+  }
+  const reason =
+    snapshot.reason === "within-window"
+      ? "시작 3시간 이내"
+      : snapshot.reason === "after-start"
+        ? "시작 시각 이후"
+        : snapshot.reason === "missing-scheduled-at"
+          ? "예약 시각 기록 없음"
+          : "예약 시각을 읽을 수 없음";
+  return `개별 확인 필요 (${reason})`;
+}
+
 async function copyText(value: string) {
   try {
     await navigator.clipboard.writeText(value);
@@ -254,6 +309,19 @@ export default function AdminPage() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  /**
+   * 환불 문의 묶음. 목록만 두면 "문의 없음"과 "조회 실패"가 똑같이 빈 배열로 보여
+   * 서버가 준 loaded를 그대로 들고 있는다. 첫 조회 전에는 loaded를 true로 두어
+   * 화면이 뜨자마자 실패 문구가 깜빡이지 않게 한다.
+   */
+  const [refundRequests, setRefundRequests] = useState<AdminRefundRequestsView>({
+    items: [],
+    loaded: true,
+  });
+  /** 처리 중인 환불 문의 id. 같은 버튼을 두 번 누르지 못하게 하는 데 쓴다. */
+  const [refundBusy, setRefundBusy] = useState("");
+  /** 문의 1건마다 남기는 결과 문구. 기존 재접수 안내와 같은 방식이다. */
+  const [refundMessage, setRefundMessage] = useState<Record<string, string>>({});
   const [scheduleDates, setScheduleDates] = useState<string[]>([]);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
@@ -330,6 +398,9 @@ export default function AdminPage() {
     setConsultations(data.consultations ?? []);
     setReviews((data.reviews ?? []) as ReviewItem[]);
     setInquiries(data.inquiries ?? []);
+    // 서버는 { items, loaded } 모양으로 준다. loaded가 false면 읽지 못한 것이며
+    // 빈 목록을 "문의 없음"으로 보여주면 안 된다.
+    setRefundRequests((data.refundRequests ?? { items: [], loaded: false }) as AdminRefundRequestsView);
     setComplaintRecords(
       (data.complaintRecords ?? { items: [], loaded: false }) as {
         items: ComplaintRecord[];
@@ -635,6 +706,288 @@ export default function AdminPage() {
     setConsultations((list) => list.map((item) => (item.id === next.id ? next : item)));
   }
 
+  /**
+   * 환불 문의 상태 변경.
+   *
+   * 화면은 어떤 전이가 가능한지 다시 판단하지 않는다. 버튼을 그릴 때 쓰는 목록과
+   * 서버의 허용 규칙이 갈라질 수 있으므로, 최종 판단은 언제나 서버가 한다.
+   *
+   * 지금 보고 있는 상태(expectedCurrentStatus)를 함께 보내, 그 사이 다른 관리자가
+   * 먼저 처리했다면 서버가 409로 막는다. 그때는 목록을 다시 불러 온다.
+   * handledBy·decidedAt은 보내지 않는다. 서버가 정한다.
+   */
+  async function handleTransitionRefund(
+    item: AdminRefundRequestItem,
+    targetStatus: RefundRequestStatus,
+    confirmText: string,
+  ) {
+    if (refundBusy) return;
+    if (!window.confirm(confirmText)) return;
+    setRefundBusy(item.id);
+    setRefundMessage((current) => ({ ...current, [item.id]: "" }));
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "transitionRefundRequest",
+          refundRequestId: item.id,
+          expectedCurrentStatus: item.status,
+          targetStatus,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+      if (res.ok && data?.ok) {
+        // 서버가 돌려준 값만 믿지 않고 목록을 다시 불러 최신 상태로 맞춘다.
+        await loadData();
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: `${REFUND_STATUS_LABEL[targetStatus]}(으)로 변경했습니다.`,
+        }));
+        return;
+      }
+      if (res.status === 409) {
+        // 그 사이 상태가 바뀌었다. 지금 상태를 보고 다시 판단해야 한다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: data?.error ?? "그 사이 상태가 바뀌었습니다. 현재 상태를 확인해 주세요.",
+        }));
+        await loadData();
+        return;
+      }
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: data?.error ?? "처리하지 못했습니다.",
+      }));
+    } catch {
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: "요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      }));
+    } finally {
+      setRefundBusy("");
+    }
+  }
+
+  /**
+   * 승인된 환불 문의의 실제 전액환불 실행.
+   *
+   * 보내는 값은 어떤 문의인지(refundRequestId)뿐이다. 주문·결제·거래 번호·금액·
+   * 실행 단계는 보내지 않는다. 실행 대상은 서버가 DB에서 정한다.
+   *
+   * 실패하거나 결과가 불확실해도 여기서 다른 요청을 대신 보내지 않는다.
+   * 복구(결제 상태 확인)를 자동으로 부르지 않고, 자동 재시도도 하지 않는다.
+   * 결제사에서는 이미 환불이 끝났을 수 있어 다시 누르도록 유도하면 안 된다.
+   */
+  async function handleExecuteRefund(item: AdminRefundRequestItem) {
+    if (refundBusy) return;
+    if (
+      !window.confirm(
+        "실제로 결제를 취소하시겠습니까?\n\n결제사에 전액취소를 요청합니다. 이 작업은 되돌릴 수 없습니다.",
+      )
+    ) {
+      return;
+    }
+    setRefundBusy(item.id);
+    setRefundMessage((current) => ({ ...current, [item.id]: "" }));
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "executeApprovedRefund", refundRequestId: item.id }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; status?: string; message?: string; error?: string }
+        | null;
+      if (res.ok && data?.ok) {
+        // 환불이 확인되어 내부 반영까지 끝났다. 목록을 다시 불러 최신 상태로 맞춘다.
+        await loadData();
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: "환불이 완료되어 기록에 반영했습니다.",
+        }));
+        return;
+      }
+      if (res.status === 202) {
+        // 실패가 아니다. 아직 확인되지 않았을 뿐이므로 다시 누르라고 하지 않는다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]:
+            data?.message ?? "결제사 거래 상태 확인이 아직 필요합니다. 잠시 후 상태를 확인해 주세요.",
+        }));
+        await loadData();
+        return;
+      }
+      if (res.status === 409) {
+        // 이미 실행되었거나 담당자 확인이 필요한 상태다. 여기서 다른 요청을 보내지 않는다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: data?.message ?? data?.error ?? "담당자가 결제 상태를 직접 확인해야 합니다.",
+        }));
+        await loadData();
+        return;
+      }
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: data?.error ?? "처리하지 못했습니다. 상태를 확인해 주세요.",
+      }));
+    } catch {
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: "요청에 실패했습니다. 상태를 확인해 주세요.",
+      }));
+    } finally {
+      setRefundBusy("");
+    }
+  }
+
+  /**
+   * 환불이 끝난 주문의 적립금 복원 재시도.
+   *
+   * 환불을 다시 실행하는 버튼이 아니다. 결제사를 부르지 않고 결제·환불 상태도 바꾸지
+   * 않는다. 환불 완료 뒤 적립금 복원만 빠진 건을 다시 시도한다.
+   *
+   * 보내는 값은 어떤 문의인지(refundRequestId)뿐이다. 주문·회원·결제·금액·적립금은
+   * 보내지 않는다. 복원 대상과 금액은 서버가 DB에서 다시 읽어 정한다.
+   *
+   * 실패해도 다른 요청을 대신 보내지 않고 자동으로 다시 시도하지 않는다.
+   */
+  async function handleRestorePoints(item: AdminRefundRequestItem) {
+    if (refundBusy) return;
+    if (
+      !window.confirm(
+        "적립금 복원을 다시 시도하시겠습니까?\n\n결제사에 환불을 다시 요청하지 않습니다. 이 주문에 사용된 적립금만 회원에게 돌려줍니다.",
+      )
+    ) {
+      return;
+    }
+    setRefundBusy(item.id);
+    setRefundMessage((current) => ({ ...current, [item.id]: "" }));
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // 문의 id 하나만 보낸다. 서버도 이 값만 읽는다.
+        body: JSON.stringify({ action: "restoreOrderPoints", refundRequestId: item.id }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; status?: string; message?: string; error?: string }
+        | null;
+      if (res.ok && data?.ok) {
+        // 복원되었거나 이미 복원된 주문이다. 목록을 다시 불러 원장 표시를 서버 기준으로 맞춘다.
+        await loadData();
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: data?.message ?? "적립금을 복원했습니다.",
+        }));
+        return;
+      }
+      if (res.status === 202) {
+        // 실패가 아니다. 저장소가 그사이 바뀌었을 뿐이라 다시 누르면 된다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: data?.message ?? "지금은 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        }));
+        return;
+      }
+      if (res.status === 409) {
+        // 자동 복원 대상이 아니다. 여기서 다른 요청을 대신 보내지 않는다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]:
+            data?.message ??
+            data?.error ??
+            "자동으로 복원할 수 있는 주문이 아닙니다. 담당자 확인이 필요합니다.",
+        }));
+        return;
+      }
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: data?.error ?? "처리하지 못했습니다. 상태를 확인해 주세요.",
+      }));
+    } catch {
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: "요청에 실패했습니다. 상태를 확인해 주세요.",
+      }));
+    } finally {
+      setRefundBusy("");
+    }
+  }
+
+  /**
+   * 승인된 환불 문의의 결제 상태 확인·복구.
+   *
+   * 돈을 새로 취소하는 버튼이 아니다. 서버가 결제사 거래조회로 지금 사실을 확인해
+   * 내부 기록을 맞춘다. 보내는 값은 어떤 문의인지(refundRequestId)뿐이고,
+   * 주문·결제·거래 번호·금액·실행 단계·복구 경로는 보내지 않는다. 서버가 DB에서 정한다.
+   *
+   * 실패해도 다른 요청을 대신 보내지 않는다. 자동 재시도도 하지 않는다.
+   * 결제사에서는 이미 환불이 끝났을 수 있어, 화면이 다시 누르도록 유도하면 안 된다.
+   */
+  async function handleRecoverRefund(item: AdminRefundRequestItem) {
+    if (refundBusy) return;
+    if (
+      !window.confirm(
+        "결제 상태를 확인하시겠습니까?\n\n결제사에 취소를 다시 요청하지 않고, 지금 상태만 조회해 기록을 맞춥니다.",
+      )
+    ) {
+      return;
+    }
+    setRefundBusy(item.id);
+    setRefundMessage((current) => ({ ...current, [item.id]: "" }));
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recoverApprovedRefund", refundRequestId: item.id }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; status?: string; message?: string; error?: string }
+        | null;
+      if (res.ok && data?.ok) {
+        // 환불이 확인되어 내부 반영까지 끝났다. 목록을 다시 불러 최신 상태로 맞춘다.
+        await loadData();
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]: "환불 완료가 확인되어 기록에 반영했습니다.",
+        }));
+        return;
+      }
+      if (res.status === 202) {
+        // 실패가 아니다. 아직 확인되지 않았을 뿐이므로 다시 누르라고 하지 않는다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]:
+            data?.message ?? "결제사 거래 상태 확인이 아직 필요합니다. 잠시 후 상태를 확인해 주세요.",
+        }));
+        return;
+      }
+      if (res.status === 409) {
+        // 자동으로 정리할 수 없는 상태다. 여기서 다른 요청을 대신 보내지 않는다.
+        setRefundMessage((current) => ({
+          ...current,
+          [item.id]:
+            data?.message ?? data?.error ?? "담당자가 결제 상태를 직접 확인해야 합니다.",
+        }));
+        return;
+      }
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: data?.error ?? "처리하지 못했습니다. 상태를 확인해 주세요.",
+      }));
+    } catch {
+      setRefundMessage((current) => ({
+        ...current,
+        [item.id]: "요청에 실패했습니다. 상태를 확인해 주세요.",
+      }));
+    } finally {
+      setRefundBusy("");
+    }
+  }
+
   async function handleToggleReviewVisible(id: string, visible: boolean) {
     const res = await fetch("/api/admin", {
       method: "POST",
@@ -857,6 +1210,7 @@ export default function AdminPage() {
     codes: codeUses.length,
     orders: orders.length,
     consultations: consultations.length,
+    refunds: refundRequests.items.length,
     reviews: reviews.length,
     events: eventItems.length,
     inquiries: inquiryItems.length,
@@ -1293,13 +1647,26 @@ export default function AdminPage() {
         {tab === "orders"
           ? orders.map((order) => {
               const member = userMap.get(order.userId);
+              /*
+               * 환불이 끝난 건인지는 이미 받은 환불 문의 목록만 보고 정한다(추가 조회 없음).
+               * 버튼을 잠그는 것은 편의일 뿐이고, 실제 관문은 서버의 409 잠금이다.
+               */
+              const refunded = hasCompletedRefund(refundRequests.items, order.id);
               return (
                 <article key={order.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[16px] font-bold text-[#403A49]">{order.title}</p>
-                    <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
-                      {order.status}
-                    </span>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {/* 진행 상태는 이력으로 그대로 두고, 환불 사실을 함께 보여 준다. */}
+                      {refunded ? (
+                        <span className="rounded-full bg-[#403A49] px-3 py-1 text-[12px] font-semibold text-white">
+                          환불 완료
+                        </span>
+                      ) : null}
+                      <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {member ? userLabel(member) : "회원 정보 없음"} · {formatAmount(order.amount)}
@@ -1316,11 +1683,15 @@ export default function AdminPage() {
                           key={status}
                           type="button"
                           onClick={() => handleUpdateOrderStatus(order.id, status)}
+                          disabled={refunded}
+                          title={
+                            refunded ? "환불이 완료된 건은 진행 상태를 변경할 수 없습니다." : undefined
+                          }
                           className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
                             active
                               ? "bg-[#5c3d2e] text-white"
                               : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                          }`}
+                          } disabled:opacity-50`}
                         >
                           {status}
                         </button>
@@ -1335,13 +1706,25 @@ export default function AdminPage() {
         {tab === "consultations"
           ? consultations.map((item) => {
               const member = userMap.get(item.userId ?? "");
+              /*
+               * 상담과 결제 귀속 주문은 같은 id를 쓰므로(applyOrder.ts) 그 id로 찾는다.
+               * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 없어 기존 동작이 유지된다.
+               */
+              const refunded = hasCompletedRefund(refundRequests.items, item.id);
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[16px] font-bold text-[#403A49]">{item.teacher}</p>
-                    <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
-                      {item.status}
-                    </span>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {refunded ? (
+                        <span className="rounded-full bg-[#403A49] px-3 py-1 text-[12px] font-semibold text-white">
+                          환불 완료
+                        </span>
+                      ) : null}
+                      <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                        {item.status}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {member ? userLabel(member) : "회원 정보 없음"} · {formatAmount(item.amount)}
@@ -1359,11 +1742,15 @@ export default function AdminPage() {
                           key={status}
                           type="button"
                           onClick={() => handleUpdateConsultationStatus(item.id, status)}
+                          disabled={refunded}
+                          title={
+                            refunded ? "환불이 완료된 건은 진행 상태를 변경할 수 없습니다." : undefined
+                          }
                           className={`min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
                             active
                               ? "bg-[#5c3d2e] text-white"
                               : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
-                          }`}
+                          } disabled:opacity-50`}
                         >
                           {status}
                         </button>
@@ -1430,6 +1817,241 @@ export default function AdminPage() {
               );
             })
           : null}
+
+        {tab === "refunds" ? (
+          refundRequests.items.length ? (
+            refundRequests.items.map((item) => {
+              const member = userMap.get(item.userId);
+              const isConsultation = item.order.product === "consultation";
+              const busy = refundBusy === item.id;
+              // 어떤 버튼을 보일지는 서버가 준 요약으로만 정한다. 화면이 결제 상태를
+              // 다시 해석하지 않으며, 두 버튼이 함께 나오는 조합은 없다.
+              const actions = refundCardActions(item.status, item.refundExecution);
+              // 적립금 복원 영역은 completed에서만 보인다. 위 두 버튼은 approved에서만
+              // 나오므로 두 영역이 같은 카드에 함께 뜨는 조합은 없다.
+              const pointsView = pointsRestoreCardView(item.status, item.hasPointsRestoreRecord);
+              return (
+                <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-[16px] font-bold text-[#403A49]">{item.order.title}</p>
+                    <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                      {REFUND_STATUS_LABEL[item.status]}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[14px] text-[#5c3d2e]">
+                    {member ? userLabel(member) : "회원 정보 없음"} ·{" "}
+                    {formatAmount(item.order.amount)}
+                  </p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
+                    {item.order.product} · 접수 {formatDate(item.requestedAt)}
+                  </p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">주문 진행 {item.order.status}</p>
+
+                  <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">고객 사유</p>
+                  <p className="mt-1 text-[14px] text-[#403A49]">
+                    {REFUND_REASON_LABEL[item.reason]}
+                  </p>
+                  {item.message ? (
+                    <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed text-[#403A49]">
+                      {item.message}
+                    </p>
+                  ) : null}
+
+                  {/*
+                    접수 당시 값과 지금 값을 다른 상자에 담는다. 두 값이 다른 것 자체가
+                    판단 근거라서 한 줄로 합치지 않는다.
+                  */}
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl bg-[#f5efe6] p-3">
+                      <p className="text-[12px] font-bold text-[#5c3d2e]">접수 당시 기록</p>
+                      {isConsultation ? (
+                        <>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            예약 {item.scheduledAtSnapshot ? formatDate(item.scheduledAtSnapshot) : "기록 없음"}
+                          </p>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            {cancelWindowLabel(item.cancelWindowSnapshot)}
+                          </p>
+                          <p className="mt-1 text-[12px] text-[#6B6570]">
+                            판정 기준 {item.cancelWindowPolicyVersion ?? "기록 없음"}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-1 text-[13px] text-[#403A49]">
+                          제작 착수{" "}
+                          {item.productionStartedAtSnapshot
+                            ? formatDate(item.productionStartedAtSnapshot)
+                            : "기록 없음"}
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-[#d4c8ba] bg-white p-3">
+                      <p className="text-[12px] font-bold text-[#5c3d2e]">현재 값</p>
+                      {isConsultation ? (
+                        <>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            예약{" "}
+                            {item.consultation?.scheduledAt
+                              ? formatDate(item.consultation.scheduledAt)
+                              : "기록 없음"}
+                          </p>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            상담 진행 {item.consultation?.status ?? "상담 기록 없음"}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-1 text-[13px] text-[#403A49]">
+                          제작 착수{" "}
+                          {item.order.productionStartedAt
+                            ? formatDate(item.order.productionStartedAt)
+                            : "기록 없음"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[12px] leading-relaxed text-[#6B6570]">
+                    기록 없음은 &ldquo;제작 전&rdquo;이 아니라 기록이 남지 않았다는 뜻입니다. 위 값은
+                    판단에 참고할 기록이며 환불 가능 여부를 서버가 정한 것이 아닙니다.
+                  </p>
+
+                  {item.decidedAt || item.handledBy ? (
+                    <p className="mt-2 text-[12px] text-[#6B6570]">
+                      처리 {item.decidedAt ? formatDate(item.decidedAt) : "-"} ·{" "}
+                      {item.handledBy ?? "-"}
+                    </p>
+                  ) : null}
+
+                  {item.status === "requested" || item.status === "reviewing" ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.status === "requested" ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            handleTransitionRefund(
+                              item,
+                              "reviewing",
+                              "이 환불 문의를 검토 중으로 바꾸시겠습니까?",
+                            )
+                          }
+                          className="min-h-11 rounded-lg border border-[#d4c8ba] bg-white px-4 text-[14px] font-semibold text-[#5c3d2e] disabled:opacity-50"
+                        >
+                          검토 시작
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            handleTransitionRefund(
+                              item,
+                              "approved",
+                              "환불을 승인하시겠습니까?\n\n승인 후 실제 결제 취소는 별도 처리됩니다. 이 버튼만으로는 돈이 돌아가지 않습니다.",
+                            )
+                          }
+                          className="min-h-11 rounded-lg bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white disabled:opacity-50"
+                        >
+                          환불 승인
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          handleTransitionRefund(
+                            item,
+                            "rejected",
+                            "이 환불 문의를 거절하시겠습니까?\n\n거절한 뒤에는 되돌릴 수 없습니다.",
+                          )
+                        }
+                        className="min-h-11 rounded-lg border border-[#d4c8ba] bg-white px-4 text-[14px] font-semibold text-[#5c3d2e] disabled:opacity-50"
+                      >
+                        거절
+                      </button>
+                    </div>
+                  ) : null}
+                  {item.status === "approved" ? (
+                    <>
+                      <p className="mt-3 rounded-xl bg-[#f5efe6] p-3 text-[13px] leading-relaxed text-[#5c3d2e]">
+                        환불이 승인되었습니다. 실제 결제 취소는 아직 처리되지 않았으며 별도로
+                        진행해야 합니다.
+                      </p>
+                      {actions.execute ? (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleExecuteRefund(item)}
+                            className="min-h-11 rounded-lg bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white disabled:opacity-50"
+                          >
+                            {busy ? "실행 중..." : "실제 환불 실행"}
+                          </button>
+                          <p className="mt-2 text-[12px] leading-relaxed text-[#6B6570]">
+                            결제사에 전액취소를 요청합니다. 되돌릴 수 없습니다.
+                          </p>
+                        </div>
+                      ) : null}
+                      {actions.recover ? (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleRecoverRefund(item)}
+                            className="min-h-11 rounded-lg border border-[#d4c8ba] bg-white px-4 text-[14px] font-semibold text-[#5c3d2e] disabled:opacity-50"
+                          >
+                            {busy ? "확인 중..." : "결제 상태 확인"}
+                          </button>
+                          <p className="mt-2 text-[12px] leading-relaxed text-[#6B6570]">
+                            결제사에 취소를 다시 요청하지 않습니다. 지금 거래 상태만 조회해 기록을
+                            맞춥니다.
+                          </p>
+                        </div>
+                      ) : null}
+                      {actions.notice ? (
+                        <p className="mt-3 text-[13px] leading-relaxed text-[#8a5a3b]">
+                          {actions.notice}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : null}
+                  {pointsView.visible ? (
+                    <div className="mt-3 rounded-xl bg-[#f5efe6] p-3">
+                      <p className="text-[13px] font-semibold text-[#5c3d2e]">{pointsView.label}</p>
+                      {pointsView.retry ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleRestorePoints(item)}
+                            className="mt-2 min-h-11 rounded-lg border border-[#d4c8ba] bg-white px-4 text-[14px] font-semibold text-[#5c3d2e] disabled:opacity-50"
+                          >
+                            {busy ? "복원 중..." : "적립금 복원 재시도"}
+                          </button>
+                          <p className="mt-2 text-[12px] leading-relaxed text-[#6B6570]">
+                            기록이 없다고 해서 복원이 필요한 주문은 아닙니다. 적립금을 쓰지 않은
+                            주문일 수도 있습니다. 눌러도 결제사에 환불을 다시 요청하지 않습니다.
+                          </p>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {refundMessage[item.id] ? (
+                    <p className="mt-2 text-[13px] text-[#8a5a3b]">{refundMessage[item.id]}</p>
+                  ) : null}
+                </article>
+              );
+            })
+          ) : refundRequests.loaded ? (
+            <p className="rounded-2xl bg-white p-4 text-[14px] leading-relaxed text-[#6B6570] ring-1 ring-[#ebe3d8]">
+              접수된 환불 문의가 없습니다.
+            </p>
+          ) : (
+            /* 읽지 못한 것을 0건처럼 보여주지 않는다. */
+            <p className="rounded-2xl bg-white p-4 text-[14px] leading-relaxed text-[#8a5a3b] ring-1 ring-[#ebe3d8]">
+              환불 문의를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.
+            </p>
+          )
+        ) : null}
 
         {tab === "inquiries"
           ? inquiryItems.map((item) => {
@@ -1688,6 +2310,7 @@ export default function AdminPage() {
                 ) : null}
               </>
             )}
+
             {/* 불만·분쟁 기록. 이름·연락처·대화 전문·금액은 담지 않는다. */}
             <section className="space-y-2 pt-2">
               <p className="text-[13px] font-semibold text-[#6B6570]">불만·분쟁 기록</p>

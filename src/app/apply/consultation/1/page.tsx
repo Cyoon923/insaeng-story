@@ -85,6 +85,12 @@ function ConsultationStep1Flow() {
 
   const [dates, setDates] = useState<string[]>([]);
   const [date, setDate] = useState("");
+  /**
+   * 표시 문구("8월 12일(화)") → 한국 날짜("2026-08-12") 대응표.
+   * 서버가 날짜 목록과 함께 내려준 값을 그대로 들고 있다가 신청에 함께 보낸다.
+   * 표시 문구에서 연도를 역추론하지 않기 위한 것이다.
+   */
+  const [isoDates, setIsoDates] = useState<Record<string, string>>({});
   const [time, setTime] = useState("");
   const [slots, setSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
   const [purposes, setPurposes] = useState<string[]>(["직업 · 사업 고민"]);
@@ -101,6 +107,7 @@ function ConsultationStep1Flow() {
 
   const persist = (next: {
     date?: string;
+    isoDates?: Record<string, string>;
     time?: string;
     purposes?: string[];
     report?: boolean;
@@ -108,6 +115,7 @@ function ConsultationStep1Flow() {
   }) => {
     const nextDate = next.date ?? date;
     const nextTime = next.time ?? time;
+    const nextIsoDates = next.isoDates ?? isoDates;
     const nextPurposes = next.purposes ?? purposes;
     const nextReport = next.report ?? report;
     const nextExtra = next.extraPerson ?? extraPerson;
@@ -121,6 +129,8 @@ function ConsultationStep1Flow() {
     saveDraft("consultation", {
       teacher: teacherName,
       datetime: `${nextDate} ${nextTime}`,
+      // 서버가 예약 절대시각(scheduledAt)을 만드는 데 쓴다. 화면 표시에는 쓰지 않는다.
+      scheduledDate: nextIsoDates[nextDate] ?? "",
       purpose: nextPurposes.join(" / "),
       option: options || "없음",
       extraPerson: nextExtra ? "1" : "",
@@ -132,12 +142,21 @@ function ConsultationStep1Flow() {
     fetch("/api/consultation/availability", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        const nextDates = (data.dates ?? []) as string[];
+        const options = (data.dateOptions ?? []) as { label: string; date: string }[];
+        const nextDates = options.length
+          ? options.map((option) => option.label)
+          : ((data.dates ?? []) as string[]);
+        const nextIsoDates = Object.fromEntries(
+          options.map((option) => [option.label, option.date]),
+        );
         setDates(nextDates);
+        setIsoDates(nextIsoDates);
         const draft = getDraft("consultation");
         const initialDate =
           nextDates.find((item) => draft.datetime?.startsWith(item)) ?? nextDates[0] ?? "";
         setDate(initialDate);
+        // draft 저장은 아래 date/teacher effect가 시간을 정한 뒤 한 번에 한다.
+        // 그때 isoDates가 이미 채워져 있어 한국 날짜도 함께 담긴다.
       });
   }, []);
 
