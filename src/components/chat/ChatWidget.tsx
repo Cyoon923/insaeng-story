@@ -564,6 +564,25 @@ function isOpenInquiry(inquiry: ChatInquiryView | null): boolean {
   return inquiry?.status === "new" || inquiry?.status === "in_progress";
 }
 
+/**
+ * 위젯이 이어서 보여 줄 문의방 하나.
+ *
+ * 진행 중인 방이 있으면 그 방을 쓴다. 없으면 가장 최근에 말이 오간 방을 쓴다.
+ * 끝난 방(closed)도 후보에 넣는 이유는 마지막 상담원 답변을 다시 읽을 수 있어야
+ * 하기 때문이다. 끝난 방에서 고객이 말을 더할 수 없는 정책은 그대로다.
+ * 서버가 이미 최근순으로 주지만, 순서에 기대지 않고 lastMessageAt으로 직접 고른다.
+ */
+function pickAgentInquiry(
+  inquiries: ChatInquiryView[] | undefined,
+): ChatInquiryView | null {
+  if (!inquiries?.length) return null;
+  const open = inquiries.find((item) => isOpenInquiry(item));
+  if (open) return open;
+  return inquiries.reduce((latest, item) =>
+    item.lastMessageAt > latest.lastMessageAt ? item : latest,
+  );
+}
+
 /** 내부 상태값을 그대로 보여 주지 않고 사람이 읽는 문구로 바꾼다. */
 function inquiryStatusLabel(status: string): string {
   if (status === "closed") return "상담이 끝난 대화예요";
@@ -1083,6 +1102,13 @@ export const __chatMatchInternals = {
   ROOT_CHOICES,
 };
 
+/** 상담원 문의방 선택 규칙의 테스트용 출구. 같은 방식으로 런타임에는 영향이 없다. */
+export const __chatInquiryInternals = {
+  pickAgentInquiry,
+  isOpenInquiry,
+  inquiryStatusLabel,
+};
+
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
   // AI 연결 전이라 처음에는 비어 있다. 지금은 빠른 질문으로만 쌓인다.
@@ -1114,8 +1140,10 @@ export function ChatWidget() {
   const [agentSending, setAgentSending] = useState(false);
   const [agentError, setAgentError] = useState("");
   const agentEndRef = useRef<HTMLDivElement>(null);
-  // 패널을 처음 열 때 한 번만 문의방을 찾아본다. polling은 하지 않는다.
-  const inquiryLoadedRef = useRef(false);
+  // 아래 재조회 effect가 지금 상담원 대화 화면인지 보기 위한 거울.
+  // 이 값을 effect의 의존 목록에 넣으면 화면을 열 때마다 effect가 다시 돌아
+  // 같은 요청이 두 번 나간다. 그래서 상태가 아니라 ref로 읽는다.
+  const agentOpenRef = useRef(false);
 
   useEffect(() => {
     // 팝업이 열려 있을 때만 ESC를 듣는다.
@@ -1139,28 +1167,9 @@ export function ChatWidget() {
   }, [agentOpen, agentMessages]);
 
   useEffect(() => {
-    // 패널을 처음 열 때 한 번만 내 문의방을 찾아본다.
-    // 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
-    if (!open || inquiryLoadedRef.current) return;
-    inquiryLoadedRef.current = true;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const response = await fetch("/api/chat-inquiries/me");
-        if (!response.ok) return;
-        const result = (await response.json()) as { inquiries?: ChatInquiryView[] };
-        // 목록은 최근 대화가 앞에 온다. 그중 아직 진행 중인 방 하나만 이어 쓴다.
-        const found = result.inquiries?.find((item) => isOpenInquiry(item)) ?? null;
-        if (!cancelled && found) setAgentInquiry(found);
-      } catch {
-        // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
+    // 상담원 대화 화면인지 ref에 옮겨 둔다. 아래 재조회 effect는 이 값만 본다.
+    agentOpenRef.current = agentOpen;
+  }, [agentOpen]);
 
   /**
    * UI 확인용 임시 동작. 질문을 그대로 사용자 말풍선에 넣고,
@@ -1264,6 +1273,36 @@ export function ChatWidget() {
       setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
     }
   };
+
+  useEffect(() => {
+    // 패널을 열 때마다 내 문의방을 다시 찾아본다.
+    // 관리자가 답변한 뒤 고객이 위젯을 닫았다 다시 열면 그 답변이 보여야 한다.
+    // 여는 순간에만 한 번 묻는다. polling도, 화면 전환 감시도 하지 않는다.
+    // 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
+    if (!open) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/chat-inquiries/me");
+        if (!response.ok) return;
+        const result = (await response.json()) as { inquiries?: ChatInquiryView[] };
+        const found = pickAgentInquiry(result.inquiries);
+        if (cancelled || !found) return;
+        setAgentInquiry(found);
+        // 상담원 대화 화면을 보던 채로 닫았던 경우다. 그 방의 타임라인도 다시 읽어
+        // 그 사이 들어온 상담원 답변이 화면에 들어오게 한다. 기존 조회 경로를 그대로 쓴다.
+        if (agentOpenRef.current) await openAgentChat(found.id);
+      } catch {
+        // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // open이 참이 되는 순간에만 돈다. agentOpen/agentInquiry를 넣으면 대화를 열 때마다
+    // 다시 돌아 같은 요청이 겹친다. 그래서 위 agentOpenRef로 읽는다.
+  }, [open]);
 
   /**
    * 문의 폼 제출. 새 문의방 API로 보낸다.
@@ -1517,6 +1556,17 @@ export function ChatWidget() {
               <p className="text-[13px] leading-relaxed text-[#6B6570]">
                 AI 안내로 해결되지 않으셨나요?
               </p>
+              {agentInquiry && !isOpenInquiry(agentInquiry) ? (
+                // 끝난 대화도 답변을 다시 읽을 수 있게 둔다. 읽기 전용이라는 것이
+                // 문구에서 드러나게 하고, 아래 새 문의 경로는 그대로 남겨 둔다.
+                <button
+                  type="button"
+                  onClick={() => openAgentChat(agentInquiry.id)}
+                  className="mt-2 h-11 w-full rounded-xl border border-[#e0d5c8] bg-[#fffdf9] text-[15px] font-semibold text-[#6B6570] active:bg-[#f5efe6]"
+                >
+                  지난 상담 답변 보기
+                </button>
+              ) : null}
               {isOpenInquiry(agentInquiry) && agentInquiry ? (
                 // 이미 진행 중인 대화가 있으면 새 폼을 또 쓰게 하지 않는다.
                 <button
