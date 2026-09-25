@@ -11,6 +11,12 @@ import {
 } from "@/lib/constants/products";
 import { CONSULT_OPTION_PRICES, ORDER_OPTION_PRICES } from "@/lib/server/pricing";
 import { TEACHERS } from "@/lib/constants/consultationTeachers";
+import {
+  AGENT_SEEN_KEY,
+  hasUnseenAgentReply,
+  readAgentSeenAt,
+  writeAgentSeenAt,
+} from "@/lib/client/chatAgentUnseen";
 
 /**
  * 사주로그 AI 안내 도령이의 화면 껍데기.
@@ -583,49 +589,6 @@ function pickAgentInquiry(
   return inquiries.reduce((latest, item) =>
     item.lastMessageAt > latest.lastMessageAt ? item : latest,
   );
-}
-
-/** 상담원 대화를 마지막으로 확인한 시각. 기존 sajulog_ 접두사 관례를 따른다. */
-const AGENT_SEEN_KEY = "sajulog_chat_agent_seen_at";
-
-/**
- * 아직 보지 못한 상담원 답변이 있는지.
- *
- * 마지막 말이 상담원 것이고, 그 시각이 마지막으로 확인한 시각보다 나중일 때만 참이다.
- * 값이 없거나 날짜가 깨져 있으면 참으로 보지 않는다(같은 시각도 이미 본 것으로 본다).
- * 예외는 하나다. 상담원 답변은 있는데 확인 기록이 아예 없으면 아직 보지 않은 것이다.
- */
-function hasUnseenAgentReply(
-  inquiry: ChatInquiryView | null,
-  lastSeenAt: string | null,
-): boolean {
-  if (!inquiry || inquiry.lastMessageSender !== "agent") return false;
-  const arrived = Date.parse(inquiry.lastMessageAt ?? "");
-  if (Number.isNaN(arrived)) return false;
-  if (!lastSeenAt) return true;
-  const seen = Date.parse(lastSeenAt);
-  if (Number.isNaN(seen)) return true;
-  return arrived > seen;
-}
-
-/**
- * 확인 시각 읽기·쓰기. 브라우저 저장소를 쓸 수 없는 창(시크릿·차단)에서도
- * 도령이 그대로 동작해야 하므로 실패는 조용히 넘긴다. 배지만 안 뜬다.
- */
-function readAgentSeenAt(): string | null {
-  try {
-    return localStorage.getItem(AGENT_SEEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeAgentSeenAt(value: string): void {
-  try {
-    localStorage.setItem(AGENT_SEEN_KEY, value);
-  } catch {
-    // 저장하지 못하면 다음에 배지가 한 번 더 보일 뿐이다. 기능은 그대로다.
-  }
 }
 
 /** 내부 상태값을 그대로 보여 주지 않고 사람이 읽는 문구로 바꾼다. */
@@ -1835,12 +1798,17 @@ export function ChatWidget() {
               aria-hidden
               className="pointer-events-none absolute inset-0 animate-pulse bg-[radial-gradient(ellipse_at_center,rgba(124,92,214,0.28)_0%,rgba(124,92,214,0)_70%)] [animation-duration:6s]"
             />
-            {/* 새 상담원 답변 표시. 점 하나만 얹고 버튼·아바타·glow는 그대로 둔다. */}
+            {/*
+              새 상담원 답변 표시. N은 New의 뜻이고 개수가 아니다(숫자 count를 만들지 않는다).
+              버튼·아바타·glow·위치·크기는 그대로 두고 오른쪽 위에 얹기만 한다.
+            */}
             {agentUnseen ? (
               <span
                 aria-hidden
-                className="absolute right-1 top-1 z-10 h-3.5 w-3.5 rounded-full border-2 border-white bg-red-600"
-              />
+                className="absolute right-0 top-0 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white bg-red-600 text-[11px] font-bold leading-none text-white"
+              >
+                N
+              </span>
             ) : null}
             {/* 이미지 안에 상담원 표기까지 들어 있어 그대로 다 보이게 둔다. 잘라내지 않는다. */}
             <Image

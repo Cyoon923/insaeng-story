@@ -360,8 +360,7 @@ export default function AdminPage() {
   const [complaintSummary, setComplaintSummary] = useState("");
   const [complaintSaving, setComplaintSaving] = useState(false);
   const [complaintError, setComplaintError] = useState("");
-  // 목록을 한 번이라도 불러왔는지. 탭을 오갈 때 같은 조회를 반복하지 않기 위해 둔다.
-  const [chatLoaded, setChatLoaded] = useState(false);
+  // 목록을 부르는 중인지. 같은 조회가 겹쳐 나가지 않게 하기 위해 둔다.
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
   const [selectedChatId, setSelectedChatId] = useState("");
@@ -376,6 +375,29 @@ export default function AdminPage() {
   const [recommitting, setRecommitting] = useState("");
   // 재접수 결과 안내. 주문번호별로 한 줄씩 보여 준다.
   const [recommitMessage, setRecommitMessage] = useState<Record<string, string>>({});
+
+  /**
+   * 새 상담원 문의방 목록. 관리자 화면을 처음 읽을 때 한 번, 그리고 챗봇 문의 탭에
+   * 들어갈 때마다 부른다. 첫 화면의 "챗봇 문의 N"도 이 목록의 건수를 쓰기 때문이다.
+   * 실패해도 다른 관리자 기능은 그대로 쓸 수 있도록 이 탭 안에만 오류를 남긴다.
+   */
+  const loadChatThreads = useCallback(async () => {
+    setChatLoading(true);
+    setChatError("");
+    try {
+      const res = await fetch("/api/admin/chat-inquiries", { cache: "no-store" });
+      if (!res.ok) {
+        setChatError("문의 목록을 불러오지 못했습니다.");
+        return;
+      }
+      const data = (await res.json()) as { inquiries?: AdminChatInquiry[] };
+      setChatThreads(data.inquiries ?? []);
+    } catch {
+      setChatError("문의 목록을 불러오지 못했습니다.");
+    } finally {
+      setChatLoading(false);
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/admin", { cache: "no-store" });
@@ -417,30 +439,10 @@ export default function AdminPage() {
     setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
     setAuthed(true);
     setLoading(false);
-  }, []);
-
-  /**
-   * 새 상담원 문의방 목록. 챗봇 문의 탭에 들어갈 때 한 번만 부른다.
-   * 실패해도 다른 관리자 기능은 그대로 쓸 수 있도록 이 탭 안에만 오류를 남긴다.
-   */
-  const loadChatThreads = useCallback(async () => {
-    setChatLoading(true);
-    setChatError("");
-    try {
-      const res = await fetch("/api/admin/chat-inquiries", { cache: "no-store" });
-      if (!res.ok) {
-        setChatError("문의 목록을 불러오지 못했습니다.");
-        return;
-      }
-      const data = (await res.json()) as { inquiries?: AdminChatInquiry[] };
-      setChatThreads(data.inquiries ?? []);
-      setChatLoaded(true);
-    } catch {
-      setChatError("문의 목록을 불러오지 못했습니다.");
-    } finally {
-      setChatLoading(false);
-    }
-  }, []);
+    // 챗봇 문의방은 별도 API(행 단위 테이블)라 위 응답에 없다. 첫 화면의 숫자를 위해
+    // 여기서 한 번 함께 부른다. 실패해도 이 함수의 나머지 결과는 그대로 쓴다.
+    void loadChatThreads();
+  }, [loadChatThreads]);
 
   /** 문의방 하나의 전체 대화. 목록은 그대로 두고 상세 영역만 바꾼다. */
   const openChatThread = useCallback(async (id: string) => {
@@ -1247,8 +1249,10 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setTab(item.id);
-                  // 챗봇 문의 탭을 처음 열 때만 문의방 목록을 부른다. 주기적으로 다시 부르지 않는다.
-                  if (item.id === "chat" && !chatLoaded && !chatLoading) loadChatThreads();
+                  // 챗봇 문의 탭에 들어갈 때마다 목록을 다시 부른다. 화면을 열어 둔 사이
+                  // 들어온 문의가 옛 목록으로 남지 않게 하려는 것이다. 이미 부르는 중이면 넘긴다.
+                  // 누를 때만 부른다. 주기적으로 다시 부르지 않는다.
+                  if (item.id === "chat" && !chatLoading) loadChatThreads();
                 }}
                 className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
                   active ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"

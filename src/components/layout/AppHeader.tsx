@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Bell, ChevronLeft, Share2, User } from "lucide-react";
 import { fetchMe } from "@/lib/client/api";
+import { AGENT_SEEN_EVENT, fetchUnseenAgentReply } from "@/lib/client/chatAgentUnseen";
 
 async function copyLink(url: string): Promise<boolean> {
   try {
@@ -87,6 +88,8 @@ export function AppHeader({
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
+  // 아직 보지 못한 상담원 답변이 있는지. 도령 위젯과 같은 서버 사실·같은 기록을 본다.
+  const [agentUnseen, setAgentUnseen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -106,6 +109,23 @@ export function AppHeader({
       alive = false;
     };
   }, [showUser]);
+
+  useEffect(() => {
+    // 종이 있는 화면에서만, 화면에 붙을 때 한 번 묻는다. 기존 고객 목록 API 하나만 쓴다.
+    // 주기적으로 다시 묻지 않는다(polling·focus·visibility 감시 없음).
+    if (!showBell) return;
+    let alive = true;
+    fetchUnseenAgentReply().then((unseen) => {
+      if (alive) setAgentUnseen(unseen);
+    });
+    // 도령이에서 상담원 대화를 확인해 읽음이 기록되면 같은 화면의 종도 함께 내린다.
+    const onSeen = () => setAgentUnseen(false);
+    window.addEventListener(AGENT_SEEN_EVENT, onSeen);
+    return () => {
+      alive = false;
+      window.removeEventListener(AGENT_SEEN_EVENT, onSeen);
+    };
+  }, [showBell]);
 
   const pageUrl = () => window.location.href;
   const pageTitle = () => document.title;
@@ -211,8 +231,24 @@ export function AppHeader({
 
         <div className={`flex ${showUser ? "w-[76px]" : "w-10"} shrink-0 items-center justify-end gap-1`}>
           {showBell && (
-            <Link href="/my/notifications" className="shrink-0 rounded-lg p-2 text-brown hover:bg-ivory" aria-label="알림">
+            <Link
+              href="/my/notifications"
+              className="relative shrink-0 rounded-lg p-2 text-brown hover:bg-ivory"
+              aria-label={agentUnseen ? "알림 (새 상담원 답변 있음)" : "알림"}
+            >
               <Bell className="h-5 w-5" />
+              {/*
+                새 상담원 답변 표시. 도령이 버튼과 같은 모양·같은 뜻이다(N = New, 개수 아님).
+                누르는 동작은 그대로 /my/notifications 이동이며, 누른 것만으로 읽음이 되지 않는다.
+              */}
+              {agentUnseen ? (
+                <span
+                  aria-hidden
+                  className="absolute right-0 top-0 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white bg-red-600 text-[11px] font-bold leading-none text-white"
+                >
+                  N
+                </span>
+              ) : null}
             </Link>
           )}
           {showUser &&
