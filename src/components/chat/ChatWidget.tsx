@@ -79,6 +79,8 @@ export interface ChatMessage {
   display?: DoryeongDisplay;
   /** 도령이 답변 아래에 붙는 다음 질문들. 없으면 버튼을 그리지 않는다. */
   choices?: readonly ChatNodeId[];
+  /** 답변 아래에 붙는 화면 이동 링크. 없으면 그리지 않는다. */
+  cta?: ChatCta;
 }
 
 /**
@@ -120,7 +122,15 @@ export type ChatNodeId =
   | "help-pages"
   | "more"
   | "contact"
+  | "personal-saju"
+  | "gift-or-price"
   | "fallback";
+
+/** 답변 아래에 한 개만 붙는 화면 이동 링크. href는 상수에서 읽어 채운다. */
+interface ChatCta {
+  label: string;
+  href: string;
+}
 
 interface ChatNode {
   /** 버튼과 사용자 말풍선에 함께 쓰는 질문 문구. */
@@ -131,12 +141,28 @@ interface ChatNode {
   next: readonly ChatNodeId[];
   mood?: DoryeongMood;
   display?: DoryeongDisplay;
+  /**
+   * 답변 아래에 붙는 화면 이동 링크. 없는 노드가 대부분이라 선택 항목으로 둔다.
+   * 상품·상담 소개 화면으로만 보낸다(신청 화면은 보내지 않는다).
+   */
+  cta?: ChatCta;
 }
 
 /** 상품 가격을 상수에서 읽는다. 문장에 금액을 적지 않기 위한 도우미다. */
 function productPriceFrom(id: (typeof LIFE_SONG_PRODUCTS)[number]["id"]): string {
   const product = LIFE_SONG_PRODUCTS.find((item) => item.id === id);
   return product ? formatPriceFrom(product.priceFrom) : "";
+}
+
+/**
+ * 상품 상세페이지 주소. 가격과 같은 방식으로 상수에서 읽는다.
+ * 주소를 문장에 적어 두면 상품 경로가 바뀔 때 도령만 옛 주소를 안내하게 된다.
+ * 신청 주소(applyHref)가 아니라 소개 주소(href)를 쓴다. 신청 경로는 비회원을
+ * 로그인 화면으로 돌려보내므로(proxy.ts), 도령에서는 먼저 소개 화면을 보여 준다.
+ */
+function productHref(id: (typeof LIFE_SONG_PRODUCTS)[number]["id"]): string {
+  const product = LIFE_SONG_PRODUCTS.find((item) => item.id === id);
+  return product ? product.href : "";
 }
 
 /** 선택지 버튼 앞에 붙이는 아이콘. 없는 노드는 아이콘 없이 문구만 보여 준다. */
@@ -223,16 +249,19 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
     label: "이야기로 만드는 인생곡",
     answer: `직접 작성하신 자신의 이야기,\n또는 소중한 분의 이야기를 바탕으로\n맞춤 가사와 음악을 만들어 드려요 🐾\n\n가격은 ${productPriceFrom("story")}이에요.\n\n사주상담과 영상은 기본 포함이 아니라\n따로 선택하시는 부분이에요.`,
     next: ["video", "price", "lyric-edit", "duration"],
+    cta: { label: "이야기로 만드는 인생곡 자세히 보기", href: productHref("story") },
   },
   premium: {
     label: "프리미엄 인생곡",
     answer: `프리미엄은 일반 인생곡의 고급형이 아니라\n사주상담 → 스토리상담 → 인생곡 제작까지\n함께하는 토탈 서비스예요 🐾\n\n가격은 ${productPriceFrom("premium")}이에요.\n\n뮤직비디오는 기본 포함이 아니라 추가 옵션이고,\n전문 보컬 녹음은 포함되지 않아요.`,
     next: ["compare", "video", "lyric-edit", "apply"],
+    cta: { label: "프리미엄 인생곡 자세히 보기", href: productHref("premium") },
   },
   "saju-song": {
     label: "사주 인생곡",
     answer: `상담 없이 사주 정보와 고객님의 이야기,\n음악 취향을 함께 담아 만드는 인생곡이에요 🐾\n\n가격은 ${productPriceFrom("saju-song")}이에요.\n\n생년월일과 태어난 시간을 입력해 주시면 되고,\n시간을 모르셔도 신청하실 수 있어요.`,
     next: ["compare", "price", "lyric-edit", "apply"],
+    cta: { label: "사주 인생곡 자세히 보기", href: productHref("saju-song") },
   },
   gift: {
     label: "선물로 만들고 싶어요",
@@ -267,6 +296,7 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
     label: "1:1 사주상담 알려주세요",
     answer: `인생곡과 별도로 이용하실 수 있는\n전문 사주상담 서비스예요 🐾\n\n가격은 ${formatPriceFrom(CONSULTATION.priceFrom)}이고,\n약 50분 동안 진행해요.`,
     next: ["teachers", "consult-method", "consult-options", "schedule-change"],
+    cta: { label: "1:1 사주상담 자세히 보기", href: CONSULTATION.href },
   },
   "consult-fields": {
     label: "상담 분야",
@@ -397,12 +427,41 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
     display: "emphasis",
     next: ["more"],
   },
+  /*
+   * 개인 사주·운세 질문에 답하는 자리. 일반 fallback과 나누는 이유는 사실이 다르기 때문이다.
+   * 이 질문은 못 알아들은 것이 아니라 도령이 하지 않기로 한 일이다
+   * (개인 사주를 풀이하지 않는다 / 운세를 판단하지 않는다).
+   * 그래서 "어렵다"고 말하지 않고, 대신 선생님과 보는 자리를 바로 안내한다.
+   */
+  "personal-saju": {
+    label: "개인 사주·운세가 궁금해요",
+    answer:
+      "저는 개인 사주를 풀어 드리거나\n운세를 봐 드리지는 않아요 🐾\n\n사주를 자세히 보고 싶으시면\n1:1 사주상담에서 선생님과 함께\n살펴보실 수 있어요.",
+    mood: "curious",
+    next: ["consulting", "teachers", "contact", "more"],
+  },
+  /*
+   * 가격과 선물 대상이 함께 있어 무엇을 묻는지 갈라지지 않는 자리.
+   * 답할 수 없는 질문이 아니라 갈래가 둘인 질문이라, 문의로 보내지 않고 한 번 되묻는다.
+   * 되묻는 두 갈래는 이미 있는 노드를 그대로 쓴다(price / gift-parents).
+   */
+  "gift-or-price": {
+    label: "선물과 가격 중 무엇이 궁금하세요?",
+    answer:
+      "어느 쪽이 궁금하신지\n한 가지만 알려 주시겠어요? 🐾\n\n· 금액이 궁금하시면 가격 안내\n· 부모님께 드릴 선물이 궁금하시면\n  부모님 선물 안내로 보여 드릴게요.",
+    mood: "curious",
+    next: ["price", "gift-parents", "contact", "more"],
+  },
+  /*
+   * 실제로 못 알아들은 질문만 여기로 온다.
+   * 대표 질문(ROOT_CHOICES)을 바로 붙여, more를 한 번 더 누르지 않게 한다.
+   */
   fallback: {
     label: "다른 질문 보기",
     answer:
-      "제가 정확하게 안내드리기 어려운 내용이에요 🐾\n\n실제 상담원에게 문의를 남겨주시면\n확인 후 연락드리겠습니다.",
+      "제가 정확하게 안내드리기 어려운 내용이에요 🐾\n\n아래에서 골라 보시거나,\n실제 상담원에게 문의를 남겨 주시면\n확인 후 연락드리겠습니다.",
     mood: "waiting",
-    next: ["contact", "help-pages", "account", "more"],
+    next: ["contact", ...ROOT_CHOICES],
   },
 };
 
@@ -915,31 +974,114 @@ function hasAny(text: string, words: readonly string[]): boolean {
 }
 
 /**
+ * 띄어쓰기만 다른 말을 같은 말로 보기 위한 비교용 문자열.
+ * "사주 인생곡"과 "사주인생곡"이 갈라지지 않게 한다. 원문 정규화는 그대로 두고
+ * 비교할 때만 쓴다(화면에 보여 주는 값은 바뀌지 않는다).
+ */
+function compactOf(text: string): string {
+  return text.replace(/\s+/g, "");
+}
+
+/** 문장과 그 공백 제거본 중 어느 쪽에라도 걸리면 참. 띄어쓰기로 규칙이 새지 않게 한다. */
+function hasAnyLoose(texts: readonly string[], words: readonly string[]): boolean {
+  return texts.some((text) => hasAny(text, words));
+}
+
+/**
+ * 완전일치 검사에서 떼어 볼 말끝. 도령에게 실제로 들어오는 형태만 적는다.
+ *
+ * 일반적인 어미 제거기를 만들지 않는다. 한국어 어미를 폭넓게 자르면
+ * "프리미엄이" 같은 조각까지 키워드와 맞아 엉뚱한 노드로 가기 쉽다.
+ * 여기 적힌 말끝만, 그것도 완전일치가 실패했을 때만 한 번 떼어 본다.
+ *
+ * 긴 것을 앞에 둔다. "인가요"를 "요"보다 먼저 봐야 "프리미엄인가요"가
+ * "프리미엄인가"가 아니라 "프리미엄"이 된다.
+ */
+const QUESTION_ENDINGS = ["인가요", "이에요", "이예요", "예요", "에요", "이요", "인가", "요"] as const;
+
+/**
+ * 말끝을 하나만 떼어 돌려준다. 뗄 것이 없으면 null이다.
+ * 너무 짧아지는 경우(남는 글자가 한 글자 이하)는 떼지 않는다. "요"만 남기면
+ * 아무 키워드에나 걸릴 수 있기 때문이다.
+ */
+function stripQuestionEnding(text: string): string | null {
+  for (const ending of QUESTION_ENDINGS) {
+    if (text.endsWith(ending) && text.length - ending.length >= 2) {
+      return text.slice(0, text.length - ending.length);
+    }
+  }
+  return null;
+}
+
+/**
  * 자유 입력을 대화 노드에 잇는다.
  * 적어 둔 말과 그대로 맞거나, 뜻이 분명한 단어 조합이 있을 때만 노드를 돌려준다.
  * 개인 사주·주문 확인처럼 챗봇이 답하지 않는 말과 애매한 문장은 null이다.
+ *
+ * 판정 순서는 바꾸지 않는다.
+ *   개인 질문 차단 → 완전일치 → 모호 조합 차단 → 조합 규칙 → null(fallback)
+ * 띄어쓰기와 말끝은 "같은 말로 볼 후보"를 늘릴 뿐, 순서와 규칙 자체는 그대로다.
  */
 function matchChatNode(question: string): ChatNodeId | null {
   const normalized = question.trim().toLowerCase().replace(/[?!.,~]/g, "");
   if (!normalized) return null;
 
-  // 개인 사주·주문 확인은 상품 안내로 분류하지 않는다.
-  if (hasAny(normalized, PERSONAL_WORDS)) return null;
+  // 띄어쓰기만 다른 말을 같은 말로 보기 위한 비교 대상. 원문도 함께 본다.
+  const compact = compactOf(normalized);
+  const loose = normalized === compact ? [normalized] : [normalized, compact];
 
-  for (const { id, keywords } of NODE_KEYWORDS) {
-    if (keywords.some((keyword) => normalized === keyword.toLowerCase())) return id;
+  /*
+   * 개인 사주·주문 확인은 상품 안내로 분류하지 않는다.
+   * 공백 제거본까지 함께 보는 이유는 "사주 봐 주세요"처럼 띄어 쓴 말로
+   * 이 차단을 빠져나가지 못하게 하기 위해서다.
+   */
+  if (hasAnyLoose(loose, PERSONAL_WORDS)) return "personal-saju";
+
+  /*
+   * 완전일치. 부분일치로 바꾸지 않는다(짧은 키워드가 긴 문장을 가로챈다).
+   * 대신 같은 말로 볼 수 있는 후보를 넓힌다: 원문, 공백 제거본,
+   * 그리고 각각에서 말끝을 하나 떼어 본 것.
+   */
+  const exactTargets = new Set<string>(loose);
+  for (const text of loose) {
+    const stripped = stripQuestionEnding(text);
+    if (stripped) exactTargets.add(stripped);
   }
 
-  // 가격과 선물 대상이 섞이면 무엇을 묻는지 분명하지 않아 넘기지 않는다.
-  if (hasAny(normalized, PRICE_WORDS) && hasAny(normalized, GIFT_TARGET_WORDS)) return null;
+  for (const { id, keywords } of NODE_KEYWORDS) {
+    for (const keyword of keywords) {
+      const lowered = keyword.toLowerCase();
+      if (exactTargets.has(lowered) || exactTargets.has(compactOf(lowered))) return id;
+    }
+  }
+
+  /*
+   * 가격과 선물 대상이 섞이면 무엇을 묻는지 분명하지 않다.
+   * 답할 수 없는 질문은 아니므로 문의로 넘기지 않고 되묻는 노드로 보낸다.
+   */
+  if (hasAnyLoose(loose, PRICE_WORDS) && hasAnyLoose(loose, GIFT_TARGET_WORDS)) {
+    return "gift-or-price";
+  }
 
   for (const rule of NODE_RULES) {
-    if (rule.none && hasAny(normalized, rule.none)) continue;
-    if (rule.all.every((group) => hasAny(normalized, group))) return rule.id;
+    if (rule.none && hasAnyLoose(loose, rule.none)) continue;
+    if (rule.all.every((group) => hasAnyLoose(loose, group))) return rule.id;
   }
 
   return null;
 }
+
+/**
+ * 테스트·검증용 내부 도우미. 런타임 동작에는 영향을 주지 않는다.
+ * (기존 socialLink.ts의 __socialLinkInternals와 같은 방식)
+ */
+export const __chatMatchInternals = {
+  matchChatNode,
+  stripQuestionEnding,
+  compactOf,
+  CHAT_NODES,
+  ROOT_CHOICES,
+};
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -1052,6 +1194,7 @@ export function ChatWidget() {
         mood: node.mood ?? "helpful",
         display: node.display,
         choices: node.next,
+        cta: node.cta,
       },
     ]);
     if (id === "contact") setInquiryOpen(true);
@@ -1503,6 +1646,21 @@ export function ChatWidget() {
                     mood={message.mood}
                     display={message.display}
                   />
+                  {/*
+                    화면 이동 링크. 같은 탭으로 옮겨 가고, 이동 뒤 상태를 따로 정리하지
+                    않는다(페이지가 바뀌면 위젯도 함께 새로 그려진다).
+                    기존 문의 폼의 <a>와 같은 방식이라 라우터를 새로 들이지 않는다.
+                  */}
+                  {message.cta ? (
+                    <div className="pl-11">
+                      <a
+                        href={message.cta.href}
+                        className="flex h-11 w-full items-center justify-center rounded-xl bg-[#403A49] text-[14px] font-semibold text-white active:opacity-90"
+                      >
+                        {message.cta.label}
+                      </a>
+                    </div>
+                  ) : null}
                   {message.choices && message.choices.length > 0 ? (
                     <div className="flex flex-wrap gap-2 pl-11">
                       {message.choices.map((choiceId) => (
