@@ -45,26 +45,34 @@ test("SIGNUP_PRIVACY_VERSION은 다른 축에서 떨어져 있다", () => {
   );
 });
 
-test("다른 세 축은 그대로 공용 시행일을 읽는다", () => {
+test("남은 두 축은 그대로 공용 시행일을 읽는다", () => {
+  /*
+   * 처리방침(PRIVACY_POLICY_VERSION)도 따로 개정되어 공용 축에서 빠졌다.
+   * 지금 공용 시행일을 함께 읽는 것은 이용약관과 신청 단계 동의 둘뿐이다.
+   */
   assert.ok(LEGAL.includes("export const TERMS_VERSION = LEGAL_EFFECTIVE_DATE;"));
-  assert.ok(LEGAL.includes("export const PRIVACY_POLICY_VERSION = LEGAL_EFFECTIVE_DATE;"));
   assert.ok(LEGAL.includes("export const ORDER_CONSENT_VERSION = LEGAL_EFFECTIVE_DATE;"));
   assert.ok(LEGAL.includes('export const LEGAL_EFFECTIVE_DATE: string = "2026-09-25";'));
+  // 처리방침은 더 이상 공용 축을 읽지 않는다.
+  assert.equal(LEGAL.includes("export const PRIVACY_POLICY_VERSION = LEGAL_EFFECTIVE_DATE;"), false);
 });
 
-test("가입 동의 축만 개정 시행일을 따로 가진다", () => {
+test("따로 개정된 두 문서만 개정 시행일을 가진다", () => {
   /**
-   * 축 분리가 실제로 값으로 드러나는 자리다. 회원가입 수집·이용 동의만 2026-09-26으로
-   * 개정되었고(소셜 간편가입에서 가입 시 휴대폰을 받지 않게 된 개정), 나머지 세 문서는
-   * 2026-09-25 그대로다. 이 셋이 함께 움직이면 축이 다시 묶인 것이다.
+   * 축 분리가 실제로 값으로 드러나는 자리다. 따로 개정된 것은 둘이다.
+   *   · SIGNUP_PRIVACY_VERSION  소셜 간편가입에서 가입 시 휴대폰을 받지 않게 된 개정
+   *   · PRIVACY_POLICY_VERSION  고지 항목(위탁·국외이전·파기·보호책임자) 보강
+   * 이용약관과 신청 단계 동의는 2026-09-25 그대로다.
+   * 이 둘까지 함께 움직이면 축이 다시 묶인 것이다.
    */
   assert.equal(SIGNUP_PRIVACY_VERSION, "2026-09-26", "가입 동의 문서의 개정 시행일");
+  assert.equal(PRIVACY_POLICY_VERSION, "2026-09-26", "처리방침의 개정 시행일");
   assert.equal(TERMS_VERSION, "2026-09-25");
-  assert.equal(PRIVACY_POLICY_VERSION, "2026-09-25");
   assert.equal(ORDER_CONSENT_VERSION, "2026-09-25");
   assert.equal(LEGAL_EFFECTIVE_DATE, "2026-09-25");
-  // 두 값이 실제로 다르다는 사실 자체가 분리의 증거다.
+  // 공용 축과 값이 실제로 다르다는 사실 자체가 분리의 증거다.
   assert.notEqual(SIGNUP_PRIVACY_VERSION, LEGAL_EFFECTIVE_DATE);
+  assert.notEqual(PRIVACY_POLICY_VERSION, LEGAL_EFFECTIVE_DATE);
 });
 
 test("가입 개인정보 시행일만 바꿔도 다른 축이 따라 움직이지 않는다", () => {

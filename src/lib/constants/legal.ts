@@ -13,10 +13,16 @@
  * 회원가입 동의 증빙에 들어가는 것은 앞의 두 개다. 처리방침은 동의 대상이
  * 아니라 고지 문서라서 증빙에 쓰지 않는다.
  *
- * 네 문서의 시행일은 2026-09-25로 확정되었고, 버전 문자열도 같은 값을 쓴다.
- * 그중 셋은 LEGAL_EFFECTIVE_DATE를 함께 읽고, 회원가입 수집·이용 동의
- * (SIGNUP_PRIVACY_VERSION)만 따로 관리한다. 그 문서만 개정 시점이 갈라졌기 때문이다
- * (소셜 간편가입에서 가입 시 휴대폰을 받지 않게 되었다).
+ * 네 문서의 시행일은 처음 2026-09-25로 확정되었으나, 이후 둘이 따로 개정되었다.
+ * 지금은 이용약관(TERMS_VERSION)과 신청 단계 동의(ORDER_CONSENT_VERSION)만
+ * LEGAL_EFFECTIVE_DATE를 함께 읽는다.
+ *
+ * 따로 관리하는 둘:
+ * - SIGNUP_PRIVACY_VERSION  2026-09-26  소셜 간편가입에서 가입 시 휴대폰을 받지 않게 되었다.
+ * - PRIVACY_POLICY_VERSION  2026-09-26  고지 항목(위탁·국외이전·파기·보호책임자)을 보강했다.
+ *
+ * 두 값의 날짜가 같아도 상수를 합치지 않는다. 한쪽이 다시 개정될 때 다른 쪽이
+ * 따라 움직이면 안 되기 때문이다.
  *
  * 증빙을 만드는 코드(lib/server/consents.ts)가 이 상수들을 읽어 저장하므로,
  * 값을 바꾸면 그 뒤에 저장되는 동의부터 새 버전이 남는다.
@@ -68,10 +74,23 @@ export const TERMS_VERSION = LEGAL_EFFECTIVE_DATE;
 export const SIGNUP_PRIVACY_VERSION: string = "2026-09-26";
 
 /**
- * 개인정보 처리방침(/privacy) 버전. 확정 전 자리표시자.
+ * 개인정보 처리방침(/privacy)의 **시행일**.
+ *
+ * LEGAL_EFFECTIVE_DATE를 그대로 쓰지 않는다. 이 문서만 따로 개정되었기 때문이다.
+ * 처리·위탁 현황, 국외 이전, 파기 절차, 보호책임자 같은 고지 항목을 실제 운영에 맞게
+ * 보강하면서 본문이 달라졌고, 개정 시행일은 2026-09-26으로 확정되었다.
+ *
+ * SIGNUP_PRIVACY_VERSION과 날짜가 같지만 상수를 합치지 않는다. 처리방침은 상시 공개하는
+ * 고지 문서이고, 회원가입 수집·이용 동의는 증빙에 남는 동의 문서다. 목적도 개정 시점도
+ * 달라서, 한쪽을 고칠 때 다른 쪽이 따라 움직이면 안 된다.
+ *
  * 공개 고지 문서의 개정 이력을 표시하기 위한 값이며, 동의 증빙에는 쓰지 않는다.
+ * 그래서 아래 areLegalVersionsConfirmed()에도 넣지 않는다(넣으면 고지 문서 사정 때문에
+ * 가입 동의 저장이 막힌다).
  */
-export const PRIVACY_POLICY_VERSION = LEGAL_EFFECTIVE_DATE;
+// 타입을 string으로 두는 이유는 LEGAL_EFFECTIVE_DATE와 같다. 리터럴로 좁혀지면
+// UNCONFIRMED_VERSION과 비교하는 자리가 "겹치지 않는 비교"로 잡힌다.
+export const PRIVACY_POLICY_VERSION: string = "2026-09-26";
 
 /**
  * 신청 단계에서 받는 [필수] 동의(취소·환불 안내 포함)의 버전. 확정 전 자리표시자.

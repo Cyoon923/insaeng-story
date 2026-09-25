@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants/legal";
+import { SIGNUP_PRIVACY_VERSION } from "@/lib/constants/legal";
 
 export default async function PrivacyCollectionPage({
   searchParams,
@@ -23,8 +23,16 @@ export default async function PrivacyCollectionPage({
         <p className="mt-2 text-[15px] leading-relaxed text-[#6B6570]">
           회원가입을 위해 아래와 같이 개인정보를 받습니다.
         </p>
+        {/*
+          이 문서의 시행일은 SIGNUP_PRIVACY_VERSION이라는 독립 축으로 관리한다.
+          소셜 간편가입에서 가입 시 휴대폰 번호를 받지 않게 되면서 수집 항목과 시점이
+          실제로 바뀌었기 때문이다. 공용 시행일(LEGAL_EFFECTIVE_DATE)을 읽지 않으므로,
+          다른 문서가 개정되어도 이 날짜는 따라 움직이지 않는다.
+          동의 증빙(User.consents)에 남는 값도 SIGNUP_PRIVACY_VERSION이므로,
+          고객이 화면에서 본 날짜와 증빙에 남는 버전이 갈라지지 않도록 같은 상수를 읽는다.
+        */}
         <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
-          시행일: {LEGAL_EFFECTIVE_DATE}
+          시행일: {SIGNUP_PRIVACY_VERSION}
         </p>
       </section>
 
