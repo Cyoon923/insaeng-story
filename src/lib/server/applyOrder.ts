@@ -19,6 +19,7 @@ import {
   checkCopyrightConsent,
   checkOrderConsent,
 } from "@/lib/server/consents";
+import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { nowId, writeDataWithOrder } from "@/lib/server/store";
 import type { AppData, Consultation, CouponProduct, Order, User } from "@/lib/types/app";
 
@@ -57,7 +58,21 @@ export function applyReferral(
   if (buyer && referralCodeFor(buyer) === code) {
     return { amount, details, error: "본인 코드는 사용할 수 없습니다." };
   }
-  const referrer = data.users.find((item) => referralCodeFor(item) === code);
+  /**
+   * 추천인으로 인정하는 것은 휴대폰 본인확인을 마친 회원뿐이다.
+   *
+   * 추천인 코드는 user.id만으로 만들어지므로(위 referralCodeFor) 회원이 생기는 즉시
+   * 유효한 코드를 갖는다. 본인확인 전 회원까지 인정하면 그 회원은 아무 행동을 하지
+   * 않았는데도 포인트가 쌓이고, 남의 주문 details에 referrerId로 id가 영구히 남는다.
+   * 나중에 그 회원을 같은 번호의 기존 회원으로 합칠 때 옮기거나 되돌릴 수 없는 값이다.
+   *
+   * 코드 만드는 규칙(referralCodeFor)은 그대로 두고, 인정하는 대상만 좁힌다.
+   * 이 판정은 탈퇴 회원도 함께 걸러 낸다(hasVerifiedPhone이 withdrawnAt을 본다).
+   * 탈퇴 비식별화는 id를 바꾸지 않아 코드가 그대로 살아 있었다.
+   */
+  const referrer = data.users.find(
+    (item) => hasVerifiedPhone(item) && referralCodeFor(item) === code,
+  );
   if (!referrer) {
     return { amount, details, error: "추천인 코드를 확인해 주세요." };
   }

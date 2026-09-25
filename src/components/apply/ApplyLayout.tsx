@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ApplyPhoneGate } from "@/components/apply/ApplyPhoneGate";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import {
@@ -57,6 +58,12 @@ export function ApplyLayout({
 
   return (
     <MobileShell bgClass={shellBg}>
+      {/*
+        휴대폰 본인확인 관문. 신청 화면 전체가 이 레이아웃을 쓰므로 여기 한 곳에 둔다.
+        서버 관문(api/app의 verifiedPhoneGate)을 대신하는 것이 아니라, 막힐 것을 알면서
+        신청서를 다 쓰게 두지 않으려는 안내다.
+      */}
+      <ApplyPhoneGate />
       <AppHeader
         variant="apply"
         title={title}

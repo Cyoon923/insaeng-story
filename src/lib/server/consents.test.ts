@@ -215,9 +215,16 @@ test("공개 사본에서 행위 기록을 지운다", () => {
   }
 });
 
-test("가입 두 경로가 같은 생성 함수를 쓴다", () => {
+test("가입 세 경로가 같은 생성 함수를 쓴다", () => {
+  /**
+   * 회원을 만드는 경로마다 증빙을 같은 함수로 남긴다. 숫자를 고정하는 이유는
+   * 새 가입 경로가 생겼을 때 증빙을 빼먹지 않았는지 여기서 걸리게 하려는 것이다.
+   *   · signupComplete           아이디·비밀번호 가입
+   *   · completeSocialLink       소셜 가입(휴대폰 인증 경로. 신규 콜백은 더 쓰지 않는다)
+   *   · completeSocialSignup     소셜 간편가입(휴대폰 없이 동의만으로 가입)
+   */
   const calls = ROUTE_CODE.match(/consents: buildRequiredConsents\(\),/g) ?? [];
-  assert.equal(calls.length, 2, "일반 가입과 소셜 신규가입 두 곳이어야 한다");
+  assert.equal(calls.length, 3, "회원을 만드는 세 경로 모두여야 한다");
   // 시각·버전을 route에서 따로 만들어 넘기지 않는다.
   assert.equal(/buildRequiredConsents\([^)]+\)/.test(ROUTE_CODE), false);
 });

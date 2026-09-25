@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { clearDraft, fetchMe, getDraft, postApp } from "@/lib/client/api";
 import { openNicepayCard } from "@/lib/client/nicepay";
 import { formatPrice } from "@/lib/constants/products";
+import { phoneDigits } from "@/lib/phoneVerification";
 import type { Coupon, CouponProduct } from "@/lib/types/app";
 
 /** 결제수단 선택 화면이 쓰는 값. NICEPAY 연결은 아직 이 카드 결제만 지원한다. */
@@ -38,6 +39,8 @@ export function PaySubmit({
   const [error, setError] = useState("");
   // 로그인 여부는 기존 세션 판별(GET /api/app 의 user)을 그대로 쓴다.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  /** 휴대폰 본인확인을 마쳤는지. 아직 모르는 동안은 null이다. */
+  const [phoneVerified, setPhoneVerified] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -96,6 +99,10 @@ export function PaySubmit({
         setLoggedIn(Boolean(data.user));
         setCoupons((data.coupons ?? []) as Coupon[]);
         setPoints(Number(data.user?.points ?? 0) || 0);
+        // 서버 관문(preparePayment / createOrder / createConsultation)과 같은 기준으로
+        // 본인확인 여부만 미리 읽어 둔다. 판정을 화면으로 옮기는 것이 아니라,
+        // 막힐 것을 알면서 결제 화면으로 보내지 않기 위한 안내다.
+        setPhoneVerified(phoneDigits(String(data.user?.phone ?? "")).length >= 10);
       })
       .catch(() => {
         setLoggedIn(false);
@@ -113,6 +120,19 @@ export function PaySubmit({
       if (!loggedIn) {
         // 연락처만으로 계정을 만들지 않는다. 비밀번호 없는 회원이 생기기 때문이다.
         throw new Error("신청을 접수하려면 먼저 로그인해 주세요.");
+      }
+      /**
+       * 휴대폰 본인확인 전이면 인증 화면으로 보낸다.
+       *
+       * 서버 관문을 대신하는 것이 아니다. 서버는 그대로 막고 있고(STEP 1),
+       * 여기서 막히는 대신 인증 화면으로 안내해 사용자가 막다른 길에 빠지지 않게 한다.
+       * 네 상품이 이 컴포넌트를 함께 쓰므로 한 곳만 고치면 모두에 걸린다.
+       * 돌아올 주소는 기존 규칙(safeNextPath: /apply/ 경로만)으로 서버가 다시 검사한다.
+       */
+      if (phoneVerified === false) {
+        const back = `${window.location.pathname}${window.location.search}`;
+        router.push(`/my/verify-phone?next=${encodeURIComponent(back)}`);
+        return;
       }
       const merged: Record<string, string> = {
         ...details,

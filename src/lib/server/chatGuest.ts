@@ -9,7 +9,7 @@
  */
 import { cookies } from "next/headers";
 import { createGuestToken, hashGuestToken } from "@/lib/server/chatInquiries";
-import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import { getVerifiedUserId } from "@/lib/server/withdrawAccount";
 
 /** 기존 쿠키(insaeng_uid 등)와 겹치지 않는 이름. */
 export const CHAT_GUEST_COOKIE = "sajulog_chat_guest";
@@ -69,9 +69,14 @@ export interface ChatRequester {
 /**
  * 지금 요청의 신원. 쿠키를 새로 발급하지 않는다.
  * 회원이면 비회원 쿠키가 함께 있어도 회원 쪽으로 본다.
+ *
+ * 회원으로 인정하는 기준은 휴대폰 본인확인까지 마친 회원이다(getVerifiedUserId).
+ * 본인확인 전에는 회원 id에 문의방을 묶지 않고 아래 비회원 쿠키 경로를 그대로 쓴다.
+ * 보내는 쪽(POST /api/chat-inquiries)과 읽는 쪽이 같은 기준을 써야 자기 방을
+ * 다시 찾을 수 있으므로, 양쪽 모두 이 판정 하나를 본다.
  */
 export async function resolveChatRequester(): Promise<ChatRequester> {
-  const userId = await getActiveUserId();
+  const userId = await getVerifiedUserId();
   if (userId) return { userId, guestTokenHash: null };
   return { userId: null, guestTokenHash: await readGuestTokenHash() };
 }

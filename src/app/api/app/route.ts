@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -18,6 +18,12 @@ import {
   checkOrderConsent,
   checkRequiredConsents,
 } from "@/lib/server/consents";
+import { hasVerifiedPhone } from "@/lib/phoneVerification";
+import {
+  completeMyPhoneVerification,
+  type AbsorbUnavailableReason,
+} from "@/lib/server/myPhoneVerification";
+import { listChatInquiriesByUserId } from "@/lib/server/chatInquiries";
 import {
   anonymizeWithdrawnUser,
   findWithdrawBlockers,
@@ -151,6 +157,18 @@ function consumeList(
     return [];
   }
   return [{ storageKey: key, code }];
+}
+
+/**
+ * 자동 연결 불가 사유를 응답에 담을 짧은 코드로 옮긴다.
+ *
+ * 어떤 이력이 있는지(blockers)는 담지 않는다. 그 값은 "이 번호의 계정에 주문이 있는지"
+ * 같은 사실을 밖에서 읽게 해 준다. 화면은 사유를 구분해 보여줄 필요가 없고
+ * 고객센터 안내 한 가지로 끝난다. 사유는 서버 기록에만 남긴다.
+ */
+function absorbUnavailableCode(reason: AbsorbUnavailableReason): string {
+  console.warn(`[my-phone] absorb unavailable: ${reason.kind}`);
+  return reason.kind;
 }
 
 /** 인증이 그사이 바뀌어 저장하지 못한 경우. 기존 문구를 그대로 쓴다. */
@@ -443,6 +461,35 @@ function orderConsentVersionGate(): NextResponse | null {
   return NextResponse.json(
     { error: "취소·환불 안내 문구가 확정되지 않아 지금은 신청을 받을 수 없습니다." },
     { status: 503 },
+  );
+}
+
+/**
+ * 휴대폰 본인확인 관문. 유료 신청을 **승인 전에** 막는 자리에만 둔다.
+ *
+ * 지금은 활성 회원 전원이 가입 때 SMS 인증을 거쳐 phone을 갖고 있어 아무도 막히지 않는다.
+ * 소셜 간편가입에서 인증을 뒤로 미루게 되면 phone 없는 회원이 생기는데, 그 회원에게
+ * 주문·상담·결제가 붙으면 나중에 같은 번호의 기존 회원으로 합칠 수 없게 된다
+ * (orders.user_id에 매달린 payments·point_transactions·refund_requests까지 옮겨야 한다).
+ * 그래서 데이터가 생기기 전에 먼저 문을 닫아 둔다.
+ *
+ * 관문을 두는 곳은 세션을 들고 승인 전에 지나가는 진입점 셋뿐이다.
+ *   · createOrder / createConsultation  (0원 신청은 PG를 거치지 않고 여기로 직행한다)
+ *   · preparePayment                    (유료 결제가 PG로 나가기 전)
+ *
+ * 다음 경로에는 절대 넣지 않는다. orderConsentVersionGate와 정확히 같은 이유다.
+ *   · commitOrder / commitConsultation  (위 셋과 아래 승인 후 경로가 함께 쓰는 공통 함수)
+ *   · /api/payments/nicepay/return      (승인 콜백)
+ *   · /api/admin/payments/recommit      (결제 복구)
+ * 승인이 끝난 뒤에 막으면 돈은 빠져나갔는데 주문이 없는 상태가 된다. 그쪽이 훨씬 나쁘다.
+ *
+ * 조회와 상품 열람에도 넣지 않는다. 인증 전에도 둘러볼 수 있어야 한다.
+ */
+function verifiedPhoneGate(user: User): NextResponse | null {
+  if (hasVerifiedPhone(user)) return null;
+  return NextResponse.json(
+    { error: "신청을 진행하려면 휴대폰 본인확인이 필요합니다." },
+    { status: 403 },
   );
 }
 
@@ -791,6 +838,114 @@ async function handlePost(request: Request) {
     return NextResponse.json({ ok: true, isNew: true, user: toPublicUser(user) });
   }
 
+  if (action === "completeSocialSignup") {
+    /**
+     * 신규 소셜 가입 확정. 휴대폰을 받지 않고 회원을 만든다.
+     *
+     * 휴대폰 본인확인은 실제 신청을 시작할 때 한 번 한다
+     * (/my/verify-phone → completeMyPhoneVerification). 그때 같은 번호의 기존 회원이
+     * 있으면 연결을 옮겨 하나로 합친다. 가입 시점에는 번호를 모르므로 합치지 않는다.
+     *
+     * 휴대폰만 빠지고 나머지 관문은 completeSocialLink의 신규 생성 분기와 같다.
+     *   · 로그인 상태면 거부      (남의 계정으로 세션이 바뀌는 것을 막는다)
+     *   · provider 정보는 서버 대기 상태에서만 읽는다 (클라이언트가 보낼 수 없다)
+     *   · 필수 동의 2종 검증      (동의 없이 회원이 만들어지는 경로를 만들지 않는다)
+     *   · 약관 버전 확정 여부 확인 (자리표시자 버전이 증빙에 남지 않게 한다)
+     *   · 같은 provider id가 이미 붙어 있으면 거부
+     *   · 대기 상태 소비와 회원 생성을 한 번의 저장으로 확정
+     */
+    if (await getActiveUserId()) {
+      return NextResponse.json(
+        { error: "이미 로그인되어 있습니다. 로그아웃한 뒤 다시 시도해 주세요." },
+        { status: 400 },
+      );
+    }
+
+    const socialExpired = () =>
+      NextResponse.json(
+        { error: "소셜 로그인 정보가 만료되었습니다. 다시 로그인해 주세요." },
+        { status: 400 },
+      );
+
+    // 소셜 정보는 서버 대기 상태에서만 얻는다. 먼저 폐기하지 않는다.
+    // 저장이 실패했을 때 대기 상태가 사라지면 소셜 로그인부터 다시 해야 한다.
+    const claimed = await readSocialLinkPendingForCommit(data);
+    if (!claimed) return socialExpired();
+
+    // 필수 동의. 회원을 만드는 경로이므로 일반 가입과 같은 수준으로 본다.
+    const consentCheck = checkRequiredConsents(body);
+    if (!consentCheck.ok) {
+      return NextResponse.json({ error: consentCheck.error }, { status: 400 });
+    }
+
+    /**
+     * 동의 증빙을 저장하기 직전 관문. 버전이 확정되지 않았으면 회원을 만들지 않는다.
+     * 아직 아무것도 저장하지 않은 지점이라 대기 상태도 그대로 남는다.
+     */
+    if (!areLegalVersionsConfirmed()) {
+      return NextResponse.json(
+        { error: "약관 버전이 확정되지 않아 지금은 회원가입을 진행할 수 없습니다." },
+        { status: 503 },
+      );
+    }
+
+    // 실제 쓰기 직전에 최신 상태를 다시 읽는다. 그사이 같은 소셜 id가 먼저 등록됐을 수 있다.
+    const latest = await readData();
+    const latestClaim = await readSocialLinkPendingForCommit(latest);
+    if (!latestClaim || latestClaim.pending.providerUserId !== claimed.pending.providerUserId) {
+      return socialExpired();
+    }
+    const pending = latestClaim.pending;
+    const providerKey = pending.provider === "kakao" ? "kakaoId" : "naverId";
+    const providerLabel = pending.provider === "kakao" ? "카카오" : "네이버";
+
+    /**
+     * 같은 소셜 id가 이미 활성 회원에게 붙어 있으면 회원을 만들지 않는다.
+     * 정상 흐름에서는 콜백이 그 회원으로 바로 로그인시키므로 여기까지 오지 않는다.
+     * 그사이 등록된 경우를 위한 자리다. 그 회원으로 세션을 만들어 주지도 않는다
+     * (이 요청이 그 계정의 주인이라는 근거가 대기 상태뿐이라 충분하지 않다).
+     */
+    const ownedBySocial = latest.users.find(
+      (item) => isActiveUser(item) && item[providerKey] === pending.providerUserId,
+    );
+    if (ownedBySocial) {
+      return NextResponse.json(
+        { error: `이미 연결된 ${providerLabel} 계정입니다. 다시 로그인해 주세요.` },
+        { status: 400 },
+      );
+    }
+
+    /**
+     * 휴대폰 없이 회원을 만든다. emptyUser의 첫 인자를 비워 phone이 ""가 된다.
+     * 같은 번호의 기존 회원을 찾아 연결하는 일은 하지 않는다. 번호를 모르기 때문이다.
+     */
+    const created: User = {
+      ...emptyUser("", pending.nickname || `${providerLabel} 회원`),
+      [providerKey]: pending.providerUserId,
+      // 버전과 동의 시각은 서버가 채운다. 클라이언트 값은 쓰지 않는다.
+      consents: buildRequiredConsents(),
+    };
+    registerUser(latest, created);
+
+    // 대기 상태 소비와 회원 생성을 한 문장으로 확정한다.
+    const committed = await writeDataWithVerificationConsumes(
+      latest,
+      consumeList(latest, latestClaim.storageKey, null, latestClaim.source),
+    );
+    if (!committed.ok) return socialExpired();
+
+    // 저장이 끝난 뒤에만 대기 상태 쿠키를 지우고 세션을 만든다.
+    await clearSocialLinkCookie();
+    await setUserId(created.id);
+
+    // 신청 화면에서 로그인으로 넘어온 경우 그 자리로 되돌려 보낸다.
+    const store = await cookies();
+    const savedNext = store.get(LOGIN_NEXT_COOKIE)?.value;
+    const next = safeNextPath(savedNext ? decodeURIComponent(savedNext) : null);
+    store.delete(LOGIN_NEXT_COOKIE);
+    return NextResponse.json({ ok: true, redirect: next ?? LOGIN_DEFAULT_PATH });
+  }
+
   if (action === "completeSocialLink") {
     // SMS 인증을 마친 휴대폰 번호를 기준으로 소셜 계정을 연결한다.
     // provider / providerUserId는 클라이언트에서 받지 않고 서버 대기 상태에서만 읽는다.
@@ -1060,6 +1215,17 @@ async function handlePost(request: Request) {
     const member = sessionUserId
       ? (data.users.find((item) => item.id === sessionUserId) ?? null)
       : null;
+    /**
+     * 문의를 회원 id에 묶을지. 휴대폰 본인확인을 마친 회원만 묶는다.
+     *
+     * 본인확인 전 회원의 문의는 지금까지의 비회원 문의와 똑같이 저장한다. 접수는 그대로
+     * 받되 shell User.id에는 붙이지 않는다. 붙으면 나중에 기존 회원으로 합칠 때
+     * 옮겨야 하는 값이 되고, 알림도 그 id 아래 쌓인다.
+     *
+     * member는 이름·연락처 기본값으로만 계속 쓴다. 그 값들은 문의 레코드 안에 들어가고
+     * 회원 id를 키로 쓰지 않아 옮길 것이 없다.
+     */
+    const owner = member && hasVerifiedPhone(member) ? member : null;
     const name = String(body.name ?? member?.name ?? "").trim();
     const phone = String(body.phone ?? member?.phone ?? "").trim();
     const product = String(body.product ?? "").trim();
@@ -1095,13 +1261,14 @@ async function handlePost(request: Request) {
       message: message.slice(0, 1000),
       createdAt: new Date().toISOString(),
     };
-    if (member) {
-      item.userId = member.id;
+    if (owner) {
+      item.userId = owner.id;
     }
     data.inquiries = [item, ...(data.inquiries ?? [])];
-    // 알림은 로그인한 회원에게만 보낸다.
-    if (member && data.notificationSettings[member.id]?.consult !== false) {
-      data.notifications[member.id] = [
+    // 알림은 문의가 귀속된 회원에게만 보낸다. 귀속시키지 않은 문의의 알림을 보내면
+    // MY에서 볼 수 없는 문의를 알리는 셈이고, 그 회원 id 아래 알림만 쌓인다.
+    if (owner && data.notificationSettings[owner.id]?.consult !== false) {
+      data.notifications[owner.id] = [
         {
           id: nowId(),
           title: item.product.startsWith("이벤트")
@@ -1111,7 +1278,7 @@ async function handlePost(request: Request) {
           createdAt: new Date().toISOString(),
           read: false,
         },
-        ...(data.notifications[member.id] ?? []),
+        ...(data.notifications[owner.id] ?? []),
       ];
     }
     await writeData(data);
@@ -1161,6 +1328,110 @@ async function handlePost(request: Request) {
     data.users = data.users.map((item) => (item.id === userId ? next : item));
     await writeData(data);
     return NextResponse.json({ ok: true, user: toPublicUser(next) });
+  }
+
+  if (action === "completeMyPhoneVerification") {
+    /**
+     * 로그인한 회원의 최초 휴대폰 본인확인.
+     *
+     * completeSocialLink와는 별개의 경로다. 그쪽의 "로그인 상태면 거부" 게이트는
+     * 남의 계정으로 세션이 바뀌는 것을 막는 장치라 그대로 두고, 로그인 상태는 여기서만 다룬다.
+     *
+     * 클라이언트가 보내는 값은 phone과 linkToken 둘뿐이다.
+     * userId / targetId / provider / providerUserId는 받지 않는다.
+     *   · 지금 회원  : 위 관문을 지난 세션의 user.id (body는 보지 않는다)
+     *   · 흡수 대상  : 인증된 번호로 서버가 찾는다
+     *   · provider   : 그 회원이 실제로 가진 필드에서 읽는다
+     *
+     * 인증번호 발급·검증은 기존 sendCode / verifyCode purpose="link"를 그대로 쓴다.
+     * 그 목적은 이미 "가입된 번호도 인증할 수 있다"는 뜻이고 세션을 보지 않으므로
+     * 로그인 상태에서도 의미가 같다. 새 purpose를 만들지 않았다.
+     */
+    const phone = normalizePhone(String(body.phone ?? ""));
+    if (phone.length < 10) {
+      return NextResponse.json({ error: "연락처를 입력해 주세요." }, { status: 400 });
+    }
+    const linkToken = String(body.linkToken ?? "");
+
+    const outcome = await completeMyPhoneVerification(
+      // userId는 세션에서 정한 값만 넘긴다. body의 값은 쓰지 않는다.
+      { userId: user.id, phone, token: linkToken },
+      {
+        readData,
+        readToken: async (key, current) => {
+          const saved = await readVerification(key, current);
+          return saved ? { code: saved.code, source: saved.source } : null;
+        },
+        countOrders: async (id) => (await listOrdersByUser(id)).length,
+        countChatInquiries: async (id) => (await listChatInquiriesByUserId(id)).length,
+        formatPhone,
+        anonymize: anonymizeWithdrawnUser,
+        // app_store 변경과 토큰 소비를 한 문장으로 확정한다. 토큰만 먼저 사라지지 않는다.
+        commit: (current, key, code, source) =>
+          writeDataWithVerificationConsumes(
+            current,
+            consumeList(current, key, code, source),
+          ),
+        isConflict: isAppStoreConflict,
+      },
+    );
+
+    switch (outcome.kind) {
+      case "verified":
+        // 세션은 그대로다. 같은 회원이므로 setUserId를 부를 이유가 없다.
+        return NextResponse.json({ ok: true, absorbed: false, phone: outcome.phone });
+
+      case "already-verified":
+        // 중복 요청. 아무것도 바뀌지 않았고 세션도 그대로다.
+        return NextResponse.json({ ok: true, absorbed: false, alreadyVerified: true });
+
+      case "absorbed": {
+        /**
+         * 저장이 **확정된 뒤에만** 세션을 옮긴다. 순서를 뒤집으면 저장이 실패했을 때
+         * 남의 계정 세션만 남는다.
+         *
+         * setUserId가 실패해도 보상 처리를 만들지 않는다. 그때는 로그아웃 상태가 되지만
+         * providerId가 이미 기존 회원에 붙어 있어, 다시 소셜 로그인하면 콜백이 그 회원을
+         * 찾아 그대로 로그인된다(기존 자기복구 성질).
+         */
+        await setUserId(outcome.targetId);
+        const store = await cookies();
+        const savedNext = store.get(LOGIN_NEXT_COOKIE)?.value;
+        const next = safeNextPath(savedNext ? decodeURIComponent(savedNext) : null);
+        store.delete(LOGIN_NEXT_COOKIE);
+        return NextResponse.json({ ok: true, absorbed: true, redirect: next ?? null });
+      }
+
+      case "absorb-unavailable":
+        // 자동 연결하지 않는다. 데이터는 하나도 바뀌지 않았다.
+        return NextResponse.json(
+          {
+            error:
+              "이미 이 번호로 가입된 계정이 있어 자동으로 연결할 수 없습니다. 고객센터로 문의해 주세요.",
+            absorbUnavailable: absorbUnavailableCode(outcome.reason),
+          },
+          { status: 409 },
+        );
+
+      case "phone-already-set":
+        return NextResponse.json(
+          { error: "이미 본인확인이 끝난 계정입니다." },
+          { status: 400 },
+        );
+
+      case "not-eligible":
+        return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+
+      case "retry-later":
+        return NextResponse.json(
+          { error: "다른 요청과 겹쳤습니다. 잠시 후 다시 시도해 주세요." },
+          { status: 409 },
+        );
+
+      case "token-expired":
+      default:
+        return verificationExpired();
+    }
   }
 
   if (action === "withdrawAccount") {
@@ -1441,6 +1712,10 @@ async function handlePost(request: Request) {
   }
 
   if (action === "createOrder") {
+    // 휴대폰 본인확인이 없는 회원에게는 주문을 만들지 않는다. 0원 신청도 이 경로로 온다.
+    const phoneGate = verifiedPhoneGate(user);
+    if (phoneGate) return phoneGate;
+
     // 동의 문구 버전이 확정되기 전에는 증빙을 만들지 않는다. 저장 전에 막는다.
     const versionGate = orderConsentVersionGate();
     if (versionGate) return versionGate;
@@ -1459,7 +1734,10 @@ async function handlePost(request: Request) {
   }
 
   if (action === "createConsultation") {
-    // createOrder와 같은 관문. 상담도 Order.refundConsent에 같은 증빙을 남긴다.
+    // createOrder와 같은 관문 둘. 상담도 Order.refundConsent에 같은 증빙을 남긴다.
+    const phoneGate = verifiedPhoneGate(user);
+    if (phoneGate) return phoneGate;
+
     const versionGate = orderConsentVersionGate();
     if (versionGate) return versionGate;
 
@@ -1522,6 +1800,10 @@ async function handlePost(request: Request) {
   }
 
   if (action === "preparePayment") {
+    // PG로 나가기 전에 본인확인을 본다. 승인 뒤에는 막을 수 없는 자리다.
+    const phoneGate = verifiedPhoneGate(user);
+    if (phoneGate) return phoneGate;
+
     const kind = String(body.kind ?? "");
     if (kind !== "order" && kind !== "consultation") {
       return NextResponse.json({ error: "신청 종류를 확인해 주세요." }, { status: 400 });

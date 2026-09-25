@@ -74,7 +74,8 @@ export default async function PrivacyPage({
             식별정보와 프로필에 있는 이름(닉네임) 등 로그인에 필요한 정보를 처리합니다.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
-            간편로그인으로 처음 가입하실 때에도 본인 확인을 위해 휴대폰 번호를 함께 받습니다.
+            간편로그인으로 처음 가입하실 때에는 휴대폰 번호를 받지 않습니다. 상품이나 상담을
+            신청하실 때 본인 확인을 위해 휴대폰 번호를 한 번 받습니다.
           </p>
         </section>
 

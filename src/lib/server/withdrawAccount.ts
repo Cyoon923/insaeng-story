@@ -9,6 +9,7 @@
  * - 후기는 내용·공개 상태를 그대로 두고, 작성자 표시만 비식별화한다.
  */
 import { getUserId } from "@/lib/server/session";
+import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { countPendingPaymentsByUser, listOrdersByUser, readData } from "@/lib/server/store";
 import type { AppData, Consultation, Order, User } from "@/lib/types/app";
 
@@ -230,4 +231,29 @@ export async function getActiveUserId(): Promise<string | null> {
   const data = await readData();
   const user = data.users.find((item) => item.id === userId);
   return isActiveUser(user) ? userId : null;
+}
+
+/**
+ * 휴대폰 본인확인까지 마친 회원일 때만 userId를 돌려준다. getActiveUserId보다 좁다.
+ *
+ * "이 요청을 회원 id에 귀속시켜도 되는가"를 묻는 자리에서 쓴다. 본인확인 전에는 null이
+ * 나오므로 호출부는 이미 있는 비회원 경로를 그대로 타게 된다. 새 분기를 만들지 않으려고
+ * 값 하나로 갈리게 했다.
+ *
+ * 왜 이 판정이 필요한가: 소셜 간편가입에서 본인확인을 뒤로 미루면 phone이 없는 회원이
+ * 생긴다. 그 회원 id에 데이터가 붙으면 나중에 같은 번호의 기존 회원으로 합칠 때
+ * 옮겨야 할 것이 늘어난다. chat_inquiries.user_id처럼 app_store 밖에 있는 행이 특히 그렇다.
+ * 그래서 붙기 전에 막는다.
+ *
+ * 판정을 phoneVerification.ts에 두지 않은 이유는 그 파일을 저장소·세션을 모르는
+ * 순수 모듈로 남겨 두려는 것이다(node --test로 직접 돌린다). 세션을 읽는 판정은
+ * getActiveUserId와 같은 이유로 여기에 있다.
+ */
+export async function getVerifiedUserId(): Promise<string | null> {
+  const userId = await getUserId();
+  if (!userId) return null;
+  const data = await readData();
+  const user = data.users.find((item) => item.id === userId);
+  // hasVerifiedPhone은 withdrawnAt도 함께 본다. 탈퇴 판정을 두 번 쓰지 않는다.
+  return hasVerifiedPhone(user) ? userId : null;
 }

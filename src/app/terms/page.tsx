@@ -49,12 +49,12 @@ export default async function TermsPage({
         <section className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
           <h3 className="text-[17px] font-bold text-[#403A49]">회원가입과 계정</h3>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
-            회원가입은 휴대폰 본인 확인을 거쳐 진행합니다. 아이디, 비밀번호, 이름, 휴대폰 번호를
-            받습니다.
+            아이디로 회원가입하실 때에는 휴대폰 본인 확인을 거쳐 진행합니다. 아이디, 비밀번호,
+            이름, 휴대폰 번호를 받습니다.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
-            카카오나 네이버 계정으로도 가입하고 로그인하실 수 있습니다. 이때에도 휴대폰 본인 확인을
-            함께 진행합니다.
+            카카오나 네이버 계정으로도 가입하고 로그인하실 수 있습니다. 이때에는 약관 동의만으로
+            가입이 끝나고, 휴대폰 본인 확인은 상품이나 상담을 신청하실 때 한 번 진행합니다.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
             아이디는 다른 회원과 겹치지 않아야 하며, 비밀번호는 고객님께서 직접 관리해 주셔야 합니다.

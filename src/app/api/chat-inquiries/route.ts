@@ -23,7 +23,7 @@ import {
   type ChatInquiryThread,
 } from "@/lib/server/chatInquiries";
 import { ensureGuestTokenHash } from "@/lib/server/chatGuest";
-import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import { getVerifiedUserId } from "@/lib/server/withdrawAccount";
 import {
   badRequest,
   handleChatError,
@@ -62,7 +62,10 @@ export async function POST(request: Request) {
       throw new ChatInquiryError("연락받을 방법을 선택해 주세요.");
     }
 
-    const userId = await getActiveUserId();
+    // 회원으로 인정하는 기준은 휴대폰 본인확인까지 마친 회원이다.
+    // 본인확인 전이면 null이 되어 아래 비회원 경로를 그대로 탄다.
+    // chat_inquiries.user_id는 app_store 밖의 행이라, 붙은 뒤에 옮기는 것이 가장 비싸다.
+    const userId = await getVerifiedUserId();
     // 회원은 userId로 방을 찾으므로 비회원 쿠키를 새로 발급하지 않는다.
     const guestTokenHash = userId ? null : await ensureGuestTokenHash();
 

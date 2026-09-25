@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
+import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import {
   hasCompletedRefund,
   pointsRestoreCardView,
@@ -1345,7 +1346,20 @@ export default function AdminPage() {
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                 <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
                 <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
-                <p className="mt-2 text-[13px] text-[#6B6570]">추천인 코드 {referralCodeFor(user)}</p>
+                {/*
+                  추천인 코드는 휴대폰 본인확인을 마친 회원에게만 표시한다.
+                  코드는 user.id만으로 만들어져 가입 즉시 값이 생기지만, 서버가 미인증
+                  회원을 추천인으로 인정하지 않는다(applyOrder의 applyReferral).
+                  표시해 두면 운영자가 쓸 수 없는 코드를 고객에게 안내할 수 있다.
+                  판정은 회원 MY 화면과 같은 hasVerifiedPhone 하나를 쓴다.
+                */}
+                {hasVerifiedPhone(user) ? (
+                  <p className="mt-2 text-[13px] text-[#6B6570]">
+                    추천인 코드 {referralCodeFor(user)}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[13px] text-[#6B6570]">추천인 코드 — 본인확인 전</p>
+                )}
                 <p className="mt-1 text-[13px] text-[#6B6570]">가입일 {formatDate(user.createdAt)}</p>
               </article>
             ))

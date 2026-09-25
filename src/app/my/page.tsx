@@ -28,6 +28,7 @@ import { fetchMe } from "@/lib/client/api";
 import { formatPrice } from "@/lib/constants/products";
 import { buildMyOrderItems } from "@/lib/myOrders";
 import type { MyOrderItem } from "@/lib/myOrders";
+import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import type {
   Consultation,
   LatestRefundRequestsView,
@@ -110,7 +111,15 @@ export default function MyPage() {
   );
   const progressOrder = orders.find((order) => !refundedIds.has(order.id));
   const currentStatus = progressOrder?.status ?? (orders.length > 0 ? "" : "신청접수");
-  const referralCode = user ? referralCodeFor(user) : "";
+  /**
+   * 추천인 코드는 휴대폰 본인확인을 마친 회원에게만 보여 준다.
+   *
+   * 코드는 user.id만으로 만들어져(referralCodeFor) 가입 즉시 값이 생기지만,
+   * 서버가 미인증 회원을 추천인으로 인정하지 않는다(applyOrder의 applyReferral).
+   * 쓸 수 없는 코드를 공유하게 두면 받은 사람이 "확인해 주세요"만 보게 된다.
+   * 인증을 마치면 기존과 똑같이 보인다. 코드를 만드는 규칙은 바꾸지 않았다.
+   */
+  const referralCode = user && hasVerifiedPhone(user) ? referralCodeFor(user) : "";
 
   const copyReferralCode = async () => {
     if (!referralCode) return;
@@ -166,7 +175,7 @@ export default function MyPage() {
         </div>
       </div>
 
-      {user ? (
+      {user && referralCode ? (
         <section className="px-4 pt-4">
           <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-[#ebe3d8]">
             <div className="flex items-center justify-between gap-3">

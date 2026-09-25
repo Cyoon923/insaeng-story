@@ -13,9 +13,13 @@
  * 회원가입 동의 증빙에 들어가는 것은 앞의 두 개다. 처리방침은 동의 대상이
  * 아니라 고지 문서라서 증빙에 쓰지 않는다.
  *
- * 네 문서의 시행일은 2026-09-25로 확정되었고, 버전 문자열도 같은 값을 쓴다
- * (LEGAL_EFFECTIVE_DATE). 증빙을 만드는 코드(lib/server/consents.ts)가 이 상수를
- * 읽어 저장하므로, 이 값을 바꾸면 그 뒤에 저장되는 동의부터 새 버전이 남는다.
+ * 네 문서의 시행일은 2026-09-25로 확정되었고, 버전 문자열도 같은 값을 쓴다.
+ * 그중 셋은 LEGAL_EFFECTIVE_DATE를 함께 읽고, 회원가입 수집·이용 동의
+ * (SIGNUP_PRIVACY_VERSION)만 따로 관리한다. 그 문서만 개정 시점이 갈라졌기 때문이다
+ * (소셜 간편가입에서 가입 시 휴대폰을 받지 않게 되었다).
+ *
+ * 증빙을 만드는 코드(lib/server/consents.ts)가 이 상수들을 읽어 저장하므로,
+ * 값을 바꾸면 그 뒤에 저장되는 동의부터 새 버전이 남는다.
  * 이미 저장된 증빙은 소급해 고치지 않는다.
  */
 
@@ -40,8 +44,28 @@ export const LEGAL_EFFECTIVE_DATE: string = "2026-09-25";
 /** 이용약관(/terms) 버전. 확정 전 자리표시자. */
 export const TERMS_VERSION = LEGAL_EFFECTIVE_DATE;
 
-/** 회원가입 개인정보 수집 및 이용 동의(/privacy/collection) 버전. 확정 전 자리표시자. */
-export const SIGNUP_PRIVACY_VERSION = LEGAL_EFFECTIVE_DATE;
+/**
+ * 회원가입 개인정보 수집 및 이용 동의(/privacy/collection)의 **시행일**.
+ *
+ * 다른 세 문서와 달리 LEGAL_EFFECTIVE_DATE를 그대로 쓰지 않는다. 이 문서만 따로
+ * 개정되기 때문이다. 소셜 간편가입에서 가입 시 휴대폰 번호를 받지 않게 되면서
+ * 수집 시점과 범위가 실제로 달라졌고, 본문(/privacy/collection)도 그에 맞게 고쳤다.
+ *
+ * 개정 시행일은 2026-09-26으로 확정되었다. 다른 세 문서(2026-09-25)보다 하루 뒤다.
+ * 그래서 개정 전 문서에 동의한 회원과 개정 후 문서에 동의한 회원의 증빙 버전이
+ * 서로 다른 값으로 남는다. 이미 저장된 증빙은 소급해 고치지 않는다.
+ *
+ * 이 문서가 다시 개정되면 이 값만 바꾼다. 다른 세 축은 따라 움직이지 않는다.
+ *
+ * UNCONFIRMED_VERSION을 자리표시자로 두지 않는다. 아래 areLegalVersionsConfirmed()가
+ * 이 값을 보고, 그 관문이 소셜 가입뿐 아니라 **아이디·비밀번호 가입까지** 503으로 막는다
+ * (api/app의 signupComplete / completeSocialLink / completeSocialSignup 세 곳).
+ * 배포일을 정하기 전에 가입 자체를 세우는 편이 더 나쁘다.
+ *
+ * 타입을 string으로 두는 이유는 LEGAL_EFFECTIVE_DATE와 같다. 리터럴로 좁혀지면
+ * 아래 gate의 UNCONFIRMED_VERSION 비교가 "겹치지 않는 비교"로 잡힌다.
+ */
+export const SIGNUP_PRIVACY_VERSION: string = "2026-09-26";
 
 /**
  * 개인정보 처리방침(/privacy) 버전. 확정 전 자리표시자.

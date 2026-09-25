@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   LOGIN_DEFAULT_PATH,
   LOGIN_NEXT_COOKIE,
-  SOCIAL_LINK_VERIFY_PATH,
+  SOCIAL_SIGNUP_AGREE_PATH,
   safeNextPath,
 } from "@/lib/loginRedirect";
 import { setUserId } from "@/lib/server/session";
@@ -40,7 +40,7 @@ interface KakaoUserResponse {
 /**
  * 카카오 인가 코드를 받아 토큰 교환 → 사용자 조회까지 마친 뒤,
  * 카카오 사용자 ID로 기존 활성 회원을 찾는다. 이미 연결된 계정이면 그대로 로그인하고,
- * 처음 보는 계정이면 회원을 만들지 않고 대기 상태만 남긴 뒤 휴대폰 인증 화면으로 보낸다.
+ * 처음 보는 계정이면 회원을 만들지 않고 대기 상태만 남긴 뒤 필수 동의 화면으로 보낸다.
  * 세션은 기존 연락처 로그인과 동일하게 setUserId() 쿠키를 그대로 쓴다.
  * 어떤 단계에서 실패하든 사용자는 /login 으로 안전하게 되돌아간다.
  */
@@ -175,11 +175,15 @@ export async function GET(request: Request) {
 
     /**
      * 처음 보는 카카오 계정: 여기서는 회원을 만들지 않는다.
-     * provider 정보만 서버 대기 상태에 남기고 휴대폰 인증 화면으로 보낸다.
-     * 인증을 마치면 그 번호의 회원에 연결하거나, 없을 때만 회원을 하나 만든다.
-     * (연결·생성은 completeSocialLink가 한다)
+     * provider 정보만 서버 대기 상태에 남기고 필수 동의 화면으로 보낸다.
+     * 동의를 마치면 휴대폰 없이(phone="") 회원을 하나 만든다.
+     * (생성은 completeSocialSignup이 한다)
      *
-     * 같은 번호나 같은 이름의 기존 회원과 자동으로 합치지 않는다.
+     * 휴대폰은 가입 때 받지 않는다. 실제 신청을 시작할 때 한 번 본인확인을 하고,
+     * 그때 같은 번호의 기존 회원이 있으면 연결을 그쪽으로 옮긴다
+     * (/my/verify-phone → completeMyPhoneVerification).
+     * 가입 시점에는 번호를 모르므로 기존 회원과 자동으로 합치지 않는다.
+     *
      * access token은 대기 상태에 담지 않는다.
      */
     await createSocialLinkPending({
@@ -187,10 +191,10 @@ export async function GET(request: Request) {
       providerUserId: kakaoId,
       nickname,
     });
-    const pendingResponse = NextResponse.redirect(new URL(SOCIAL_LINK_VERIFY_PATH, origin));
+    const pendingResponse = NextResponse.redirect(new URL(SOCIAL_SIGNUP_AGREE_PATH, origin));
     pendingResponse.cookies.delete(KAKAO_STATE_COOKIE);
     pendingResponse.cookies.delete(OAUTH_PURPOSE_COOKIE);
-    // 복귀 경로는 연결을 마친 뒤 completeSocialLink가 읽는다. 여기서 지우지 않는다.
+    // 복귀 경로는 가입을 마친 뒤 completeSocialSignup이 읽는다. 여기서 지우지 않는다.
     return pendingResponse;
   }
 
