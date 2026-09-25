@@ -22,6 +22,8 @@ const OPTION_PRICES = [
   { id: "lyric-edit", name: "가사 수정 1회 추가", price: ORDER_OPTION_PRICES["lyric-edit"] },
 ];
 const PAYMENT_METHODS = ["신용/체크카드", "무통장 입금", "카카오페이", "네이버페이"];
+/** 지금 실제로 결제되는 유일한 수단. 나머지는 준비 중이라 고를 수 없다. */
+const CARD_PAYMENT = "신용/체크카드";
 
 function moodLabel(draft: Record<string, string>) {
   const parts = [draft.moods, draft.customMood].filter(Boolean);
@@ -41,7 +43,7 @@ export default function ApplyStep6Page() {
   const [agreed, setAgreed] = useState(false);
   // 취소·환불 [필수] 동의. 저작권 동의(agreed)와 독립적으로 관리한다.
   const [refundAgreed, setRefundAgreed] = useState(false);
-  const [payment, setPayment] = useState("신용/체크카드");
+  const [payment, setPayment] = useState(CARD_PAYMENT);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -181,20 +183,35 @@ export default function ApplyStep6Page() {
       <div className="mt-5">
         <h3 className="mb-3 text-[16px] font-bold text-[#403A49]">결제 방법 선택</h3>
         <div className="grid grid-cols-2 gap-2">
-          {PAYMENT_METHODS.map((method) => (
-            <button
-              key={method}
-              type="button"
-              onClick={() => setPayment(method)}
-              className={`h-12 rounded-xl text-[14px] font-medium ${
-                payment === method
-                  ? "bg-[#403A49] text-white"
-                  : "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
-              }`}
-            >
-              {method}
-            </button>
-          ))}
+          {PAYMENT_METHODS.map((method) => {
+            /*
+             * 지금 실제로 결제되는 것은 카드뿐이다(PaySubmit의 CARD_ONLY_MESSAGE 방어와 같은 기준).
+             * 나머지는 목록에서 빼지 않고 누를 수 없게 두고 "준비 중"임을 그 자리에서 알린다.
+             * 고를 수 있게 두면 결제 단계까지 가서야 막혀 헛걸음이 된다.
+             */
+            const ready = method === CARD_PAYMENT;
+            return (
+              <button
+                key={method}
+                type="button"
+                // disabled면 클릭 이벤트가 발생하지 않으므로 payment는 바뀌지 않는다.
+                disabled={!ready}
+                onClick={() => setPayment(method)}
+                className={`min-h-12 rounded-xl text-[14px] font-medium flex flex-col items-center justify-center ${
+                  payment === method
+                    ? "bg-[#403A49] text-white"
+                    : ready
+                      ? "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                      : "border border-[#ebe3d8] bg-[#f5efe6] text-[#9a938c]"
+                }`}
+              >
+                {method}
+                {ready ? null : (
+                  <span className="mt-0.5 text-[12px] font-normal">준비 중</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
