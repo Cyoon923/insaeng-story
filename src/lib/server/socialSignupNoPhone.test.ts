@@ -401,7 +401,10 @@ test("가입 동의 문서가 소셜 가입 시 휴대폰을 받는다고 적지
   const items = page.slice(start, listEnd);
   assert.ok(!items.includes("휴대폰 번호 (필수)"), "소셜 가입 항목에 휴대폰이 없어야 한다");
   assert.ok(items.includes("카카오 또는 네이버 계정 식별정보"));
-  assert.ok(items.includes("이름 또는 닉네임"));
+  // provider마다 제공받는 값이 달라 항목을 나눠 적는다(네이버=회원이름, 카카오=닉네임).
+  // 여기서 보는 것은 "이름에 해당하는 항목이 고지되어 있는가"다.
+  assert.ok(items.includes("회원이름"), "네이버에서 받는 이름이 적혀 있어야 한다");
+  assert.ok(items.includes("닉네임"), "카카오에서 받는 이름이 적혀 있어야 한다");
   // 실제 흐름을 설명한다.
   assert.ok(page.includes("가입하실 때 휴대폰 번호도 받지"));
 });

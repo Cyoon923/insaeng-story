@@ -48,7 +48,8 @@ export default async function PrivacyCollectionPage({
             카카오·네이버로 가입할 때 받는 정보
           </h3>
           <ul className="mt-2 space-y-1 text-[15px] leading-relaxed text-[#5c3d2e]">
-            <li>· 이름 또는 닉네임 (카카오·네이버 프로필에서 제공받습니다)</li>
+            <li>· 네이버로 가입하실 때: 회원이름 (네이버 프로필에서 제공받습니다)</li>
+            <li>· 카카오로 가입하실 때: 닉네임 (카카오 프로필에서 제공받습니다)</li>
             <li>· 카카오 또는 네이버 계정 식별정보</li>
           </ul>
           <p className="mt-3 text-[15px] leading-relaxed text-[#5c3d2e]">

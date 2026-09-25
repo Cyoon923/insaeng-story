@@ -35,6 +35,12 @@ interface NaverUserResponse {
   resultcode?: string;
   response?: {
     id?: string;
+    /**
+     * 회원이름. 네이버 개발자센터에서 "회원이름"을 필수 제공항목으로 설정해야 실린다.
+     * 설정이나 검수 상태에 따라 빠질 수 있어 선택 필드로 둔다.
+     */
+    name?: string;
+    /** 별명. 현재 제공항목에서 빠져 있어 보통 오지 않는다. 옛 회원을 위해 남겨 둔다. */
     nickname?: string;
   };
 }
@@ -85,6 +91,7 @@ export async function GET(request: Request) {
   if (!state || !savedState || state !== savedState) return fail("naver_state");
 
   let naverId = "";
+  let realName = "";
   let nickname = "";
   // 탈퇴 재인증에서만 쓴다. 일반 로그인 경로에서는 사용하지 않고 응답에도 담지 않는다.
   let accessToken = "";
@@ -111,6 +118,7 @@ export async function GET(request: Request) {
     if (profile.resultcode !== "00" || !profile.response?.id) return fail("naver_profile");
 
     naverId = String(profile.response.id);
+    realName = (profile.response.name ?? "").trim();
     nickname = (profile.response.nickname ?? "").trim();
     accessToken = token.access_token;
   } catch {
@@ -156,9 +164,15 @@ export async function GET(request: Request) {
     return verified;
   }
 
-  // 이름은 별명만 쓴다. 실명은 받지도 읽지도 않는다.
-  // 별명이 없으면 빈 문자열이며, 신규 가입에서 기본값("네이버 회원")으로 채워진다.
-  const displayName = nickname;
+  /**
+   * 화면에 쓰는 이름. 회원이름을 먼저 보고, 없을 때만 별명으로 물러선다.
+   *
+   * 제공항목이 별명에서 회원이름으로 바뀌었으므로 회원이름이 정식 출처다.
+   * 별명 폴백을 남겨 두는 이유는, 제공항목 설정이나 검수 상태 때문에 회원이름이
+   * 빠져 돌아오는 경우에 이름이 통째로 비어 기본값("네이버 회원")이 되는 것보다는
+   * 낫기 때문이다. 둘 다 없으면 빈 문자열이며, 신규 가입에서 기본값으로 채워진다.
+   */
+  const displayName = realName || nickname;
 
   const data = await readData();
   const user = data.users.find((item) => isActiveUser(item) && item.naverId === naverId);

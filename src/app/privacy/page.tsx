@@ -71,7 +71,8 @@ export default async function PrivacyPage({
           <h3 className="text-[17px] font-bold text-[#403A49]">카카오·네이버로 로그인할 때</h3>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
             카카오나 네이버로 간편하게 로그인하시면, 사주로그는 그 계정을 알아보기 위한 계정
-            식별정보와 프로필에 있는 이름(닉네임) 등 로그인에 필요한 정보를 처리합니다.
+            식별정보와 프로필에 있는 이름 또는 닉네임 등 로그인에 필요한 정보를 처리합니다.
+            네이버에서는 회원이름을, 카카오에서는 닉네임을 제공받습니다.
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[#5c3d2e]">
             간편로그인으로 처음 가입하실 때에는 휴대폰 번호를 받지 않습니다. 상품이나 상담을
