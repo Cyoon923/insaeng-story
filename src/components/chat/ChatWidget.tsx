@@ -549,6 +549,8 @@ interface ChatInquiryView {
   contactMethod: string;
   createdAt: string;
   lastMessageAt: string;
+  /** 목록 응답에만 들어 있다. 새 상담원 답변 표시는 이 값만 본다. */
+  lastMessageSender?: "customer" | "agent";
 }
 
 /** 문의방 안의 메시지 한 줄. customer는 고객, agent는 사람 상담원이다. */
@@ -581,6 +583,49 @@ function pickAgentInquiry(
   return inquiries.reduce((latest, item) =>
     item.lastMessageAt > latest.lastMessageAt ? item : latest,
   );
+}
+
+/** 상담원 대화를 마지막으로 확인한 시각. 기존 sajulog_ 접두사 관례를 따른다. */
+const AGENT_SEEN_KEY = "sajulog_chat_agent_seen_at";
+
+/**
+ * 아직 보지 못한 상담원 답변이 있는지.
+ *
+ * 마지막 말이 상담원 것이고, 그 시각이 마지막으로 확인한 시각보다 나중일 때만 참이다.
+ * 값이 없거나 날짜가 깨져 있으면 참으로 보지 않는다(같은 시각도 이미 본 것으로 본다).
+ * 예외는 하나다. 상담원 답변은 있는데 확인 기록이 아예 없으면 아직 보지 않은 것이다.
+ */
+function hasUnseenAgentReply(
+  inquiry: ChatInquiryView | null,
+  lastSeenAt: string | null,
+): boolean {
+  if (!inquiry || inquiry.lastMessageSender !== "agent") return false;
+  const arrived = Date.parse(inquiry.lastMessageAt ?? "");
+  if (Number.isNaN(arrived)) return false;
+  if (!lastSeenAt) return true;
+  const seen = Date.parse(lastSeenAt);
+  if (Number.isNaN(seen)) return true;
+  return arrived > seen;
+}
+
+/**
+ * 확인 시각 읽기·쓰기. 브라우저 저장소를 쓸 수 없는 창(시크릿·차단)에서도
+ * 도령이 그대로 동작해야 하므로 실패는 조용히 넘긴다. 배지만 안 뜬다.
+ */
+function readAgentSeenAt(): string | null {
+  try {
+    return localStorage.getItem(AGENT_SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeAgentSeenAt(value: string): void {
+  try {
+    localStorage.setItem(AGENT_SEEN_KEY, value);
+  } catch {
+    // 저장하지 못하면 다음에 배지가 한 번 더 보일 뿐이다. 기능은 그대로다.
+  }
 }
 
 /** 내부 상태값을 그대로 보여 주지 않고 사람이 읽는 문구로 바꾼다. */
@@ -1107,6 +1152,8 @@ export const __chatInquiryInternals = {
   pickAgentInquiry,
   isOpenInquiry,
   inquiryStatusLabel,
+  hasUnseenAgentReply,
+  AGENT_SEEN_KEY,
 };
 
 export function ChatWidget() {
@@ -1140,6 +1187,10 @@ export function ChatWidget() {
   const [agentSending, setAgentSending] = useState(false);
   const [agentError, setAgentError] = useState("");
   const agentEndRef = useRef<HTMLDivElement>(null);
+  // 아직 보지 못한 상담원 답변이 있는지. 플로팅 버튼의 점 하나로만 쓴다(숫자는 쓰지 않는다).
+  const [agentUnseen, setAgentUnseen] = useState(false);
+  // 마운트 직후 한 번 조회했는지. 패널을 닫을 때 다시 묻지 않기 위한 표시다.
+  const mountLoadedRef = useRef(false);
   // 아래 재조회 effect가 지금 상담원 대화 화면인지 보기 위한 거울.
   // 이 값을 effect의 의존 목록에 넣으면 화면을 열 때마다 effect가 다시 돌아
   // 같은 요청이 두 번 나간다. 그래서 상태가 아니라 ref로 읽는다.
@@ -1269,17 +1320,26 @@ export function ChatWidget() {
       setAgentInquiry(result.inquiry);
       setAgentMessages(result.messages);
       setAgentOpen(true);
+      // 여기까지 왔으면 이 방의 최신 타임라인을 실제로 받아 화면에 올린 것이다.
+      // 그때만 확인한 것으로 보고 점을 내린다. 버튼만 눌렀거나 자동 안내만 본 경우는 아니다.
+      writeAgentSeenAt(result.inquiry.lastMessageAt);
+      setAgentUnseen(false);
     } catch {
       setInquiryError("연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요.");
     }
   };
 
   useEffect(() => {
-    // 패널을 열 때마다 내 문의방을 다시 찾아본다.
+    // 화면에 붙은 직후 한 번, 그리고 패널을 열 때마다 내 문의방을 다시 찾아본다.
+    // 마운트 때 한 번 묻는 이유는 도령을 열지 않아도 새 답변 점을 보여 주기 위해서다.
     // 관리자가 답변한 뒤 고객이 위젯을 닫았다 다시 열면 그 답변이 보여야 한다.
-    // 여는 순간에만 한 번 묻는다. polling도, 화면 전환 감시도 하지 않는다.
+    // 이 두 시점에만 묻는다. polling도, 화면 전환 감시도 하지 않는다.
     // 실패해도 도령이 자동 안내는 그대로 쓸 수 있어야 하므로 화면에 오류를 띄우지 않는다.
-    if (!open) return;
+    if (!open) {
+      // 닫는 순간에는 다시 묻지 않는다. 마운트 직후 한 번만 지나간다.
+      if (mountLoadedRef.current) return;
+      mountLoadedRef.current = true;
+    }
 
     let cancelled = false;
     (async () => {
@@ -1290,9 +1350,10 @@ export function ChatWidget() {
         const found = pickAgentInquiry(result.inquiries);
         if (cancelled || !found) return;
         setAgentInquiry(found);
+        setAgentUnseen(hasUnseenAgentReply(found, readAgentSeenAt()));
         // 상담원 대화 화면을 보던 채로 닫았던 경우다. 그 방의 타임라인도 다시 읽어
         // 그 사이 들어온 상담원 답변이 화면에 들어오게 한다. 기존 조회 경로를 그대로 쓴다.
-        if (agentOpenRef.current) await openAgentChat(found.id);
+        if (open && agentOpenRef.current) await openAgentChat(found.id);
       } catch {
         // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
       }
@@ -1765,13 +1826,22 @@ export function ChatWidget() {
             type="button"
             onClick={() => setOpen(true)}
             className="pointer-events-auto relative flex h-[92px] w-[84px] items-center justify-center"
-            aria-label="사주로그 AI 안내 열기"
+            aria-label={
+              agentUnseen ? "사주로그 AI 안내 열기 (새 상담원 답변 있음)" : "사주로그 AI 안내 열기"
+            }
           >
             {/* 이미지 뒤에서 아주 은은하게 번지는 보라 glow. 움직임이 크지 않게 6초 주기로 둔다. */}
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0 animate-pulse bg-[radial-gradient(ellipse_at_center,rgba(124,92,214,0.28)_0%,rgba(124,92,214,0)_70%)] [animation-duration:6s]"
             />
+            {/* 새 상담원 답변 표시. 점 하나만 얹고 버튼·아바타·glow는 그대로 둔다. */}
+            {agentUnseen ? (
+              <span
+                aria-hidden
+                className="absolute right-1 top-1 z-10 h-3.5 w-3.5 rounded-full border-2 border-white bg-red-600"
+              />
+            ) : null}
             {/* 이미지 안에 상담원 표기까지 들어 있어 그대로 다 보이게 둔다. 잘라내지 않는다. */}
             <Image
               src={DORYEONG_FACES.avatar}

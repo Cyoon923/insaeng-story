@@ -230,36 +230,62 @@ export async function createChatInquiry(
   };
 }
 
-/** 회원이 가진 문의방. 최근 대화가 위로 온다. */
-export async function listChatInquiriesByUserId(userId: string): Promise<ChatInquiry[]> {
-  if (!userId) return [];
+/**
+ * 고객 목록 한 벌. 주인 확인은 호출부가 주는 열(user_id 또는 guest_token_hash)로 한다.
+ *
+ * 방마다 마지막 말이 누구 것인지 함께 읽는다. 고객 화면이 "새 상담원 답변이 있는지"를
+ * 이 한 값으로 판단하기 때문이다. 방식은 관리자 목록(listChatInquiriesForAdmin)과 같은
+ * LATERAL이며, 같은 (inquiry_id, created_at) 인덱스를 그대로 쓴다. 질의 수는 늘지 않는다.
+ *
+ * 관리자와 달리 마지막 말의 본문(body)은 읽지 않는다. 고객 응답에 필요하지 않고,
+ * 필요 없는 값을 담지 않는 것이 고객용 응답의 방침이다.
+ */
+async function listChatInquiriesBy(
+  column: "user_id" | "guest_token_hash",
+  value: string,
+): Promise<ChatInquiryListItem[]> {
+  if (!value) return [];
   const sql = await requireSql();
   const rows = (await sql.query(
     `
-      SELECT ${INQUIRY_COLUMNS} FROM chat_inquiries
-      WHERE user_id = $1
-      ORDER BY last_message_at DESC
+      SELECT
+        i.id, i.user_id, i.name, i.phone, i.contact_method, i.status,
+        i.created_at, i.updated_at, i.last_message_at,
+        last_message.sender AS last_message_sender
+      FROM chat_inquiries i
+      LEFT JOIN LATERAL (
+        SELECT m.sender
+        FROM chat_inquiry_messages m
+        WHERE m.inquiry_id = i.id
+        ORDER BY m.created_at DESC
+        LIMIT 1
+      ) AS last_message ON TRUE
+      WHERE i.${column} = $1
+      ORDER BY i.last_message_at DESC
     `,
-    [userId],
-  )) as InquiryRow[];
-  return rows.map(mapInquiry);
+    [value],
+  )) as (InquiryRow & { last_message_sender: string | null })[];
+
+  return rows.map((row) => ({
+    ...mapInquiry(row),
+    ...(row.last_message_sender === null
+      ? {}
+      : { lastMessageSender: row.last_message_sender === "agent" ? "agent" : "customer" }),
+  }));
+}
+
+/** 회원이 가진 문의방. 최근 대화가 위로 온다. */
+export async function listChatInquiriesByUserId(
+  userId: string,
+): Promise<ChatInquiryListItem[]> {
+  return listChatInquiriesBy("user_id", userId);
 }
 
 /** 비회원이 가진 문의방. 토큰 해시가 맞아야만 보인다. */
 export async function listChatInquiriesByGuestTokenHash(
   guestTokenHash: string,
-): Promise<ChatInquiry[]> {
-  if (!guestTokenHash) return [];
-  const sql = await requireSql();
-  const rows = (await sql.query(
-    `
-      SELECT ${INQUIRY_COLUMNS} FROM chat_inquiries
-      WHERE guest_token_hash = $1
-      ORDER BY last_message_at DESC
-    `,
-    [guestTokenHash],
-  )) as InquiryRow[];
-  return rows.map(mapInquiry);
+): Promise<ChatInquiryListItem[]> {
+  return listChatInquiriesBy("guest_token_hash", guestTokenHash);
 }
 
 async function loadMessages(

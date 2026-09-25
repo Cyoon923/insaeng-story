@@ -14,7 +14,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { __chatInquiryInternals } from "@/components/chat/ChatWidget";
 
-const { pickAgentInquiry, isOpenInquiry } = __chatInquiryInternals;
+const { pickAgentInquiry, isOpenInquiry, hasUnseenAgentReply, AGENT_SEEN_KEY } =
+  __chatInquiryInternals;
 
 const WIDGET = readFileSync(
   new URL("../components/chat/ChatWidget.tsx", import.meta.url),
@@ -28,6 +29,13 @@ type View = Parameters<typeof pickAgentInquiry>[0] extends (infer T)[] | undefin
 function view(id: string, status: string, lastMessageAt: string): View {
   return { id, status, contactMethod: "카카오톡", createdAt: lastMessageAt, lastMessageAt };
 }
+
+/** 마지막 발신자까지 붙인 목록 응답 한 줄. */
+function listed(lastMessageAt: string, sender?: "customer" | "agent"): View {
+  return { ...view("i-1", "in_progress", lastMessageAt), ...(sender ? { lastMessageSender: sender } : {}) };
+}
+
+const REPLY_AT = "2026-09-26T10:00:00.000Z";
 
 /* ── 1. 어느 문의방을 보여주는가 ─────────────────────── */
 
@@ -80,8 +88,8 @@ test("최초 1회만 조회하던 가드를 두지 않는다", () => {
 });
 
 test("패널이 열릴 때 목록을 조회하고, 대화 화면이면 타임라인까지 다시 읽는다", () => {
-  assert.match(WIDGET_CODE, /if \(!open\) return;[\s\S]{0,400}?fetch\("\/api\/chat-inquiries\/me"\)/);
-  assert.match(WIDGET_CODE, /if \(agentOpenRef\.current\) await openAgentChat\(found\.id\);/);
+  assert.match(WIDGET_CODE, /if \(!open\) \{[\s\S]{0,200}?\}[\s\S]{0,400}?fetch\("\/api\/chat-inquiries\/me"\)/);
+  assert.match(WIDGET_CODE, /if \(open && agentOpenRef\.current\) await openAgentChat\(found\.id\);/);
   assert.match(WIDGET_CODE, /\}, \[open\]\);/);
 });
 
@@ -99,4 +107,88 @@ test("문의 생성과 메시지 추가는 기존 API를 그대로 쓴다", () =
   assert.match(WIDGET_CODE, /fetch\(`\/api\/chat-inquiries\/me\/\$\{encodeURIComponent\(inquiryId\)\}`\)/);
   // 새 API를 만들지 않았다: chat-inquiries 호출은 위 네 곳뿐이다.
   assert.equal((WIDGET_CODE.match(/\/api\/chat-inquiries/g) ?? []).length, 4);
+});
+
+/* ── 5. 새 상담원 답변 판정 (dot 배지) ───────────────── */
+
+test("상담원이 마지막으로 말했고 확인 기록이 없으면 새 답변으로 본다", () => {
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "agent"), null), true);
+  // 저장소를 읽지 못해 빈 값이 온 경우도 같다(readAgentSeenAt이 null을 준다).
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "agent"), ""), true);
+});
+
+test("상담원 답변이 확인 시각보다 나중이면 새 답변이다", () => {
+  assert.equal(
+    hasUnseenAgentReply(listed(REPLY_AT, "agent"), "2026-09-26T09:59:59.999Z"),
+    true,
+  );
+});
+
+test("확인 시각과 답변 시각이 같으면 이미 본 것으로 본다", () => {
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "agent"), REPLY_AT), false);
+});
+
+test("답변이 확인 시각보다 오래되었으면 새 답변이 아니다", () => {
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "agent"), "2026-09-27T00:00:00.000Z"), false);
+});
+
+test("마지막으로 말한 사람이 고객이면 새 답변이 아니다", () => {
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "customer"), null), false);
+});
+
+test("마지막 발신자를 알 수 없으면 새 답변으로 보지 않는다", () => {
+  // 필드가 없는 예전 응답과도 안전하게 지낸다.
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT), null), false);
+  assert.equal(hasUnseenAgentReply(null, null), false);
+});
+
+test("날짜가 비었거나 깨져 있으면 새 답변으로 보지 않는다", () => {
+  assert.equal(hasUnseenAgentReply(listed("", "agent"), null), false);
+  assert.equal(hasUnseenAgentReply(listed("어제", "agent"), null), false);
+  // 확인 시각 쪽이 깨진 경우는 확인 기록이 없는 것과 같게 본다.
+  assert.equal(hasUnseenAgentReply(listed(REPLY_AT, "agent"), "깨진 값"), true);
+});
+
+/* ── 6. 배지가 붙는 자리와 읽음 기록 시점 ────────────── */
+
+test("확인 시각은 sajulog_ 접두사 키 하나에만 담는다", () => {
+  assert.equal(AGENT_SEEN_KEY, "sajulog_chat_agent_seen_at");
+  // 이 키 말고 다른 저장소 칸을 새로 만들지 않는다.
+  assert.equal((WIDGET_CODE.match(/localStorage\.(getItem|setItem|removeItem)/g) ?? []).length, 2);
+  // 상수 선언 + 읽기 + 쓰기 + 테스트 출구, 네 곳뿐이다.
+  assert.equal((WIDGET_CODE.match(/AGENT_SEEN_KEY/g) ?? []).length, 4);
+});
+
+test("localStorage 접근은 모두 try/catch 안에 있다", () => {
+  assert.match(WIDGET_CODE, /try \{\s*return localStorage\.getItem\(AGENT_SEEN_KEY\);\s*\} catch \{/);
+  assert.match(WIDGET_CODE, /try \{\s*localStorage\.setItem\(AGENT_SEEN_KEY, value\);\s*\} catch \{/);
+});
+
+test("점은 unseen 상태에만 붙고 숫자를 쓰지 않는다", () => {
+  // 플로팅 버튼 영역에서 agentUnseen일 때만 점을 그린다.
+  assert.match(WIDGET_CODE, /\{agentUnseen \? \(\s*<span[\s\S]{0,200}?rounded-full/);
+  // 새 답변이 있을 때 aria-label에 그 사실이 들어간다.
+  assert.match(WIDGET_CODE, /agentUnseen\s*\?\s*"사주로그 AI 안내 열기 \(새 상담원 답변 있음\)"/);
+  // 숫자 카운트를 만들지 않는다: 상태는 boolean 하나뿐이다.
+  assert.match(WIDGET_CODE, /const \[agentUnseen, setAgentUnseen\] = useState\(false\);/);
+  assert.doesNotMatch(WIDGET_CODE, /unreadCount|agentUnreadCount/);
+});
+
+test("상담원 대화를 실제로 받아온 뒤에만 확인 시각을 적고 점을 내린다", () => {
+  // openAgentChat이 messages를 화면에 올린 다음 줄에서만 기록한다.
+  assert.match(
+    WIDGET_CODE,
+    /setAgentMessages\(result\.messages\);\s*setAgentOpen\(true\);\s*writeAgentSeenAt\(result\.inquiry\.lastMessageAt\);\s*setAgentUnseen\(false\);/,
+  );
+  // 기록은 그 한 곳뿐이다. 버튼 클릭(setOpen)이나 자동 안내 화면에서는 적지 않는다.
+  assert.equal((WIDGET_CODE.match(/writeAgentSeenAt\(/g) ?? []).length, 2);
+  assert.doesNotMatch(WIDGET_CODE, /onClick=\{\(\) => \{[^}]*writeAgentSeenAt/);
+});
+
+test("배지 확인은 마운트 1회 + 패널 열기 때만 한다", () => {
+  // 닫는 순간에는 다시 묻지 않는다.
+  assert.match(WIDGET_CODE, /if \(!open\) \{\s*if \(mountLoadedRef\.current\) return;\s*mountLoadedRef\.current = true;\s*\}/);
+  assert.match(WIDGET_CODE, /setAgentUnseen\(hasUnseenAgentReply\(found, readAgentSeenAt\(\)\)\);/);
+  // 타임라인 재조회는 패널이 열려 있을 때만.
+  assert.match(WIDGET_CODE, /if \(open && agentOpenRef\.current\) await openAgentChat\(found\.id\);/);
 });

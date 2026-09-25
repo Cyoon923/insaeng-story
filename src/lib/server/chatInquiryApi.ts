@@ -9,28 +9,43 @@
 import { NextResponse } from "next/server";
 import type {
   ChatInquiry,
+  ChatInquiryListItem,
   ChatInquiryMessage,
+  ChatInquirySender,
   ChatInquiryThread,
 } from "@/lib/server/chatInquiries";
 import { ChatInquiryError } from "@/lib/server/chatInquiries";
 import { isAdminAuthenticated } from "@/lib/server/adminSession";
 
-/** 목록·상세에서 공통으로 쓰는 문의방 요약. */
+/**
+ * 목록·상세에서 공통으로 쓰는 문의방 요약.
+ *
+ * lastMessageSender는 목록에서만 채워진다. 고객 화면이 "마지막 말이 상담원 것인지"만
+ * 보고 새 답변 표시를 정하기 위한 값이다. 말의 본문은 담지 않는다.
+ */
 export interface ChatInquiryView {
   id: string;
   status: string;
   contactMethod: string;
   createdAt: string;
   lastMessageAt: string;
+  lastMessageSender?: ChatInquirySender;
 }
 
-export function toInquiryView(inquiry: ChatInquiry): ChatInquiryView {
+/**
+ * 목록이 준 값(ChatInquiryListItem)이면 마지막 발신자를 함께 담고,
+ * 상세·생성이 준 값(ChatInquiry)이면 그 칸 없이 예전과 같은 모양을 준다.
+ * 저장된 값이 예상 밖이면 담지 않는다. 화면은 없는 값을 "새 답변 없음"으로 본다.
+ */
+export function toInquiryView(inquiry: ChatInquiry | ChatInquiryListItem): ChatInquiryView {
+  const sender = (inquiry as ChatInquiryListItem).lastMessageSender;
   return {
     id: inquiry.id,
     status: inquiry.status,
     contactMethod: inquiry.contactMethod,
     createdAt: inquiry.createdAt,
     lastMessageAt: inquiry.lastMessageAt,
+    ...(sender === "agent" || sender === "customer" ? { lastMessageSender: sender } : {}),
   };
 }
 
