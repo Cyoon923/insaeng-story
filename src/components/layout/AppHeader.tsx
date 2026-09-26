@@ -8,6 +8,62 @@ import { usePathname } from "next/navigation";
 import { Menu, Bell, ChevronLeft, Share2, User } from "lucide-react";
 import { fetchMe } from "@/lib/client/api";
 import { AGENT_SEEN_EVENT, fetchUnseenAgentReply } from "@/lib/client/chatAgentUnseen";
+import { IMAGES } from "@/lib/constants/images";
+
+/**
+ * 카카오톡 공유에 쓰는 공식 JavaScript SDK.
+ *
+ * 공유 시트에서 카카오톡을 누른 순간에만 내려받는다. 모든 화면에서 미리 불러오지 않는다.
+ * 앱 키는 코드에 적지 않고 NEXT_PUBLIC_KAKAO_JS_KEY로만 읽는다.
+ * 키가 없거나 내려받기·초기화가 실패하면 null을 돌려준다. 실패를 성공처럼 다루지 않는다.
+ */
+const KAKAO_SDK_SRC = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.6/kakao.min.js";
+
+interface KakaoShareSdk {
+  init(key: string): void;
+  isInitialized(): boolean;
+  Share: { sendDefault(settings: Record<string, unknown>): void };
+}
+
+declare global {
+  interface Window {
+    Kakao?: KakaoShareSdk;
+  }
+}
+
+/** 한 번 내려받으면 그 결과를 계속 쓴다. 같은 스크립트를 두 번 넣지 않는다. */
+let kakaoSdkLoad: Promise<KakaoShareSdk | null> | null = null;
+
+function loadKakaoSdk(): Promise<KakaoShareSdk | null> {
+  if (kakaoSdkLoad) return kakaoSdkLoad;
+  kakaoSdkLoad = new Promise((resolve) => {
+    if (window.Kakao) {
+      resolve(window.Kakao);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = KAKAO_SDK_SRC;
+    script.async = true;
+    script.onload = () => resolve(window.Kakao ?? null);
+    script.onerror = () => resolve(null);
+    document.head.appendChild(script);
+  });
+  return kakaoSdkLoad;
+}
+
+/** 쓸 준비가 끝난 SDK. init은 한 번만 한다. 준비되지 않으면 null이다. */
+async function kakaoShareSdk(): Promise<KakaoShareSdk | null> {
+  const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+  if (!key) return null;
+  const sdk = await loadKakaoSdk();
+  if (!sdk) return null;
+  try {
+    if (!sdk.isInitialized()) sdk.init(key);
+    return sdk.isInitialized() ? sdk : null;
+  } catch {
+    return null;
+  }
+}
 
 async function copyLink(url: string): Promise<boolean> {
   try {
@@ -43,10 +99,6 @@ function isPrivatePath(pathname: string | null): boolean {
   return PRIVATE_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
-}
-
-function isLocalPreview() {
-  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 }
 
 interface AppHeaderProps {
@@ -127,8 +179,16 @@ export function AppHeader({
     };
   }, [showBell]);
 
-  const pageUrl = () => window.location.href;
-  const pageTitle = () => document.title;
+  /**
+   * 공유하는 것은 언제나 사주로그 홈 하나다.
+   * 지금 보고 있는 주소(window.location.href)는 공유하지 않는다. 신청 단계나 내부 화면의
+   * 주소를 남에게 넘기지 않기 위해서다. 제목도 화면마다 달라지지 않게 고정한다.
+   */
+  const homeUrl = () => `${window.location.origin}/`;
+  const SHARE_TITLE = "사주로그 | 인생의 서사를 연주하고 기록한다";
+  // layout.tsx의 metadata.description, manifest.ts의 description과 같은 공식 문구다.
+  const SHARE_DESCRIPTION =
+    "고객의 이야기 또는 사주를 바탕으로 한 사람만을 위한 인생곡을 만들어 드립니다.";
 
   const showCopied = (message: string) => {
     setShareOpen(false);
@@ -136,31 +196,48 @@ export function AppHeader({
     window.setTimeout(() => setShareMessage(""), 2500);
   };
 
-  const shareKakao = async () => {
-    const url = pageUrl();
-    if (isLocalPreview()) {
-      const copied = await copyLink(url);
-      showCopied(copied ? "미리보기에서는 링크를 복사합니다." : "링크를 복사하지 못했습니다.");
-      return;
-    }
-    window.open(
-      `https://story.kakao.com/share?url=${encodeURIComponent(url)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
-    setShareOpen(false);
+  /** 공유 시트 안에서만 보여 주는 안내. 시트를 닫지 않아 다른 방법을 바로 고를 수 있다. */
+  const showShareNotice = (message: string) => {
+    setShareMessage(message);
+    window.setTimeout(() => setShareMessage(""), 2500);
   };
 
-  const shareTelegram = async () => {
-    const url = pageUrl();
-    const text = pageTitle();
-    if (isLocalPreview()) {
-      const copied = await copyLink(url);
-      showCopied(copied ? "미리보기에서는 링크를 복사합니다." : "링크를 복사하지 못했습니다.");
+  /**
+   * 카카오톡 공유. 공식 Kakao.Share.sendDefault만 쓴다.
+   * 보내는 링크는 홈 하나이고(mobileWebUrl·webUrl 모두 homeUrl()),
+   * 제목·설명은 사주로그 공식 문구, 대표 이미지는 기존 hero 이미지를 절대 주소로 넘긴다.
+   * 준비가 안 되었으면 조용히 성공한 척하지 않고 다른 방법을 안내한다.
+   */
+  const shareKakao = async () => {
+    const sdk = await kakaoShareSdk();
+    if (!sdk) {
+      showShareNotice("카카오톡 공유를 쓸 수 없어요. 주소 복사를 이용해 주세요.");
       return;
     }
+    const url = homeUrl();
+    try {
+      sdk.Share.sendDefault({
+        objectType: "feed",
+        content: {
+          title: SHARE_TITLE,
+          description: SHARE_DESCRIPTION,
+          imageUrl: `${window.location.origin}${IMAGES.hero}`,
+          link: { mobileWebUrl: url, webUrl: url },
+        },
+      });
+      setShareOpen(false);
+    } catch {
+      showShareNotice("카카오톡 공유를 열지 못했어요. 주소 복사를 이용해 주세요.");
+    }
+  };
+
+  /**
+   * 텔레그램 공유. 보내는 주소는 홈 하나이고 제목도 고정 문구다.
+   * 지금 보고 있는 주소(pathname·search·hash)는 어떤 경우에도 넣지 않는다.
+   */
+  const shareTelegram = () => {
     window.open(
-      `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      `https://t.me/share/url?url=${encodeURIComponent(homeUrl())}&text=${encodeURIComponent(SHARE_TITLE)}`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -168,7 +245,7 @@ export function AppHeader({
   };
 
   const shareCopy = async () => {
-    const copied = await copyLink(pageUrl());
+    const copied = await copyLink(homeUrl());
     showCopied(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
   };
 
@@ -298,16 +375,9 @@ export function AppHeader({
                     <button
                       type="button"
                       onClick={shareKakao}
-                      className="flex h-14 w-full items-center justify-center rounded-xl bg-[#5c3d2e] text-[17px] font-semibold text-white"
+                      className="flex h-14 w-full items-center justify-center rounded-xl bg-[#fee500] text-[17px] font-semibold text-[#3d2b1f]"
                     >
                       카카오톡
-                    </button>
-                    <button
-                      type="button"
-                      onClick={shareCopy}
-                      className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
-                    >
-                      주소 복사
                     </button>
                     <button
                       type="button"
@@ -316,7 +386,19 @@ export function AppHeader({
                     >
                       텔레그램
                     </button>
+                    <button
+                      type="button"
+                      onClick={shareCopy}
+                      className="flex h-14 w-full items-center justify-center rounded-xl border border-[#d4c8ba] bg-white text-[17px] font-semibold text-[#5c3d2e]"
+                    >
+                      주소 복사
+                    </button>
                   </div>
+                  {shareMessage ? (
+                    <p className="mt-3 text-center text-[14px] leading-relaxed text-[#5c3d2e]">
+                      {shareMessage}
+                    </p>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setShareOpen(false)}
