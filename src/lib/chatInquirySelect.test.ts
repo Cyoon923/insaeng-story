@@ -200,7 +200,7 @@ test("도령 버튼 N은 unseen 상태에만 붙는다", () => {
   // false면 아무것도 그리지 않는다(같은 삼항의 else가 null이다).
   assert.match(WIDGET_CODE, /N\s*<\/span>\s*\)\s*: null\}/);
   // 새 답변이 있을 때 aria-label에 그 사실이 들어간다.
-  assert.match(WIDGET_CODE, /agentUnseen\s*\?\s*"사주로그 AI 안내 열기 \(새 상담원 답변 있음\)"/);
+  assert.match(WIDGET_CODE, /agentUnseen\s*\?\s*"사주로그 안내 열기 \(새 상담원 답변 있음\)"/);
   // 상태는 boolean 하나뿐이다.
   assert.match(WIDGET_CODE, /const \[agentUnseen, setAgentUnseen\] = useState\(false\);/);
 });

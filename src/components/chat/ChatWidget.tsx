@@ -526,7 +526,7 @@ const LOCAL_GREETING_REPLIES: {
 }[] = [
   {
     keywords: ["안녕하세요", "안녕", "하이", "hello", "hi"],
-    text: "안녕하세요 🐾\n사주로그 AI 상담원 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요.",
+    text: "안녕하세요 🐾\n사주로그 안내 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요.",
     mood: "greeting",
   },
   {
@@ -1505,7 +1505,7 @@ export function ChatWidget() {
               />
             </button>
             <span className="min-w-0 flex-1">
-              <h2 className="text-[16px] font-bold leading-tight text-[#403A49]">사주로그 AI 안내</h2>
+              <h2 className="text-[16px] font-bold leading-tight text-[#403A49]">사주로그 안내</h2>
               <p className="mt-0.5 text-[12px] leading-tight text-[#6B6570]">
                 도령이가 알려드려요 🐾
               </p>
@@ -1594,7 +1594,7 @@ export function ChatWidget() {
           <div className="flex-1 space-y-4 overflow-y-auto bg-[#faf8f5] px-4 py-4">
             <div className="space-y-2">
               <DoryeongBubble
-                text={"안녕하세요 🐾\n사주로그 AI 상담원 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요."}
+                text={"안녕하세요 🐾\n사주로그 안내 도령이에요.\n\n궁금한 게 있으시면\n편하게 물어보세요."}
                 mood="greeting"
                 display="emphasis"
                 onFaceClick={() => setProfileOpen(true)}
@@ -1612,7 +1612,7 @@ export function ChatWidget() {
 
             <section className="rounded-2xl border border-[#ebe3d8] bg-white p-3">
               <p className="text-[13px] leading-relaxed text-[#6B6570]">
-                AI 안내로 해결되지 않으셨나요?
+                사주로그 안내로 해결되지 않으셨나요?
               </p>
               {agentInquiry && !isOpenInquiry(agentInquiry) ? (
                 // 끝난 대화도 답변을 다시 읽을 수 있게 둔다. 읽기 전용이라는 것이
@@ -1824,7 +1824,7 @@ export function ChatWidget() {
             onClick={() => setOpen(true)}
             className="pointer-events-auto relative flex h-[92px] w-[84px] items-center justify-center"
             aria-label={
-              agentUnseen ? "사주로그 AI 안내 열기 (새 상담원 답변 있음)" : "사주로그 AI 안내 열기"
+              agentUnseen ? "사주로그 안내 열기 (새 상담원 답변 있음)" : "사주로그 안내 열기"
             }
           >
             {/* 이미지 뒤에서 아주 은은하게 번지는 보라 glow. 움직임이 크지 않게 6초 주기로 둔다. */}
