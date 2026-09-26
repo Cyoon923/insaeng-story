@@ -12,6 +12,7 @@ import {
 import { CONSULT_OPTION_PRICES, ORDER_OPTION_PRICES } from "@/lib/server/pricing";
 import { TEACHERS } from "@/lib/constants/consultationTeachers";
 import {
+  AGENT_OPEN_EVENT,
   AGENT_SEEN_KEY,
   hasUnseenAgentReply,
   readAgentSeenAt,
@@ -1154,6 +1155,10 @@ export function ChatWidget() {
   const [agentUnseen, setAgentUnseen] = useState(false);
   // 마운트 직후 한 번 조회했는지. 패널을 닫을 때 다시 묻지 않기 위한 표시다.
   const mountLoadedRef = useRef(false);
+  // 지금 보고 있는 문의방 id. 바깥에서 "대화를 열어 달라"고 할 때 쓴다.
+  const agentInquiryIdRef = useRef("");
+  // 방을 아직 모르는 채로 열어 달라는 부탁을 받았을 때 세운다. 목록을 받은 뒤 이어서 연다.
+  const openAgentRequestedRef = useRef(false);
   // 아래 재조회 effect가 지금 상담원 대화 화면인지 보기 위한 거울.
   // 이 값을 effect의 의존 목록에 넣으면 화면을 열 때마다 effect가 다시 돌아
   // 같은 요청이 두 번 나간다. 그래서 상태가 아니라 ref로 읽는다.
@@ -1184,6 +1189,11 @@ export function ChatWidget() {
     // 상담원 대화 화면인지 ref에 옮겨 둔다. 아래 재조회 effect는 이 값만 본다.
     agentOpenRef.current = agentOpen;
   }, [agentOpen]);
+
+  useEffect(() => {
+    // 문의방 id도 함께 옮겨 둔다. 바깥의 열기 부탁을 받았을 때 이 값을 쓴다.
+    agentInquiryIdRef.current = agentInquiry?.id ?? "";
+  }, [agentInquiry]);
 
   /**
    * UI 확인용 임시 동작. 질문을 그대로 사용자 말풍선에 넣고,
@@ -1316,7 +1326,11 @@ export function ChatWidget() {
         setAgentUnseen(hasUnseenAgentReply(found, readAgentSeenAt()));
         // 상담원 대화 화면을 보던 채로 닫았던 경우다. 그 방의 타임라인도 다시 읽어
         // 그 사이 들어온 상담원 답변이 화면에 들어오게 한다. 기존 조회 경로를 그대로 쓴다.
-        if (open && agentOpenRef.current) await openAgentChat(found.id);
+        // 상담원 대화 화면을 보던 중이었거나, 바깥에서 열어 달라는 부탁을 받아 열린 경우다.
+        if (open && (agentOpenRef.current || openAgentRequestedRef.current)) {
+          openAgentRequestedRef.current = false;
+          await openAgentChat(found.id);
+        }
       } catch {
         // 첫 방문이거나 연결이 잠깐 끊긴 경우다. 문의 폼을 그대로 보여 주면 된다.
       }
@@ -1327,6 +1341,26 @@ export function ChatWidget() {
     // open이 참이 되는 순간에만 돈다. agentOpen/agentInquiry를 넣으면 대화를 열 때마다
     // 다시 돌아 같은 요청이 겹친다. 그래서 위 agentOpenRef로 읽는다.
   }, [open]);
+
+  useEffect(() => {
+    // MY 알림 페이지의 "도령 상담원 답변이 도착했어요" 항목이 보내는 열기 부탁을 받는다.
+    // 위젯의 열림 상태는 이 컴포넌트 안에만 있어 바깥에서 직접 만질 수 없기 때문이다.
+    // 새 조회 경로를 만들지 않고 기존 openAgentChat(= /me/[id])을 그대로 쓴다.
+    // 부탁을 받은 것만으로는 읽음이 아니다. 읽음은 openAgentChat이 성공한 뒤에만 적는다.
+    const onOpenRequest = () => {
+      const id = agentInquiryIdRef.current;
+      if (id) {
+        setOpen(true);
+        void openAgentChat(id);
+        return;
+      }
+      // 아직 어떤 방인지 모르면 표시만 세워 두고, 위 effect가 목록을 받은 뒤 이어서 연다.
+      openAgentRequestedRef.current = true;
+      setOpen(true);
+    };
+    window.addEventListener(AGENT_OPEN_EVENT, onOpenRequest);
+    return () => window.removeEventListener(AGENT_OPEN_EVENT, onOpenRequest);
+  }, []);
 
   /**
    * 문의 폼 제출. 새 문의방 API로 보낸다.

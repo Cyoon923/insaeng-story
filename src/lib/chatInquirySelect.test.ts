@@ -27,6 +27,10 @@ const HEADER = readFileSync(
   "utf8",
 );
 const ADMIN = readFileSync(new URL("../app/admin/page.tsx", import.meta.url), "utf8");
+const NOTES = readFileSync(
+  new URL("../app/my/notifications/page.tsx", import.meta.url),
+  "utf8",
+);
 /** 주석을 걷어낸 실행 코드. 설명에 적힌 낱말이 검사에 걸리지 않게 한다. */
 const stripComments = (text: string) =>
   text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
@@ -34,11 +38,13 @@ const WIDGET_CODE = stripComments(WIDGET);
 const UNSEEN_CODE = stripComments(UNSEEN);
 const HEADER_CODE = stripComments(HEADER);
 const ADMIN_CODE = stripComments(ADMIN);
+const NOTES_CODE = stripComments(NOTES);
 /** 판정·기록·표시를 쓰는 화면 쪽 파일들. polling 금지는 이 셋 모두에 걸린다. */
 const CLIENTS = [
   ["widget", WIDGET_CODE],
   ["header", HEADER_CODE],
   ["unseen", UNSEEN_CODE],
+  ["notifications", NOTES_CODE],
 ] as const;
 
 type View = Parameters<typeof pickAgentInquiry>[0] extends (infer T)[] | undefined ? T : never;
@@ -106,7 +112,10 @@ test("최초 1회만 조회하던 가드를 두지 않는다", () => {
 
 test("패널이 열릴 때 목록을 조회하고, 대화 화면이면 타임라인까지 다시 읽는다", () => {
   assert.match(WIDGET_CODE, /if \(!open\) \{[\s\S]{0,200}?\}[\s\S]{0,400}?fetch\("\/api\/chat-inquiries\/me"\)/);
-  assert.match(WIDGET_CODE, /if \(open && agentOpenRef\.current\) await openAgentChat\(found\.id\);/);
+  assert.match(
+    WIDGET_CODE,
+    /if \(open && \(agentOpenRef\.current \|\| openAgentRequestedRef\.current\)\) \{/,
+  );
   assert.match(WIDGET_CODE, /\}, \[open\]\);/);
 });
 
@@ -243,8 +252,11 @@ test("배지 확인은 마운트 1회 + 패널 열기 때만 한다", () => {
   // 닫는 순간에는 다시 묻지 않는다.
   assert.match(WIDGET_CODE, /if \(!open\) \{\s*if \(mountLoadedRef\.current\) return;\s*mountLoadedRef\.current = true;\s*\}/);
   assert.match(WIDGET_CODE, /setAgentUnseen\(hasUnseenAgentReply\(found, readAgentSeenAt\(\)\)\);/);
-  // 타임라인 재조회는 패널이 열려 있을 때만.
-  assert.match(WIDGET_CODE, /if \(open && agentOpenRef\.current\) await openAgentChat\(found\.id\);/);
+  // 타임라인 재조회는 패널이 열려 있을 때만(또는 바깥에서 열기 부탁을 받았을 때만).
+  assert.match(
+    WIDGET_CODE,
+    /if \(open && \(agentOpenRef\.current \|\| openAgentRequestedRef\.current\)\) \{/,
+  );
 });
 
 /* ── 7. 관리자 첫 화면의 챗봇 문의 건수 ─────────────── */
@@ -262,4 +274,91 @@ test("챗봇 문의 탭에 들어갈 때마다 최신 목록으로 다시 부른
   assert.match(ADMIN_CODE, /if \(item\.id === "chat" && !chatLoading\) loadChatThreads\(\);/);
   // 최초 1회만 부르던 가드를 남겨 두지 않는다.
   assert.doesNotMatch(ADMIN_CODE, /chatLoaded/);
+});
+
+/* ── 8. MY 알림 페이지의 도령 답변 항목 ──────────────── */
+
+test("알림 페이지도 같은 helper 하나로 판정한다", () => {
+  assert.match(
+    NOTES_CODE,
+    /import \{\s*AGENT_SEEN_EVENT,\s*fetchUnseenAgentReply,\s*requestOpenAgentChat,\s*\} from "@\/lib\/client\/chatAgentUnseen";/,
+  );
+  assert.match(NOTES_CODE, /fetchUnseenAgentReply\(\)\.then\(\(unseen\) => \{/);
+  // 별도 unread/count/read 상태를 만들지 않는다: boolean 하나뿐이다.
+  assert.match(NOTES_CODE, /const \[agentUnseen, setAgentUnseen\] = useState\(false\);/);
+  assert.doesNotMatch(NOTES_CODE, /unreadCount|unseenCount/);
+  // 이 페이지는 chat 알림을 위해 새 API를 부르지 않는다(기존 fetchMe와 helper뿐).
+  assert.doesNotMatch(NOTES_CODE, /fetch\("\/api\//);
+});
+
+test("unseen일 때만 도령 답변 항목을 보여 준다", () => {
+  assert.match(
+    NOTES_CODE,
+    /\{agentUnseen \? \([\s\S]{0,600}?도령 상담원 답변이 도착했어요[\s\S]{0,300}?새 답변을 확인해 주세요\.[\s\S]{0,200}?\) : null\}/,
+  );
+});
+
+test("알림 페이지는 읽음을 적지 않는다", () => {
+  assert.doesNotMatch(NOTES_CODE, /writeAgentSeenAt/);
+  assert.doesNotMatch(NOTES_CODE, /AGENT_SEEN_KEY/);
+  assert.doesNotMatch(NOTES_CODE, /localStorage/);
+  // 항목 클릭이 하는 일은 "열어 달라"는 부탁 하나뿐이다.
+  assert.match(NOTES_CODE, /onClick=\{\(\) => requestOpenAgentChat\(\)\}/);
+});
+
+test("AGENT_SEEN_EVENT를 받으면 항목이 사라진다", () => {
+  assert.match(NOTES_CODE, /const onSeen = \(\) => setAgentUnseen\(false\);/);
+  assert.match(NOTES_CODE, /window\.addEventListener\(AGENT_SEEN_EVENT, onSeen\);/);
+  assert.match(NOTES_CODE, /window\.removeEventListener\(AGENT_SEEN_EVENT, onSeen\);/);
+});
+
+test("도령 항목이 있으면 '받은 알림이 없습니다'로 보이지 않는다", () => {
+  assert.match(NOTES_CODE, /notes\.length === 0 && !agentUnseen \?/);
+  // 로그인 안내 문구는 그대로 둔다.
+  assert.match(NOTES_CODE, /알림 기록은 로그인 후 저장됩니다\./);
+  // 기존 알림 배열에 도령 항목을 끼워 넣지 않는다.
+  assert.doesNotMatch(NOTES_CODE, /setNotes\(\[/);
+});
+
+/* ── 9. 알림 항목 클릭 → 도령 상담원 대화 열기 ──────── */
+
+test("열기 부탁은 작은 custom event 하나로만 오간다", () => {
+  assert.match(UNSEEN_CODE, /export const AGENT_OPEN_EVENT = "sajulog:chat-agent-open";/);
+  assert.match(UNSEEN_CODE, /window\.dispatchEvent\(new Event\(AGENT_OPEN_EVENT\)\);/);
+  assert.match(WIDGET_CODE, /window\.addEventListener\(AGENT_OPEN_EVENT, onOpenRequest\);/);
+  assert.match(WIDGET_CODE, /window\.removeEventListener\(AGENT_OPEN_EVENT, onOpenRequest\)/);
+  // Context·라우팅·전역 상태를 만들지 않는다.
+  assert.doesNotMatch(WIDGET_CODE, /createContext|useContext/);
+  assert.doesNotMatch(NOTES_CODE, /createContext|useContext/);
+});
+
+test("부탁을 받으면 기존 openAgentChat 경로로만 대화를 연다", () => {
+  // id를 이미 알면 바로 기존 함수를 부른다.
+  assert.match(WIDGET_CODE, /setOpen\(true\);\s*void openAgentChat\(id\);/);
+  // 모르면 표시만 세우고, 목록을 받은 뒤 같은 함수로 잇는다.
+  assert.match(WIDGET_CODE, /openAgentRequestedRef\.current = true;\s*setOpen\(true\);/);
+  assert.match(
+    WIDGET_CODE,
+    /if \(open && \(agentOpenRef\.current \|\| openAgentRequestedRef\.current\)\) \{\s*openAgentRequestedRef\.current = false;\s*await openAgentChat\(found\.id\);/,
+  );
+  // 대화를 읽는 경로는 여전히 /me/[id] 하나뿐이다(새 fetch를 만들지 않았다).
+  assert.equal(
+    (WIDGET_CODE.match(/fetch\(`\/api\/chat-inquiries\/me\/\$\{encodeURIComponent\(inquiryId\)\}`\)/g) ?? [])
+      .length,
+    1,
+  );
+});
+
+test("부탁을 받았다는 이유만으로는 읽음을 적지 않는다", () => {
+  // 리스너 안에 읽음 기록이 없다.
+  assert.doesNotMatch(
+    WIDGET_CODE,
+    /onOpenRequest = \(\) => \{[\s\S]{0,400}?writeAgentSeenAt/,
+  );
+  // 읽음은 여전히 타임라인을 받은 직후 한 곳뿐이다(실패하면 적지 않는다).
+  assert.equal((WIDGET_CODE.match(/writeAgentSeenAt\(/g) ?? []).length, 1);
+  assert.match(
+    WIDGET_CODE,
+    /setAgentMessages\(result\.messages\);\s*setAgentOpen\(true\);\s*writeAgentSeenAt\(result\.inquiry\.lastMessageAt\);/,
+  );
 });

@@ -5,6 +5,11 @@ import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe, postApp } from "@/lib/client/api";
+import {
+  AGENT_SEEN_EVENT,
+  fetchUnseenAgentReply,
+  requestOpenAgentChat,
+} from "@/lib/client/chatAgentUnseen";
 import type { AppNotification, NotificationSettings } from "@/lib/types/app";
 
 const ITEMS = [
@@ -38,6 +43,9 @@ export default function NotificationsPage() {
     notice: false,
   });
   const [notes, setNotes] = useState<AppNotification[]>([]);
+  // 아직 보지 못한 상담원 답변이 있는지. 도령 버튼·상단 종과 같은 판정 하나를 그대로 쓴다.
+  // 기존 알림 기록(AppNotification)과 섞지 않는다. 저장되는 기록이 아니라 지금의 상태다.
+  const [agentUnseen, setAgentUnseen] = useState(false);
 
   useEffect(() => {
     fetchMe().then((data) => {
@@ -46,6 +54,22 @@ export default function NotificationsPage() {
       setNotes(data.notifications ?? []);
       setLoaded(true);
     });
+  }, []);
+
+  useEffect(() => {
+    // 화면에 붙을 때 한 번만 묻는다(polling·화면 전환 감시 없음).
+    let alive = true;
+    fetchUnseenAgentReply().then((unseen) => {
+      if (alive) setAgentUnseen(unseen);
+    });
+    // 도령이에서 상담원 대화를 실제로 확인해 읽음이 적히면 이 항목도 함께 사라진다.
+    // 이 화면은 읽음을 적지 않는다(들어온 것만으로도, 항목을 누른 것만으로도 읽음이 아니다).
+    const onSeen = () => setAgentUnseen(false);
+    window.addEventListener(AGENT_SEEN_EVENT, onSeen);
+    return () => {
+      alive = false;
+      window.removeEventListener(AGENT_SEEN_EVENT, onSeen);
+    };
   }, []);
 
   const toggle = async (id: keyof NotificationSettings) => {
@@ -106,10 +130,32 @@ export default function NotificationsPage() {
       </div>
 
       <section className="px-4 pb-8">
+        {/*
+          도령 상담원 답변. 기록이 아니라 지금 확인하지 않은 답변이 있다는 표시이므로
+          아래 알림 기록 목록과 섞지 않고 위에 따로 둔다. 누르면 도령이 대화가 열린다.
+        */}
+        {agentUnseen ? (
+          <button
+            type="button"
+            onClick={() => requestOpenAgentChat()}
+            className="mb-3 block w-full rounded-2xl bg-white p-4 text-left ring-1 ring-[#403A49]"
+          >
+            <p className="text-[16px] font-bold text-[#403A49]">도령 상담원 답변이 도착했어요</p>
+            <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">
+              새 답변을 확인해 주세요.
+            </p>
+          </button>
+        ) : null}
+
         <h3 className="mb-3 text-[17px] font-bold text-[#403A49]">알림 기록</h3>
-        {notes.length === 0 ? (
+        {notes.length === 0 && !agentUnseen ? (
           <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
             아직 받은 알림이 없습니다.
+          </p>
+        ) : notes.length === 0 ? (
+          // 위 도령 항목만 있는 경우다. "받은 알림이 없다"고 적지 않고, 기록 쪽만 짧게 알린다.
+          <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
+            이 밖에 받은 알림은 없습니다.
           </p>
         ) : (
           <div className="space-y-3">

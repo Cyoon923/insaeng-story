@@ -19,6 +19,22 @@ export const AGENT_SEEN_KEY = "sajulog_chat_agent_seen_at";
  */
 export const AGENT_SEEN_EVENT = "sajulog:chat-agent-seen";
 
+/**
+ * 도령이에게 "상담원 대화를 열어 달라"고 부탁하는 이름.
+ * 위젯의 열림 상태는 컴포넌트 안에만 있어 바깥에서 직접 만질 수 없다. 그래서 신호로 부른다.
+ * 이 신호는 부탁일 뿐이고, 읽음 처리는 실제 타임라인을 받은 뒤에만 한다.
+ */
+export const AGENT_OPEN_EVENT = "sajulog:chat-agent-open";
+
+/** 위 신호를 보낸다. 받는 쪽(도령 위젯)이 없으면 아무 일도 일어나지 않는다. */
+export function requestOpenAgentChat(): void {
+  try {
+    window.dispatchEvent(new Event(AGENT_OPEN_EVENT));
+  } catch {
+    // window가 없는 곳에서는 부를 대상도 없다.
+  }
+}
+
 /** 판정에 필요한 만큼만. /api/chat-inquiries/me 응답 한 줄의 부분집합이다. */
 export interface ChatAgentInquiry {
   lastMessageAt: string;
