@@ -1003,10 +1003,6 @@ export default function LoginPage() {
             <span className="ml-2 text-[15px] font-medium text-white/80">· 최근 로그인</span>
           ) : null}
         </button>
-
-        <p className="text-center text-[13px] leading-relaxed text-[#6B6570]">
-          카카오·네이버 간편 로그인은 연결 준비 중입니다.
-        </p>
       </div>
     </MobileShell>
   );
