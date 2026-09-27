@@ -172,6 +172,12 @@ function formatAmount(value: number) {
 }
 
 function userLabel(user: User) {
+  /*
+   * 탈퇴 회원은 이름·연락처가 모두 지워져 화면에서 서로 구분되지 않는다.
+   * 그래서 남아 있는 회원 id의 끝 네 자리만 덧붙인다. 지워진 개인정보를 되살리지 않고,
+   * 기록끼리 같은 계정인지 가르는 데만 쓴다. 활성 회원 표시는 아래 그대로다.
+   */
+  if (user.withdrawnAt) return `${user.name || "탈퇴회원"} · …${user.id.slice(-4)}`;
   if (user.name) return user.name;
   if (user.phone) return user.phone;
   if (user.email) return user.email;
