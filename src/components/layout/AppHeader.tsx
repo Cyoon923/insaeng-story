@@ -101,6 +101,52 @@ function isPrivatePath(pathname: string | null): boolean {
   );
 }
 
+/**
+ * 공유해도 되는 공개 화면. 이 목록에 있는 주소만 그대로 공유한다.
+ * 목록에 없으면(내부 화면이거나 판단이 애매하면) 홈을 공유한다.
+ * 주소는 pathname만 쓴다. 검색어(query)와 해시는 공유하지 않는다.
+ */
+const SHARE_PUBLIC_PATHS = new Set([
+  "/products",
+  "/products/story",
+  "/products/premium",
+  "/products/saju-song",
+  "/consultation",
+  "/cases",
+  "/events",
+  "/reviews",
+  "/faq",
+  "/guide",
+  "/notice",
+  "/terms",
+  "/refund",
+  "/privacy",
+  "/privacy/collection",
+]);
+
+/**
+ * 신청 화면은 그 단계 주소를 공유하지 않고 원래 상품·상담 소개 화면으로 바꿔 공유한다.
+ * 받은 사람이 단계 중간(입력·결제)에 떨어지지 않게 하려는 것이다.
+ */
+const APPLY_SHARE_TARGETS: [string, string][] = [
+  ["/apply/story-song", "/products/story"],
+  ["/apply/premium", "/products/premium"],
+  ["/apply/saju-song", "/products/saju-song"],
+  ["/apply/consultation", "/consultation"],
+  ["/apply/free-consult", "/consultation"],
+  ["/apply/event", "/events"],
+];
+
+/** 지금 화면에서 공유할 경로. 어떤 경우에도 query·hash는 들어가지 않는다. */
+export function sharePathOf(pathname: string | null): string {
+  if (!pathname) return "/";
+  const path = pathname.split("?")[0].split("#")[0];
+  for (const [prefix, target] of APPLY_SHARE_TARGETS) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) return target;
+  }
+  return SHARE_PUBLIC_PATHS.has(path) ? path : "/";
+}
+
 interface AppHeaderProps {
   variant?: "home" | "page" | "apply";
   title?: string;
@@ -180,11 +226,12 @@ export function AppHeader({
   }, [showBell]);
 
   /**
-   * 공유하는 것은 언제나 사주로그 홈 하나다.
-   * 지금 보고 있는 주소(window.location.href)는 공유하지 않는다. 신청 단계나 내부 화면의
-   * 주소를 남에게 넘기지 않기 위해서다. 제목도 화면마다 달라지지 않게 고정한다.
+   * 공유할 주소. 공개 화면이면 그 화면, 신청 단계면 그 상품·상담 소개 화면,
+   * 그 밖에는 홈이다(sharePathOf).
+   * window.location.href를 그대로 쓰지 않아 검색어·해시·신청 단계 번호가 링크에 담기지 않는다.
+   * 카카오톡·텔레그램·주소 복사가 모두 이 하나를 쓴다. 제목은 화면마다 달라지지 않게 고정한다.
    */
-  const homeUrl = () => `${window.location.origin}/`;
+  const shareUrl = () => `${window.location.origin}${sharePathOf(pathname)}`;
   const SHARE_TITLE = "사주로그 | 인생의 서사를 연주하고 기록한다";
   // layout.tsx의 metadata.description, manifest.ts의 description과 같은 공식 문구다.
   const SHARE_DESCRIPTION =
@@ -204,7 +251,7 @@ export function AppHeader({
 
   /**
    * 카카오톡 공유. 공식 Kakao.Share.sendDefault만 쓴다.
-   * 보내는 링크는 홈 하나이고(mobileWebUrl·webUrl 모두 homeUrl()),
+   * 보내는 링크는 위에서 정한 주소 하나이고(mobileWebUrl·webUrl 모두 shareUrl()),
    * 제목·설명은 사주로그 공식 문구, 대표 이미지는 기존 hero 이미지를 절대 주소로 넘긴다.
    * 준비가 안 되었으면 조용히 성공한 척하지 않고 다른 방법을 안내한다.
    */
@@ -214,7 +261,7 @@ export function AppHeader({
       showShareNotice("카카오톡 공유를 쓸 수 없어요. 주소 복사를 이용해 주세요.");
       return;
     }
-    const url = homeUrl();
+    const url = shareUrl();
     try {
       sdk.Share.sendDefault({
         objectType: "feed",
@@ -237,7 +284,7 @@ export function AppHeader({
    */
   const shareTelegram = () => {
     window.open(
-      `https://t.me/share/url?url=${encodeURIComponent(homeUrl())}&text=${encodeURIComponent(SHARE_TITLE)}`,
+      `https://t.me/share/url?url=${encodeURIComponent(shareUrl())}&text=${encodeURIComponent(SHARE_TITLE)}`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -245,7 +292,7 @@ export function AppHeader({
   };
 
   const shareCopy = async () => {
-    const copied = await copyLink(homeUrl());
+    const copied = await copyLink(shareUrl());
     showCopied(copied ? "링크를 복사했습니다." : "링크를 복사하지 못했습니다.");
   };
 
