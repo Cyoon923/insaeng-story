@@ -12,6 +12,10 @@ import {
 } from "@/lib/client/chatAgentUnseen";
 import type { AppNotification, NotificationSettings } from "@/lib/types/app";
 
+/*
+ * 켜고 끌 수 있는 알림. 공지사항은 아직 알림을 만드는 서버 경로가 없어 목록에 두지 않는다.
+ * notificationSettings.notice 값과 API는 그대로 남겨 두어, 발송이 생기면 여기에만 다시 더하면 된다.
+ */
 const ITEMS = [
   {
     id: "order" as const,
@@ -22,11 +26,6 @@ const ITEMS = [
     id: "consult" as const,
     title: "상담 일정 알림",
     desc: "1:1 사주상담 일정과 진행 상황을 알려드립니다.",
-  },
-  {
-    id: "notice" as const,
-    title: "공지사항 알림",
-    desc: "이용 안내와 새로운 소식을 알려드립니다.",
   },
 ];
 
