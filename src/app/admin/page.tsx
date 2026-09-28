@@ -253,6 +253,33 @@ function orderDetailRows(details: Record<string, string>): { label: string; valu
   return rows;
 }
 
+/**
+ * 주문 검색. 이미 불러온 목록에서만 고른다(서버에 다시 묻지 않는다).
+ *
+ * 보는 값은 회원 이름·연락처, 상품명, 신청서에 적힌 이름·연락처뿐이다.
+ * 대소문자와 앞뒤 공백은 무시한다. 검색어가 비어 있으면 모두 통과시킨다.
+ * 탈퇴 회원은 이름·연락처가 이미 지워져 있어 지워진 값으로는 찾히지 않는다(복원하지 않는다).
+ */
+function orderMatchesQuery(order: Order, member: User | undefined, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const fields = [member?.name, member?.phone, order.title, order.details?.name, order.details?.phone];
+  if (fields.some((value) => typeof value === "string" && value.toLowerCase().includes(q))) {
+    return true;
+  }
+  /*
+   * 연락처만 한 번 더 본다. 저장된 값이 01012345678이든 010-1234-5678이든
+   * 관리자가 어느 형태로 적어도 찾히게 하려고 양쪽에서 숫자만 뽑아 비교한다.
+   * 숫자가 없는 검색어(이름·상품명)는 여기서 걸러 내 일반 검색 동작을 바꾸지 않는다.
+   */
+  const digits = q.replace(/\D/g, "");
+  if (!digits) return false;
+  const phones = [member?.phone, order.details?.phone];
+  return phones.some(
+    (value) => typeof value === "string" && value.replace(/\D/g, "").includes(digits),
+  );
+}
+
 function contactLabel(user: User) {
   if (user.phone && user.email) return `${user.phone} · ${user.email}`;
   return user.phone || user.email || "-";
@@ -438,6 +465,8 @@ export default function AdminPage() {
   // 목록을 부르는 중인지. 같은 조회가 겹쳐 나가지 않게 하기 위해 둔다.
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
+  // 주문 검색어. 화면에 있는 목록만 걸러 낸다.
+  const [orderQuery, setOrderQuery] = useState("");
   // 신청 내용을 펼친 주문 하나. 기본은 모두 닫힘이다.
   const [openOrderDetailId, setOpenOrderDetailId] = useState("");
   const [selectedChatId, setSelectedChatId] = useState("");
@@ -1227,6 +1256,10 @@ export default function AdminPage() {
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
+  // 검색어에 걸린 주문만. 서버가 준 최신순(created_at DESC)을 그대로 유지한다.
+  const visibleOrders = orders.filter((order) =>
+    orderMatchesQuery(order, userMap.get(order.userId), orderQuery),
+  );
 
   if (loading) {
     return (
@@ -1739,8 +1772,27 @@ export default function AdminPage() {
           </>
         ) : null}
 
+        {tab === "orders" ? (
+          <div className="mb-3">
+            <input
+              type="search"
+              value={orderQuery}
+              onChange={(event) => setOrderQuery(event.target.value)}
+              placeholder="회원 이름·연락처·상품명으로 찾기"
+              aria-label="주문 검색"
+              className="h-11 w-full rounded-xl border border-[#d4c8ba] bg-white px-3 text-[15px] text-[#403A49] outline-none focus:border-[#5c3d2e]"
+            />
+          </div>
+        ) : null}
+
+        {tab === "orders" && visibleOrders.length === 0 ? (
+          <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
+            {orderQuery.trim() ? "검색 결과가 없습니다." : "주문이 없습니다."}
+          </p>
+        ) : null}
+
         {tab === "orders"
-          ? orders.map((order) => {
+          ? visibleOrders.map((order) => {
               const member = userMap.get(order.userId);
               /*
                * 환불이 끝난 건인지는 이미 받은 환불 문의 목록만 보고 정한다(추가 조회 없음).
