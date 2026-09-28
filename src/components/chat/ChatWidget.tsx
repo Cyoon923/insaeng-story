@@ -376,7 +376,7 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   delivery: {
     label: "완성곡은 어떻게 받아요?",
     answer:
-      "완성된 노래는 음원 파일로 전달해 드려요 🐾\n\n뮤직비디오 옵션을 선택하신 경우에는\n영상도 함께 전달해 드려요.",
+      "완성된 노래는 음원 파일로 전달해 드려요 🐾\n\n뮤직비디오 옵션을 선택하신 경우\n영상도 함께 전달해 드려요.\n\n완성 후 신청하실 때 등록한 연락처로\n안내드리고, 카카오톡으로 전달해 드립니다.",
     next: ["copyright", "duration", "lyric-edit", "more"],
   },
   copyright: {
