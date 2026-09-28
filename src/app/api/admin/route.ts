@@ -14,6 +14,7 @@ import {
   writeDataWithOrderStatus,
   listAllOrders,
   listPaymentsNeedingReview,
+  summarizeOrderPaymentStatuses,
   getOrderById,
 } from "@/lib/server/store";
 import {
@@ -128,10 +129,53 @@ export async function GET() {
     complaintRecords = { items: [], loaded: false };
   }
 
+  /*
+   * 주문 목록은 여기서 한 번만 읽는다. 아래 응답과 결제 요약이 같은 목록을 본다.
+   * 두 번 읽으면 카드에 보이는 주문과 요약의 대상이 어긋날 수 있다.
+   */
+  const orders = await listAllOrders();
+
+  /*
+   * 주문별 결제 요약. 위 orders의 id로만 물어보고, 읽은 값을 그대로 옮긴다.
+   *
+   * 결제 기록과 같은 이유로 이 필드에만 실패를 가둔다. 다만 실패를 빈 목록으로
+   * 숨기지 않는다. 읽지 못한 것과 결제 기록이 없는 것은 화면에서 전혀 다른 뜻이므로
+   * loaded로 구분한다. loaded가 false일 때 items를 "결제 없음"으로 읽어서는 안 된다.
+   * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
+   */
+  let orderPayments: {
+    loaded: boolean;
+    items: Record<string, { paidCount: number; totalCount: number; cancelDeclined: boolean }>;
+  };
+  try {
+    const summaries = await summarizeOrderPaymentStatuses(orders.map((order) => order.id));
+    const items: Record<
+      string,
+      { paidCount: number; totalCount: number; cancelDeclined: boolean }
+    > = {};
+    // Map은 JSON으로 나가지 않으므로 Record로 옮긴다. 없는 주문의 값을 만들지 않는다.
+    for (const [orderId, summary] of summaries) {
+      items[orderId] = {
+        paidCount: summary.paidCount,
+        totalCount: summary.totalCount,
+        cancelDeclined: summary.cancelDeclined,
+      };
+    }
+    orderPayments = { loaded: true, items };
+  } catch (error) {
+    console.error("[admin] order payment summaries failed", error);
+    orderPayments = { loaded: false, items: {} };
+  }
+
   return NextResponse.json({
     users: data.users,
     paymentsNeedingReview,
-    orders: await listAllOrders(),
+    orders,
+    /**
+     * 주문 id별 결제 요약. { loaded, items } 모양이며 loaded가 false면
+     * "결제 없음"이 아니라 "읽지 못함"이다. 요약이 없는 주문은 items에 키가 없다.
+     */
+    orderPayments,
     /**
      * 접수된 환불 문의 전체 이력. 접수 당시 값과 지금 값을 나란히 담는다.
      * 결제 기록과 같은 이유로, 읽지 못해도 관리자 화면 전체가 깨지지 않게 감싼다.

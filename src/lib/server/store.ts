@@ -1623,6 +1623,85 @@ export async function listPaidPaymentsByOrderIds(
 }
 
 /**
+ * 한 주문에 연결된 결제의 상태 요약 1건 (관리자 목록 표시용, 읽기 전용).
+ *
+ * 결제 1건을 그대로 담지 않는다. 관리자 주문 카드가 쓰는 숫자와 참·거짓만 담는다.
+ * pg_tid·merchant_order_id·order_snapshot·raw·cancel_response_raw·approved_amount·
+ * method는 질의에서 아예 고르지 않는다. 조회하지 않으면 내보낼 수도 없다
+ * (PaymentReviewItem이 raw를 담지 않는 것과 같은 기준이다).
+ *
+ * 상태 라벨("결제 완료" 같은 말)을 정하지 않는다. 그 판단은 이 값을 받는 쪽이 한다.
+ */
+export interface OrderPaymentStatusSummary {
+  orderId: string;
+  /** status = 'paid'인 행 수. 승인된 결제가 몇 건인지 그대로 센다. */
+  paidCount: number;
+  /** 이 order_id에 연결된 전체 결제 행 수. 상태로 거르지 않는다. */
+  totalCount: number;
+  /**
+   * cancel_execution_status = 'declined'인 행이 하나라도 있는지.
+   * 열이 NULL인 행("실행을 시작한 적 없음")은 참으로 세지 않는다.
+   */
+  cancelDeclined: boolean;
+}
+
+interface OrderPaymentStatusRow {
+  order_id: string;
+  paid_count: number;
+  total_count: number;
+  cancel_declined: boolean;
+}
+
+/**
+ * 여러 주문의 결제 상태를 한 번에 요약한다 (읽기 전용).
+ *
+ * 질의는 SELECT 하나뿐이고 GROUP BY로 주문마다 한 행씩 모아 온다. 결제 행을
+ * 돌려주지 않으므로 결제 1건이 응답에 드러나는 모양 자체가 만들어지지 않는다.
+ *
+ * listPaidPaymentsByOrderIds와 달리 status로 거르지 않는다. 승인 건수와 전체 건수를
+ * 함께 보아야 "승인 결제가 없다"와 "결제 기록이 아예 없다"를 구분할 수 있기 때문이다.
+ * 그 구분을 여기서 해석하지는 않는다. 센 값을 그대로 넘긴다.
+ *
+ * order_id 목록으로만 거르므로 order_id가 NULL인 준비·복구 대상 결제는 애초에
+ * 걸리지 않는다. 그쪽은 listPaymentsNeedingReview가 보는 자리이고 이 함수와 섞지 않는다.
+ *
+ * DATABASE_URL이 없으면 결제 기록 자체가 없으므로 빈 Map을 돌려준다.
+ */
+export async function summarizeOrderPaymentStatuses(
+  orderIds: string[],
+): Promise<Map<string, OrderPaymentStatusSummary>> {
+  const summaries = new Map<string, OrderPaymentStatusSummary>();
+  const ids = Array.from(new Set(orderIds.map((id) => id.trim()).filter((id) => id !== "")));
+  if (ids.length === 0) return summaries;
+  const sql = sqlClient();
+  if (!sql) return summaries;
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT order_id,
+             count(*) FILTER (WHERE status = 'paid') AS paid_count,
+             count(*) AS total_count,
+             -- 모든 행이 NULL이면 bool_or도 NULL이다. "거절 기록 없음"으로 읽는다.
+             COALESCE(bool_or(cancel_execution_status = 'declined'), false) AS cancel_declined
+      FROM payments
+      WHERE order_id = ANY($1::text[])
+      GROUP BY order_id
+    `,
+    [ids],
+  )) as OrderPaymentStatusRow[];
+  for (const row of rows) {
+    summaries.set(row.order_id, {
+      orderId: row.order_id,
+      paidCount: Number(row.paid_count),
+      totalCount: Number(row.total_count),
+      cancelDeclined: Boolean(row.cancel_declined),
+    });
+  }
+  return summaries;
+}
+
+/**
  * 취소 실행권 선점 결과.
  *
  * not-claimable은 "이미 누군가 선점했거나 이미 끝났거나, 승인된 결제가 아니다"를

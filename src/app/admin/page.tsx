@@ -45,6 +45,45 @@ interface PaymentReviewItem {
   userId: string | null;
 }
 
+/**
+ * 주문 1건의 결제 요약. 서버가 payments에서 센 값만 그대로 내려준다.
+ * 금액·PG 식별자는 담기지 않는다(응답에 아예 없다).
+ */
+interface OrderPaymentSummary {
+  paidCount: number;
+  totalCount: number;
+  cancelDeclined: boolean;
+}
+
+/**
+ * 주문 카드에 붙일 결제 배지 문구를 정한다.
+ *
+ * 서버가 센 값(paidCount·totalCount·cancelDeclined)과 이미 화면에 있는 두 값만 본다.
+ * order.payment(결제수단 라벨)나 order.status(진행 상태)로 승인 여부를 추측하지 않는다.
+ * 둘 다 결제 사실과 다른 축이라 그렇게 읽으면 승인되지 않은 주문이 결제 완료로 보인다.
+ *
+ * 확신할 수 없는 경우는 모두 "결제 확인 필요"로 모은다. 조회 실패도 여기에 들어간다.
+ * 읽지 못한 것을 "결제 없음"으로 보여 주면 관리자가 없는 사실을 근거로 판단하게 된다.
+ */
+function paymentBadgeLabel(
+  refunded: boolean,
+  amount: number,
+  loaded: boolean,
+  summary: OrderPaymentSummary | undefined,
+): string {
+  if (refunded) return "환불 완료";
+  // 쿠폰·적립금으로 0원이 된 주문은 애초에 결제 행이 만들어지지 않는다.
+  if (amount === 0) return "결제 없음";
+  if (!loaded) return "결제 확인 필요";
+  if (!summary) return "결제 확인 필요";
+  // PG가 취소를 분명히 거절한 건. 자동 처리 대상이 아니라 사람이 본다.
+  if (summary.cancelDeclined) return "결제 확인 필요";
+  // 결제가 없거나 둘 이상이면 어느 것이 진짜인지 화면이 고르지 않는다.
+  if (summary.totalCount !== 1) return "결제 확인 필요";
+  if (summary.paidCount === 1) return "결제 완료";
+  return "결제 확인 필요";
+}
+
 type TabId = "users" | "points" | "coupons" | "codes" | "orders" | "consultations" | "refunds" | "reviews" | "events" | "inquiries" | "chat" | "schedule";
 
 /** 챗봇에서 접수한 문의의 product 값. 저장 시 쓰는 값과 같아야 한다. */
@@ -409,6 +448,15 @@ export default function AdminPage() {
     unlinked: PaymentReviewItem[];
   }>({ stale: [], unlinked: [] });
   const [orders, setOrders] = useState<Order[]>([]);
+  /**
+   * 주문 id별 결제 요약. 환불 문의와 같은 이유로 loaded를 함께 들고 있는다.
+   * loaded가 false는 "결제 없음"이 아니라 "읽지 못함"이다.
+   * 첫 응답을 받기 전에는 조회가 성공했는지 아직 모르므로 false로 둔다.
+   */
+  const [orderPayments, setOrderPayments] = useState<{
+    loaded: boolean;
+    items: Record<string, OrderPaymentSummary>;
+  }>({ loaded: false, items: {} });
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -523,6 +571,12 @@ export default function AdminPage() {
     // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
     setOrders(
       ((data.orders ?? []) as Order[]).filter((order) => order.product !== "consultation"),
+    );
+    setOrderPayments(
+      (data.orderPayments ?? { loaded: false, items: {} }) as {
+        loaded: boolean;
+        items: Record<string, OrderPaymentSummary>;
+      },
     );
     setConsultations(data.consultations ?? []);
     setReviews((data.reviews ?? []) as ReviewItem[]);
@@ -1799,6 +1853,12 @@ export default function AdminPage() {
                * 버튼을 잠그는 것은 편의일 뿐이고, 실제 관문은 서버의 409 잠금이다.
                */
               const refunded = hasCompletedRefund(refundRequests.items, order.id);
+              const paymentBadge = paymentBadgeLabel(
+                refunded,
+                order.amount,
+                orderPayments.loaded,
+                orderPayments.items[order.id],
+              );
               // 펼쳤을 때 보여 줄 신청 내용. 값이 있는 항목만 담긴다.
               const detailRows = orderDetailRows(order.details);
               return (
@@ -1812,6 +1872,15 @@ export default function AdminPage() {
                           환불 완료
                         </span>
                       ) : null}
+                      {/*
+                        환불이 끝난 건이면 위 배지가 이미 "환불 완료"를 말하고 있다.
+                        같은 문구를 두 번 붙이지 않도록 그때만 이 배지를 내지 않는다.
+                      */}
+                      {refunded ? null : (
+                        <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                          {paymentBadge}
+                        </span>
+                      )}
                       <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                         {order.status}
                       </span>
