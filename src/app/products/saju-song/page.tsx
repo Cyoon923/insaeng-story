@@ -23,7 +23,7 @@ const config = {
     { icon: <Music className="h-5 w-5" />, label: "작사·작곡", sub: "맞춤 음악" },
     { icon: <Play className="h-5 w-5" />, label: "음원 파일", sub: "기본 제공" },
   ],
-  priceFrom: 199000,
+  priceFrom: 99000,
   applyHref: "/apply/saju-song/1",
   recommends: [
     {
