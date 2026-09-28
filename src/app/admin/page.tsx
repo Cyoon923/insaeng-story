@@ -184,6 +184,75 @@ function userLabel(user: User) {
   return "이름 없음";
 }
 
+/**
+ * 주문의 신청 내용을 관리자에게 보여 줄 순서와 한글 라벨.
+ *
+ * 키는 신청 화면이 실제로 저장하는 값만 담았다(추측한 키는 넣지 않는다).
+ * 근거: src/app/apply/{story-song,premium,saju-song}/** 의 saveDraft·details와
+ *       src/components/apply/PaySubmit.tsx(draft를 그대로 details로 보낸다).
+ * 여기 없는 키(protagonistId·optionIds·applyConsent 같은 내부값)는 그리지 않는다.
+ * 내부 키 이름이나 JSON 원문을 화면에 그대로 내보내지 않기 위한 목록이다.
+ */
+const ORDER_DETAIL_FIELDS: { key: string; label: string }[] = [
+  { key: "name", label: "신청자 이름" },
+  { key: "phone", label: "연락처" },
+  { key: "method", label: "연락 방법" },
+  { key: "subject", label: "사주 주인공" },
+  { key: "gender", label: "성별" },
+  { key: "birth", label: "생년월일" },
+  { key: "birthTime", label: "태어난 시간" },
+  { key: "unknownTime", label: "태어난 시간 모름" },
+  { key: "calendar", label: "양력/음력" },
+  { key: "bloodType", label: "혈액형" },
+  { key: "사주정보", label: "사주 정보 요약" },
+  { key: "protagonist", label: "이야기 주인공" },
+  { key: "memory", label: "기억에 남는 순간" },
+  { key: "message", label: "전하고 싶은 말" },
+  { key: "image", label: "기억하고 싶은 모습" },
+  { key: "free", label: "자유 작성" },
+  { key: "story", label: "당신의 이야기" },
+  { key: "moods", label: "가사 분위기" },
+  { key: "customMood", label: "직접 입력한 분위기" },
+  { key: "분위기", label: "분위기 요약" },
+  { key: "songs", label: "참고 가수·노래" },
+  { key: "options", label: "선택 옵션" },
+  { key: "옵션", label: "옵션 요약" },
+  { key: "videoStyle", label: "영상 스타일" },
+  { key: "report", label: "상담 기록 요약 리포트" },
+  { key: "extraPerson", label: "추가 인원(궁합)" },
+  { key: "teacher", label: "선생님" },
+  { key: "datetime", label: "상담 일정" },
+  { key: "purpose", label: "상담 목적" },
+  { key: "option", label: "상담 옵션" },
+  { key: "content", label: "상담 내용" },
+];
+
+/** 저장된 코드값을 사람이 읽는 말로 바꾼다. 모르는 값은 그대로 보여 준다. */
+function orderDetailValue(key: string, value: string): string {
+  if (key === "subject") {
+    if (value === "self") return "내 정보";
+    if (value === "other") return "다른 사람";
+    return value;
+  }
+  if (key === "unknownTime") return value === "1" ? "예" : value;
+  if (key === "report" || key === "extraPerson") return value === "1" ? "선택함" : value;
+  return value;
+}
+
+/**
+ * 화면에 그릴 줄만 고른다. 값이 없거나 공백뿐인 항목은 아예 담지 않는다.
+ * 예전에 만들어진 주문(키가 적은 details)도 있는 값만 나와 그대로 안전하다.
+ */
+function orderDetailRows(details: Record<string, string>): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [];
+  for (const field of ORDER_DETAIL_FIELDS) {
+    const raw = details?.[field.key];
+    if (typeof raw !== "string" || !raw.trim()) continue;
+    rows.push({ label: field.label, value: orderDetailValue(field.key, raw.trim()) });
+  }
+  return rows;
+}
+
 function contactLabel(user: User) {
   if (user.phone && user.email) return `${user.phone} · ${user.email}`;
   return user.phone || user.email || "-";
@@ -369,6 +438,8 @@ export default function AdminPage() {
   // 목록을 부르는 중인지. 같은 조회가 겹쳐 나가지 않게 하기 위해 둔다.
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
+  // 신청 내용을 펼친 주문 하나. 기본은 모두 닫힘이다.
+  const [openOrderDetailId, setOpenOrderDetailId] = useState("");
   const [selectedChatId, setSelectedChatId] = useState("");
   const [selectedChatMessages, setSelectedChatMessages] = useState<AdminChatMessage[]>([]);
   const [chatDetailLoading, setChatDetailLoading] = useState(false);
@@ -1676,6 +1747,8 @@ export default function AdminPage() {
                * 버튼을 잠그는 것은 편의일 뿐이고, 실제 관문은 서버의 409 잠금이다.
                */
               const refunded = hasCompletedRefund(refundRequests.items, order.id);
+              // 펼쳤을 때 보여 줄 신청 내용. 값이 있는 항목만 담긴다.
+              const detailRows = orderDetailRows(order.details);
               return (
                 <article key={order.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
@@ -1722,6 +1795,38 @@ export default function AdminPage() {
                       );
                     })}
                   </div>
+
+                  {/*
+                    제작에 필요한 신청 내용. 기본은 닫혀 있고 누를 때만 펼친다.
+                    이미 내려받은 order.details만 쓰고 따로 조회하지 않는다.
+                  */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenOrderDetailId((current) => (current === order.id ? "" : order.id))
+                    }
+                    className="mt-3 h-10 w-full rounded-lg border border-[#d4c8ba] bg-white text-[13px] font-semibold text-[#5c3d2e]"
+                  >
+                    {openOrderDetailId === order.id ? "신청 내용 닫기" : "신청 내용 보기"}
+                  </button>
+                  {openOrderDetailId === order.id ? (
+                    detailRows.length === 0 ? (
+                      <p className="mt-2 text-[13px] text-[#6B6570]">
+                        남아 있는 신청 내용이 없습니다.
+                      </p>
+                    ) : (
+                      <dl className="mt-2 space-y-2 rounded-lg bg-[#faf8f5] p-3">
+                        {detailRows.map((row) => (
+                          <div key={row.label}>
+                            <dt className="text-[12px] font-semibold text-[#6B6570]">{row.label}</dt>
+                            <dd className="mt-0.5 whitespace-pre-line break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                              {row.value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )
+                  ) : null}
                 </article>
               );
             })
