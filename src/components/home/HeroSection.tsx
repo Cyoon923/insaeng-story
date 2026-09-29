@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { isPromotionOpen } from "@/lib/constants/promotions";
 
 const SLIDES = [
   {
@@ -47,18 +48,56 @@ const SLIDES = [
   },
 ] as const;
 
+/** 이 Hero가 바꿔 끼우는 프로모션. 시작일과 가격은 이 상수가 아니라 가격표가 정한다. */
+const OPEN_EVENT_PROMOTION = "saju-song-open-2026";
+
+/**
+ * 오픈일이 지난 뒤 event 자리에 대신 들어가는 슬라이드.
+ *
+ * 슬라이드를 더하지 않고 같은 자리를 바꿔 끼운다. 배너는 언제나 3장이다.
+ * 담긴 값은 문구와 주소뿐이고 가격을 계산하지 않는다. 주소의 식별자는 "이벤트로
+ * 들어왔다"는 표시일 뿐이며, 실제 적용 여부와 기간은 신청·결제 단계에서 서버가 정한다.
+ */
+const OPEN_EVENT_SLIDE = {
+  id: "event",
+  badge: "OPEN EVENT",
+  title: "사주 인생곡\n오픈 기념 특별가",
+  desc: "정상가 99,000원\n→ 19,000원\n2026.10.01 OPEN",
+  // 이미지는 기존 event 슬라이드와 같은 것을 그대로 쓴다.
+  image: "/images/photo-gift.jpg",
+  imageClass: "object-center",
+  imageAlt: "",
+  primaryHref: `/apply/saju-song/1?promotion=${OPEN_EVENT_PROMOTION}`,
+  primaryLabel: "19,000원 신청하기",
+  secondaryHref: "",
+  secondaryLabel: "",
+} as const;
+
 export function HeroSection() {
   const [index, setIndex] = useState(0);
   const startX = useRef<number | null>(null);
 
+  /*
+   * 오픈일(2026-10-01 00:00 KST)이 지났으면 event 자리만 OPEN EVENT로 바꿔 끼운다.
+   *
+   * 기간 규칙을 여기에 다시 적지 않고 가격표와 같은 isPromotionOpen을 부른다. 날짜 규칙이
+   * 두 곳에 있으면 한쪽만 고쳤을 때 "배너에는 이벤트, 결제는 거절"이 된다. 그 함수는
+   * UTC에 +9시간을 더해 한국 날짜를 읽으므로 보는 사람의 시간대가 한국이 아니어도 같은 날에 바뀐다.
+   *
+   * 목록 길이는 그대로 3장이다. 슬라이드를 더하거나 빼지 않는다.
+   */
+  const slides = isPromotionOpen(OPEN_EVENT_PROMOTION)
+    ? SLIDES.map((item) => (item.id === "event" ? OPEN_EVENT_SLIDE : item))
+    : SLIDES;
+
   const goTo = (next: number) => {
-    const last = SLIDES.length - 1;
+    const last = slides.length - 1;
     if (next < 0) setIndex(last);
     else if (next > last) setIndex(0);
     else setIndex(next);
   };
 
-  const slide = SLIDES[index];
+  const slide = slides[index];
   // Hero 1 전용 배색·서체·레이아웃 분기. 다른 슬라이드는 기존 구성을 그대로 쓴다.
   const isStory = slide.id === "story";
 
@@ -175,7 +214,7 @@ export function HeroSection() {
           <ChevronLeft className="h-6 w-6" />
         </button>
         <div className="flex items-center gap-1.5">
-          {SLIDES.map((item, i) => (
+          {slides.map((item, i) => (
             <button
               key={item.id}
               type="button"
