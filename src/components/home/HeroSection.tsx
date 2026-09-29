@@ -62,7 +62,7 @@ const OPEN_EVENT_SLIDE = {
   id: "event",
   badge: "OPEN EVENT",
   title: "사주 인생곡\n오픈 기념 특별가",
-  desc: "정상가 99,000원\n→ 19,000원\n2026.10.01 OPEN",
+  desc: "정상가 99,000원\n→ 19,000원\n2026.10.04 OPEN",
   // 이미지는 기존 event 슬라이드와 같은 것을 그대로 쓴다.
   image: "/images/photo-gift.jpg",
   imageClass: "object-center",
@@ -78,7 +78,7 @@ export function HeroSection() {
   const startX = useRef<number | null>(null);
 
   /*
-   * 오픈일(2026-10-01 00:00 KST)이 지났으면 event 자리만 OPEN EVENT로 바꿔 끼운다.
+   * 오픈일(2026-10-04 00:00 KST)이 지났으면 event 자리만 OPEN EVENT로 바꿔 끼운다.
    *
    * 기간 규칙을 여기에 다시 적지 않고 가격표와 같은 isPromotionOpen을 부른다. 날짜 규칙이
    * 두 곳에 있으면 한쪽만 고쳤을 때 "배너에는 이벤트, 결제는 거절"이 된다. 그 함수는

@@ -27,7 +27,7 @@ export const PROMOTION_PRICES = {
     /** 프로모션 기본가. 옵션가는 여기에 그대로 더해진다. */
     basePrice: 19000,
     /** 시작일(한국 날짜). 이 날짜부터 쓸 수 있다. 종료일은 아직 정해지지 않았다. */
-    startsOn: "2026-10-01",
+    startsOn: "2026-10-04",
   },
 } as const;
 

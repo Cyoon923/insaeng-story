@@ -139,3 +139,14 @@ test("기존 제작 옵션 가격은 건드리지 않았다", () => {
   // 이벤트가에도 기존 옵션가가 같은 방식으로 더해진다.
   assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice + optionPrice("ai-mv"), 119000);
 });
+
+test("오픈 이벤트 시작은 한국 2026-10-04 00:00이다", async () => {
+  const { isPromotionOpen, PROMOTION_PRICES } = await import("../constants/promotions.ts");
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].startsOn, "2026-10-04");
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice, 19000);
+  // 한국 10-03 23:59:59 = UTC 10-03 14:59:59
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-03T14:59:59.000Z")), false);
+  // 한국 10-04 00:00:00 = UTC 10-03 15:00:00
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-03T15:00:00.000Z")), true);
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-01T00:00:00.000Z")), false);
+});
