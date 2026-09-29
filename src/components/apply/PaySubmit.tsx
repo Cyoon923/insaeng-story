@@ -23,6 +23,7 @@ export function PaySubmit({
   details,
   label,
   optionIds = [],
+  promotion,
 }: {
   flow: string;
   kind: "order" | "consultation";
@@ -34,6 +35,13 @@ export function PaySubmit({
   label: string;
   /** 서버가 금액을 다시 계산할 때 쓰는 옵션 id. 표시용 한글 문자열과 별개다. */
   optionIds?: string[];
+  /**
+   * 이벤트 진입 식별자. 금액이 아니라 식별자 문자열만 보낸다.
+   *
+   * 실제 상품 옵션(optionIds)과 다른 축이라 따로 받는다. 이 값이 유효한지, 지금
+   * 쓸 수 있는지는 서버가 정한다. 화면은 표시만 하고 가격을 정하지 않는다.
+   */
+  promotion?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -149,6 +157,8 @@ export function PaySubmit({
               product,
               title,
               options: optionIds,
+              // details가 아니라 최상위로 보낸다. 서버는 이 값만 읽는다.
+              promotion,
               payment,
               details: merged,
             }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { fetchMe, getDraft, postApp, saveDraft } from "@/lib/client/api";
+import { isPromotionId } from "@/lib/constants/promotions";
 import type { User } from "@/lib/types/app";
 import { BirthTimeField } from "@/components/apply/BirthTimeField";
 
@@ -68,6 +69,17 @@ export default function SajuStep1Page() {
     if (draft.subject === "other") setSubject("other");
     // 기존 draft에 없으면 "내 정보"를 기본값으로 남겨 둔다.
     else if (!draft.subject) saveDraft("saju-song", { subject: "self" });
+
+    /*
+     * 이벤트 진입 식별자. 주소로 들어온 값을 draft에 옮겨 마지막 단계까지 들고 간다.
+     *
+     * 금액은 받지 않는다. 서버 가격표에 있는 식별자인지만 보고, 아니면 아무것도 하지
+     * 않는다(기존 값도 건드리지 않는다). 실제 가격 판단과 기간 확인은 서버가 한다.
+     * useSearchParams 대신 주소를 직접 읽는다. 이 효과는 브라우저에서만 돌고,
+     * 이 화면에 렌더링 경계를 새로 만들지 않기 위해서다.
+     */
+    const entry = new URLSearchParams(window.location.search).get("promotion");
+    if (isPromotionId(entry)) saveDraft("saju-song", { promotion: entry });
   }, []);
 
   /**

@@ -152,7 +152,12 @@ export async function POST(request: Request) {
   let couponProduct: CouponProduct;
   let basePrice: number;
   if (kind === "order") {
-    const priced = calcOrderAmount(request_.product, request_.options);
+    /*
+     * 승인 경로와 같다. snapshot에 고정된 프로모션으로 가격만 재현하고 기간은 보지 않는다.
+     * 복구는 며칠 뒤에 사람이 누를 수 있어, 여기서 날짜를 보면 이벤트가 끝난 뒤에는
+     * 정상 승인된 결제를 영영 복구할 수 없게 된다.
+     */
+    const priced = calcOrderAmount(request_.product, request_.options, request_.promotion);
     if (!priced) return manual("신청 내용을 확인하지 못했습니다.");
     couponProduct = request_.product as Order["product"];
     basePrice = priced.amount;
@@ -197,6 +202,8 @@ export async function POST(request: Request) {
           product: request_.product,
           title: request_.title,
           options: request_.options,
+          // 위 재계산과 같은 값을 넘긴다.
+          promotion: request_.promotion,
           payment: request_.payment,
           details: commitDetails,
         },

@@ -160,6 +160,14 @@ export interface OrderInput {
   product: unknown;
   title: unknown;
   options: unknown;
+  /**
+   * 프로모션 식별자. 실제 상품 옵션(options)과 다른 축이라 따로 받는다.
+   *
+   * 기간 검증은 여기서 하지 않는다. 최초 요청에서 checkPromotionEntry가 이미 했고,
+   * 승인·복구 경로는 snapshot에 고정된 값을 그대로 넘긴다(그래서 날짜를 다시 보면 안 된다).
+   * 가격표에 없는 값이면 아래 calcOrderAmount가 null을 돌려주어 주문이 만들어지지 않는다.
+   */
+  promotion?: unknown;
   payment: unknown;
   details: Record<string, string>;
 }
@@ -303,12 +311,21 @@ export async function commitOrder(
   const copyrightConsent = copyrightAgreed ? buildCopyrightConsent(consentedAt) : undefined;
 
   // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
-  const priced = calcOrderAmount(input.product, input.options);
+  const priced = calcOrderAmount(input.product, input.options, input.promotion);
   if (!priced) {
     return { ok: false, error: "신청 내용을 다시 확인해 주세요.", status: 400 };
   }
   const product = input.product as Order["product"];
   details.optionIds = priced.optionIds.join(",");
+  /*
+   * 프로모션 증빙. 서버 가격표를 통과한 값만 남긴다.
+   *
+   * 클라이언트가 details에 실어 보낸 promotion은 읽지 않고 먼저 지운다. details는
+   * 임의 키를 섞을 수 있는 값이라, 남겨 두면 할인되지 않은 주문에 할인 흔적만 남는다.
+   * 기록 목적은 하나다. 나중에 이 주문이 왜 그 금액이었는지 설명하는 것이다.
+   */
+  delete details.promotion;
+  if (priced.promotion) details.promotion = priced.promotion;
   const couponed = applyFreeCoupon(data, userId, details, priced.amount, product);
   if (couponed.error) {
     return { ok: false, error: couponed.error, status: 400 };

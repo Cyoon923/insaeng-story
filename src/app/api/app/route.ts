@@ -64,7 +64,7 @@ import { unlinkKakao } from "@/lib/server/kakaoUnlink";
 import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime, resolveScheduledAt } from "@/lib/server/consultationSlots";
-import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import { calcConsultationAmount, calcOrderAmount, checkPromotionEntry } from "@/lib/server/pricing";
 import {
   applyFreeCoupon,
   applyPoints,
@@ -1720,10 +1720,21 @@ async function handlePost(request: Request) {
     const versionGate = orderConsentVersionGate();
     if (versionGate) return versionGate;
 
+    /*
+     * 0원 신청도 프로모션 기준은 같다. 이 경로는 결제 준비 없이 그 자리에서 확정되므로
+     * 기간 검증을 여기서 한 번 한다(결제 경로의 preparePayment와 같은 자리다).
+     * 쿠폰·적립금으로 0원이 되더라도 기본가 기준이 달라지면 안 된다.
+     */
+    const promotionCheck = checkPromotionEntry(body.promotion, body.product);
+    if (!promotionCheck.ok) {
+      return NextResponse.json({ error: promotionCheck.error }, { status: 400 });
+    }
+
     const result = await commitOrder(data, user, {
       product: body.product,
       title: body.title,
       options: body.options,
+      promotion: promotionCheck.promotion,
       payment: body.payment,
       details: (body.details as Record<string, string>) ?? {},
     });
@@ -1873,7 +1884,19 @@ async function handlePost(request: Request) {
 
     if (kind === "order") {
       // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
-      const priced = calcOrderAmount(body.product, body.options);
+      /*
+       * 프로모션 확인. body 최상위 값만 본다(details 안의 값은 읽지 않는다).
+       *
+       * ★ 이벤트 기간을 보는 유일한 지점이다. 여기서 통과한 식별자만 아래 snapshot에
+       * 고정되고, 승인·복구는 그 값으로 가격만 재현한다. 잘못된 값이나 시작 전이면
+       * 정가로 돌리지 않고 여기서 막는다(화면과 결제 금액이 어긋나지 않게 하기 위해서다).
+       */
+      const promotionCheck = checkPromotionEntry(body.promotion, body.product);
+      if (!promotionCheck.ok) {
+        return NextResponse.json({ error: promotionCheck.error }, { status: 400 });
+      }
+      // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
+      const priced = calcOrderAmount(body.product, body.options, promotionCheck.promotion);
       if (!priced) {
         return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
       }
@@ -1885,6 +1908,8 @@ async function handlePost(request: Request) {
         product,
         title: goodsName,
         options: priced.optionIds,
+        // 서버가 인정한 값만 담는다. 승인·복구는 이 값으로 같은 금액을 재현한다.
+        ...(priced.promotion ? { promotion: priced.promotion } : {}),
         payment: String(body.payment ?? ""),
       };
     } else {

@@ -49,6 +49,8 @@ export const RETENTION_KEPT_DETAIL_KEYS = [
   // 상품가·옵션가 구성.
   "optionIds",
   "options",
+  // 이벤트 기본가가 적용된 근거. 고정 식별자라 개인을 가리키지 않는다.
+  "promotion",
   "videoStyle",
   "report",
   "extraPerson",

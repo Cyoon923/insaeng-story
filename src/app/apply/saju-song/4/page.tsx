@@ -7,6 +7,7 @@ import { PaySubmit } from "@/components/apply/PaySubmit";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
 import { ORDER_OPTION_PRICES } from "@/lib/server/pricing";
+import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { getDraft } from "@/lib/client/api";
 import {
   COPYRIGHT_CONSENT_LABEL,
@@ -15,6 +16,34 @@ import {
 } from "@/lib/constants/legal";
 
 const BASE_PRICE = LIFE_SONG_PRODUCTS[2].priceFrom;
+
+/**
+ * 지금 이 신청에 적용할 수 있는 프로모션. 없으면 undefined다.
+ *
+ * 이벤트 링크로 들어왔더라도 시작일(2026-10-01 KST) 전이면 없는 것으로 본다.
+ * 시작 전에는 팔 수 없는 가격이라, 화면에 판매가처럼 띄워 두면 눌렀을 때 서버가
+ * 거절한다. 기간 규칙은 서버 검증과 같은 isPromotionOpen 하나를 쓴다.
+ */
+function usablePromotion(draft: Record<string, string>) {
+  const promotion = draft.promotion;
+  if (!isPromotionId(promotion)) return undefined;
+  if (PROMOTION_PRICES[promotion].product !== "saju-song") return undefined;
+  if (!isPromotionOpen(promotion)) return undefined;
+  return promotion;
+}
+
+/**
+ * 이 신청에 적용되는 기본가.
+ *
+ * 쓸 수 있는 이벤트일 때만 이벤트 기본가를 보여 준다. 화면에 숫자를 새로 적지 않고
+ * 서버와 같은 가격표(PROMOTION_PRICES)를 읽는다. 표시와 결제가 어긋나지 않게 하려는 것이다.
+ *
+ * 여기서 정해지는 것은 "보여 줄 금액"뿐이다. 실제 결제 금액은 서버가 다시 계산하며
+ * (PaySubmit이 화면 금액을 결제창에 넘기지 않는다), 최종 기간 판정도 서버가 한다.
+ */
+function basePriceOf(promotion: ReturnType<typeof usablePromotion>): number {
+  return promotion ? PROMOTION_PRICES[promotion].basePrice : BASE_PRICE;
+}
 /** 서버(src/lib/server/pricing.ts)와 같은 id·가격을 쓴다. 표시용 이름만 여기서 붙인다. */
 const OPTION_PRICES = [
   { id: "ai-mv", name: "내 얼굴 AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
@@ -68,7 +97,13 @@ export default function ApplyStep6Page() {
     .filter(Boolean)
     .join(" / ");
   const optionsTotal = options.reduce((sum, opt) => sum + opt.price, 0);
-  const finalPrice = BASE_PRICE + optionsTotal;
+  /*
+   * 이벤트 진입이면 기본가만 바뀐다. 옵션가 합산은 그대로다(서버 계산과 같은 규칙).
+   * 시작 전이면 promotion이 undefined라 정가가 보이고, 결제에도 실려 가지 않는다.
+   */
+  const promotion = usablePromotion(draft);
+  const basePrice = basePriceOf(promotion);
+  const finalPrice = basePrice + optionsTotal;
   const rows = [
     { label: "사주 정보", value: sajuLabel(draft), href: "/apply/saju-song/1" },
     { label: "가사 분위기", value: moodLabel(draft), href: "/apply/saju-song/2" },
@@ -119,7 +154,7 @@ export default function ApplyStep6Page() {
         <div className="mt-3 space-y-2 text-[14px]">
           <div className="flex justify-between">
             <span className="text-[#6B6570]">사주 인생곡</span>
-            <span className="text-[#3d2b1f]">{formatPrice(BASE_PRICE)}</span>
+            <span className="text-[#3d2b1f]">{formatPrice(basePrice)}</span>
           </div>
           {options.map((opt) => (
             <div key={opt.name} className="flex justify-between">
@@ -232,6 +267,7 @@ export default function ApplyStep6Page() {
           title="사주 인생곡"
           amount={finalPrice}
           optionIds={options.map((opt) => opt.id)}
+          promotion={promotion}
           payment={payment}
           details={{
             // [필수] 동의 두 건을 각각 전달한다. 화면에서 따로 눌리므로 따로 보낸다.

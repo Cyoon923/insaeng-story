@@ -206,7 +206,12 @@ export async function POST(request: Request) {
   let couponProduct: CouponProduct;
   let basePrice: number;
   if (kind === "order") {
-    const priced = calcOrderAmount(request_.product, request_.options);
+    /*
+     * 프로모션은 snapshot에 고정된 값을 그대로 쓴다. 기간을 다시 보지 않는다.
+     * 여기서 날짜를 판단하면 결제 준비와 승인 사이에 기간 경계를 넘었을 때 금액이
+     * 달라져 아래 대조에서 실패한다. 자격은 준비 단계에서 이미 확인했다.
+     */
+    const priced = calcOrderAmount(request_.product, request_.options, request_.promotion);
     if (!priced) return failed("신청 내용을 확인하지 못했습니다.");
     couponProduct = request_.product as Order["product"];
     basePrice = priced.amount;
@@ -332,6 +337,8 @@ export async function POST(request: Request) {
           product: request_.product,
           title: request_.title,
           options: request_.options,
+          // 위 재계산과 같은 값을 넘긴다. 주문에도 같은 증빙이 남는다.
+          promotion: request_.promotion,
           payment: request_.payment,
           details: commitDetails,
         },
