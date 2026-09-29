@@ -81,6 +81,7 @@ function appData(reviews?: Review[]): AppData {
     ...(reviews ? { reviews } : {}),
     wishlists: {},
     coupons: {},
+    couponCodes: {},
     notifications: {},
     notificationSettings: {},
     codes: {},

@@ -31,6 +31,7 @@ const EMPTY: AppData = {
   reviews: [],
   wishlists: {},
   coupons: {},
+  couponCodes: {},
   notifications: {},
   notificationSettings: {},
   codes: {},

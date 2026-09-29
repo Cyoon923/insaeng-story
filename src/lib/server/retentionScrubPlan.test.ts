@@ -94,6 +94,7 @@ function appData(orders: Order[], consultations: Consultation[] = []): AppData {
     reviews: [],
     wishlists: {},
     coupons: {},
+    couponCodes: {},
     notifications: {},
     notificationSettings: {},
     codes: {},

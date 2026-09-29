@@ -281,6 +281,61 @@ export interface Coupon {
   createdAt: string;
   product?: CouponProduct;
   usedAt?: string;
+  /**
+   * 이 쿠폰이 어떤 쿠폰 코드(CouponCode.code)로 등록되었는지.
+   *
+   * 값이 없는 것은 "코드로 받은 쿠폰이 아님"이라는 뜻이다. 가입 쿠폰과 관리자가
+   * 직접 지급한 무료 쿠폰에는 없으며, 소급해 만들지 않는다.
+   * 같은 회원이 같은 코드를 두 번 등록했는지 가리는 근거로 쓴다.
+   */
+  sourceCode?: string;
+  /**
+   * 이 쿠폰의 사용기한(UTC ISO). 등록 시점의 CouponCode.expiresAt 사본이다.
+   *
+   * 사본을 두는 이유는, 나중에 코드 쪽 기한이 바뀌어도 이미 받은 쿠폰의 조건이
+   * 따라 바뀌면 안 되기 때문이다. 값이 없는 것은 "기한 없음"이며, 기존 쿠폰에는
+   * 없다. 이 단계에서는 저장 구조만 두고 결제 검증은 아직 하지 않는다.
+   */
+  expiresAt?: string;
+}
+
+/**
+ * 외부에 나눠 주는 쿠폰 코드의 원본(마스터).
+ *
+ * 회원이 가진 쿠폰(Coupon)과 다른 축이다. 이쪽은 "어떤 코드가 존재하는가"이고,
+ * 저쪽은 "누가 무엇을 가지고 있는가"다. 회원이 코드를 등록하면 이 원본을 근거로
+ * 서버가 Coupon을 새로 만들어 준다(그 등록 처리는 다음 단계에서 만든다).
+ *
+ * v1은 "특정 상품 1회 무료"만 지원한다. 그래서 할인율·할인액 필드가 없다.
+ * 무료가 아닌 쿠폰이 필요해지면 그때 축을 새로 만든다(여기에 금액을 더하면
+ * 기존 무료 쿠폰과 판정이 섞인다).
+ *
+ * OPEN EVENT 프로모션(PROMOTION_PRICES)과도 완전히 별개다. 저쪽은 상품의
+ * 기본가 자체를 바꾸는 값이고, 이쪽은 회원 1명에게 붙는 무료 권리다.
+ */
+export interface CouponCode {
+  /**
+   * 코드 문자열. 예) "SAJULOG-XXXX"
+   *
+   * 이 값 자체가 식별자다(AppData.couponCodes의 key와 같다). 그래서 별도 id를
+   * 두지 않는다. 대소문자·공백 정규화 규칙은 실제로 코드를 등록·조회하는
+   * 다음 단계에서 한 곳에 정하고, 이 타입은 저장된 형태만 나타낸다.
+   */
+  code: string;
+  /** 쿠폰함에 보일 이름. 등록 시 Coupon.title로 복사된다. */
+  title: string;
+  /** 쿠폰함에 보일 설명. 등록 시 Coupon.desc로 복사된다. */
+  desc: string;
+  /** 이 코드로 받는 무료 쿠폰이 쓰일 상품. 회원 쿠폰의 product와 같은 축이다. */
+  product: CouponProduct;
+  /** 지금 등록을 받는 코드인지. false면 새로 등록할 수 없다(이미 받은 쿠폰은 그대로다). */
+  active: boolean;
+  /**
+   * 코드 자체의 사용기한(UTC ISO). 값이 없으면 "기한 없음"이다.
+   * 등록 시 회원 쿠폰(Coupon.expiresAt)으로 복사할 값이기도 하다.
+   */
+  expiresAt?: string;
+  createdAt: string;
 }
 
 export interface AppNotification {
@@ -756,6 +811,13 @@ export interface AppData {
   reviews: Review[];
   wishlists: Record<string, string[]>;
   coupons: Record<string, Coupon[]>;
+  /**
+   * 쿠폰 코드 원본. key는 그 코드 문자열이며 값의 code와 같다.
+   *
+   * 회원별 보유 쿠폰(coupons)과 달리 회원에 매이지 않는다. 이 구조가 생기기 전의
+   * 저장소에는 키 자체가 없으며, 읽을 때 빈 객체로 채워진다(store.ts mergeData).
+   */
+  couponCodes: Record<string, CouponCode>;
   notifications: Record<string, AppNotification[]>;
   notificationSettings: Record<string, NotificationSettings>;
   codes: Record<string, VerificationCode>;

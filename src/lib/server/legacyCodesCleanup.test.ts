@@ -63,6 +63,7 @@ function appData(codes: Record<string, VerificationCode>, tag = "read-1"): AppDa
     reviews: [],
     wishlists: { "u-1": ["w-1"] },
     coupons: {},
+    couponCodes: {},
     notifications: {},
     notificationSettings: {},
     codes,

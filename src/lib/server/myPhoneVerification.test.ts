@@ -58,6 +58,7 @@ function dataWith(users: User[], overrides: Partial<AppData> = {}): AppData {
     reviews: [],
     wishlists: {},
     coupons,
+    couponCodes: {},
     notifications: {},
     notificationSettings: {},
     codes: {},

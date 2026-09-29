@@ -35,6 +35,7 @@ function appData(tag: string): AppData {
     reviews: [],
     wishlists: {},
     coupons: {},
+    couponCodes: {},
     notifications: {},
     notificationSettings: {},
     codes: {},
