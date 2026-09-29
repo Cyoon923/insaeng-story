@@ -105,6 +105,33 @@ export function applyFreeCoupon(
   if (coupon.usedAt) {
     return { amount, details, error: "이미 사용한 쿠폰입니다." };
   }
+  /*
+   * 사용기한. 회원 쿠폰에 복사되어 있는 값만 본다.
+   *
+   * 코드 원본(AppData.couponCodes)은 조회하지 않는다. 원본의 active와 기한은
+   * "지금 새로 등록을 받는가"를 정하는 값이고, 이미 받아 둔 쿠폰의 사용 조건은
+   * 등록 시점에 복사된 이 값이다. 원본을 다시 보면 관리자가 코드를 닫는 순간
+   * 이미 나간 쿠폰까지 함께 막혀 버린다.
+   *
+   * 값이 없으면 "기한 없음"이다. 기존 쿠폰과 관리자가 직접 지급한 무료 쿠폰이
+   * 여기에 해당하며, 기한을 지어내지 않는다.
+   *
+   * 경계는 expiresAt까지 포함이다(now <= expiresAt이면 쓸 수 있다). 저장된 값이
+   * 그 날 한국 시각 23:59:59이므로, 그 순간을 지났을 때만 만료로 본다.
+   *
+   * 값이 있는데 읽을 수 없으면 쓰지 못하게 막는다. 기한이 적혀 있다는 것은 조건이
+   * 붙은 쿠폰이라는 뜻이고, 그 조건을 확인할 수 없는 채로 무료 처리하면 기한이
+   * 지난 쿠폰을 그냥 받아 주는 것과 같아진다. 만료와는 원인이 다르므로 문구도 나눈다.
+   */
+  if (coupon.expiresAt) {
+    const expiresAt = new Date(coupon.expiresAt).getTime();
+    if (Number.isNaN(expiresAt)) {
+      return { amount, details, error: "쿠폰 사용기한 정보를 확인할 수 없습니다." };
+    }
+    if (Date.now() > expiresAt) {
+      return { amount, details, error: "사용기한이 지난 쿠폰입니다." };
+    }
+  }
   if (!coupon.product || coupon.product !== product) {
     return { amount, details, error: "이 상품에 사용할 수 없는 쿠폰입니다." };
   }
