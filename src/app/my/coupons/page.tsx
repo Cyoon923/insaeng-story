@@ -29,6 +29,23 @@ function formatExpiry(value: string | undefined) {
     .replaceAll("-", ".");
 }
 
+/**
+ * 예전에 가입할 때 함께 만들어졌던 안내 항목인지.
+ *
+ * 혜택이 아니라 문구였다. product가 없어 신청에 쓸 수 없고(applyFreeCoupon이 거절한다),
+ * 지금은 더 만들지 않는다. 이미 받은 회원의 기록은 지우지 않고 이 화면에서만 감춘다.
+ *
+ * 세 가지가 모두 맞을 때만 감춘다. 제목만 보면 관리자가 같은 이름으로 만든 진짜
+ * 쿠폰이 사라지고, product 없음만 보면 앞으로 생길 다른 안내성 쿠폰까지 함께 사라진다.
+ */
+function isLegacyWelcome(coupon: Coupon): boolean {
+  return (
+    !coupon.product &&
+    coupon.title === "첫 방문 안내" &&
+    coupon.desc === "신청과 상담 진행을 우선 안내해 드립니다."
+  );
+}
+
 /** 쿠폰이 어떤 상품에 쓰이는지. 저장된 코드값을 사람이 읽는 말로 바꾼다. */
 const PRODUCT_LABELS: Record<string, string> = {
   story: "이야기로 만드는 인생곡",
@@ -75,6 +92,9 @@ export default function CouponsPage() {
       setRedeeming(false);
     }
   }
+
+  // 화면에 낼 목록. 원본 coupons는 그대로 두고 여기서만 걸러 낸다.
+  const visibleCoupons = coupons.filter((coupon) => !isLegacyWelcome(coupon));
 
   return (
     <MobileShell>
@@ -143,7 +163,7 @@ export default function CouponsPage() {
             </Link>
           </div>
         ) : null}
-        {loaded && loggedIn && coupons.length === 0 ? (
+        {loaded && loggedIn && visibleCoupons.length === 0 ? (
           <div className="rounded-2xl bg-white px-5 py-12 text-center ring-1 ring-[#ebe3d8]">
             <Ticket className="mx-auto h-10 w-10 text-[#8b6f5c]" strokeWidth={1.4} />
             <p className="mt-4 text-[17px] font-bold text-[#403A49]">보유한 쿠폰이 없습니다</p>
@@ -160,7 +180,7 @@ export default function CouponsPage() {
             </Link>
           </div>
         ) : null}
-        {coupons.map((coupon) => (
+        {visibleCoupons.map((coupon) => (
           <div key={coupon.id} className="rounded-2xl bg-white p-5 ring-1 ring-[#ebe3d8]">
             <div className="flex items-start gap-3">
               <Ticket className="mt-0.5 h-6 w-6 text-[#403A49]" />

@@ -10,7 +10,6 @@ import type { OrderPaymentLookup } from "@/lib/server/paymentLookup";
 import type {
   AppData,
   ConsentRecord,
-  Coupon,
   Order,
   OrderStatus,
   Payment,
@@ -2189,19 +2188,17 @@ export function emptyUser(phone = "", name = "", email = "", loginId = ""): User
   };
 }
 
-export function welcomeCoupon(): Coupon {
-  return {
-    id: nowId(),
-    title: "첫 방문 안내",
-    desc: "신청과 상담 진행을 우선 안내해 드립니다.",
-    createdAt: new Date().toISOString(),
-  };
-}
-
-/** 신규 회원을 저장소에 등록하고 딸린 컬렉션을 함께 초기화한다. */
+/**
+ * 신규 회원을 저장소에 등록하고 딸린 컬렉션을 함께 초기화한다.
+ *
+ * 쿠폰은 빈 목록으로 시작한다. 예전에는 "첫 방문 안내" 쿠폰 1장을 함께 만들었는데,
+ * product가 없어 결제에 쓸 수 없는 안내 문구였다. 실제 쿠폰 코드가 생긴 뒤로는
+ * 쿠폰함에서 진짜 혜택과 섞여 보이기만 해서 더 만들지 않는다.
+ * 이미 받은 회원의 기록은 지우지 않는다(화면에서만 감춘다: my/coupons/page.tsx).
+ */
 export function registerUser(data: AppData, user: User): User {
   data.users.push(user);
-  data.coupons[user.id] = [welcomeCoupon()];
+  data.coupons[user.id] = [];
   data.wishlists[user.id] = [];
   data.notifications[user.id] = [];
   data.notificationSettings[user.id] = { order: true, consult: true, notice: false };

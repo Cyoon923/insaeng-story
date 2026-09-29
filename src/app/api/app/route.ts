@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, welcomeCoupon, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -831,7 +831,8 @@ async function handlePost(request: Request) {
       consents: buildRequiredConsents(),
     };
     data.users.push(user);
-    data.coupons[user.id] = [welcomeCoupon()];
+    // 쿠폰은 빈 목록으로 시작한다(store.ts registerUser와 같은 이유).
+    data.coupons[user.id] = [];
     data.wishlists[user.id] = [];
     data.notifications[user.id] = [];
     data.notificationSettings[user.id] = { order: true, consult: true, notice: false };

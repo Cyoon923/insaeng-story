@@ -75,8 +75,9 @@ export interface ShellHistoryCounts {
 /**
  * 쓸 수 있는(=옮겨야 할) 쿠폰인지.
  *
- * 가입 때 자동으로 생기는 안내 쿠폰(store.ts welcomeCoupon)은 product가 없어
+ * 예전에 가입할 때 함께 만들어졌던 안내 쿠폰("첫 방문 안내")은 product가 없어
  * applyFreeCoupon이 언제나 거부한다. 금전 가치가 0이므로 폐기해도 손실이 없다.
+ * 지금은 더 만들지 않지만, 그때 받은 회원의 기록은 그대로 남아 있다.
  * product가 붙었거나 이미 쓴 흔적(usedAt)이 있으면 사람이 관여한 값이라 막는다.
  */
 function isTransferableCoupon(coupon: { product?: string; usedAt?: string }): boolean {
