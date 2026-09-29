@@ -20,6 +20,11 @@ export interface RefundCardActions {
   recover: boolean;
   /** 버튼 대신 보여 줄 안내. 버튼이 있으면 null이다. */
   notice: string | null;
+  /**
+   * execute 버튼이 무료 쿠폰 0원 건의 "결제 없음 — 취소 완료 처리"인지.
+   * 같은 실행 API를 부르며, PG 취소 여부는 서버가 다시 판정한다.
+   */
+  freeCoupon?: true;
 }
 
 const NONE: RefundCardActions = { execute: false, recover: false, notice: null };
@@ -38,6 +43,9 @@ export function refundCardActions(
     case "executable":
       // 아직 취소를 실행한 적이 없는 건. 실제 실행만 보인다.
       return { execute: true, recover: false, notice: null };
+    case "free-coupon-no-payment":
+      // 무료 쿠폰 0원 건. 결제가 없어 PG 취소 없이 완료 처리만 보인다.
+      return { execute: true, recover: false, notice: null, freeCoupon: true };
     case "recoverable":
       // 이미 실행이 시작·기록된 건. 다시 실행하지 않고 상태 확인만 보인다.
       return { execute: false, recover: true, notice: null };

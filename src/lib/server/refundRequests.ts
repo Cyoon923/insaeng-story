@@ -24,7 +24,16 @@ import type { AdminRefundRequestBase } from "@/lib/server/refundRequestAdminView
 import { projectRefundExecution } from "@/lib/server/refundExecutionProjection";
 import { buildRefundRequestEvidence, normalizeRefundRequestInput } from "@/lib/server/refundRequestEvidence";
 import { decidedAtFor, isAllowedAdminTransition } from "@/lib/server/refundRequestTransitions";
-import { ensureTable, getOrderById, listPaidPaymentsByOrderIds, nowId, readData, sqlClient } from "@/lib/server/store";
+import {
+  ensureTable,
+  getOrderById,
+  listPaidPaymentsByOrderIds,
+  nowId,
+  readData,
+  sqlClient,
+  summarizeOrderPaymentStatuses,
+} from "@/lib/server/store";
+import { evaluateFreeCouponRefund } from "@/lib/server/freeCouponRefund";
 import { listRefundRestoredOrderIds } from "@/lib/server/pointTransactions";
 import type {
   ActiveRefundRequestSummary,
@@ -633,6 +642,9 @@ interface AdminRefundRequestRow extends RefundRequestRow {
   amount: number;
   order_status: string;
   order_production_started_at: string | Date | null;
+  order_base_amount: number | null;
+  order_payment: string;
+  order_details: unknown;
 }
 
 /**
@@ -667,7 +679,10 @@ export async function listRefundRequestsForAdmin(
              r.completed_at,
              o.product, o.title, o.amount,
              o.status AS order_status,
-             o.production_started_at AS order_production_started_at
+             o.production_started_at AS order_production_started_at,
+             o.base_amount AS order_base_amount,
+             o.payment AS order_payment,
+             o.details AS order_details
       FROM refund_requests r
       JOIN orders o ON o.id = r.order_id
       ORDER BY r.requested_at DESC, r.id DESC
@@ -704,6 +719,36 @@ export async function listRefundRequestsForAdmin(
     restoredOrders = new Set<string>();
   }
 
+  /*
+   * 무료 쿠폰 0원 건 표시. 승인된 문의만 본다(버튼은 approved에서만 나온다).
+   * 결제 건수는 상태로 거르지 않은 전체 건수다. 읽지 못하면 이 표시를 만들지 않는다.
+   * 여기서 만든 값은 표시용이고, 실행 때 서버가 같은 판정을 다시 한다.
+   */
+  const freeCouponOrders = new Set<string>();
+  try {
+    const approvedRows = rows.filter((row) => row.status === "approved");
+    const paymentCounts = await summarizeOrderPaymentStatuses(
+      approvedRows.map((row) => row.order_id),
+    );
+    for (const row of approvedRows) {
+      const decision = await evaluateFreeCouponRefund(
+        {
+          id: row.order_id,
+          product: row.product as OrderProduct,
+          amount: Number(row.amount),
+          ...(row.order_base_amount === null ? {} : { baseAmount: Number(row.order_base_amount) }),
+          payment: row.order_payment,
+          details: (row.order_details ?? {}) as Record<string, string>,
+        },
+        paymentCounts.get(row.order_id)?.totalCount ?? 0,
+      );
+      if (decision.kind === "eligible") freeCouponOrders.add(row.order_id);
+    }
+  } catch (error) {
+    console.error("[admin] free coupon refund projection failed", error);
+    freeCouponOrders.clear();
+  }
+
   const base: AdminRefundRequestBase[] = rows.map((row) => {
     const stored = toRefundRequest(row);
     return {
@@ -720,7 +765,9 @@ export async function listRefundRequestsForAdmin(
       cancelWindowSnapshot: stored.cancelWindowSnapshot ?? null,
       cancelWindowPolicyVersion: stored.cancelWindowPolicyVersion ?? null,
       // 표시용 요약. 몇 건인지 세는 규칙은 classifyPaidPayments를 그대로 쓴다.
-      refundExecution: projectRefundExecution(paidByOrder.get(stored.orderId) ?? []),
+      refundExecution: freeCouponOrders.has(stored.orderId)
+        ? "free-coupon-no-payment"
+        : projectRefundExecution(paidByOrder.get(stored.orderId) ?? []),
       // 원장이 있는지만. 없다고 해서 복원이 필요하다는 뜻이 아니다(타입 주석 참고).
       hasPointsRestoreRecord: restoredOrders.has(stored.orderId),
       decidedAt: stored.decidedAt ?? null,
@@ -769,7 +816,8 @@ export type TransitionRefundRequestResult =
  * handled_by에는 언제나 이번에 실행한 관리자를 남긴다.
  *
  * approved → completed는 여기서 할 수 없다. 사람이 누르는 전이가 아니라 PG 환불이
- * 성공했을 때만 일어나야 해서, 그 경로에서 따로 만든다.
+ * 성공했을 때만 일어나야 해서, 그 경로에서 따로 만든다(무료 쿠폰 0원 건은
+ * freeCouponRefund.ts가 서버 판정 뒤에만 올린다).
  */
 export async function transitionRefundRequestByAdmin(input: {
   refundRequestId: string;

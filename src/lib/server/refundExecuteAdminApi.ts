@@ -28,13 +28,24 @@
  */
 import type { RefundExecutionGateResult } from "./refundExecutionGate.ts";
 import type { RefundPaymentNormalFinalizeResult } from "./refundPaymentNormalFinalize.ts";
+import type { FreeCouponRefundResult } from "./freeCouponRefund.ts";
 
 /** 이 흐름이 쓰는 바깥 기능. 취소·복구·선점 함수는 여기에 없다. */
 export interface ExecuteApprovedRefundDeps {
   authorize: (refundRequestId: string) => Promise<RefundExecutionGateResult>;
   /** 정상 환불 완결 흐름. 한 요청에서 많아야 1회 부른다. */
   execute: (orderId: string) => Promise<RefundPaymentNormalFinalizeResult>;
+  /**
+   * 무료 쿠폰 0원 건의 결제 없는 완료. execute보다 먼저 1회 부른다.
+   *
+   * not-applicable이면 execute로 넘어가고(기존 흐름 그대로), 그 밖의 결과에서는
+   * execute를 부르지 않는다. 없으면 이 분기 자체가 없다(기존 흐름만 탄다).
+   */
+  completeFreeCoupon?: (orderId: string) => Promise<FreeCouponRefundResult>;
 }
+
+/** 무료 쿠폰 0원 건 완료 안내. PG 취소가 없었다는 사실을 함께 알린다. */
+export const FREE_COUPON_COMPLETED_MESSAGE = "결제 없음 — PG 취소 없이 0원 주문 취소 완료 처리했습니다.";
 
 /** 관리자에게 돌려줄 안전한 상태값. 내부 kind를 그대로 내보내지 않는다. */
 export type ExecuteApprovedRefundStatus =
@@ -230,6 +241,42 @@ export async function executeApprovedRefund(
   }
   if (gate.kind !== "allowed") return gateFailureResponse(gate);
 
+  if (deps.completeFreeCoupon) {
+    let free: FreeCouponRefundResult;
+    try {
+      // 주문 id는 gate가 DB에서 읽어 준 값이다. 판정도 서버 저장 값으로만 한다.
+      free = await deps.completeFreeCoupon(gate.orderId);
+    } catch (error) {
+      // 판정·저장이 끊겼다. PG 흐름으로 넘기지 않는다.
+      console.error(
+        "[admin] free coupon refund failed",
+        { refundRequestId, orderId: gate.orderId },
+        error,
+      );
+      return {
+        status: 500,
+        body: { ok: false, error: "처리하지 못했습니다. 상태를 확인해 주세요." },
+      };
+    }
+    if (free.kind === "completed") {
+      return {
+        status: 200,
+        body: { ok: true, status: "completed", message: FREE_COUPON_COMPLETED_MESSAGE },
+      };
+    }
+    if (free.kind === "not-completed") {
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          status: "manual-review-required",
+          message: "무료 쿠폰 0원 건의 완료 조건이 저장 시점에 맞지 않았습니다. 담당자 확인이 필요합니다.",
+        },
+      };
+    }
+    // not-applicable: 무료 쿠폰 0원 건이 아니다. 아래 기존 흐름이 그대로 맡는다.
+  }
+
   let result: RefundPaymentNormalFinalizeResult;
   try {
     // 주문 id는 gate가 DB에서 읽어 준 값이다. 요청 body의 값을 쓰지 않는다.
@@ -255,11 +302,12 @@ export async function executeApprovedRefund(
 /**
  * 제품 코드에서 쓸 실제 구현들.
  *
- * gate와 정상 완결 흐름만 읽는다. 취소 client·복구 흐름은 읽지 않는다.
+ * gate와 정상 완결 흐름, 무료 쿠폰 0원 완료만 읽는다. 취소 client·복구 흐름은 읽지 않는다.
  */
 export async function defaultExecuteApprovedRefundDeps(): Promise<ExecuteApprovedRefundDeps> {
   const gate = await import("@/lib/server/refundExecutionGate");
   const normal = await import("@/lib/server/refundPaymentNormalFinalize");
+  const freeCoupon = await import("@/lib/server/freeCouponRefund");
   return {
     authorize: (refundRequestId) => gate.authorizeRefundExecution(refundRequestId),
     execute: async (orderId) =>
@@ -267,5 +315,6 @@ export async function defaultExecuteApprovedRefundDeps(): Promise<ExecuteApprove
         orderId,
         await normal.defaultRefundPaymentNormalFinalizeDeps(),
       ),
+    completeFreeCoupon: (orderId) => freeCoupon.completeFreeCouponRefund(orderId),
   };
 }

@@ -1065,9 +1065,12 @@ export default function AdminPage() {
    */
   async function handleExecuteRefund(item: AdminRefundRequestItem) {
     if (refundBusy) return;
+    const freeCoupon = refundCardActions(item.status, item.refundExecution).freeCoupon === true;
     if (
       !window.confirm(
-        "실제로 결제를 취소하시겠습니까?\n\n결제사에 전액취소를 요청합니다. 이 작업은 되돌릴 수 없습니다.",
+        freeCoupon
+          ? "결제 없이 취소 완료 처리하시겠습니까?\n\n무료 쿠폰으로 결제금액이 0원인 건입니다. PG 취소 없이 취소 완료 처리됩니다. 사용한 쿠폰은 되돌아가지 않습니다."
+          : "실제로 결제를 취소하시겠습니까?\n\n결제사에 전액취소를 요청합니다. 이 작업은 되돌릴 수 없습니다.",
       )
     ) {
       return;
@@ -1088,7 +1091,8 @@ export default function AdminPage() {
         await loadData();
         setRefundMessage((current) => ({
           ...current,
-          [item.id]: "환불이 완료되어 기록에 반영했습니다.",
+          // 무료 쿠폰 0원 건은 서버가 "PG 취소 없음" 안내를 함께 준다.
+          [item.id]: data.message ?? "환불이 완료되어 기록에 반영했습니다.",
         }));
         return;
       }
@@ -2587,10 +2591,22 @@ export default function AdminPage() {
                             onClick={() => handleExecuteRefund(item)}
                             className="min-h-11 rounded-lg bg-[#5c3d2e] px-4 text-[14px] font-semibold text-white disabled:opacity-50"
                           >
-                            {busy ? "실행 중..." : "실제 환불 실행"}
+                            {busy
+                              ? "실행 중..."
+                              : actions.freeCoupon
+                                ? "결제 없음 — 취소 완료 처리"
+                                : "실제 환불 실행"}
                           </button>
                           <p className="mt-2 text-[12px] leading-relaxed text-[#6B6570]">
-                            결제사에 전액취소를 요청합니다. 되돌릴 수 없습니다.
+                            {actions.freeCoupon ? (
+                              <>
+                                무료 쿠폰으로 결제금액이 0원인 건입니다.
+                                <br />
+                                PG 취소 없이 취소 완료 처리됩니다.
+                              </>
+                            ) : (
+                              "결제사에 전액취소를 요청합니다. 되돌릴 수 없습니다."
+                            )}
                           </p>
                         </div>
                       ) : null}

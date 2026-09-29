@@ -705,13 +705,18 @@ export interface AdminRefundRequestsView {
  * - unknown       : 승인 상태의 결제를 찾지 못했다. 환불이 끝났는지, 애초에 결제가
  *                   없던 주문인지 이 값만으로는 구분할 수 없다. 완료로 읽지 않는다.
  *
+ * - free-coupon-no-payment : 서버 판정상 무료 쿠폰으로 결제금액이 0원이고 결제 행이 없는 건.
+ *                   PG 취소 없이 완료 처리할 수 있다(lib/server/freeCouponRefund.ts).
+ *                   환불 문의 상태가 아니다. 실행 때 서버가 다시 판정한다.
+ *
  * 완료 여부는 이 값이 아니라 환불 문의 상태(RefundRequestStatus의 completed)로 본다.
  */
 export type RefundExecutionProjection =
   | "executable"
   | "recoverable"
   | "manual-review"
-  | "unknown";
+  | "unknown"
+  | "free-coupon-no-payment";
 
 /** 판단에 필요한 현재 주문 정보. 환불 문의는 주문 없이 존재할 수 없어 언제나 있다. */
 export interface AdminRefundRequestOrderView {
