@@ -31,6 +31,8 @@ const LABELS: Record<string, string> = {
   songs: "참고곡",
   options: "추가 옵션",
   videoStyle: "영상 스타일",
+  sajuReportDelivery: "사주풀이 리포트 받는 방법",
+  sajuReportEmail: "사주풀이 리포트 이메일",
   method: "상담 방법",
   birth: "생년월일",
   birthTime: "태어난 시간",
@@ -38,6 +40,15 @@ const LABELS: Record<string, string> = {
   bloodType: "혈액형",
   gender: "성별",
 };
+
+/** 저장된 코드값을 고객이 읽는 말로 바꾼다. 모르는 값은 그대로 보여 준다. */
+function detailValue(key: string, value: string): string {
+  if (key === "sajuReportDelivery") {
+    if (value === "kakao") return "카카오톡";
+    if (value === "email") return "이메일";
+  }
+  return value;
+}
 
 function formatDate(value: string) {
   return value.slice(0, 10).replaceAll("-", ".");
@@ -74,7 +85,7 @@ export default async function OrderDetailPage({
   const currentIndex = STEPS.indexOf(order.status);
   const rows = Object.entries(order.details)
     .filter(([key, value]) => value && LABELS[key])
-    .map(([key, value]) => ({ label: LABELS[key], value }));
+    .map(([key, value]) => ({ label: LABELS[key], value: detailValue(key, value) }));
 
   return (
     <MobileShell>

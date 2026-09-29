@@ -5,7 +5,13 @@ import Image from "next/image";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice } from "@/lib/constants/products";
-import { getDraft, saveDraft } from "@/lib/client/api";
+import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
+import {
+  checkSajuReportDelivery,
+  ORDER_OPTION_PRICES,
+  SAJU_REPORT_OPTION_ID,
+} from "@/lib/server/pricing";
+import type { User } from "@/lib/types/app";
 
 const VIDEO_STYLES = [
   {
@@ -49,19 +55,48 @@ const OPTIONS = [
     price: 10000,
     desc: "기본 수정 1회에 더해 가사 수정을 1회 추가합니다.",
   },
+  {
+    id: SAJU_REPORT_OPTION_ID,
+    title: "2026·2027년 사주풀이 리포트",
+    // 가격은 서버 가격표에서 읽는다. 여기에 숫자를 따로 적으면 서버와 갈라진다.
+    price: ORDER_OPTION_PRICES[SAJU_REPORT_OPTION_ID],
+    desc: "2026년과 2027년의 전체 흐름, 핵심 키워드, 주의할 점과 활용 방향을 PDF로 정리해 드립니다.",
+  },
 ];
+
+/** 리포트를 받는 방법. 저장값은 이 두 가지뿐이다. */
+const DELIVERY_CHOICES = [
+  { id: "kakao", label: "카카오톡" },
+  { id: "email", label: "이메일" },
+] as const;
 
 export default function ApplyStep5Page() {
   const [selected, setSelected] = useState<string[]>([]);
   const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
+  /** 리포트를 받는 방법. 아직 고르지 않았으면 빈 문자열이다. */
+  const [delivery, setDelivery] = useState("");
+  const [reportEmail, setReportEmail] = useState("");
+  /** 신청서에 적힌 연락처. 카카오톡으로 받을 때 어디로 가는지 보여 주기만 한다. */
+  const [applyPhone, setApplyPhone] = useState("");
 
-  const persist = (ids: string[], style: string) => {
+  /*
+   * 저장은 이 함수 하나로만 한다.
+   *
+   * 옵션을 해제하거나 카카오톡으로 바꾸면 쓰지 않게 된 값을 빈 문자열로 덮어써
+   * 지난 선택이 draft에 남지 않게 한다(영상 스타일을 비우는 기존 처리와 같다).
+   * 휴대폰 번호는 저장하지 않는다. 신청서의 연락처(phone) 하나로 충분하다.
+   */
+  const persist = (ids: string[], style: string, nextDelivery: string, nextEmail: string) => {
     const labels = OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title);
+    const wantsReport = ids.includes(SAJU_REPORT_OPTION_ID);
+    const usableDelivery = wantsReport ? nextDelivery : "";
     saveDraft("saju-song", {
       // 표시용 한글 문자열과, 서버가 금액을 계산할 때 쓰는 id를 함께 남긴다.
       options: labels.join(", "),
       optionIds: ids.join(","),
       videoStyle: ids.includes("ai-mv") ? style : "",
+      sajuReportDelivery: usableDelivery,
+      sajuReportEmail: usableDelivery === "email" ? nextEmail.trim() : "",
     });
   };
 
@@ -79,6 +114,51 @@ export default function ApplyStep5Page() {
       const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
       setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
     }
+    if (draft.sajuReportDelivery === "kakao" || draft.sajuReportDelivery === "email") {
+      setDelivery(draft.sajuReportDelivery);
+    }
+    if (draft.sajuReportEmail) setReportEmail(draft.sajuReportEmail);
+    // 1단계에서 받은 연락처. 카카오톡 안내에 보여 주기만 하고 다시 저장하지 않는다.
+    if (draft.phone) setApplyPhone(draft.phone);
+  }, []);
+
+  /*
+   * 이메일 기본값은 회원 정보에서 한 번만 가져온다.
+   *
+   * 이미 적어 둔 값이 있으면 건드리지 않는다. 소셜 가입 회원은 이메일이 비어 있을 수
+   * 있어, 값이 없으면 빈 칸으로 두고 직접 적게 한다.
+   *
+   * ★ 판단 기준은 화면 상태가 아니라 draft다.
+   *
+   * 결제에 실리는 값은 draft이고(PaySubmit이 draft를 그대로 보낸다) 화면 상태는 그 사본일
+   * 뿐이다. 응답이 늦게 도착했을 때 화면만 채우면, 입력칸에는 주소가 보이는데 draft는
+   * 비어 있어 결제 단계에서 "이메일 주소를 입력해 주세요"로 막힌다.
+   * 그래서 draft를 보고 정하고, 채울 때는 화면과 draft에 같은 값을 남긴다.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    fetchMe()
+      .then((data) => {
+        if (cancelled) return;
+        const user = (data?.user ?? null) as User | null;
+        if (!user?.email) return;
+        const draft = getDraft("saju-song");
+        // 응답을 기다리는 사이에 직접 적으셨다면 그 값이 우선이다. 덮어쓰지 않는다.
+        if (draft.sajuReportEmail) return;
+        setReportEmail(user.email);
+        // 이미 이메일로 받기로 한 상태라면 draft도 함께 맞춘다. 아직 고르지 않았다면
+        // 나중에 고르는 순간 persist가 이 값을 담아 저장하므로 여기서 쓰지 않는다
+        // (카카오톡을 고를 수도 있어, 쓰지 않을 주소를 미리 남기지 않는다).
+        if (draft.sajuReportDelivery === "email") {
+          saveDraft("saju-song", { sajuReportEmail: user.email });
+        }
+      })
+      .catch(() => {
+        // 회원 정보를 읽지 못해도 직접 입력으로 진행할 수 있다.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggle = (id: string) => {
@@ -88,9 +168,34 @@ export default function ApplyStep5Page() {
       if (id === "ai-mv" && !next.includes("ai-mv")) {
         setVideoStyle("AI 실사 영상풍");
       }
-      persist(next, style);
+      // 리포트를 빼면 받는 방법도 함께 지운다. 화면과 draft가 같은 상태를 보게 한다.
+      const nextDelivery = next.includes(SAJU_REPORT_OPTION_ID) ? delivery : "";
+      if (!next.includes(SAJU_REPORT_OPTION_ID)) setDelivery("");
+      persist(next, style, nextDelivery, reportEmail);
       return next;
     });
+  };
+
+  const chooseDelivery = (next: string) => {
+    setDelivery(next);
+    persist(selected, videoStyle, next, reportEmail);
+  };
+
+  const changeReportEmail = (next: string) => {
+    setReportEmail(next);
+    persist(selected, videoStyle, delivery, next);
+  };
+
+  /*
+   * 다음 단계로 가기 전 확인. 규칙은 서버와 같은 함수(checkSajuReportDelivery)가 정한다.
+   * 화면에만 규칙을 두면 결제 단계에서 다른 이유로 막힐 수 있다.
+   */
+  const validateNext = () => {
+    const check = checkSajuReportDelivery(selected, {
+      sajuReportDelivery: delivery,
+      sajuReportEmail: reportEmail,
+    });
+    return check.ok ? "" : check.error;
   };
 
   const total = OPTIONS.filter((opt) => selected.includes(opt.id)).reduce(
@@ -106,6 +211,7 @@ export default function ApplyStep5Page() {
       steps={SAJU_STEPS}
       prevHref="/apply/saju-song/2"
       nextHref="/apply/saju-song/4"
+      validateNext={validateNext}
       heroText={"필요한 추가 옵션을\n선택해 주세요"}
     
       stepperTheme={CHARCOAL_STEPPER}
@@ -156,7 +262,7 @@ export default function ApplyStep5Page() {
                           type="button"
                           onClick={() => {
                             setVideoStyle(style.name);
-                            persist(selected, style.name);
+                            persist(selected, style.name, delivery, reportEmail);
                           }}
                           className={`overflow-hidden rounded-2xl bg-white text-left ${
                             styleActive ? "ring-2 ring-[#403A49]" : "ring-1 ring-[#ebe3d8]"
@@ -173,6 +279,63 @@ export default function ApplyStep5Page() {
                       );
                     })}
                   </div>
+                </div>
+              ) : null}
+
+              {opt.id === SAJU_REPORT_OPTION_ID && active ? (
+                <div className="mt-4 border-t border-[#ebe3d8] pt-4">
+                  <p className="text-[17px] font-semibold text-[#403A49]">
+                    받으실 방법 <span className="text-red-500">*</span>
+                  </p>
+                  <p className="mt-1 text-[14px] text-[#6B6570]">1개를 골라 주세요.</p>
+                  <div className="mt-3 flex gap-2">
+                    {DELIVERY_CHOICES.map((choice) => {
+                      const choiceActive = delivery === choice.id;
+                      return (
+                        <button
+                          key={choice.id}
+                          type="button"
+                          onClick={() => chooseDelivery(choice.id)}
+                          className={`h-12 flex-1 rounded-xl text-[15px] font-semibold ${
+                            choiceActive
+                              ? "bg-[#403A49] text-white"
+                              : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
+                          }`}
+                        >
+                          {choice.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {delivery === "kakao" ? (
+                    <p className="mt-3 rounded-xl bg-[#f5efe6] p-3 text-[14px] leading-relaxed text-[#3d2b1f]">
+                      {applyPhone
+                        ? `신청 연락처 ${applyPhone}으로 보내드립니다.`
+                        : "1단계에 적으신 신청 연락처로 보내드립니다."}
+                    </p>
+                  ) : null}
+
+                  {delivery === "email" ? (
+                    <div className="mt-3">
+                      <label
+                        className="block text-[15px] font-semibold text-[#403A49]"
+                        htmlFor="saju-report-email"
+                      >
+                        이메일 주소 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="saju-report-email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        value={reportEmail}
+                        onChange={(event) => changeReportEmail(event.target.value)}
+                        placeholder="example@email.com"
+                        className="mt-2 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

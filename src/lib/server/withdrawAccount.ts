@@ -143,6 +143,9 @@ export const KEPT_DETAIL_KEYS = [
   "options",
   // 이벤트 기본가가 적용된 근거. 고정 식별자라 개인을 가리키지 않는다.
   "promotion",
+  // 리포트를 어떤 방법으로 보내기로 했는지. "kakao"/"email" 코드값이라 개인을 가리키지 않는다.
+  // (받을 이메일 주소 sajuReportEmail은 개인정보라 여기에 넣지 않는다. 그대로 지워진다.)
+  "sajuReportDelivery",
   "videoStyle",
   "report",
   "extraPerson",

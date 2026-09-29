@@ -257,6 +257,8 @@ const ORDER_DETAIL_FIELDS: { key: string; label: string }[] = [
   { key: "options", label: "선택 옵션" },
   { key: "옵션", label: "옵션 요약" },
   { key: "videoStyle", label: "영상 스타일" },
+  { key: "sajuReportDelivery", label: "사주풀이 리포트 받는 방법" },
+  { key: "sajuReportEmail", label: "사주풀이 리포트 이메일" },
   { key: "report", label: "상담 기록 요약 리포트" },
   { key: "extraPerson", label: "추가 인원(궁합)" },
   { key: "teacher", label: "선생님" },
@@ -268,6 +270,11 @@ const ORDER_DETAIL_FIELDS: { key: string; label: string }[] = [
 
 /** 저장된 코드값을 사람이 읽는 말로 바꾼다. 모르는 값은 그대로 보여 준다. */
 function orderDetailValue(key: string, value: string): string {
+  if (key === "sajuReportDelivery") {
+    if (value === "kakao") return "카카오톡";
+    if (value === "email") return "이메일";
+    return value;
+  }
   if (key === "subject") {
     if (value === "self") return "내 정보";
     if (value === "other") return "다른 사람";

@@ -24,6 +24,10 @@ const ORDER_OPTION_LABELS: Record<keyof typeof ORDER_OPTION_PRICES, string> = {
   "ai-mv": "내 얼굴 AI 뮤직비디오",
   "photo-mv": "추억사진 영상 제작",
   "lyric-edit": "가사 수정 1회 추가",
+  // 사주 정보를 받는 상품에서만 파는 옵션이라 이름에 그 사실을 함께 적는다.
+  // 이 목록은 상품을 나누지 않고 한 번에 안내되므로, 여기서 밝히지 않으면
+  // 다른 인생곡에도 붙일 수 있는 것처럼 읽힌다.
+  "saju-report-2026-2027": "2026·2027년 사주풀이 리포트 (사주 인생곡 전용)",
 };
 
 /** 1:1 사주상담 추가 옵션의 화면 이름. 가격은 pricing.ts에서 가져온다. */

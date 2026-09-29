@@ -6,7 +6,7 @@ import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { PaySubmit } from "@/components/apply/PaySubmit";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
-import { ORDER_OPTION_PRICES } from "@/lib/server/pricing";
+import { ORDER_OPTION_PRICES, SAJU_REPORT_OPTION_ID } from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { getDraft } from "@/lib/client/api";
 import {
@@ -49,7 +49,24 @@ const OPTION_PRICES = [
   { id: "ai-mv", name: "내 얼굴 AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
   { id: "photo-mv", name: "추억사진 영상 제작", price: ORDER_OPTION_PRICES["photo-mv"] },
   { id: "lyric-edit", name: "가사 수정 1회 추가", price: ORDER_OPTION_PRICES["lyric-edit"] },
+  {
+    id: SAJU_REPORT_OPTION_ID,
+    name: "2026·2027년 사주풀이 리포트",
+    price: ORDER_OPTION_PRICES[SAJU_REPORT_OPTION_ID],
+  },
 ];
+
+/** 확인 화면에 보여 줄 리포트 전달 방법. 옵션을 고르지 않았으면 빈 문자열이다. */
+function reportDeliveryLabel(draft: Record<string, string>): string {
+  if (!(draft.optionIds ?? "").split(",").includes(SAJU_REPORT_OPTION_ID)) return "";
+  if (draft.sajuReportDelivery === "kakao") {
+    return draft.phone ? `카카오톡 (${draft.phone})` : "카카오톡";
+  }
+  if (draft.sajuReportDelivery === "email") {
+    return draft.sajuReportEmail ? `이메일 (${draft.sajuReportEmail})` : "이메일";
+  }
+  return "";
+}
 const PAYMENT_METHODS = ["신용/체크카드", "무통장 입금", "카카오페이", "네이버페이"];
 /** 지금 실제로 결제되는 유일한 수단. 나머지는 준비 중이라 고를 수 없다. */
 const CARD_PAYMENT = "신용/체크카드";
@@ -101,6 +118,7 @@ export default function ApplyStep6Page() {
    * 이벤트 진입이면 기본가만 바뀐다. 옵션가 합산은 그대로다(서버 계산과 같은 규칙).
    * 시작 전이면 promotion이 undefined라 정가가 보이고, 결제에도 실려 가지 않는다.
    */
+  const reportDelivery = reportDeliveryLabel(draft);
   const promotion = usablePromotion(draft);
   const basePrice = basePriceOf(promotion);
   const finalPrice = basePrice + optionsTotal;
@@ -108,6 +126,10 @@ export default function ApplyStep6Page() {
     { label: "사주 정보", value: sajuLabel(draft), href: "/apply/saju-song/1" },
     { label: "가사 분위기", value: moodLabel(draft), href: "/apply/saju-song/2" },
     { label: "추가 옵션", value: optionLabel, href: "/apply/saju-song/3" },
+    // 리포트를 고른 경우에만 한 줄 더 보여 준다. 고르지 않았으면 기존 화면 그대로다.
+    ...(reportDelivery
+      ? [{ label: "리포트 받는 방법", value: reportDelivery, href: "/apply/saju-song/3" }]
+      : []),
     { label: "예상 제작 기간", value: "결제 후 평균 5~7일", href: "" },
   ];
 

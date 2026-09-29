@@ -64,7 +64,12 @@ import { unlinkKakao } from "@/lib/server/kakaoUnlink";
 import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime, resolveScheduledAt } from "@/lib/server/consultationSlots";
-import { calcConsultationAmount, calcOrderAmount, checkPromotionEntry } from "@/lib/server/pricing";
+import {
+  calcConsultationAmount,
+  calcOrderAmount,
+  checkPromotionEntry,
+  checkSajuReportDelivery,
+} from "@/lib/server/pricing";
 import {
   applyFreeCoupon,
   applyPoints,
@@ -1730,6 +1735,18 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: promotionCheck.error }, { status: 400 });
     }
 
+    /*
+     * 0원 신청도 리포트 기준은 같다. 결제 경로의 preparePayment와 같은 자리다.
+     * 상품·옵션 조합이 틀렸는지는 commitOrder 안의 calcOrderAmount가 본다.
+     */
+    const reportCheck = checkSajuReportDelivery(
+      Array.isArray(body.options) ? body.options : [],
+      (body.details as Record<string, string>) ?? {},
+    );
+    if (!reportCheck.ok) {
+      return NextResponse.json({ error: reportCheck.error }, { status: 400 });
+    }
+
     const result = await commitOrder(data, user, {
       product: body.product,
       title: body.title,
@@ -1901,6 +1918,19 @@ async function handlePost(request: Request) {
         return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
       }
       const product = body.product as Order["product"];
+      /*
+       * 리포트 옵션을 샀다면 받을 방법이 정해져 있어야 한다.
+       *
+       * 상품이 맞는지는 위 calcOrderAmount가 이미 본다(saju-song 전용 옵션이라
+       * 다른 상품이면 null이 되어 여기까지 오지 못한다). 그래서 여기서는 전달방법만 본다.
+       * 화면이 이미 막고 있지만 API를 직접 부르는 경우가 남아 서버에서도 확인한다.
+       * 승인·복구 경로는 이 검사를 다시 하지 않는다. 최초 요청에서 통과한 내용이
+       * snapshot에 그대로 담겨 가기 때문이다(promotion과 같은 사고방식).
+       */
+      const deliveryCheck = checkSajuReportDelivery(priced.optionIds, details);
+      if (!deliveryCheck.ok) {
+        return NextResponse.json({ error: deliveryCheck.error }, { status: 400 });
+      }
       details.optionIds = priced.optionIds.join(",");
       baseAmount = priced.amount;
       goodsName = String(body.title ?? "인생곡");

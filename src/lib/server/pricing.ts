@@ -17,9 +17,22 @@ export const ORDER_OPTION_PRICES = {
   "ai-mv": 100000,
   "photo-mv": 50000,
   "lyric-edit": 10000,
+  "saju-report-2026-2027": 10000,
 } as const;
 
 export type OrderOptionId = keyof typeof ORDER_OPTION_PRICES;
+
+/**
+ * 한 상품에만 파는 옵션. 여기 없는 옵션은 인생곡 3종 어디서나 살 수 있다.
+ *
+ * 기존 세 옵션(ai-mv·photo-mv·lyric-edit)은 세 상품 공통이라 이 목록에 넣지 않는다.
+ * 목록을 "허용"이 아니라 "제한"으로 둔 이유가 그것이다. 전부 나열하는 방식으로
+ * 바꾸면 기존 옵션의 동작까지 이 목록에 달리게 된다.
+ */
+const OPTION_ONLY_FOR_PRODUCT: Partial<Record<OrderOptionId, ProductId>> = {
+  // 사주 정보를 받는 상품에서만 만들 수 있는 리포트다.
+  "saju-report-2026-2027": "saju-song",
+};
 
 /** 1:1 사주상담 추가 옵션. */
 export const CONSULT_OPTION_PRICES = {
@@ -129,6 +142,10 @@ export function calcOrderAmount(
   const optionIds: OrderOptionId[] = [];
   for (const item of (options ?? []) as unknown[]) {
     if (!isOrderOptionId(item)) return null;
+    // 그 상품에서 팔지 않는 옵션이면 주문을 만들지 않는다. 화면이 막고 있어도
+    // API를 직접 부르는 경우가 남아, 금액을 정하는 이 자리에서 함께 본다.
+    const onlyFor = OPTION_ONLY_FOR_PRODUCT[item];
+    if (onlyFor && onlyFor !== product) return null;
     if (!optionIds.includes(item)) optionIds.push(item);
   }
 
@@ -143,6 +160,48 @@ export function calcOrderAmount(
 
   const amount = optionIds.reduce((sum, id) => sum + ORDER_OPTION_PRICES[id], basePrice);
   return { amount, optionIds, ...(appliedPromotion ? { promotion: appliedPromotion } : {}) };
+}
+
+/** 2026·2027년 사주풀이 리포트 옵션. 화면과 서버가 같은 키를 쓰도록 여기서 내보낸다. */
+export const SAJU_REPORT_OPTION_ID = "saju-report-2026-2027";
+
+/**
+ * 리포트를 보낼 이메일로 쓸 수 있는 형태인지.
+ *
+ * 주소가 실제로 살아 있는지는 보지 않는다(보내 봐야 알 수 있다). 오타로 아예
+ * 보낼 수 없는 값만 걸러 내는 최소 검사이며, 화면과 서버가 같은 함수를 쓴다.
+ */
+export function isValidReportEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+export type ReportDeliveryCheck = { ok: true } | { ok: false; error: string };
+
+/**
+ * 리포트 옵션을 샀다면 받을 방법이 정해져 있는지 확인한다.
+ *
+ * 옵션을 사지 않았으면 아무것도 보지 않는다(기존 주문의 동작이 그대로다).
+ * 화면(3단계 validateNext)과 서버(최초 요청)가 같은 함수를 부른다. 문구가 한 곳에
+ * 있어야 화면에서 통과한 값이 서버에서 다른 이유로 막히는 일이 없다.
+ *
+ * 휴대폰 번호는 보지 않는다. 카카오톡으로 받을 번호는 신청서의 연락처(details.phone)
+ * 하나뿐이고, 같은 값을 여기에 한 벌 더 두지 않는다.
+ */
+export function checkSajuReportDelivery(
+  optionIds: readonly unknown[],
+  details: Record<string, string>,
+): ReportDeliveryCheck {
+  if (!optionIds.includes(SAJU_REPORT_OPTION_ID)) return { ok: true };
+  const delivery = details.sajuReportDelivery ?? "";
+  if (delivery !== "kakao" && delivery !== "email") {
+    return { ok: false, error: "받으실 방법을 선택해 주세요." };
+  }
+  if (delivery === "email") {
+    const email = (details.sajuReportEmail ?? "").trim();
+    if (!email) return { ok: false, error: "이메일 주소를 입력해 주세요." };
+    if (!isValidReportEmail(email)) return { ok: false, error: "이메일 주소를 확인해 주세요." };
+  }
+  return { ok: true };
 }
 
 /**
