@@ -210,6 +210,28 @@ function formatAmount(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
 
+/**
+ * 상담 카드에서만 쓰는 값 표시 규칙.
+ *
+ * 저장된 값이 없으면 "기록 없음"이다. 빈칸이나 다른 값으로 대신 채우지 않는다.
+ * 보관 기간이 끝난 상담은 개인정보 키가 이미 빠져 있어(retentionScrub.ts)
+ * 이 경로로 들어온다. "입력하지 않음"과 구분하지 않는 이유는, 관리자 화면에서
+ * 둘 다 "지금 여기에는 기록이 없다"는 같은 뜻으로 읽혀야 하기 때문이다.
+ */
+function consultText(value: string | undefined): string {
+  const text = (value ?? "").trim();
+  return text || "기록 없음";
+}
+
+/**
+ * 태어난 시간 표시. "태어난 시간을 몰라요"를 고른 경우는 미입력과 다른 뜻이라
+ * 시각 자리에 "시간 모름"을 대신 보여 준다. 시각을 추측해 만들지 않는다.
+ */
+function consultBirthTime(time: string | undefined, unknown: string | undefined): string {
+  if (unknown === "1") return "시간 모름";
+  return consultText(time);
+}
+
 function userLabel(user: User) {
   /*
    * 탈퇴 회원은 이름·연락처가 모두 지워져 화면에서 서로 구분되지 않는다.
@@ -1968,6 +1990,42 @@ export default function AdminPage() {
                * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 없어 기존 동작이 유지된다.
                */
               const refunded = hasCompletedRefund(refundRequests.items, item.id);
+              /*
+               * 결제 배지는 주문 카드와 같은 함수·같은 데이터로 정한다.
+               * 상담 주문도 같은 id로 orderPayments에 들어 있어 추가 조회가 없다.
+               * 상담 진행 상태(item.status)로 결제 여부를 추측하지 않는다.
+               */
+              const consultPaymentBadge = paymentBadgeLabel(
+                refunded,
+                item.amount,
+                orderPayments.loaded,
+                orderPayments.items[item.id],
+              );
+              // 신청 때 저장된 값만 읽는다(applyOrder.ts commitConsultation).
+              const d = item.details ?? {};
+              const sajuText =
+                [
+                  d.gender,
+                  d.birth,
+                  consultBirthTime(d.birthTime, d.unknownTime),
+                  d.calendar,
+                  d.bloodType,
+                ]
+                  .map((value) => (value ?? "").trim())
+                  .filter(Boolean)
+                  .join(" · ") || "기록 없음";
+              /*
+               * 옵션 표시는 신청 때 확정된 한국어 라벨(item.option)을 우선한다.
+               * 라벨이 없는 옛 상담에서만 저장된 선택값으로 대신 적는다.
+               * 여기서 옵션을 다시 판정하거나 금액을 계산하지 않는다.
+               */
+              const optionFlags = [
+                d.report === "1" ? "상담 기록 요약 리포트" : "",
+                d.extraPerson === "1" ? "추가 인원(궁합)" : "",
+              ].filter(Boolean);
+              const optionText =
+                (item.option ?? "").trim() || (optionFlags.join(" / ") || "없음");
+              const hasCounterpart = d.extraPerson === "1";
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
@@ -1978,6 +2036,12 @@ export default function AdminPage() {
                           환불 완료
                         </span>
                       ) : null}
+                      {/* 환불 완료면 위 배지가 이미 그 사실을 말하므로 겹쳐 붙이지 않는다. */}
+                      {refunded ? null : (
+                        <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                          {consultPaymentBadge}
+                        </span>
+                      )}
                       <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                         {item.status}
                       </span>
@@ -1990,6 +2054,48 @@ export default function AdminPage() {
                     {item.datetime} · {item.method}
                   </p>
                   <p className="mt-1 text-[13px] text-[#6B6570]">{item.purpose}</p>
+
+                  {/*
+                    상담 진행에 필요한 신청 내용. 이미 내려받은 item.details만 쓰고
+                    따로 조회하지 않는다. 값이 없으면 "기록 없음"으로 남긴다.
+                  */}
+                  <dl className="mt-3 space-y-2 rounded-lg bg-[#faf8f5] p-3">
+                    <div>
+                      <dt className="text-[12px] font-semibold text-[#6B6570]">연락처</dt>
+                      <dd className="mt-0.5 text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                        {consultText(d.phone)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[12px] font-semibold text-[#6B6570]">사주 정보</dt>
+                      <dd className="mt-0.5 break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                        {sajuText}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[12px] font-semibold text-[#6B6570]">선택 옵션</dt>
+                      <dd className="mt-0.5 break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                        {optionText}
+                      </dd>
+                    </div>
+                    {/* 추가 인원(궁합)을 고른 상담에만 상대방 블록을 낸다. */}
+                    {hasCounterpart ? (
+                      <div>
+                        <dt className="text-[12px] font-semibold text-[#6B6570]">추가 인원(궁합)</dt>
+                        <dd className="mt-0.5 break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                          {consultText(d.counterpartName)} · {consultText(d.counterpartBirth)} ·{" "}
+                          {consultBirthTime(d.counterpartBirthTime, d.counterpartUnknownTime)}
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt className="text-[12px] font-semibold text-[#6B6570]">가장 궁금한 내용</dt>
+                      <dd className="mt-0.5 whitespace-pre-wrap break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
+                        {consultText(d.content)}
+                      </dd>
+                    </div>
+                  </dl>
+
                   <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">진행 상태</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {CONSULT_STATUSES.map((status) => {
