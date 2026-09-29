@@ -86,6 +86,7 @@ const CHAT_INQUIRY_PRODUCT = "챗봇 상담원 문의";
 const CHAT_INQUIRY_METHODS = ["카카오톡", "문자"];
 import type {
   AppData,
+  Coupon,
   CouponProduct,
   Inquiry,
   Order,
@@ -1298,6 +1299,68 @@ async function handlePost(request: Request) {
   // 탈퇴한 회원은 세션 쿠키가 남아 있어도 로그인 상태로 보지 않는다.
   if (!isActiveUser(user)) {
     return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
+  }
+
+  if (action === "redeemCouponCode") {
+    /**
+     * 외부에서 받은 쿠폰 코드를 내 쿠폰함에 등록한다.
+     *
+     * 클라이언트에게서 받는 값은 code 하나뿐이다. 상품·이름·설명·기한·활성 여부는
+     * 모두 서버가 가진 원본(data.couponCodes)에서만 읽는다. 함께 보내와도 읽지 않으므로
+     * 저장에 닿지 않는다.
+     *
+     * 여기서 만드는 것은 회원 쿠폰(Coupon) 1장뿐이다. 코드 원본(CouponCode)은
+     * 읽기만 하고 active를 포함해 어떤 값도 바꾸지 않는다.
+     */
+    const code = String(body.code ?? "").trim().toUpperCase();
+    if (!code) {
+      return NextResponse.json({ error: "쿠폰 코드를 입력해 주세요." }, { status: 400 });
+    }
+    const couponCode = data.couponCodes[code];
+    if (!couponCode) {
+      return NextResponse.json({ error: "쿠폰 코드를 확인해 주세요." }, { status: 404 });
+    }
+    /*
+     * active는 "지금 새로 등록을 받는가"만 뜻한다. 이미 받아 둔 쿠폰과는 무관하며,
+     * 비활성으로 바뀌어도 회원이 가진 쿠폰을 거두지 않는다(결제 단계도 이 값을 보지 않는다).
+     */
+    if (couponCode.active !== true) {
+      return NextResponse.json({ error: "지금은 등록할 수 없는 쿠폰 코드입니다." }, { status: 400 });
+    }
+    // 기한은 관리자가 고른 한국 날짜의 23:59:59가 절대시각으로 저장되어 있다.
+    // 그 순간을 지나면 등록하지 않는다. 기한이 없는 코드(키 없음)는 그냥 지나간다.
+    if (couponCode.expiresAt && Date.now() > new Date(couponCode.expiresAt).getTime()) {
+      return NextResponse.json({ error: "사용기한이 지난 쿠폰 코드입니다." }, { status: 400 });
+    }
+    const owned = data.coupons[userId] ?? [];
+    /*
+     * 같은 회원이 같은 코드를 다시 등록하지 못하게 한다. 사용 여부는 보지 않는다.
+     * 이미 써 버린 쿠폰까지 "없는 것"으로 치면 코드 하나로 몇 번이든 받을 수 있다.
+     * 다른 회원은 각자 1회 등록할 수 있다(코드 1개를 전체에서 1번만 쓰게 하는 규칙은 아직 없다).
+     */
+    if (owned.some((item) => item.sourceCode === code)) {
+      return NextResponse.json({ error: "이미 등록한 쿠폰 코드입니다." }, { status: 409 });
+    }
+
+    const coupon: Coupon = {
+      id: nowId(),
+      title: couponCode.title,
+      desc: couponCode.desc,
+      product: couponCode.product,
+      sourceCode: code,
+      // 코드 쪽 기한을 그대로 복사한다. 없으면 키를 만들지 않는다("기한 없음").
+      ...(couponCode.expiresAt ? { expiresAt: couponCode.expiresAt } : {}),
+      createdAt: new Date().toISOString(),
+    };
+    const next = [coupon, ...owned];
+    data.coupons[userId] = next;
+    /*
+     * 저장은 읽은 시점의 version을 확인하며 이루어진다(store.ts writeData).
+     * 같은 회원이 거의 동시에 두 번 눌러도 뒤에 저장하는 쪽이 충돌로 끝나므로
+     * 같은 코드의 쿠폰이 두 장 생기지 않는다. 충돌은 POST 바깥에서 409로 응답한다.
+     */
+    await writeData(data);
+    return NextResponse.json({ ok: true, coupon, coupons: next });
   }
 
   if (action === "updateProfile") {
