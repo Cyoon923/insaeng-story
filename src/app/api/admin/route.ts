@@ -24,6 +24,7 @@ import {
   toggleBlockedSlot,
   upcomingConsultDates,
   listSlotStatuses,
+  parseIsoDate,
 } from "@/lib/server/consultationSlots";
 import {
   hasCompletedRefundRequestForOrder,
@@ -74,11 +75,64 @@ import type {
   AdminRefundRequestsView,
   ComplaintRecord,
   ConsultStatus,
+  CouponCode,
+  CouponProduct,
   OrderStatus,
 } from "@/lib/types/app";
 
 const ORDER_STATUSES: OrderStatus[] = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"];
 const CONSULT_STATUSES: ConsultStatus[] = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"];
+
+/** 쿠폰 코드를 쓸 수 있는 상품. 무료 쿠폰 지급(giveCoupon)과 같은 네 가지다. */
+const COUPON_CODE_PRODUCTS: CouponProduct[] = ["story", "premium", "saju-song", "consultation"];
+
+/** 코드 글자 수 상한. 사람이 받아 적는 값이라 길게 둘 이유가 없다. */
+const COUPON_CODE_MAX_LENGTH = 40;
+const COUPON_CODE_TITLE_MAX_LENGTH = 60;
+const COUPON_CODE_DESC_MAX_LENGTH = 200;
+
+/** 한국 표준시 고정 오프셋. 한국은 현재 서머타임이 없어 상수로 둘 수 있다. */
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 지금 이 순간의 한국 날짜("YYYY-MM-DD").
+ *
+ * UTC 시각에 +9시간을 더한 뒤 UTC 달력으로 읽는다. 서버 타임존(Vercel은 UTC)과
+ * 무관하게 같은 값을 주며, consultationSlots.ts의 kstToday·promotions.ts의 kstDate와
+ * 같은 계산이다. new Date()의 로컬 날짜를 그대로 쓰면 한국 자정과 9시간 어긋난다.
+ */
+function kstTodayIso(now: Date = new Date()): string {
+  return new Date(now.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * 쿠폰 코드 표기를 하나로 맞춘다. 앞뒤 공백을 버리고 대문자로 올린다.
+ *
+ * 저장과 조회가 같은 함수를 써야 "sajulog-1234"로 만든 코드를 "SAJULOG-1234"로
+ * 찾을 수 있다. 회원이 코드를 등록하는 다음 단계도 같은 규칙을 써야 한다.
+ */
+function normalizeCouponCode(value: unknown): string {
+  return String(value ?? "").trim().toUpperCase();
+}
+
+/** 코드에 허용하는 글자. 손으로 받아 적고 불러 주는 값이라 영문 대문자·숫자·하이픈만 둔다. */
+function isValidCouponCode(code: string): boolean {
+  return /^[A-Z0-9-]+$/.test(code) && code.length <= COUPON_CODE_MAX_LENGTH;
+}
+
+/**
+ * 관리자가 고른 한국 날짜("YYYY-MM-DD")를 사용기한(UTC ISO)으로 바꾼다.
+ *
+ * 그 날 하루는 끝까지 쓸 수 있어야 하므로 한국 시각 23:59:59로 읽는다.
+ * 오프셋을 문자열에 명시(+09:00)해 서버 타임존이 결과에 끼어들지 못하게 한다.
+ * 형식이 맞아도 실재하지 않는 날짜(2026-02-30 등)는 parseIsoDate가 걸러 낸다.
+ */
+function couponExpiresAtFromKstDate(date: string): string | null {
+  if (!parseIsoDate(date)) return null;
+  const at = new Date(`${date}T23:59:59+09:00`);
+  if (Number.isNaN(at.getTime())) return null;
+  return at.toISOString();
+}
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) {
@@ -196,6 +250,13 @@ export async function GET() {
     teachers: CONSULT_TEACHERS,
     adminPromo: data.adminPromo ?? null,
     coupons: data.coupons ?? {},
+    /**
+     * 쿠폰 코드 원본 목록. 저장은 code를 key로 하는 객체지만 화면은 목록만 필요하므로
+     * 값만 최근 생성순으로 내려준다. app_store의 다른 내용은 여기에 담지 않는다.
+     */
+    couponCodes: Object.values(data.couponCodes ?? {}).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    ),
   });
 }
 
@@ -529,6 +590,106 @@ async function handlePost(request: Request) {
     ];
     await writeData(data);
     return NextResponse.json({ ok: true, userId, coupons: next });
+  }
+
+  if (action === "createCouponCode") {
+    /**
+     * 쿠폰 코드 원본을 만든다.
+     *
+     * 관리자가 정하는 값은 코드·제목·설명·적용 상품·사용기한뿐이다.
+     * active와 createdAt은 서버가 정하고, body의 값은 읽지 않는다.
+     * 여기서 회원 쿠폰(coupons)은 만들지 않는다. 회원이 코드를 등록하는
+     * 단계는 아직 없으며, 이 액션은 "어떤 코드가 존재하는가"만 남긴다.
+     */
+    const code = normalizeCouponCode(body.code);
+    if (!code) {
+      return NextResponse.json({ error: "쿠폰 코드를 입력해 주세요." }, { status: 400 });
+    }
+    if (!isValidCouponCode(code)) {
+      return NextResponse.json(
+        { error: "쿠폰 코드는 영문 대문자·숫자·하이픈만 쓸 수 있습니다." },
+        { status: 400 },
+      );
+    }
+    const title = String(body.title ?? "").trim();
+    if (!title) {
+      return NextResponse.json({ error: "쿠폰 이름을 입력해 주세요." }, { status: 400 });
+    }
+    if (title.length > COUPON_CODE_TITLE_MAX_LENGTH) {
+      return NextResponse.json({ error: "쿠폰 이름이 너무 깁니다." }, { status: 400 });
+    }
+    const desc = String(body.desc ?? "").trim();
+    if (desc.length > COUPON_CODE_DESC_MAX_LENGTH) {
+      return NextResponse.json({ error: "쿠폰 설명이 너무 깁니다." }, { status: 400 });
+    }
+    const product = String(body.product ?? "") as CouponProduct;
+    if (!COUPON_CODE_PRODUCTS.includes(product)) {
+      return NextResponse.json({ error: "적용할 상품을 선택해 주세요." }, { status: 400 });
+    }
+    /*
+     * 사용기한은 선택이다. 빈 값이면 "기한 없음"이며, 기한을 지어내지 않는다.
+     * 값이 있으면 한국 날짜로 읽고, 오늘(한국)보다 이전이면 만들지 않는다.
+     * 이미 지난 기한으로 만들면 등록할 수 없는 코드가 생긴다.
+     */
+    const expiresOn = String(body.expiresAt ?? "").trim();
+    let expiresAt: string | undefined;
+    if (expiresOn) {
+      if (expiresOn < kstTodayIso()) {
+        return NextResponse.json({ error: "사용기한은 오늘 이후로 정해 주세요." }, { status: 400 });
+      }
+      const resolved = couponExpiresAtFromKstDate(expiresOn);
+      if (!resolved) {
+        return NextResponse.json({ error: "사용기한을 다시 확인해 주세요." }, { status: 400 });
+      }
+      expiresAt = resolved;
+    }
+
+    const data = await readData();
+    // 같은 코드가 두 벌이 되면 어느 쪽 조건이 맞는지 알 수 없다. 덮어쓰지 않고 막는다.
+    if (data.couponCodes[code]) {
+      return NextResponse.json({ error: "이미 있는 쿠폰 코드입니다." }, { status: 409 });
+    }
+    const couponCode: CouponCode = {
+      code,
+      title,
+      desc,
+      product,
+      active: true,
+      ...(expiresAt ? { expiresAt } : {}),
+      createdAt: new Date().toISOString(),
+    };
+    /*
+     * 원본 객체를 직접 바꾸지 않고 새 객체로 갈아 끼운다.
+     * couponCodes 키가 없던 저장소를 읽으면 기본값 객체(store.ts EMPTY)를 그대로
+     * 물려받는데(mergeData의 얕은 병합), 그 객체에 직접 쓰면 프로세스에 남는
+     * 기본값이 오염된다. 키를 새로 만드는 이 액션에서만 생기는 자리라 여기서 막는다.
+     */
+    data.couponCodes = { ...data.couponCodes, [code]: couponCode };
+    await writeData(data);
+    return NextResponse.json({ ok: true, couponCode });
+  }
+
+  if (action === "setCouponCodeActive") {
+    /**
+     * 코드를 다시 등록받을지 여부만 바꾼다.
+     *
+     * 이미 그 코드로 받아 둔 회원 쿠폰(coupons)은 건드리지 않는다. 비활성은
+     * "앞으로 등록을 받지 않는다"는 뜻이지 "이미 준 쿠폰을 거둔다"는 뜻이 아니다.
+     */
+    const code = normalizeCouponCode(body.code);
+    if (typeof body.active !== "boolean") {
+      return NextResponse.json({ error: "변경할 상태를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const couponCode = data.couponCodes[code];
+    if (!couponCode) {
+      return NextResponse.json({ error: "쿠폰 코드를 찾을 수 없습니다." }, { status: 404 });
+    }
+    // 위와 같은 이유로 원본을 직접 바꾸지 않는다. 바뀌는 값은 active 하나뿐이다.
+    const next: CouponCode = { ...couponCode, active: body.active };
+    data.couponCodes = { ...data.couponCodes, [code]: next };
+    await writeData(data);
+    return NextResponse.json({ ok: true, couponCode: next });
   }
 
   if (action === "notifyPromoCode") {

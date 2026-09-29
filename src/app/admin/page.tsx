@@ -17,6 +17,7 @@ import type {
   Consultation,
   ConsultStatus,
   Coupon,
+  CouponCode,
   CouponProduct,
   Inquiry,
   Order,
@@ -152,6 +153,23 @@ function buildCalendarCells(dates: string[]) {
 function formatDate(value: string) {
   if (!value) return "-";
   return value.slice(0, 16).replace("T", " ").replaceAll("-", ".");
+}
+
+/**
+ * 쿠폰 코드의 사용기한(UTC ISO)을 한국 날짜로 되돌려 보여 준다.
+ *
+ * 서버가 그 날 한국 시각 23:59:59로 만들어 두므로, 여기서도 +9시간을 더해
+ * 한국 달력으로 읽어야 관리자가 고른 날짜와 같은 값이 보인다.
+ * 값이 없으면 "기한 없음"이며 날짜를 지어내지 않는다.
+ */
+function formatCouponExpiry(value: string | undefined) {
+  if (!value) return "기한 없음";
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return "기한 없음";
+  return new Date(at.getTime() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10)
+    .replaceAll("-", ".");
 }
 
 /** 관리자 챗봇 문의방. /api/admin/chat-inquiries 응답 형태 그대로 담는다. */
@@ -519,6 +537,14 @@ export default function AdminPage() {
   const [couponProduct, setCouponProduct] = useState<CouponProduct | "">("");
   const [couponSearched, setCouponSearched] = useState(false);
   const [couponNotifyDone, setCouponNotifyDone] = useState(false);
+  // 쿠폰 코드 관리. 위 무료 쿠폰 지급(회원 1명에게 직접 주는 것)과 다른 축이다.
+  const [couponCodes, setCouponCodes] = useState<CouponCode[]>([]);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeTitle, setCodeTitle] = useState("");
+  const [codeDesc, setCodeDesc] = useState("");
+  const [codeProduct, setCodeProduct] = useState<CouponProduct | "">("");
+  const [codeExpiresOn, setCodeExpiresOn] = useState("");
+  const [codeFormError, setCodeFormError] = useState("");
   const [codeNotifyName, setCodeNotifyName] = useState("");
   const [codeNotifyMatches, setCodeNotifyMatches] = useState<User[]>([]);
   const [codeNotifyTarget, setCodeNotifyTarget] = useState<User | null>(null);
@@ -626,6 +652,7 @@ export default function AdminPage() {
     setTeachers((data.teachers ?? []) as { id: string; name: string }[]);
     setAdminPromo((data.adminPromo ?? null) as AdminPromo | null);
     setUserCoupons((data.coupons ?? {}) as Record<string, Coupon[]>);
+    setCouponCodes((data.couponCodes ?? []) as CouponCode[]);
     setAuthed(true);
     setLoading(false);
     // 챗봇 문의방은 별도 API(행 단위 테이블)라 위 응답에 없다. 첫 화면의 숫자를 위해
@@ -767,6 +794,13 @@ export default function AdminPage() {
     setInquiries([]);
     setAdminPromo(null);
     setUserCoupons({});
+    setCouponCodes([]);
+    setCodeInput("");
+    setCodeTitle("");
+    setCodeDesc("");
+    setCodeProduct("");
+    setCodeExpiresOn("");
+    setCodeFormError("");
     setCouponName("");
     setCouponMatches([]);
     setCouponTarget(null);
@@ -849,6 +883,48 @@ export default function AdminPage() {
     if (!res.ok) return;
     setUserCoupons((current) => ({ ...current, [couponTarget.id]: (data.coupons ?? []) as Coupon[] }));
     setCouponNotifyDone(true);
+  }
+
+  async function handleCreateCouponCode() {
+    setCodeFormError("");
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createCouponCode",
+        code: codeInput,
+        title: codeTitle,
+        desc: codeDesc,
+        // 빈 값이면 서버가 "기한 없음"으로 읽는다.
+        expiresAt: codeExpiresOn,
+        product: codeProduct,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      // 어떤 값이 걸렸는지는 서버 문구를 그대로 보여 준다. 규칙을 화면에 옮겨 적지 않는다.
+      setCodeFormError(String(data.error ?? "쿠폰 코드를 만들지 못했습니다."));
+      return;
+    }
+    const created = data.couponCode as CouponCode;
+    setCouponCodes((current) => [created, ...current]);
+    setCodeInput("");
+    setCodeTitle("");
+    setCodeDesc("");
+    setCodeProduct("");
+    setCodeExpiresOn("");
+  }
+
+  async function handleSetCouponCodeActive(code: string, active: boolean) {
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "setCouponCodeActive", code, active }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const next = data.couponCode as CouponCode;
+    setCouponCodes((current) => current.map((item) => (item.code === next.code ? next : item)));
   }
 
   function handleFindCodeUser() {
@@ -1702,6 +1778,137 @@ export default function AdminPage() {
                 ) : null}
               </article>
             ) : null}
+
+            {/*
+              쿠폰 코드 관리. 위 무료 쿠폰 지급과 다른 축이다.
+              저쪽은 회원 1명에게 바로 주는 것이고, 이쪽은 밖에 나눠 줄 코드를 만들어 둔다.
+              회원이 코드를 등록하는 화면은 아직 없다.
+            */}
+            <article className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+              <p className="text-[15px] font-bold text-[#403A49]">쿠폰 코드 만들기</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
+                밖에서 나눠 줄 코드를 만듭니다. 코드 1개는 상품 1개를 무료로 신청할 수 있습니다.
+              </p>
+
+              <label htmlFor="coupon-code" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
+                코드
+              </label>
+              <input
+                id="coupon-code"
+                type="text"
+                value={codeInput}
+                onChange={(event) => setCodeInput(event.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] uppercase text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                placeholder="예: SAJULOG-1234"
+              />
+
+              <label htmlFor="coupon-code-title" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
+                쿠폰 이름
+              </label>
+              <input
+                id="coupon-code-title"
+                type="text"
+                value={codeTitle}
+                onChange={(event) => setCodeTitle(event.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                placeholder="예: 사주 인생곡 무료 쿠폰"
+              />
+
+              <label htmlFor="coupon-code-desc" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
+                설명
+              </label>
+              <input
+                id="coupon-code-desc"
+                type="text"
+                value={codeDesc}
+                onChange={(event) => setCodeDesc(event.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                placeholder="쿠폰함에 보일 설명"
+              />
+
+              <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">적용 상품</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {FREE_COUPON_PRODUCTS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCodeProduct(item.id)}
+                    className={`min-h-12 rounded-xl px-2 text-[13px] font-semibold ${
+                      codeProduct === item.id
+                        ? "bg-[#5c3d2e] text-white"
+                        : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <label htmlFor="coupon-code-expires" className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
+                사용기한 (비워 두면 기한 없음)
+              </label>
+              <input
+                id="coupon-code-expires"
+                type="date"
+                value={codeExpiresOn}
+                onChange={(event) => setCodeExpiresOn(event.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+              />
+
+              <button
+                type="button"
+                onClick={handleCreateCouponCode}
+                disabled={!codeInput.trim() || !codeTitle.trim() || !codeProduct}
+                className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
+              >
+                쿠폰 코드 만들기
+              </button>
+              {codeFormError ? (
+                <p className="mt-2 text-[14px] font-semibold text-[#b4402f]">{codeFormError}</p>
+              ) : null}
+            </article>
+
+            {couponCodes.length === 0 ? (
+              <p className="rounded-2xl bg-[#f5efe6] px-4 py-8 text-center text-[15px] text-[#8b6f5c]">
+                만들어 둔 쿠폰 코드가 없습니다.
+              </p>
+            ) : (
+              couponCodes.map((item) => (
+                <article key={item.code} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 break-all text-[16px] font-bold tracking-wide text-[#403A49]">
+                      {item.code}
+                    </p>
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ${
+                        item.active ? "bg-[#403A49] text-white" : "bg-[#f5efe6] text-[#8b6f5c]"
+                      }`}
+                    >
+                      {item.active ? "활성" : "비활성"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[14px] text-[#5c3d2e]">{item.title}</p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
+                    {FREE_COUPON_PRODUCTS.find((product) => product.id === item.product)?.label ??
+                      item.product}
+                  </p>
+                  <p className="mt-1 text-[13px] text-[#6B6570]">
+                    사용기한 {formatCouponExpiry(item.expiresAt)} · 만든 날 {formatDate(item.createdAt)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleSetCouponCodeActive(item.code, !item.active)}
+                    className={`mt-3 min-h-10 w-full rounded-lg px-3 text-[13px] font-semibold ${
+                      item.active
+                        ? "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                        : "bg-[#5c3d2e] text-white"
+                    }`}
+                  >
+                    {item.active ? "비활성으로 바꾸기" : "활성으로 바꾸기"}
+                  </button>
+                </article>
+              ))
+            )}
           </>
         ) : null}
 
