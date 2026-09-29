@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import {
   applyFreeCoupon,
+  promotionDiscountConflict,
   applyPoints,
   applyReferral,
   commitConsultation,
@@ -27,6 +28,7 @@ import {
 import { badRequest, readJsonBody, requireAdmin } from "@/lib/server/chatInquiryApi";
 import { readServerConsentedAt } from "@/lib/server/consents";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import type { PromotionId } from "@/lib/constants/promotions";
 import {
   getPaymentByMerchantOrderId,
   isAppStoreConflict,
@@ -151,6 +153,8 @@ export async function POST(request: Request) {
 
   let couponProduct: CouponProduct;
   let basePrice: number;
+  /** 이 결제에 적용된 프로모션. 가격표를 통과한 값만 담기며, 쿠폰 중복 판정에 쓴다. */
+  let orderPromotion: PromotionId | undefined;
   if (kind === "order") {
     /*
      * 승인 경로와 같다. snapshot에 고정된 프로모션으로 가격만 재현하고 기간은 보지 않는다.
@@ -161,6 +165,7 @@ export async function POST(request: Request) {
     if (!priced) return manual("신청 내용을 확인하지 못했습니다.");
     couponProduct = request_.product as Order["product"];
     basePrice = priced.amount;
+    orderPromotion = priced.promotion;
   } else {
     const priced = calcConsultationAmount({
       report: request_.report,
@@ -170,7 +175,11 @@ export async function POST(request: Request) {
     basePrice = priced.amount;
   }
 
-  const couponed = applyFreeCoupon(draft, userId, verifyDetails, basePrice, couponProduct);
+  // 이벤트가 주문에는 할인·차감을 겹쳐 쓸 수 없다. 사람이 보게 남긴다.
+  if (promotionDiscountConflict(verifyDetails, orderPromotion)) {
+    return manual("이벤트 주문에 할인 정보가 함께 남아 있습니다.");
+  }
+  const couponed = applyFreeCoupon(draft, userId, verifyDetails, basePrice, couponProduct, orderPromotion);
   if (couponed.error) return manual("쿠폰 상태가 결제 당시와 달라졌습니다.");
   const referred =
     couponed.amount > 0

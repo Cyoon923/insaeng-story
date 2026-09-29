@@ -56,12 +56,23 @@ export function PaySubmit({
   const [points, setPoints] = useState(0);
   const [usePoints, setUsePoints] = useState(false);
   const couponProduct: CouponProduct = kind === "consultation" ? "consultation" : (product ?? "story");
-  const usableCoupons = coupons.filter((item) => item.product === couponProduct && !item.usedAt);
-  const usingCoupon = Boolean(couponId);
-  const normalizedCode = referralCode.trim().toUpperCase();
+  /*
+   * 이벤트가로 사는 주문에는 할인·차감을 겹쳐 쓸 수 없다
+   * (서버 promotionDiscountConflict와 같은 규칙).
+   *
+   * 여기서 고르지 못하게 하는 것은 안내일 뿐이고, 최종 판정은 언제나 서버가 한다.
+   * 아래 merged에서 세 값을 모두 빈 값으로 덮어쓰므로, 일반 신청에서 draft에 남아 있던
+   * 할인 값이 이벤트 결제 요청에 섞여 들어가지 않는다.
+   */
+  const discountBlocked = Boolean(promotion);
+  const usableCoupons = discountBlocked
+    ? []
+    : coupons.filter((item) => item.product === couponProduct && !item.usedAt);
+  const usingCoupon = !discountBlocked && Boolean(couponId);
+  const normalizedCode = discountBlocked ? "" : referralCode.trim().toUpperCase();
   const previewDiscount = !usingCoupon && normalizedCode.startsWith("IS") ? 10000 : 0;
   const afterDiscount = usingCoupon ? 0 : Math.max(0, amount - previewDiscount);
-  const pointsToUse = !usingCoupon && usePoints ? Math.min(points, afterDiscount) : 0;
+  const pointsToUse = !usingCoupon && !discountBlocked && usePoints ? Math.min(points, afterDiscount) : 0;
   const payAmount = Math.max(0, afterDiscount - pointsToUse);
 
   /**
@@ -142,12 +153,16 @@ export function PaySubmit({
         router.push(`/my/verify-phone?next=${encodeURIComponent(back)}`);
         return;
       }
+      /*
+       * 할인 값 세 개는 언제나 이 화면의 상태로 덮어쓴다. draft에 남아 있던 값이
+       * 그대로 실려 가지 않게 하려는 것이고, 이벤트 주문에서는 셋 다 빈 값이 된다.
+       */
       const merged: Record<string, string> = {
         ...details,
         ...draft,
-        referralCode: usingCoupon ? "" : referralCode.trim().toUpperCase(),
-        couponId,
-        usePoints: !usingCoupon && usePoints ? "1" : "",
+        referralCode: usingCoupon || discountBlocked ? "" : referralCode.trim().toUpperCase(),
+        couponId: discountBlocked ? "" : couponId,
+        usePoints: !usingCoupon && !discountBlocked && usePoints ? "1" : "",
       };
 
       // 신청 내용은 두 흐름이 똑같이 쓴다. 유료/0원 판단은 서버가 한다.
@@ -228,6 +243,12 @@ export function PaySubmit({
 
   return (
     <div className="mt-6">
+      {discountBlocked ? (
+        <p className="mb-6 text-[15px] leading-relaxed text-[#5c3d2e]">
+          오픈 이벤트 상품은 추가 할인 및 포인트 사용이 불가합니다.
+        </p>
+      ) : null}
+
       {usableCoupons.length > 0 ? (
         <div className="mb-6">
           <p className="text-[16px] font-bold text-[#403A49]">무료 쿠폰</p>
@@ -258,7 +279,7 @@ export function PaySubmit({
         </div>
       ) : null}
 
-      {!usingCoupon ? (
+      {!usingCoupon && !discountBlocked ? (
         <>
           <label className="block text-[16px] font-bold text-[#403A49]" htmlFor="referral-code">
             추천인 코드
@@ -285,13 +306,13 @@ export function PaySubmit({
             </p>
           ) : null}
         </>
-      ) : (
+      ) : usingCoupon ? (
         <p className="text-[15px] font-semibold leading-relaxed text-[#5c3d2e]">
           무료 쿠폰이 적용되어 결제 금액은 0원입니다.
         </p>
-      )}
+      ) : null}
 
-      {!usingCoupon && points > 0 ? (
+      {!usingCoupon && !discountBlocked && points > 0 ? (
         <div className="mt-6">
           <p className="text-[16px] font-bold text-[#403A49]">적립금</p>
           <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">

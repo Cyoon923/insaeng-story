@@ -64,6 +64,7 @@ import { unlinkKakao } from "@/lib/server/kakaoUnlink";
 import { unlinkNaver } from "@/lib/server/naverUnlink";
 import { LOGIN_DEFAULT_PATH, LOGIN_NEXT_COOKIE, safeNextPath } from "@/lib/loginRedirect";
 import { isSlotAvailable, parseDatetime, resolveScheduledAt } from "@/lib/server/consultationSlots";
+import type { PromotionId } from "@/lib/constants/promotions";
 import {
   calcConsultationAmount,
   calcOrderAmount,
@@ -72,6 +73,7 @@ import {
 } from "@/lib/server/pricing";
 import {
   applyFreeCoupon,
+  promotionDiscountConflict,
   applyPoints,
   applyReferral,
   commitConsultation,
@@ -1960,6 +1962,11 @@ async function handlePost(request: Request) {
     const requestedCouponId = (details.couponId ?? "").trim() || null;
     const requestedReferralCode = (details.referralCode ?? "").trim().toUpperCase() || null;
     let baseAmount = 0;
+    /**
+     * 이 결제에 실제로 적용된 프로모션. 가격표와 기간 검증을 통과한 값만 담긴다.
+     * 무료 쿠폰을 겹쳐 쓸 수 있는지 판단하는 데 쓴다(applyFreeCoupon).
+     */
+    let orderPromotion: PromotionId | undefined;
     let goodsName = "";
     let snapshotRequest: Record<string, unknown>;
 
@@ -1977,6 +1984,7 @@ async function handlePost(request: Request) {
         return NextResponse.json({ error: promotionCheck.error }, { status: 400 });
       }
       // 금액은 클라이언트 값을 쓰지 않고 서버 가격표로 다시 계산한다.
+      orderPromotion = promotionCheck.promotion;
       const priced = calcOrderAmount(body.product, body.options, promotionCheck.promotion);
       if (!priced) {
         return NextResponse.json({ error: "신청 내용을 다시 확인해 주세요." }, { status: 400 });
@@ -2053,7 +2061,12 @@ async function handlePost(request: Request) {
 
     const couponProduct: CouponProduct =
       kind === "consultation" ? "consultation" : (body.product as Order["product"]);
-    const couponed = applyFreeCoupon(draft, userId, details, baseAmount, couponProduct);
+    // 이벤트가 주문에는 할인·차감을 겹쳐 쓸 수 없다. 결제 준비 자체를 만들지 않는다.
+    const discountConflict = promotionDiscountConflict(details, orderPromotion);
+    if (discountConflict) {
+      return NextResponse.json({ error: discountConflict }, { status: 400 });
+    }
+    const couponed = applyFreeCoupon(draft, userId, details, baseAmount, couponProduct, orderPromotion);
     if (couponed.error) {
       return NextResponse.json({ error: couponed.error }, { status: 400 });
     }

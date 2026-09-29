@@ -7,6 +7,7 @@
  * 이 파일의 함수들은 요청·세션·쿠키를 전혀 모르고, 필요한 값을 인자로만 받는다.
  */
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import type { PromotionId } from "@/lib/constants/promotions";
 import {
   isSlotAvailable,
   parseDatetime,
@@ -88,15 +89,75 @@ export function applyReferral(
   };
 }
 
+/**
+ * 이벤트가 주문에 할인·차감을 겹쳐 쓰려 할 때 쓰는 문구.
+ *
+ * 어떤 수단이 걸렸는지 나누지 않는다. 쓸 수 없다는 사실이 같고, 나누면
+ * "무엇을 빼면 통과하는지"를 하나씩 알려 주는 안내가 된다.
+ */
+export const PROMOTION_DISCOUNT_ERROR =
+  "오픈 이벤트 상품에는 추가 할인이나 포인트를 사용할 수 없습니다.";
+
+/**
+ * 이벤트가 주문에 할인·차감 수단이 함께 들어왔는지. 걸리면 문구를, 아니면 undefined.
+ *
+ * 프로모션은 상품의 기본가 자체를 낮추는 값이라(PROMOTION_PRICES) 그 자체가 최종
+ * 할인가다. 여기에 쿠폰·추천인·관리자 코드·적립금을 더하면 이벤트 상품이 거의 0원이 된다.
+ * 옵션을 붙여 금액이 올라가도 기본가가 이벤트가인 것은 그대로이므로 옵션을 보지 않는다.
+ *
+ * 특정 이벤트 id를 적지 않는다. 프로모션은 모두 "기본가를 낮춘 가격"이라는 뜻이 같아,
+ * 새 이벤트가 생길 때마다 이 자리를 고치지 않아도 같은 규칙이 걸린다.
+ *
+ * ★ promotion은 반드시 서버 가격표를 통과한 값이어야 한다(checkPromotionEntry의 결과이거나
+ * calcOrderAmount의 PriceResult.promotion). 클라이언트가 보낸 문자열을 그대로 넘기면
+ * 아무 값이나 실어 보내는 것만으로 이 판정을 흔들 수 있다.
+ *
+ * 관리자 코드(adminPromo)는 따로 보지 않는다. 그 코드는 referralCode 칸으로 들어와
+ * applyReferral이 판정하므로(이 파일 위쪽), referralCode 하나로 두 수단이 함께 걸린다.
+ */
+export function promotionDiscountConflict(
+  details: Record<string, string>,
+  promotion?: PromotionId,
+): string | undefined {
+  if (!promotion) return undefined;
+  const wantsDiscount =
+    Boolean((details.couponId ?? "").trim()) ||
+    Boolean((details.referralCode ?? "").trim()) ||
+    details.usePoints === "1";
+  return wantsDiscount ? PROMOTION_DISCOUNT_ERROR : undefined;
+}
+
 export function applyFreeCoupon(
   data: AppData,
   userId: string,
   details: Record<string, string>,
   amount: number,
   product: CouponProduct,
+  /**
+   * 이 주문에 실제로 적용된 프로모션. 가격표를 통과한 값만 넘어온다
+   * (calcOrderAmount의 PriceResult.promotion / checkPromotionEntry의 결과).
+   *
+   * 클라이언트가 보낸 문자열을 그대로 넘기지 않는다. 그랬다면 아무 값이나 실어
+   * 보내는 것만으로 이 판정을 흔들 수 있다. 상담에는 프로모션이 없어 넘기지 않는다.
+   */
+  promotion?: PromotionId,
 ): { amount: number; details: Record<string, string>; error?: string } {
   const couponId = (details.couponId ?? "").trim();
   if (!couponId) return { amount, details };
+  /*
+   * 이벤트가로 사는 주문에는 무료 쿠폰을 겹쳐 쓸 수 없다.
+   *
+   * 프로모션은 상품의 기본가 자체를 낮추는 값이라(PROMOTION_PRICES) 이미 할인된
+   * 가격이다. 거기에 무료 쿠폰까지 얹으면 이벤트 상품을 0원에 가져가게 된다.
+   * 옵션을 붙여 금액이 올라가도 기본가가 이벤트가인 것은 그대로이므로 옵션 유무를
+   * 보지 않는다.
+   *
+   * 특정 이벤트 id를 적지 않는다. 프로모션은 모두 "기본가를 낮춘 가격"이라는 뜻이
+   * 같아서, 새 이벤트가 생길 때마다 이 자리를 고치지 않아도 같은 규칙이 걸린다.
+   */
+  if (promotion) {
+    return { amount, details, error: PROMOTION_DISCOUNT_ERROR };
+  }
   const list = data.coupons[userId] ?? [];
   const coupon = list.find((item) => item.id === couponId);
   if (!coupon) {
@@ -353,7 +414,16 @@ export async function commitOrder(
    */
   delete details.promotion;
   if (priced.promotion) details.promotion = priced.promotion;
-  const couponed = applyFreeCoupon(data, userId, details, priced.amount, product);
+  /*
+   * 이벤트가 주문에는 할인·차감을 겹쳐 쓸 수 없다. 쿠폰만이 아니라 추천인 코드·
+   * 관리자 코드·적립금까지 한자리에서 함께 막는다. 아래 apply*가 하나라도 실행되면
+   * 쿠폰이 소모되거나 추천인에게 적립이 들어가므로, 그 앞에서 끝낸다.
+   */
+  const discountConflict = promotionDiscountConflict(details, priced.promotion);
+  if (discountConflict) {
+    return { ok: false, error: discountConflict, status: 400 };
+  }
+  const couponed = applyFreeCoupon(data, userId, details, priced.amount, product, priced.promotion);
   if (couponed.error) {
     return { ok: false, error: couponed.error, status: 400 };
   }

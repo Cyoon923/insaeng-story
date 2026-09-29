@@ -10,6 +10,7 @@
  */
 import {
   applyFreeCoupon,
+  promotionDiscountConflict,
   applyPoints,
   applyReferral,
   commitConsultation,
@@ -26,6 +27,7 @@ import {
   verifyReturnSignature,
 } from "@/lib/server/nicepayApprove";
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
+import type { PromotionId } from "@/lib/constants/promotions";
 import {
   claimPaymentApproved,
   claimPaymentProcessing,
@@ -205,6 +207,8 @@ export async function POST(request: Request) {
 
   let couponProduct: CouponProduct;
   let basePrice: number;
+  /** 이 결제에 적용된 프로모션. 가격표를 통과한 값만 담기며, 쿠폰 중복 판정에 쓴다. */
+  let orderPromotion: PromotionId | undefined;
   if (kind === "order") {
     /*
      * 프로모션은 snapshot에 고정된 값을 그대로 쓴다. 기간을 다시 보지 않는다.
@@ -215,6 +219,7 @@ export async function POST(request: Request) {
     if (!priced) return failed("신청 내용을 확인하지 못했습니다.");
     couponProduct = request_.product as Order["product"];
     basePrice = priced.amount;
+    orderPromotion = priced.promotion;
   } else {
     const priced = calcConsultationAmount({
       report: request_.report,
@@ -225,7 +230,11 @@ export async function POST(request: Request) {
   }
 
   // preparePayment와 같은 순서·조건으로 계산한다.
-  const couponed = applyFreeCoupon(draft, userId, verifyDetails, basePrice, couponProduct);
+  // 이벤트가 주문에는 할인·차감을 겹쳐 쓸 수 없다. 승인 API를 부르기 전에 끝낸다.
+  if (promotionDiscountConflict(verifyDetails, orderPromotion)) {
+    return failed("할인 정보를 다시 확인해 주세요.");
+  }
+  const couponed = applyFreeCoupon(draft, userId, verifyDetails, basePrice, couponProduct, orderPromotion);
   if (couponed.error) return failed("할인 정보를 다시 확인해 주세요.");
   const referred =
     couponed.amount > 0
