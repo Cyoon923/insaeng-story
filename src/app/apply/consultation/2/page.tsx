@@ -61,8 +61,31 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
       if (m) setMinute(m);
     }
     if (draft[unknownKey] === "1") setUnknownTime(true);
-    // 상대방 블록은 기존 그대로 시간 관련 입력만 되살린다.
-    if (!isSelf) return;
+    /*
+     * 상대방 블록. 회원정보 autofill 대상이 아니므로 commitSelf를 거치지 않고
+     * draft만 본다.
+     *
+     * 저장된 값이 있으면 그대로 되살린다. 없으면 화면에 이미 선택된 것처럼 보이는
+     * 기본값(남성·양력)을 그때 한 번만 draft에 적는다. 화면 표시값과 저장값이
+     * 어긋난 채로 결제까지 가는 것을 막기 위해서다. 렌더 중이 아니라 이 effect에서만
+     * 쓰고, 값이 이미 있으면 덮어쓰지 않는다.
+     *
+     * 이 블록은 추가 인원(궁합)을 고른 경우에만 렌더되므로(step2 showCounterpart),
+     * 옵션을 쓰지 않은 신청에는 이 기본값이 만들어지지 않는다.
+     * 혈액형은 선택 항목이라 기본값을 만들지 않는다.
+     */
+    if (!isSelf) {
+      const seed: Record<string, string> = {};
+      if (draft.counterpartGender === "여성") setGender("female");
+      else if (draft.counterpartGender === "남성") setGender("male");
+      else seed.counterpartGender = "남성";
+      if (draft.counterpartCalendar === "음력") setCalendar("lunar");
+      else if (draft.counterpartCalendar === "양력") setCalendar("solar");
+      else seed.counterpartCalendar = "양력";
+      if (draft.counterpartBloodType) setBloodType(draft.counterpartBloodType);
+      if (Object.keys(seed).length > 0) saveDraft("consultation", seed);
+      return;
+    }
     if (draft.name) setName(draft.name);
     if (draft.phone) setPhone(draft.phone);
     if (draft.birth) setBirth(draft.birth);
@@ -187,6 +210,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
             onClick={() => {
               setGender("male");
               if (isSelf) commitSelf({ gender: "남성" });
+              else saveDraft("consultation", { counterpartGender: "남성" });
             }}
             className={`h-12 rounded-xl text-[15px] font-semibold ${gender === "male" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
           >
@@ -197,6 +221,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
             onClick={() => {
               setGender("female");
               if (isSelf) commitSelf({ gender: "여성" });
+              else saveDraft("consultation", { counterpartGender: "여성" });
             }}
             className={`h-12 rounded-xl text-[15px] font-semibold ${gender === "female" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
           >
@@ -280,6 +305,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
             onClick={() => {
               setCalendar("solar");
               if (isSelf) commitSelf({ calendar: "양력" });
+              else saveDraft("consultation", { counterpartCalendar: "양력" });
             }}
             className={`h-12 rounded-xl text-[15px] font-semibold ${calendar === "solar" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
           >
@@ -290,6 +316,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
             onClick={() => {
               setCalendar("lunar");
               if (isSelf) commitSelf({ calendar: "음력" });
+              else saveDraft("consultation", { counterpartCalendar: "음력" });
             }}
             className={`h-12 rounded-xl text-[15px] font-semibold ${calendar === "lunar" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
           >
@@ -305,6 +332,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
           onChange={(e) => {
             setBloodType(e.target.value);
             if (isSelf) commitSelf({ bloodType: e.target.value });
+            else saveDraft("consultation", { counterpartBloodType: e.target.value });
           }}
         >
           <option value="" disabled>

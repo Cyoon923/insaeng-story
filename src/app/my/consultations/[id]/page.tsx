@@ -48,8 +48,24 @@ export default async function ConsultationDetailPage({
   const refundable = canRequestConsultationRefund(order, userId, item.id);
 
   const currentIndex = STEPS.indexOf(item.status);
+  /*
+   * 추가 인원(궁합)으로 함께 본 상대방 정보. 저장된 값만 그대로 보여 준다.
+   * 없는 항목은 "미입력"으로 두고 다른 값으로 대신 채우지 않는다. 보관 기간이
+   * 끝났거나 이 항목이 저장되기 전의 상담은 키 자체가 없어 이 경로로 들어온다.
+   */
+  const counterpartBirthTime =
+    item.details.counterpartUnknownTime === "1"
+      ? "시간 모름"
+      : item.details.counterpartBirthTime || "미입력";
   const counterpart = item.details.counterpartName
-    ? `${item.details.counterpartName} / ${item.details.counterpartBirth || "생년월일 미입력"}`
+    ? [
+        item.details.counterpartName,
+        item.details.counterpartGender || "미입력",
+        item.details.counterpartBirth || "생년월일 미입력",
+        counterpartBirthTime,
+        item.details.counterpartCalendar || "미입력",
+        item.details.counterpartBloodType || "미입력",
+      ].join(" / ")
     : item.details.extraPerson === "1"
       ? "입력 완료"
       : "없음";

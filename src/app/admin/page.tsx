@@ -2083,8 +2083,10 @@ export default function AdminPage() {
                       <div>
                         <dt className="text-[12px] font-semibold text-[#6B6570]">추가 인원(궁합)</dt>
                         <dd className="mt-0.5 break-keep text-[14px] leading-relaxed text-[#403A49] [overflow-wrap:anywhere]">
-                          {consultText(d.counterpartName)} · {consultText(d.counterpartBirth)} ·{" "}
-                          {consultBirthTime(d.counterpartBirthTime, d.counterpartUnknownTime)}
+                          {consultText(d.counterpartName)} · {consultText(d.counterpartGender)} ·{" "}
+                          {consultText(d.counterpartBirth)} ·{" "}
+                          {consultBirthTime(d.counterpartBirthTime, d.counterpartUnknownTime)} ·{" "}
+                          {consultText(d.counterpartCalendar)} · {consultText(d.counterpartBloodType)}
                         </dd>
                       </div>
                     ) : null}
