@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
+import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 import {
   hasCompletedRefund,
   pointsRestoreCardView,
@@ -329,6 +330,19 @@ function orderDetailValue(key: string, value: string): string {
  * 화면에 그릴 줄만 고른다. 값이 없거나 공백뿐인 항목은 아예 담지 않는다.
  * 예전에 만들어진 주문(키가 적은 details)도 있는 값만 나와 그대로 안전하다.
  */
+/**
+ * 이 주문에 오픈 이벤트 1:1 사주상담이 함께 신청되었는지.
+ *
+ * 서버가 확정한 옵션 id 목록(details.optionIds)만 본다. 한글 옵션 문자열(options)은
+ * 안내용이라 문구가 바뀌면 판정이 흔들린다.
+ *
+ * 이 상담은 예약(Consultation)을 만들지 않는다. 그래서 "사주상담" 탭에는 뜨지 않고,
+ * 운영자가 이 주문의 연락처로 직접 일정을 잡아야 한다. 놓치지 않도록 카드에 배지를 낸다.
+ */
+function needsConsultationSchedule(details: Record<string, string>): boolean {
+  return (details?.optionIds ?? "").split(",").includes(SAJU_CONSULTATION_OPTION_ID);
+}
+
 function orderDetailRows(details: Record<string, string>): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [];
   for (const field of ORDER_DETAIL_FIELDS) {
@@ -2102,6 +2116,16 @@ export default function AdminPage() {
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[16px] font-bold text-[#403A49]">{order.title}</p>
                     <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {/*
+                        오픈 이벤트에서 1:1 사주상담을 함께 신청한 주문.
+                        예약이 따로 만들어지지 않아 "사주상담" 탭에는 뜨지 않으므로,
+                        여기서 먼저 눈에 띄게 알린다. 아래 신청 내용에 연락처가 있다.
+                      */}
+                      {needsConsultationSchedule(order.details) ? (
+                        <span className="rounded-full bg-[#8b3a2e] px-3 py-1 text-[12px] font-semibold text-white">
+                          상담 일정 조율 필요
+                        </span>
+                      ) : null}
                       {/* 진행 상태는 이력으로 그대로 두고, 환불 사실을 함께 보여 준다. */}
                       {refunded ? (
                         <span className="rounded-full bg-[#403A49] px-3 py-1 text-[12px] font-semibold text-white">
@@ -2128,6 +2152,13 @@ export default function AdminPage() {
                   <p className="mt-1 text-[13px] text-[#6B6570]">
                     {order.payment} · {formatDate(order.createdAt)}
                   </p>
+                  {/* 무엇을 얼마에 함께 받았는지, 무엇을 해야 하는지 한 줄로 적는다. */}
+                  {needsConsultationSchedule(order.details) ? (
+                    <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#8b3a2e]">
+                      1:1 사주상담 +{formatAmount(ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID])} ·
+                      아래 신청 내용의 연락처로 상담 일정을 잡아 주세요.
+                    </p>
+                  ) : null}
                   <p className="mt-3 text-[13px] font-semibold text-[#6B6570]">진행 상태</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {ORDER_STATUSES.map((status) => {

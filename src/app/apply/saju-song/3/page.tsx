@@ -9,8 +9,10 @@ import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
 import {
   checkSajuReportDelivery,
   ORDER_OPTION_PRICES,
+  SAJU_CONSULTATION_OPTION_ID,
   SAJU_REPORT_OPTION_ID,
 } from "@/lib/server/pricing";
+import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import type { User } from "@/lib/types/app";
 
 const VIDEO_STYLES = [
@@ -62,7 +64,29 @@ const OPTIONS = [
     price: ORDER_OPTION_PRICES[SAJU_REPORT_OPTION_ID],
     desc: "2026년과 2027년의 전체 흐름, 핵심 키워드, 주의할 점과 활용 방향을 PDF로 정리해 드립니다.",
   },
+  {
+    id: SAJU_CONSULTATION_OPTION_ID,
+    title: "1:1 사주상담",
+    price: ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID],
+    desc: "결제 후 등록하신 연락처로 상담 일정을 안내드립니다.",
+    /** 오픈 이벤트 신청에서만 보여 준다. 정가 신청에는 팔지 않는 옵션이다. */
+    eventOnly: true,
+  },
 ];
+
+/**
+ * 지금 이 신청이 오픈 이벤트인지.
+ *
+ * 4단계와 같은 방식으로 draft의 값만 보고, 가격표·기간까지 맞을 때만 참이다.
+ * 최종 판정은 서버가 한다(pricing.ts의 OPTION_ONLY_FOR_PROMOTION). 여기서는
+ * 팔지 않는 옵션을 화면에 내지 않기 위해서만 쓴다.
+ */
+function isEventApply(draft: Record<string, string>): boolean {
+  const promotion = draft.promotion;
+  if (!isPromotionId(promotion)) return false;
+  if (PROMOTION_PRICES[promotion].product !== "saju-song") return false;
+  return isPromotionOpen(promotion);
+}
 
 /** 리포트를 받는 방법. 저장값은 이 두 가지뿐이다. */
 const DELIVERY_CHOICES = [
@@ -72,6 +96,8 @@ const DELIVERY_CHOICES = [
 
 export default function ApplyStep5Page() {
   const [selected, setSelected] = useState<string[]>([]);
+  /** 오픈 이벤트 신청인지. 이벤트 전용 옵션을 낼지 정한다. */
+  const [eventApply, setEventApply] = useState(false);
   const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
   /** 리포트를 받는 방법. 아직 고르지 않았으면 빈 문자열이다. */
   const [delivery, setDelivery] = useState("");
@@ -102,12 +128,19 @@ export default function ApplyStep5Page() {
 
   useEffect(() => {
     const draft = getDraft("saju-song");
+    const isEvent = isEventApply(draft);
+    setEventApply(isEvent);
+    /*
+     * 이벤트 전용 옵션은 이벤트 신청에서만 되살린다. 이벤트 링크로 들어왔다가
+     * 정가 신청으로 돌아온 경우에 지난 선택이 남아 있으면 서버가 주문을 만들지 않는다.
+     */
+    const sellable = OPTIONS.filter((opt) => isEvent || !opt.eventOnly);
     // 되돌아온 경우: optionIds가 있으면 그것을 쓰고, 예전 draft는 한글명으로 복원한다.
     const savedIds = (draft.optionIds ?? "").split(",").filter(Boolean);
     const ids = savedIds.length
-      ? OPTIONS.filter((opt) => savedIds.includes(opt.id)).map((opt) => opt.id)
+      ? sellable.filter((opt) => savedIds.includes(opt.id)).map((opt) => opt.id)
       : draft.options
-        ? OPTIONS.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id)
+        ? sellable.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id)
         : [];
     if (ids.length) setSelected(ids);
     if (draft.videoStyle) {
@@ -198,6 +231,9 @@ export default function ApplyStep5Page() {
     return check.ok ? "" : check.error;
   };
 
+  /** 이 신청에서 실제로 팔 수 있는 옵션만 화면에 낸다. */
+  const visibleOptions = OPTIONS.filter((opt) => eventApply || !opt.eventOnly);
+
   const total = OPTIONS.filter((opt) => selected.includes(opt.id)).reduce(
     (sum, opt) => sum + (opt.price ?? 0),
     0
@@ -221,7 +257,7 @@ export default function ApplyStep5Page() {
       <p className="mt-2 text-[14px] text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
 
       <div className="mt-5 space-y-3">
-        {OPTIONS.map((opt) => {
+        {visibleOptions.map((opt) => {
           const active = selected.includes(opt.id);
           return (
             <div

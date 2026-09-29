@@ -18,6 +18,7 @@ export const ORDER_OPTION_PRICES = {
   "photo-mv": 50000,
   "lyric-edit": 10000,
   "saju-report-2026-2027": 10000,
+  "saju-consultation": 100000,
 } as const;
 
 export type OrderOptionId = keyof typeof ORDER_OPTION_PRICES;
@@ -32,6 +33,19 @@ export type OrderOptionId = keyof typeof ORDER_OPTION_PRICES;
 const OPTION_ONLY_FOR_PRODUCT: Partial<Record<OrderOptionId, ProductId>> = {
   // 사주 정보를 받는 상품에서만 만들 수 있는 리포트다.
   "saju-report-2026-2027": "saju-song",
+  "saju-consultation": "saju-song",
+};
+
+/**
+ * 한 이벤트에서만 파는 옵션. 여기 있는 옵션은 그 프로모션이 적용된 주문에서만 살 수 있다.
+ *
+ * 상품 제한(OPTION_ONLY_FOR_PRODUCT)과 다른 축이다. 저쪽은 "어떤 상품에서 파는가"이고
+ * 이쪽은 "어떤 가격으로 사는 주문에서 파는가"다. 정가 신청에 이 id를 실어 보내도
+ * 아래 calcOrderAmount가 null을 돌려주어 주문 자체가 만들어지지 않는다.
+ */
+const OPTION_ONLY_FOR_PROMOTION: Partial<Record<OrderOptionId, PromotionId>> = {
+  // 오픈 이벤트 신청에서만 함께 신청할 수 있는 1:1 사주상담이다.
+  "saju-consultation": "saju-song-open-2026",
 };
 
 /** 1:1 사주상담 추가 옵션. */
@@ -139,16 +153,6 @@ export function calcOrderAmount(
   if (!isProductId(product)) return null;
   if (options !== undefined && !Array.isArray(options)) return null;
 
-  const optionIds: OrderOptionId[] = [];
-  for (const item of (options ?? []) as unknown[]) {
-    if (!isOrderOptionId(item)) return null;
-    // 그 상품에서 팔지 않는 옵션이면 주문을 만들지 않는다. 화면이 막고 있어도
-    // API를 직접 부르는 경우가 남아, 금액을 정하는 이 자리에서 함께 본다.
-    const onlyFor = OPTION_ONLY_FOR_PRODUCT[item];
-    if (onlyFor && onlyFor !== product) return null;
-    if (!optionIds.includes(item)) optionIds.push(item);
-  }
-
   let basePrice = ORDER_BASE_PRICES[product];
   let appliedPromotion: PromotionId | undefined;
   if (promotion !== undefined && promotion !== null && promotion !== "") {
@@ -158,9 +162,35 @@ export function calcOrderAmount(
     appliedPromotion = promotion;
   }
 
+  const optionIds: OrderOptionId[] = [];
+  for (const item of (options ?? []) as unknown[]) {
+    if (!isOrderOptionId(item)) return null;
+    // 그 상품에서 팔지 않는 옵션이면 주문을 만들지 않는다. 화면이 막고 있어도
+    // API를 직접 부르는 경우가 남아, 금액을 정하는 이 자리에서 함께 본다.
+    const onlyFor = OPTION_ONLY_FOR_PRODUCT[item];
+    if (onlyFor && onlyFor !== product) return null;
+    /*
+     * 이벤트 전용 옵션은 그 이벤트가 실제로 적용된 주문에서만 판다.
+     * 정가 신청에 id만 실어 보내는 경우가 여기서 막힌다(금액이 아니라 주문이 만들어지지 않는다).
+     * 보는 값은 위에서 가격표를 통과한 appliedPromotion이지 인자로 받은 문자열이 아니다.
+     */
+    const onlyForPromotion = OPTION_ONLY_FOR_PROMOTION[item];
+    if (onlyForPromotion && onlyForPromotion !== appliedPromotion) return null;
+    if (!optionIds.includes(item)) optionIds.push(item);
+  }
+
   const amount = optionIds.reduce((sum, id) => sum + ORDER_OPTION_PRICES[id], basePrice);
   return { amount, optionIds, ...(appliedPromotion ? { promotion: appliedPromotion } : {}) };
 }
+
+/**
+ * 오픈 이벤트 1:1 사주상담 옵션. 화면과 서버가 같은 키를 쓰도록 여기서 내보낸다.
+ *
+ * 이 옵션은 상담 예약(Consultation)을 만들지 않는다. 주문에 "상담을 함께 신청했다"는
+ * 사실만 남고, 일정은 운영자가 주문에 적힌 연락처로 따로 잡는다. 그래서 날짜·시간·
+ * 상담 방식을 여기서 받지 않는다(독립 상품 1:1 사주상담의 예약 구조는 그대로다).
+ */
+export const SAJU_CONSULTATION_OPTION_ID = "saju-consultation";
 
 /** 2026·2027년 사주풀이 리포트 옵션. 화면과 서버가 같은 키를 쓰도록 여기서 내보낸다. */
 export const SAJU_REPORT_OPTION_ID = "saju-report-2026-2027";

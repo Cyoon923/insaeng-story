@@ -8,6 +8,7 @@ import { RefundRequestSection } from "@/components/my/RefundRequestSection";
 import { formatPrice } from "@/lib/constants/products";
 import { getOrderById } from "@/lib/server/store";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import { SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 
 const STEPS = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"] as const;
 
@@ -52,6 +53,17 @@ function detailValue(key: string, value: string): string {
 
 function formatDate(value: string) {
   return value.slice(0, 10).replaceAll("-", ".");
+}
+
+/**
+ * 이 주문에 오픈 이벤트 1:1 사주상담이 함께 신청되었는지.
+ *
+ * 서버가 확정한 옵션 id 목록(details.optionIds)만 본다. 한글 옵션 문자열(options)은
+ * 안내용이라 문구가 바뀌면 판정이 흔들린다. 상담 예약은 따로 만들어지지 않으므로
+ * 이 주문 화면에서 안내까지 함께 보여 준다.
+ */
+function hasSajuConsultation(details: Record<string, string>): boolean {
+  return (details.optionIds ?? "").split(",").includes(SAJU_CONSULTATION_OPTION_ID);
 }
 
 export default async function OrderDetailPage({
@@ -158,6 +170,15 @@ export default async function OrderDetailPage({
                 <p className="whitespace-pre-wrap text-[15px] text-[#3d2b1f]">{row.value}</p>
               </div>
             ))}
+            {/* 상담을 함께 신청한 주문에만 나온다. 예약은 따로 만들어지지 않는다. */}
+            {hasSajuConsultation(order.details) ? (
+              <div>
+                <p className="text-[13px] text-[#6B6570]">1:1 사주상담</p>
+                <p className="text-[15px] text-[#3d2b1f]">
+                  결제 후 등록하신 연락처로 상담 일정을 안내드립니다.
+                </p>
+              </div>
+            ) : null}
             <div>
               <p className="text-[13px] text-[#6B6570]">결제수단</p>
               <p className="text-[15px] text-[#3d2b1f]">{order.payment}</p>
