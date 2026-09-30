@@ -354,6 +354,7 @@ export default function PremiumStep1Page() {
             {["A", "B", "O", "AB"].map((type) => (
               <option key={type}>{type}형</option>
             ))}
+            <option>모름</option>
           </select>
         </Field>
       </div>

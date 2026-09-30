@@ -177,6 +177,7 @@ export default function ProfilePage() {
               {["A형", "B형", "O형", "AB형"].map((type) => (
                 <option key={type}>{type}</option>
               ))}
+              <option>모름</option>
             </select>
           </div>
 

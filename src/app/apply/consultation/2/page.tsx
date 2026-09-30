@@ -341,6 +341,7 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
           {["A", "B", "O", "AB"].map((type) => (
             <option key={type}>{type}형</option>
           ))}
+          <option>모름</option>
         </select>
       </div>
     </div>
