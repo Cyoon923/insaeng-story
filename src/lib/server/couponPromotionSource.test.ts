@@ -150,3 +150,28 @@ test("오픈 이벤트 시작은 한국 2026-10-04 00:00이다", async () => {
   assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-03T15:00:00.000Z")), true);
   assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-01T00:00:00.000Z")), false);
 });
+
+test("오픈 이벤트 종료는 한국 2026-10-31 23:59:59이다", async () => {
+  const { isPromotionOpen, PROMOTION_PRICES } = await import("../constants/promotions.ts");
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].endsOn, "2026-10-31");
+  // 한국 10-31 23:59:59 = UTC 10-31 14:59:59
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-31T14:59:59.000Z")), true);
+  // 한국 11-01 00:00:00 = UTC 10-31 15:00:00
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-31T15:00:00.000Z")), false);
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-12-01T00:00:00.000Z")), false);
+});
+
+test("홈 Hero의 OPEN EVENT 슬라이드는 한국 2026-11-01 00:00부터 빠진다", async () => {
+  const { isPromotionEnded } = await import("../constants/promotions.ts");
+  // 시작 전(현재 공지 기간)에는 종료가 아니다 → 슬라이드 유지.
+  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-09-30T00:00:00.000Z")), false);
+  // 한국 10-31 23:59:59 → 유지
+  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-10-31T14:59:59.000Z")), false);
+  // 한국 11-01 00:00:00 → 제외
+  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-10-31T15:00:00.000Z")), true);
+  // Hero는 이 판정으로 OPEN EVENT만 빼고, 나머지 슬라이드(SLIDES)는 그대로 둔다.
+  const hero = readFileSync(new URL("../../components/home/HeroSection.tsx", import.meta.url), "utf8");
+  assert.match(hero, /isPromotionEnded\(OPEN_EVENT_SLIDE\.promotion\)/);
+  assert.match(hero, /const slides = eventEnded \? SLIDES : HERO_SLIDES;/);
+  assert.match(hero, /const HERO_SLIDES = \[OPEN_EVENT_SLIDE, \.\.\.SLIDES\];/);
+});

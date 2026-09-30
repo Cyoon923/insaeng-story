@@ -103,6 +103,7 @@ export default function SajuSongOpenEventPage() {
           </h1>
           <p className="mt-4 text-[16px] text-[#6B6570] line-through">정상가 {won(REGULAR_PRICE)}</p>
           <p className="mt-1 text-[30px] font-bold text-[#5c3d2e]">{won(EVENT_PRICE)}</p>
+          <p className="mt-1 text-[15px] font-semibold text-[#8a5a3b]">2026.10.04 ~ 2026.10.31</p>
           <div className="mt-5">
             <ApplyButton />
           </div>
@@ -202,6 +203,7 @@ export default function SajuSongOpenEventPage() {
           <div className="mt-5">
             <ApplyButton />
           </div>
+          <p className="mt-3 text-[14px] text-[#6B6570]">이벤트 가격은 2026년 10월 31일까지 적용됩니다.</p>
         </div>
       </section>
     </MobileShell>

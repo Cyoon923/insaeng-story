@@ -109,7 +109,8 @@ export function checkPromotionEntry(
     return { ok: false, error: "이 상품에는 적용할 수 없는 이벤트입니다." };
   }
   if (!isPromotionOpen(value, now)) {
-    return { ok: false, error: "아직 시작되지 않은 이벤트입니다." };
+    // 시작 전과 종료 후 모두 여기서 막는다.
+    return { ok: false, error: "이벤트 신청 기간이 아닙니다." };
   }
   return { ok: true, promotion: value };
 }

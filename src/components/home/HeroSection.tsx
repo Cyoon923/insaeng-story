@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { isPromotionEnded } from "@/lib/constants/promotions";
 
 const SLIDES = [
   {
@@ -45,16 +46,31 @@ const OPEN_EVENT_SLIDE = {
   image: "/images/sajulog-open-event-hero-retro-final.png",
   imageAlt: "사주 인생곡 오픈 이벤트 보러 가기",
   href: "/events/saju-song-open",
+  /** 이 프로모션의 종료일(promotions.ts endsOn)이 지나면 Hero에서 자동으로 뺀다. */
+  promotion: "saju-song-open-2026",
 } as const;
 
 /** 홈 Hero 순서: OPEN EVENT → story → subscribe. */
 const HERO_SLIDES = [OPEN_EVENT_SLIDE, ...SLIDES];
 
+/** 시각은 구독할 바깥 상태가 없다. 마운트할 때 한 번 읽는다. */
+const noSubscribe = () => () => {};
+
 export function HeroSection() {
   const [index, setIndex] = useState(0);
   const startX = useRef<number | null>(null);
 
-  const slides = HERO_SLIDES;
+  /*
+   * 종료일 다음 날(한국 00:00)부터 OPEN EVENT 슬라이드를 뺀다. 그러면 story가 첫 슬라이드가 된다.
+   * 홈은 정적 HTML이라 서버 값은 "종료 전"으로 두고, 브라우저 시각으로 다시 판정한다
+   * (hydration 불일치 없이 전환). 랜딩 페이지와 이벤트가 적용은 이와 무관하다.
+   */
+  const eventEnded = useSyncExternalStore(
+    noSubscribe,
+    () => isPromotionEnded(OPEN_EVENT_SLIDE.promotion),
+    () => false,
+  );
+  const slides = eventEnded ? SLIDES : HERO_SLIDES;
 
   const goTo = (next: number) => {
     const last = slides.length - 1;

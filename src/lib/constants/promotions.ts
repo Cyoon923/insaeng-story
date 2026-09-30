@@ -26,8 +26,10 @@ export const PROMOTION_PRICES = {
     product: "saju-song",
     /** 프로모션 기본가. 옵션가는 여기에 그대로 더해진다. */
     basePrice: 19000,
-    /** 시작일(한국 날짜). 이 날짜부터 쓸 수 있다. 종료일은 아직 정해지지 않았다. */
+    /** 시작일(한국 날짜). 이 날짜 00:00부터 쓸 수 있다. */
     startsOn: "2026-10-04",
+    /** 종료일(한국 날짜). 이 날짜 23:59:59까지 쓸 수 있고, 다음 날 00:00부터는 쓸 수 없다. */
+    endsOn: "2026-10-31",
   },
 } as const;
 
@@ -55,7 +57,7 @@ function kstDate(now: Date): string {
 }
 
 /**
- * 지금 이 프로모션을 쓸 수 있는 기간인지. 시작일 규칙은 이 함수 하나가 정한다.
+ * 지금 이 프로모션을 쓸 수 있는 기간인지. 시작일·종료일 규칙은 이 함수 하나가 정한다.
  *
  * 서버 검증(checkPromotionEntry)과 화면 표시가 같은 함수를 부른다. 두 곳에 같은
  * 날짜 규칙을 따로 적으면 한쪽만 고쳤을 때 "화면에는 이벤트가, 결제는 거절"이 된다.
@@ -64,5 +66,16 @@ function kstDate(now: Date): string {
  * 미리 보더라도 결제는 서버 시각으로 다시 판정되어 거절된다(표시는 표시일 뿐이다).
  */
 export function isPromotionOpen(promotion: PromotionId, now: Date = new Date()): boolean {
-  return kstDate(now) >= PROMOTION_PRICES[promotion].startsOn;
+  const today = kstDate(now);
+  return today >= PROMOTION_PRICES[promotion].startsOn && today <= PROMOTION_PRICES[promotion].endsOn;
+}
+
+/**
+ * 종료일(한국 날짜)이 지났는지. 시작 전에는 false다.
+ *
+ * 홈 Hero처럼 "시작 전부터 알리고, 끝나면 내리는" 표시에 쓴다. 이벤트가 적용 여부는
+ * 여기가 아니라 isPromotionOpen(서버 checkPromotionEntry)이 정한다.
+ */
+export function isPromotionEnded(promotion: PromotionId, now: Date = new Date()): boolean {
+  return kstDate(now) > PROMOTION_PRICES[promotion].endsOn;
 }
