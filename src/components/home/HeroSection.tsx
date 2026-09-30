@@ -1,10 +1,9 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { isPromotionOpen } from "@/lib/constants/promotions";
 
 const SLIDES = [
   {
@@ -21,19 +20,6 @@ const SLIDES = [
     secondaryLabel: "인생곡 제작 신청",
   },
   {
-    id: "event",
-    badge: "오픈 이벤트",
-    title: "사연을 보내 주세요",
-    desc: "추천을 통해 5분을 선정해\n프리미엄 인생곡을 만들어 드립니다.",
-    image: "/images/photo-gift.jpg",
-    imageClass: "object-center",
-    imageAlt: "",
-    primaryHref: "/events",
-    primaryLabel: "사연 보내기",
-    secondaryHref: "",
-    secondaryLabel: "",
-  },
-  {
     id: "subscribe",
     badge: "구독 이벤트",
     title: "인생곡 창작소",
@@ -48,15 +34,11 @@ const SLIDES = [
   },
 ] as const;
 
-/** 이 Hero가 바꿔 끼우는 프로모션. 시작일과 가격은 이 상수가 아니라 가격표가 정한다. */
-const OPEN_EVENT_PROMOTION = "saju-song-open-2026";
-
 /**
- * 오픈일이 지난 뒤 event 자리에 대신 들어가는 슬라이드.
+ * OPEN EVENT 슬라이드. 홈 Hero 맨 앞에 둔다.
  *
- * 슬라이드를 더하지 않고 같은 자리를 바꿔 끼운다. 배너는 언제나 3장이다.
- * 담긴 값은 문구와 주소뿐이고 가격을 계산하지 않는다. 주소의 식별자는 "이벤트로
- * 들어왔다"는 표시일 뿐이며, 실제 적용 여부와 기간은 신청·결제 단계에서 서버가 정한다.
+ * 홍보 노출은 날짜와 무관하게 지금부터다. 담긴 값은 문구와 주소뿐이고 가격을 계산하지 않는다.
+ * 이벤트가 실제 적용(시작일 포함)은 신청·결제 단계에서 서버가 정한다.
  */
 const OPEN_EVENT_SLIDE = {
   id: "event",
@@ -73,35 +55,14 @@ const OPEN_EVENT_SLIDE = {
   secondaryLabel: "",
 } as const;
 
-/** 날짜는 구독할 대상이 없다. 새로 그릴 때마다 다시 읽는다. */
-const noSubscribe = () => () => {};
+/** 홈 Hero 순서: OPEN EVENT → story → subscribe. */
+const HERO_SLIDES = [OPEN_EVENT_SLIDE, ...SLIDES];
 
 export function HeroSection() {
   const [index, setIndex] = useState(0);
   const startX = useRef<number | null>(null);
 
-  /*
-   * 오픈일(2026-10-04 00:00 KST)이 지났으면 event 자리만 OPEN EVENT로 바꿔 끼운다.
-   *
-   * 기간 규칙을 여기에 다시 적지 않고 가격표와 같은 isPromotionOpen을 부른다. 날짜 규칙이
-   * 두 곳에 있으면 한쪽만 고쳤을 때 "배너에는 이벤트, 결제는 거절"이 된다. 그 함수는
-   * UTC에 +9시간을 더해 한국 날짜를 읽으므로 보는 사람의 시간대가 한국이 아니어도 같은 날에 바뀐다.
-   *
-   * 오픈 뒤에는 OPEN EVENT를 맨 앞에 두고 기존 event 자리는 뺀다(story → subscribe 순서는 그대로).
-   * 목록 길이는 그대로 3장이다. 오픈 전 구성과 순서는 바뀌지 않는다.
-   *
-   * 서버 값은 false(오픈 전)로 둔다. 홈은 빌드 때 미리 그려지므로, 오픈 전에 만든 HTML과
-   * 오픈 뒤 브라우저의 첫 화면(index 0)이 달라 hydration이 어긋나지 않게 하기 위해서다.
-   * 브라우저에서는 hydration 직후 실제 판정으로 다시 그린다.
-   */
-  const open = useSyncExternalStore(
-    noSubscribe,
-    () => isPromotionOpen(OPEN_EVENT_PROMOTION),
-    () => false,
-  );
-  const slides = open
-    ? [OPEN_EVENT_SLIDE, ...SLIDES.filter((item) => item.id !== "event")]
-    : SLIDES;
+  const slides = HERO_SLIDES;
 
   const goTo = (next: number) => {
     const last = slides.length - 1;
