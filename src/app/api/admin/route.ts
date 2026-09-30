@@ -574,6 +574,10 @@ async function handlePost(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
     }
+    // 탈퇴회원의 적립금은 바꾸지 않는다. 화면에서 숨기는 것과 별개로 서버에서도 막는다.
+    if (user.withdrawnAt) {
+      return NextResponse.json({ error: "탈퇴한 회원의 적립금은 변경할 수 없습니다." }, { status: 400 });
+    }
     const current = user.points ?? 0;
     user.points = direction === "add" ? current + amount : Math.max(0, current - amount);
     await writeData(data);

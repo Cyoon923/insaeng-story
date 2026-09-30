@@ -399,6 +399,24 @@ function contactLabel(user: User) {
   return user.phone || user.email || "-";
 }
 
+/**
+ * 적립금 탭 목록. 탈퇴회원은 검색어와 상관없이 늘 뺀다.
+ * 검색어가 없으면 적립금이 있는 회원만, 있으면 0원 회원도 이름·아이디·휴대폰·이메일로 찾는다.
+ * 휴대폰은 숫자만 비교해 하이픈 유무와 상관없이 찾는다.
+ * 지금 선택한 회원은 차감으로 0원이 되어도 바뀐 잔액이 보이도록 목록에 남긴다.
+ */
+function pointListUsers(users: User[], query: string, selectedId: string | null) {
+  const active = users.filter((user) => !user.withdrawnAt);
+  const q = query.trim().toLowerCase();
+  if (!q) return active.filter((user) => (user.points ?? 0) > 0 || user.id === selectedId);
+  const qDigits = q.replace(/\D/g, "");
+  return active.filter(
+    (user) =>
+      [user.name, user.loginId ?? "", user.phone, user.email].some((value) => value.toLowerCase().includes(q)) ||
+      (qDigits.length > 0 && user.phone.replace(/\D/g, "").includes(qDigits)),
+  );
+}
+
 function findUsersByName(users: User[], query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
@@ -642,6 +660,8 @@ export default function AdminPage() {
   const [promoPercent, setPromoPercent] = useState(20);
   const [promoCopied, setPromoCopied] = useState(false);
   const [pointInputs, setPointInputs] = useState<Record<string, string>>({});
+  const [pointQuery, setPointQuery] = useState("");
+  const [pointSelectedId, setPointSelectedId] = useState<string | null>(null);
   const [userCoupons, setUserCoupons] = useState<Record<string, Coupon[]>>({});
   const [couponName, setCouponName] = useState("");
   const [couponMatches, setCouponMatches] = useState<User[]>([]);
@@ -1672,6 +1692,7 @@ export default function AdminPage() {
   const currentCodeUses = codeUses.filter((item) => item.code === adminPromo?.code);
   // 탈퇴한 회원은 이름과 개인정보만 비운 채 행이 남는다. 숫자에서는 빼고 목록에는 그대로 둔다.
   const activeUsers = users.filter((user) => !user.withdrawnAt);
+  const pointUsers = pointListUsers(users, pointQuery, pointSelectedId);
   // 회원 탭 목록과 빈 상태는 지금 고른 필터 결과로 판단한다. 탭 숫자(정상회원 수)의 뜻은 그대로다.
   const pendingReviewCount = reviews.filter((item) => !item.visible).length;
   const filteredReviews = reviews.filter((item) =>
@@ -1908,49 +1929,90 @@ export default function AdminPage() {
             ))
           : null}
 
+        {tab === "points" ? (
+          <>
+            <label htmlFor="points-search" className="sr-only">
+              회원 검색
+            </label>
+            <input
+              id="points-search"
+              type="search"
+              value={pointQuery}
+              onChange={(event) => setPointQuery(event.target.value)}
+              className="h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+              placeholder="이름·아이디·휴대폰·이메일 검색"
+            />
+            <p className="text-[14px] font-semibold text-[#6B6570]">
+              {pointQuery.trim() ? `검색 결과 ${pointUsers.length}명` : `적립금 보유 회원 ${pointUsers.length}명`}
+            </p>
+            {pointUsers.length === 0 ? (
+              <p className="rounded-2xl bg-white p-4 text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
+                {pointQuery.trim() ? "검색된 회원이 없습니다." : "적립금을 가진 회원이 없습니다."}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+
         {tab === "points"
-          ? users.map((user) => {
+          ? pointUsers.map((user) => {
               const amount = Math.floor(Number(pointInputs[user.id] ?? ""));
               const canAdjust = Number.isFinite(amount) && amount >= 1;
+              const selected = pointSelectedId === user.id;
               return (
                 <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
-                  <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
+                  <p className="break-all text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
+                  {user.loginId ? (
+                    <p className="mt-1 break-all text-[14px] text-[#5c3d2e]">아이디 {user.loginId}</p>
+                  ) : null}
+                  <p className="mt-1 break-all text-[14px] text-[#5c3d2e]">휴대폰 {user.phone || "-"}</p>
+                  {user.email ? <p className="mt-1 break-all text-[14px] text-[#5c3d2e]">이메일 {user.email}</p> : null}
                   <p className="mt-2 text-[15px] font-semibold text-[#403A49]">
                     적립금 {(user.points ?? 0).toLocaleString("ko-KR")}원
                   </p>
-                  <label htmlFor={`points-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
-                    금액
-                  </label>
-                  <input
-                    id={`points-${user.id}`}
-                    type="number"
-                    min={1}
-                    value={pointInputs[user.id] ?? ""}
-                    onChange={(event) =>
-                      setPointInputs((current) => ({ ...current, [user.id]: event.target.value }))
-                    }
-                    className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
-                    placeholder="10000"
-                  />
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleAdjustPoints(user.id, "add")}
-                      disabled={!canAdjust}
-                      className="h-12 rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
-                    >
-                      지급
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAdjustPoints(user.id, "subtract")}
-                      disabled={!canAdjust}
-                      className="h-12 rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] disabled:opacity-40"
-                    >
-                      차감
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    aria-expanded={selected}
+                    onClick={() => setPointSelectedId(selected ? null : user.id)}
+                    className="mt-3 h-12 w-full rounded-xl border border-[#d4c8ba] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49]"
+                  >
+                    {selected ? "선택 해제" : "선택"}
+                  </button>
+                  {selected ? (
+                    <>
+                      <label htmlFor={`points-${user.id}`} className="mt-3 block text-[13px] font-semibold text-[#6B6570]">
+                        금액
+                      </label>
+                      <input
+                        id={`points-${user.id}`}
+                        type="number"
+                        min={1}
+                        value={pointInputs[user.id] ?? ""}
+                        onChange={(event) =>
+                          setPointInputs((current) => ({ ...current, [user.id]: event.target.value }))
+                        }
+                        className="mt-2 h-12 w-full rounded-xl border border-[#d4c8ba] bg-white px-4 text-[16px] text-[#3d2b1f] outline-none focus:border-[#5c3d2e]"
+                        placeholder="10000"
+                      />
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleAdjustPoints(user.id, "add")}
+                          disabled={!canAdjust}
+                          className="h-12 rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-40"
+                        >
+                          지급
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAdjustPoints(user.id, "subtract")}
+                          disabled={!canAdjust}
+                          className="h-12 rounded-xl border border-[#403A49] bg-[#fffdf9] text-[15px] font-semibold text-[#403A49] disabled:opacity-40"
+                        >
+                          차감
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
                 </article>
               );
             })
