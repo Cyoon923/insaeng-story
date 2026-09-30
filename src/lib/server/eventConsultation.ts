@@ -29,11 +29,61 @@ import type {
 
 export const EVENT_CONSULTATION_PROMOTION = "saju-song-open-2026";
 export const EVENT_CONSULTATION_OPTION_ID = "saju-consultation";
-const CONSULT_METHODS = ["카카오톡 상담", "전화 상담"] as const;
+export const CONSULT_METHODS = ["카카오톡 상담", "전화 상담"] as const;
 const MAX_CONTENT_LENGTH = 1000;
 
 /** 이벤트 상담 예약 화면이 쓰는 draft 이름. 일반 상담 draft("consultation")와 섞지 않는다. */
 export const EVENT_CONSULTATION_DRAFT_FLOW = "event-consultation";
+
+/**
+ * 신청 중에 미리 고른 상담 일정(사주 인생곡 2단계).
+ *
+ * 결제 전 선택은 슬롯을 잡지 않는다. 위 draft에만 담아 두고, 결제가 끝난 완료 화면이
+ * 기존 bookEventConsultation을 한 번 부를 때 쓴다. 슬롯·결제·중복 판정은 언제나
+ * 서버(prepareEventConsultation)가 다시 한다.
+ */
+export interface EventConsultationPreselect {
+  teacher: string;
+  /** "8월 12일(화) 오전 10:00" 형식. */
+  datetime: string;
+  /** "YYYY-MM-DD". */
+  scheduledDate: string;
+  method: string;
+}
+
+/** draft에 네 값이 모두 제대로 있을 때만 선택으로 본다. 하나라도 비면 null이다. */
+export function readEventConsultationPreselect(
+  draft: Record<string, string>,
+): EventConsultationPreselect | null {
+  const teacher = text(draft.teacher);
+  const datetime = text(draft.datetime);
+  const scheduledDate = text(draft.scheduledDate);
+  const method = text(draft.method);
+  if (!CONSULT_TEACHERS.some((item) => item.name === teacher)) return null;
+  if (!parseDatetime(datetime) || !scheduledDate) return null;
+  if (!(CONSULT_METHODS as readonly string[]).includes(method)) return null;
+  return { teacher, datetime, scheduledDate, method };
+}
+
+/**
+ * 완료 화면의 자동 예약 요청 본문. 기존 bookEventConsultation 입력 그대로이며,
+ * 상담 목적·내용은 받지 않았으므로 빈 값이다. 금액·결제 값은 싣지 않는다.
+ */
+export function eventConsultationAutoBookBody(
+  orderId: string,
+  preselect: EventConsultationPreselect,
+): Record<string, string> {
+  return {
+    action: "bookEventConsultation",
+    orderId,
+    teacher: preselect.teacher,
+    datetime: preselect.datetime,
+    scheduledDate: preselect.scheduledDate,
+    method: preselect.method,
+    purpose: "",
+    content: "",
+  };
+}
 
 /**
  * 화면에서 "상담 예약하기"를 보일지 정하는 표시용 판정. 서버 저장 주문 값만 본다.

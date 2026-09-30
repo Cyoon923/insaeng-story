@@ -14,6 +14,8 @@ import {
 } from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
+import { CONSULT_TEACHERS, DEFAULT_TEACHER, type SlotStatus } from "@/lib/server/consultationSlots";
+import { CONSULT_METHODS, EVENT_CONSULTATION_DRAFT_FLOW } from "@/lib/server/eventConsultation";
 import type { User } from "@/lib/types/app";
 
 const VIDEO_STYLES = [
@@ -69,7 +71,7 @@ const OPTIONS = [
     id: SAJU_CONSULTATION_OPTION_ID,
     title: "1:1 사주상담",
     price: ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID],
-    desc: "결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약할 수 있습니다.",
+    desc: "원하시는 선생님과 상담 날짜·시간을 아래에서 선택해 주세요. 결제가 끝나면 예약해 드립니다.",
     /** 오픈 이벤트 신청에서만 보여 준다. 정가 신청에는 팔지 않는 옵션이다. */
     eventOnly: true,
   },
@@ -106,6 +108,34 @@ export default function ApplyStep5Page() {
   const [reportEmail, setReportEmail] = useState("");
   /** 신청서에 적힌 연락처. 카카오톡으로 받을 때 어디로 가는지 보여 주기만 한다. */
   const [applyPhone, setApplyPhone] = useState("");
+
+  /*
+   * 1:1 사주상담 일정 사전선택(OPEN EVENT 상담 옵션 전용).
+   * 슬롯을 잡지 않고 event-consultation draft에만 담는다. 결제가 끝난 완료 화면이
+   * 이 값으로 기존 예약 API를 한 번 부르고, 판정은 서버가 다시 한다.
+   */
+  const [consultTeacher, setConsultTeacher] = useState<string>(DEFAULT_TEACHER);
+  const [consultDates, setConsultDates] = useState<{ label: string; date: string }[]>([]);
+  const [consultDate, setConsultDate] = useState("");
+  const [consultSlots, setConsultSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
+  const [consultTime, setConsultTime] = useState("");
+  const [consultMethod, setConsultMethod] = useState("");
+  const wantsConsult = eventApply && selected.includes(SAJU_CONSULTATION_OPTION_ID);
+
+  /** 상담 일정 draft 저장. 날짜나 시간이 비면 datetime도 비워 반쯤 고른 값이 남지 않게 한다. */
+  const persistConsult = (next: { teacher?: string; date?: string; time?: string; method?: string }) => {
+    const teacher = next.teacher ?? consultTeacher;
+    const date = next.date ?? consultDate;
+    const time = next.time ?? consultTime;
+    const method = next.method ?? consultMethod;
+    const iso = consultDates.find((item) => item.label === date)?.date ?? "";
+    saveDraft(EVENT_CONSULTATION_DRAFT_FLOW, {
+      teacher,
+      datetime: date && time ? `${date} ${time}` : "",
+      scheduledDate: date && time ? iso : "",
+      method,
+    });
+  };
 
   /*
    * 저장은 이 함수 하나로만 한다.
@@ -156,6 +186,53 @@ export default function ApplyStep5Page() {
     // 1단계에서 받은 연락처. 카카오톡 안내에 보여 주기만 하고 다시 저장하지 않는다.
     if (draft.phone) setApplyPhone(draft.phone);
   }, []);
+
+  // 상담 옵션을 고른 이벤트 신청에서만 날짜 목록을 읽는다. 지난 선택은 draft에서 되살린다.
+  useEffect(() => {
+    if (!wantsConsult || consultDates.length) return;
+    fetch("/api/consultation/availability", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const draft = getDraft(EVENT_CONSULTATION_DRAFT_FLOW);
+        if (CONSULT_TEACHERS.some((item) => item.name === draft.teacher)) setConsultTeacher(draft.teacher);
+        if ((CONSULT_METHODS as readonly string[]).includes(draft.method ?? "")) setConsultMethod(draft.method);
+        const options = (data.dateOptions ?? []) as { label: string; date: string }[];
+        setConsultDates(options);
+        // 판매 중인 날짜일 때만 되살린다. 지난 날짜는 다시 고르게 한다.
+        const saved = options.find((item) => draft.datetime?.startsWith(`${item.label} `));
+        if (saved) setConsultDate(saved.label);
+      })
+      .catch(() => {});
+  }, [wantsConsult, consultDates.length]);
+
+  // 날짜·선생님이 바뀌면 그 시간표를 다시 읽는다. 예약 가능한 시간일 때만 지난 선택을 유지한다.
+  useEffect(() => {
+    if (!wantsConsult || !consultDate) return;
+    let cancelled = false;
+    fetch(
+      `/api/consultation/availability?date=${encodeURIComponent(consultDate)}&teacher=${encodeURIComponent(consultTeacher)}`,
+      { cache: "no-store" },
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const slots = (data.slots ?? []) as { time: string; status: SlotStatus }[];
+        setConsultSlots(slots);
+        const draft = getDraft(EVENT_CONSULTATION_DRAFT_FLOW);
+        const kept = slots.find(
+          (item) =>
+            item.status === "available" &&
+            draft.teacher === consultTeacher &&
+            draft.datetime === `${consultDate} ${item.time}`,
+        );
+        setConsultTime(kept?.time ?? "");
+        if (!kept && draft.datetime) saveDraft(EVENT_CONSULTATION_DRAFT_FLOW, { datetime: "", scheduledDate: "" });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsConsult, consultDate, consultTeacher]);
 
   /*
    * 이메일 기본값은 회원 정보에서 한 번만 가져온다.
@@ -230,7 +307,14 @@ export default function ApplyStep5Page() {
       sajuReportDelivery: delivery,
       sajuReportEmail: reportEmail,
     });
-    return check.ok ? "" : check.error;
+    if (!check.ok) return check.error;
+    if (wantsConsult) {
+      if (!consultTeacher) return "상담 선생님을 선택해 주세요.";
+      if (!consultDate) return "상담 날짜를 선택해 주세요.";
+      if (!consultTime) return "상담 시간을 선택해 주세요.";
+      if (!consultMethod) return "상담 방법을 선택해 주세요.";
+    }
+    return "";
   };
 
   /** 이 신청에서 실제로 팔 수 있는 옵션만 화면에 낸다. */
@@ -317,6 +401,124 @@ export default function ApplyStep5Page() {
                       );
                     })}
                   </div>
+                </div>
+              ) : null}
+
+              {opt.id === SAJU_CONSULTATION_OPTION_ID && active && eventApply ? (
+                <div className="mt-4 border-t border-[#ebe3d8] pt-4">
+                  <p className="text-[17px] font-semibold text-[#403A49]">
+                    선생님 <span className="text-red-500">*</span>
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {CONSULT_TEACHERS.map((teacher) => (
+                      <button
+                        key={teacher.id}
+                        type="button"
+                        aria-pressed={consultTeacher === teacher.name}
+                        onClick={() => {
+                          if (consultTeacher === teacher.name) return;
+                          setConsultTeacher(teacher.name);
+                          setConsultTime("");
+                          persistConsult({ teacher: teacher.name, time: "" });
+                        }}
+                        className={`h-12 whitespace-nowrap rounded-xl px-1 text-[15px] font-semibold ${
+                          consultTeacher === teacher.name
+                            ? "bg-[#403A49] text-white"
+                            : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
+                        }`}
+                      >
+                        {teacher.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mt-5 text-[17px] font-semibold text-[#403A49]">
+                    상담 날짜 <span className="text-red-500">*</span>
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {consultDates.map((item) => (
+                      <button
+                        key={item.date}
+                        type="button"
+                        aria-pressed={consultDate === item.label}
+                        onClick={() => {
+                          if (consultDate === item.label) return;
+                          setConsultDate(item.label);
+                          setConsultTime("");
+                          persistConsult({ date: item.label, time: "" });
+                        }}
+                        className={`h-12 rounded-xl text-[14px] font-semibold ${
+                          consultDate === item.label
+                            ? "bg-[#403A49] text-white"
+                            : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {consultDate ? (
+                    <>
+                      <p className="mt-5 text-[17px] font-semibold text-[#403A49]">
+                        상담 시간 <span className="text-red-500">*</span>
+                      </p>
+                      <p className="mt-1 text-[14px] text-[#6B6570]">약 50분 상담입니다.</p>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {consultSlots.map((slot) => {
+                          const disabled = slot.status !== "available";
+                          return (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              disabled={disabled}
+                              aria-pressed={consultTime === slot.time}
+                              onClick={() => {
+                                setConsultTime(slot.time);
+                                persistConsult({ time: slot.time });
+                              }}
+                              className={`h-12 rounded-xl text-[14px] font-semibold ${
+                                disabled
+                                  ? "cursor-not-allowed bg-[#f0ebe3] text-[#b0a090]"
+                                  : consultTime === slot.time
+                                    ? "bg-[#403A49] text-white"
+                                    : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
+                              }`}
+                            >
+                              {disabled ? (slot.status === "booked" ? "예약됨" : "불가") : slot.time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : null}
+
+                  <p className="mt-5 text-[17px] font-semibold text-[#403A49]">
+                    상담 방법 <span className="text-red-500">*</span>
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    {CONSULT_METHODS.map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        aria-pressed={consultMethod === method}
+                        onClick={() => {
+                          setConsultMethod(method);
+                          persistConsult({ method });
+                        }}
+                        className={`h-12 flex-1 rounded-xl text-[15px] font-semibold ${
+                          consultMethod === method
+                            ? "bg-[#403A49] text-white"
+                            : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
+                        }`}
+                      >
+                        {method === "카카오톡 상담" ? "카카오톡" : "전화"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-3 rounded-xl bg-[#f5efe6] p-3 text-[14px] leading-relaxed text-[#3d2b1f]">
+                    상담 전에 궁금한 내용은 선생님이 확인해드립니다.
+                  </p>
                 </div>
               ) : null}
 

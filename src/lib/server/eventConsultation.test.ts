@@ -10,12 +10,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
+  eventConsultationAutoBookBody,
   eventConsultationBookHref,
   eventConsultationId,
   findEventConsultation,
   isEventConsultationOrder,
   prepareEventConsultation,
   readEventConsultationInput,
+  readEventConsultationPreselect,
 } from "./eventConsultation.ts";
 import type { EventConsultationFacts, EventConsultationInput } from "./eventConsultation.ts";
 import { upcomingConsultDateOptions } from "./consultationSlots.ts";
@@ -301,4 +303,88 @@ test("findEventConsultation: 본인 상담만, id 또는 eventOrderId로 찾는�
 
 test("예약 화면 주소는 일반 상담 1단계 이벤트 모드", () => {
   assert.equal(eventConsultationBookHref("o-is-a b"), "/apply/consultation/1?eventOrder=o-is-a%20b");
+});
+
+// ── 신청 중 사전선택(사주 인생곡 2단계) → 완료 화면 자동 예약 ──
+
+function preselectDraft(overrides: Record<string, string> = {}): Record<string, string> {
+  return {
+    teacher: "유비 선생",
+    datetime: `${date.label} 오전 10:00`,
+    scheduledDate: date.date,
+    method: "전화 상담",
+    ...overrides,
+  };
+}
+
+test("readEventConsultationPreselect: 네 값이 모두 있어야 선택으로 본다", () => {
+  assert.deepEqual(readEventConsultationPreselect(preselectDraft()), {
+    teacher: "유비 선생",
+    datetime: `${date.label} 오전 10:00`,
+    scheduledDate: date.date,
+    method: "전화 상담",
+  });
+  assert.equal(readEventConsultationPreselect({}), null);
+  assert.equal(readEventConsultationPreselect(preselectDraft({ datetime: "" })), null);
+  assert.equal(readEventConsultationPreselect(preselectDraft({ scheduledDate: "" })), null);
+  assert.equal(readEventConsultationPreselect(preselectDraft({ method: "" })), null);
+  assert.equal(readEventConsultationPreselect(preselectDraft({ method: "화상 상담" })), null);
+  assert.equal(readEventConsultationPreselect(preselectDraft({ teacher: "없는 선생" })), null);
+});
+
+test("자동 예약 본문: 기존 예약 입력만, 목적·내용은 빈 값, 금액·결제 값 없음", () => {
+  const preselect = readEventConsultationPreselect(preselectDraft());
+  assert.ok(preselect);
+  const body = eventConsultationAutoBookBody(ORDER_ID, preselect);
+  assert.deepEqual(Object.keys(body).sort(), [
+    "action",
+    "content",
+    "datetime",
+    "method",
+    "orderId",
+    "purpose",
+    "scheduledDate",
+    "teacher",
+  ]);
+  assert.equal(body.action, "bookEventConsultation");
+  assert.equal(body.purpose, "");
+  assert.equal(body.content, "");
+});
+
+test("자동 예약 본문으로 서버 관문을 통과한다(목적·내용 없이)", () => {
+  const preselect = readEventConsultationPreselect(preselectDraft());
+  assert.ok(preselect);
+  const d = data();
+  const result = prepareEventConsultation(
+    d,
+    user(),
+    readEventConsultationInput(eventConsultationAutoBookBody(ORDER_ID, preselect)),
+    facts(),
+  );
+  assert.equal(result.ok, true);
+  const c = d.consultations[0];
+  assert.equal(c.purpose, "");
+  assert.equal(c.method, "전화 상담");
+  assert.equal("content" in c.details, false);
+});
+
+test("자동 예약 때 그 시간이 이미 찼으면 409, 아무것도 저장하지 않는다", () => {
+  const preselect = readEventConsultationPreselect(preselectDraft());
+  assert.ok(preselect);
+  const d = data();
+  d.consultations.push({
+    id: "c-other",
+    userId: "u-2",
+    teacher: "유비 선생",
+    datetime: preselect.datetime,
+    status: "상담 신청",
+  } as AppData["consultations"][number]);
+  const result = prepareEventConsultation(
+    d,
+    user(),
+    readEventConsultationInput(eventConsultationAutoBookBody(ORDER_ID, preselect)),
+    facts(),
+  );
+  rejected(result, 409);
+  assert.equal(d.consultations.length, 1);
 });

@@ -14,6 +14,11 @@ import {
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
 import { getDraft } from "@/lib/client/api";
+import { parseDatetime, type SlotStatus } from "@/lib/server/consultationSlots";
+import {
+  EVENT_CONSULTATION_DRAFT_FLOW,
+  readEventConsultationPreselect,
+} from "@/lib/server/eventConsultation";
 import {
   COPYRIGHT_CONSENT_LABEL,
   COPYRIGHT_NOTICE_PARAGRAPHS,
@@ -107,9 +112,12 @@ export default function ApplyStep6Page() {
   const [refundAgreed, setRefundAgreed] = useState(false);
   const [payment, setPayment] = useState(CARD_PAYMENT);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  /** 2단계에서 고른 상담 일정(OPEN EVENT 상담 옵션일 때만 쓴다). */
+  const [consultDraft, setConsultDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setDraft(getDraft("saju-song"));
+    setConsultDraft(getDraft(EVENT_CONSULTATION_DRAFT_FLOW));
   }, []);
 
   const options = selectedOptions(draft);
@@ -128,12 +136,45 @@ export default function ApplyStep6Page() {
   const promotion = usablePromotion(draft);
   const basePrice = basePriceOf(promotion);
   const finalPrice = basePrice + optionsTotal;
+  const wantsConsult = Boolean(promotion) && options.some((opt) => opt.id === SAJU_CONSULTATION_OPTION_ID);
+  const consultPreselect = wantsConsult ? readEventConsultationPreselect(consultDraft) : null;
+
+  /*
+   * 결제 직전에 고른 상담 시간이 아직 비어 있는지 한 번 더 본다. 선점이 아니라 안내다.
+   * 마감됐으면 결제를 시작하지 않는다. 최종 판정은 결제 뒤 예약 API가 다시 한다.
+   */
+  const checkConsultSlot = async (): Promise<string> => {
+    if (!wantsConsult) return "";
+    const current = readEventConsultationPreselect(getDraft(EVENT_CONSULTATION_DRAFT_FLOW));
+    const parsed = current ? parseDatetime(current.datetime) : null;
+    if (!current || !parsed) return "2단계에서 상담 날짜와 시간을 선택해 주세요.";
+    const res = await fetch(
+      `/api/consultation/availability?date=${encodeURIComponent(parsed.date)}&teacher=${encodeURIComponent(current.teacher)}`,
+      { cache: "no-store" },
+    );
+    const data = await res.json();
+    const slots = (data.slots ?? []) as { time: string; status: SlotStatus }[];
+    const open = slots.some((slot) => slot.time === parsed.time && slot.status === "available");
+    return open ? "" : "선택하신 상담 시간이 마감되었습니다. 2단계에서 다른 시간을 선택해 주세요.";
+  };
+
   const rows = [
     { label: "사주 정보", value: sajuLabel(draft), href: "/apply/saju-song/1" },
     { label: "추가 옵션", value: optionLabel, href: "/apply/saju-song/2" },
     // 리포트를 고른 경우에만 한 줄 더 보여 준다. 고르지 않았으면 기존 화면 그대로다.
     ...(reportDelivery
       ? [{ label: "리포트 받는 방법", value: reportDelivery, href: "/apply/saju-song/2" }]
+      : []),
+    ...(wantsConsult
+      ? [
+          {
+            label: "1:1 사주상담 일정",
+            value: consultPreselect
+              ? `${consultPreselect.teacher} · ${consultPreselect.datetime} · ${consultPreselect.method}`
+              : "선택 필요",
+            href: "/apply/saju-song/2",
+          },
+        ]
       : []),
     { label: "예상 제작 기간", value: "결제 후 평균 5~7일", href: "" },
   ];
@@ -306,6 +347,7 @@ export default function ApplyStep6Page() {
             옵션: optionLabel,
           }}
           label={`${formatPrice(finalPrice)} 결제하기`}
+          beforeSubmit={checkConsultSlot}
         />
       ) : (
         <button

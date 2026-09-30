@@ -26,6 +26,7 @@ export function PaySubmit({
   label,
   optionIds = [],
   promotion,
+  beforeSubmit,
 }: {
   flow: string;
   kind: "order" | "consultation";
@@ -44,6 +45,11 @@ export function PaySubmit({
    * 쓸 수 있는지는 서버가 정한다. 화면은 표시만 하고 가격을 정하지 않는다.
    */
   promotion?: string;
+  /**
+   * 결제 준비 전에 화면이 따로 확인할 것. 문구를 돌려주면 그 자리에서 멈춘다.
+   * 결제·금액 계산과는 무관하다(사주 인생곡 이벤트 상담 일정 재확인에만 쓴다).
+   */
+  beforeSubmit?: () => Promise<string>;
 }) {
   const router = useRouter();
   // localhost 미리보기(사주 인생곡만). Production 빌드에서는 언제나 false다.
@@ -84,6 +90,11 @@ export function PaySubmit({
    * 감시가 걸려 있지 않으면 null이다.
    */
   const releasePaymentWatch = useRef<(() => void) | null>(null);
+  /**
+   * beforeSubmit 확인이 진행 중인지. state(loading)는 다음 렌더에야 버튼을 잠그므로,
+   * 확인 요청을 기다리는 사이 두 번째 누름은 이 ref로 즉시 막는다.
+   */
+  const beforeSubmitRunning = useRef(false);
 
   // 화면을 벗어나도 리스너가 남지 않게 한다.
   useEffect(() => () => releasePaymentWatch.current?.(), []);
@@ -133,9 +144,24 @@ export function PaySubmit({
   }, []);
 
   const submit = async () => {
+    if (beforeSubmit) {
+      if (beforeSubmitRunning.current) return;
+      beforeSubmitRunning.current = true;
+      setError("");
+      // 확인을 기다리는 동안에도 버튼을 잠근다. 막히면 아래에서 다시 푼다.
+      setLoading(true);
+      const blocked = await beforeSubmit().catch(() => "잠시 후 다시 시도해 주세요.");
+      beforeSubmitRunning.current = false;
+      if (blocked) {
+        setError(blocked);
+        setLoading(false);
+        return;
+      }
+    }
     // localhost 미리보기: 결제 준비·주문·상담 요청을 보내지 않는다.
     if (devPreview) {
       setError(DEV_PREVIEW_MESSAGE);
+      setLoading(false);
       return;
     }
     setError("");

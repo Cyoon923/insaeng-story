@@ -91,12 +91,57 @@ test("상담 옵션은 이벤트 주문에서만 팔린다", () => {
 
 test("신청 화면은 이벤트일 때만 상담 옵션을 낸다", () => {
   assert.match(APPLY_STEP3, /eventOnly: true/);
-  // 결제 후 MY에서 고객이 직접 예약한다는 안내.
-  assert.match(APPLY_STEP3, /결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약할 수 있습니다/);
   assert.match(APPLY_STEP3, /OPTIONS\.filter\(\(opt\) => eventApply \|\| !opt\.eventOnly\)/);
-  // 신청 단계에는 날짜·시간·상담 방식 UI가 없다. 예약은 결제 후 상담 예약 화면에서 한다.
-  assert.equal(/scheduledDate/.test(APPLY_STEP3), false);
-  assert.equal(/상담 방법/.test(APPLY_STEP3), false);
+  // 상담 일정 사전선택은 이벤트 신청에서 상담 옵션을 고른 경우에만 펼친다.
+  assert.match(APPLY_STEP3, /opt\.id === SAJU_CONSULTATION_OPTION_ID && active && eventApply \?/);
+  assert.match(APPLY_STEP3, /const wantsConsult = eventApply && selected\.includes\(SAJU_CONSULTATION_OPTION_ID\)/);
+  // 선택값은 기존 이벤트 상담 draft에만 담는다. 사주 인생곡 draft·주문 details에 섞지 않는다.
+  assert.match(APPLY_STEP3, /saveDraft\(EVENT_CONSULTATION_DRAFT_FLOW, \{/);
+  // 상담 목적·내용은 신청 중에 받지 않는다.
+  assert.equal(/purpose|content:/.test(APPLY_STEP3), false);
+  // 네 값이 모두 있어야 다음 단계로 간다.
+  for (const message of ["상담 선생님을", "상담 날짜를", "상담 시간을", "상담 방법을"]) {
+    assert.ok(APPLY_STEP3.includes(message), message);
+  }
+});
+
+test("확인 및 결제: 상담 일정 요약과 결제 직전 슬롯 재확인", () => {
+  const CONFIRM = read("../../app/apply/saju-song/3/page.tsx");
+  assert.match(CONFIRM, /label: "1:1 사주상담 일정"/);
+  assert.match(CONFIRM, /beforeSubmit=\{checkConsultSlot\}/);
+  assert.match(CONFIRM, /선택하신 상담 시간이 마감되었습니다/);
+  // 결제 금액 계산은 그대로다(상담 일정은 금액에 들어가지 않는다).
+  assert.match(CONFIRM, /const finalPrice = basePrice \+ optionsTotal;/);
+});
+
+test("결제 직전 확인 중 이중 제출 차단: ref로 즉시 막고, 확인 전에 잠그고, 막히면 푼다", () => {
+  const PAY = read("../../components/apply/PaySubmit.tsx");
+  const start = PAY.indexOf("const submit = async () => {");
+  const guard = PAY.slice(start, PAY.indexOf("setError(DEV_PREVIEW_MESSAGE);", start));
+  // 두 번째 누름은 await 전에 ref로 돌려보낸다.
+  assert.match(guard, /if \(beforeSubmitRunning\.current\) return;\s*beforeSubmitRunning\.current = true;/);
+  // loading은 beforeSubmit을 기다리기 전에 켠다.
+  assert.ok(guard.indexOf("setLoading(true)") < guard.indexOf("await beforeSubmit()"));
+  // 막히면 에러를 보이고 버튼을 다시 푼다.
+  assert.match(guard, /if \(blocked\) \{\s*setError\(blocked\);\s*setLoading\(false\);\s*return;/);
+  // 확인이 끝나면 ref를 푼다(성공·실패 공통).
+  assert.ok(guard.indexOf("beforeSubmitRunning.current = false;") > guard.indexOf("await beforeSubmit()"));
+  // beforeSubmit이 없는 일반 상품은 이 블록을 지나지 않는다.
+  assert.match(guard, /if \(beforeSubmit\) \{/);
+});
+
+test("완료 화면 자동 예약: 기존 예약 API만 부르고, 이미 예약이 있으면 부르지 않는다", () => {
+  const AUTO = read("../../components/apply/EventConsultationAutoBook.tsx");
+  const COMPLETE = read("../../app/apply/complete/page.tsx");
+  assert.match(AUTO, /postApp\(eventConsultationAutoBookBody\(orderId, preselect\)\)/);
+  assert.equal(/preparePayment|nicepay|amount/i.test(AUTO), false);
+  assert.match(AUTO, /if \(bookedId \|\| started\.current\) return;/);
+  // 실패해도 기존 예약 버튼(fallback)을 보여 준다.
+  assert.match(AUTO, /href=\{bookHref\}/);
+  assert.match(AUTO, /선택하신 상담 시간이 마감되었습니다\. 다른 시간을 선택해 주세요\./);
+  // 이벤트 상담 주문일 때만 쓰고, 이미 만든 상담은 서버가 찾아 넘긴다.
+  assert.match(COMPLETE, /isEventConsultationOrder\(order\)/);
+  assert.match(COMPLETE, /findEventConsultation\(data\.consultations, order\.id, userId\)/);
 });
 
 test("관리자 카드: 이벤트 주문은 예약 대기, 그 밖의 상담 옵션 주문은 일정 조율을 알린다", () => {
