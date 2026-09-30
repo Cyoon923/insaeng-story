@@ -75,13 +75,13 @@ test("자릿수가 모자란 값은 인증으로 보지 않는다", () => {
 
 /* ── 2. 관문 위치 ──────────────────────────────────── */
 
-test("관문은 승인 전 경로 셋에만 있다", () => {
-  // 관문 함수 정의 1회 + createOrder / createConsultation / preparePayment 호출 3회.
+test("관문은 승인 전 경로 셋 + 이벤트 상담 예약에만 있다", () => {
+  // createOrder / createConsultation / preparePayment 호출 3회 + OPEN EVENT 상담 예약(bookEventConsultation) 1회.
   const calls = APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? [];
-  assert.equal(calls.length, 3, "verifiedPhoneGate(user) 호출은 정확히 세 곳이어야 한다");
+  assert.equal(calls.length, 4, "verifiedPhoneGate(user) 호출은 정확히 네 곳이어야 한다");
 
   // 각 호출이 해당 action 블록 안에 있는지, 그 action이 시작된 뒤에 처음 나오는지로 본다.
-  for (const action of ["createOrder", "createConsultation", "preparePayment"]) {
+  for (const action of ["createOrder", "createConsultation", "preparePayment", "bookEventConsultation"]) {
     const start = APP_ROUTE.indexOf(`if (action === "${action}")`);
     assert.ok(start > 0, `${action} 블록을 찾을 수 없다`);
     const gateAt = APP_ROUTE.indexOf("verifiedPhoneGate(user)", start);

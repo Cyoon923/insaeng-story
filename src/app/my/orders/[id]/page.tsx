@@ -6,9 +6,15 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { RefundCompletedBanner } from "@/components/my/RefundCompletedBanner";
 import { RefundRequestSection } from "@/components/my/RefundRequestSection";
 import { formatPrice } from "@/lib/constants/products";
-import { getOrderById } from "@/lib/server/store";
+import { getOrderById, readData } from "@/lib/server/store";
+import { hasCompletedRefundRequestForOrder } from "@/lib/server/refundRequests";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
 import { SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
+import {
+  eventConsultationBookHref,
+  findEventConsultation,
+  isEventConsultationOrder,
+} from "@/lib/server/eventConsultation";
 
 const STEPS = ["신청접수", "상담진행", "제작중", "완성/전달", "완료"] as const;
 
@@ -93,6 +99,17 @@ export default async function OrderDetailPage({
   // 본인 주문만 열람할 수 있다. 소유자가 다르면 존재 자체를 알리지 않는다.
   const order = await getOrderById(id);
   if (!order || order.userId !== userId) notFound();
+  // OPEN EVENT 상담 포함 주문이면 이미 예약한 상담을 찾는다. 예약 가능 여부 최종 판단은 서버 예약 관문이 한다.
+  const eventConsultation = isEventConsultationOrder(order)
+    ? findEventConsultation((await readData()).consultations, order.id, userId)
+    : undefined;
+  /*
+   * 환불이 끝난 이벤트 주문에는 새 예약 버튼을 두지 않는다(서버 관문도 거절한다).
+   * 이미 예약한 상담은 취소 표시(cancelledAt)가 아직 없어도 환불 완료면 취소로 보인다.
+   */
+  const eventOrderRefunded = isEventConsultationOrder(order)
+    ? await hasCompletedRefundRequestForOrder(order.id)
+    : false;
 
   const currentIndex = STEPS.indexOf(order.status);
   const rows = Object.entries(order.details)
@@ -171,7 +188,42 @@ export default async function OrderDetailPage({
               </div>
             ))}
             {/* 상담을 함께 신청한 주문에만 나온다. 예약은 따로 만들어지지 않는다. */}
-            {hasSajuConsultation(order.details) ? (
+            {isEventConsultationOrder(order) ? (
+              <div>
+                <p className="text-[13px] text-[#6B6570]">1:1 사주상담</p>
+                {eventConsultation && (eventConsultation.cancelledAt || eventOrderRefunded) ? (
+                  <p className="text-[15px] text-[#3d2b1f]">
+                    주문이 환불되어 상담 예약({eventConsultation.datetime})이 취소되었습니다.
+                  </p>
+                ) : eventConsultation ? (
+                  <>
+                    <p className="text-[15px] text-[#3d2b1f]">
+                      {eventConsultation.datetime} · {eventConsultation.teacher}
+                    </p>
+                    <Link
+                      href={`/my/consultations/${encodeURIComponent(eventConsultation.id)}`}
+                      className="mt-2 flex h-12 w-full items-center justify-center rounded-xl border border-[#403A49] bg-white text-[15px] font-semibold text-[#403A49]"
+                    >
+                      예약한 상담 보기
+                    </Link>
+                  </>
+                ) : eventOrderRefunded ? (
+                  <p className="text-[15px] text-[#3d2b1f]">환불된 주문이라 상담을 예약할 수 없습니다.</p>
+                ) : (
+                  <>
+                    <p className="text-[15px] text-[#3d2b1f]">
+                      이벤트에 포함된 상담입니다. 원하시는 날짜와 시간을 직접 예약해 주세요.
+                    </p>
+                    <Link
+                      href={eventConsultationBookHref(order.id)}
+                      className="mt-2 flex h-12 w-full items-center justify-center rounded-xl bg-[#403A49] text-[15px] font-semibold text-white"
+                    >
+                      1:1 사주상담 예약하기
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : hasSajuConsultation(order.details) ? (
               <div>
                 <p className="text-[13px] text-[#6B6570]">1:1 사주상담</p>
                 <p className="text-[15px] text-[#3d2b1f]">

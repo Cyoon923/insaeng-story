@@ -7,6 +7,7 @@ import { RefundRequestSection } from "@/components/my/RefundRequestSection";
 import { formatPrice } from "@/lib/constants/products";
 import { canRequestConsultationRefund } from "@/lib/refundRequestSection";
 import { getOrderById, readData } from "@/lib/server/store";
+import { hasCompletedRefundRequestForOrder } from "@/lib/server/refundRequests";
 import { getActiveUserId } from "@/lib/server/withdrawAccount";
 
 const STEPS = ["상담 신청", "사주정보 입력", "선생님과 1:1 상담", "상담 완료"] as const;
@@ -46,6 +47,14 @@ export default async function ConsultationDetailPage({
    */
   const order = await getOrderById(id);
   const refundable = canRequestConsultationRefund(order, userId, item.id);
+  /*
+   * OPEN EVENT 주문으로 예약한 상담. 환불은 원 이벤트 주문에서 하고, 그 환불이 끝나면
+   * 상담이 취소된다. 취소 표시(cancelledAt)가 아직 없어도 환불 완료면 취소로 보인다.
+   */
+  const eventOrderId = item.details.eventOrderId ?? "";
+  const eventCancelled =
+    Boolean(eventOrderId) &&
+    (Boolean(item.cancelledAt) || (await hasCompletedRefundRequestForOrder(eventOrderId)));
 
   const currentIndex = STEPS.indexOf(item.status);
   /*
@@ -79,6 +88,14 @@ export default async function ConsultationDetailPage({
        * 환불 사실이 먼저 읽히도록 이 배너를 위에 둔다.
        */}
       {order && refundable ? <RefundCompletedBanner orderId={order.id} /> : null}
+      {eventCancelled ? (
+        <div className="mx-4 mt-4 rounded-2xl bg-[#403A49] p-4 text-white">
+          <p className="text-[16px] font-bold">환불 완료 · 상담이 취소되었습니다</p>
+          <p className="mt-1 text-[14px] leading-relaxed">
+            OPEN EVENT 주문이 환불되어 이 상담 예약도 취소되었습니다.
+          </p>
+        </div>
+      ) : null}
 
       <section className="px-4 py-5">
         <div className="flex items-start justify-between gap-3">
@@ -141,7 +158,10 @@ export default async function ConsultationDetailPage({
       <section className="px-4 pb-8">
         <div className="rounded-2xl bg-[#f5efe6] p-4 text-center">
           <p className="text-[13px] text-[#6B6570]">결제 금액</p>
-          <p className="mt-1 text-[22px] font-bold text-[#403A49]">{formatPrice(item.amount)}</p>
+          <p className="mt-1 text-[22px] font-bold text-[#403A49]">
+            {/* OPEN EVENT 주문에 포함된 상담은 따로 낸 금액이 없다(eventOrderId 주문 결제에 포함). */}
+            {item.details.eventOrderId ? "OPEN EVENT 포함" : formatPrice(item.amount)}
+          </p>
         </div>
       </section>
 

@@ -69,7 +69,7 @@ const OPTIONS = [
     id: SAJU_CONSULTATION_OPTION_ID,
     title: "1:1 사주상담",
     price: ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID],
-    desc: "결제 후 등록하신 연락처로 상담 일정을 안내드립니다.",
+    desc: "결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약할 수 있습니다.",
     /** 오픈 이벤트 신청에서만 보여 준다. 정가 신청에는 팔지 않는 옵션이다. */
     eventOnly: true,
   },

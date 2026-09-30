@@ -164,7 +164,7 @@ export default function MyOrdersPage() {
               <div className="mt-3 space-y-1 text-[14px] leading-relaxed text-[#403A49]">
                 {item.teacher ? <p>선생님 {item.teacher}</p> : null}
                 {item.datetime ? <p className="break-keep">예약 {item.datetime}</p> : null}
-                <p>결제 금액 {formatPrice(item.amount)}</p>
+                <p>{item.eventIncluded ? "OPEN EVENT 포함" : `결제 금액 ${formatPrice(item.amount)}`}</p>
               </div>
             ) : null}
 

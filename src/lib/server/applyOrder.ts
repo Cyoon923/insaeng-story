@@ -21,7 +21,9 @@ import {
   checkOrderConsent,
 } from "@/lib/server/consents";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
-import { nowId, writeDataWithOrder } from "@/lib/server/store";
+import { nowId, writeData, writeDataWithOrder } from "@/lib/server/store";
+import { prepareEventConsultation } from "@/lib/server/eventConsultation";
+import type { EventConsultationFacts, EventConsultationInput, EventConsultationResult } from "@/lib/server/eventConsultation";
 import type { AppData, Consultation, CouponProduct, Order, User } from "@/lib/types/app";
 
 export const REFERRAL_DISCOUNT = 10000;
@@ -671,4 +673,27 @@ export async function commitConsultation(
   }
   await (options.write ?? writeDataWithOrder)(data, consultOrder);
   return { ok: true, consultation: item, order: consultOrder };
+}
+
+/**
+ * OPEN EVENT 주문에 포함된 1:1 사주상담을 예약한다. Consultation 1건만 만든다.
+ *
+ * commitConsultation과 달리 금액을 계산하지 않고 결제 귀속 Order도 만들지 않는다.
+ * 상담비는 이벤트 주문(facts.order) 결제에 이미 들어 있다. 검사 규칙은
+ * eventConsultation.ts prepareEventConsultation 한 곳에 있다.
+ *
+ * 저장은 app_store CAS(writeData) 한 번이다. 중복·슬롯 확인과 추가가 같은 읽기 위에서
+ * 일어나므로, 겹친 요청은 CAS 충돌로 저장되지 않는다(route 최상위가 409로 돌려준다).
+ */
+export async function commitEventConsultation(
+  data: AppData,
+  user: User,
+  input: EventConsultationInput,
+  facts: EventConsultationFacts,
+  options: { write?: (data: AppData) => Promise<void> } = {},
+): Promise<EventConsultationResult> {
+  const result = prepareEventConsultation(data, user, input, facts);
+  if (!result.ok) return result;
+  await (options.write ?? writeData)(data);
+  return result;
 }

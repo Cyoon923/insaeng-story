@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe } from "@/lib/client/api";
 import { REFUND_COMPLETED_STATUS } from "@/lib/myOrders";
 import { hasCompletedRefundForOrder } from "@/lib/refundRequestSection";
+import { consultationRefundOrderId } from "@/lib/server/eventConsultation";
 import type { Consultation, LatestRefundRequestsView, User } from "@/lib/types/app";
 
 export default function MyConsultationsPage() {
@@ -64,7 +65,8 @@ export default function MyConsultationsPage() {
            * 상담과 결제 귀속 주문은 같은 id를 쓴다(applyOrder.ts). 그래서 상담 id로 찾는다.
            * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 없어 언제나 false가 된다.
            */
-          const refundCompleted = hasCompletedRefundForOrder(refunds, item.id);
+          // OPEN EVENT 상담은 원 이벤트 주문(eventOrderId) 기준, 일반 상담은 기존대로 상담 id.
+          const refundCompleted = hasCompletedRefundForOrder(refunds, consultationRefundOrderId(item));
           return (
           <Link
             key={item.id}

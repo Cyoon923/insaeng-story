@@ -91,23 +91,26 @@ test("상담 옵션은 이벤트 주문에서만 팔린다", () => {
 
 test("신청 화면은 이벤트일 때만 상담 옵션을 낸다", () => {
   assert.match(APPLY_STEP3, /eventOnly: true/);
-  assert.match(APPLY_STEP3, /결제 후 등록하신 연락처로 상담 일정을 안내드립니다/);
+  // 결제 후 MY에서 고객이 직접 예약한다는 안내.
+  assert.match(APPLY_STEP3, /결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약할 수 있습니다/);
   assert.match(APPLY_STEP3, /OPTIONS\.filter\(\(opt\) => eventApply \|\| !opt\.eventOnly\)/);
-  // 날짜·시간·상담 방식 UI를 만들지 않았다.
+  // 신청 단계에는 날짜·시간·상담 방식 UI가 없다. 예약은 결제 후 상담 예약 화면에서 한다.
   assert.equal(/scheduledDate/.test(APPLY_STEP3), false);
   assert.equal(/상담 방법/.test(APPLY_STEP3), false);
 });
 
-test("관리자 카드가 상담 일정 조율을 알린다", () => {
+test("관리자 카드: 이벤트 주문은 예약 대기, 그 밖의 상담 옵션 주문은 일정 조율을 알린다", () => {
+  assert.match(ADMIN, /상담 예약 대기/);
   assert.match(ADMIN, /function needsConsultationSchedule/);
   assert.match(ADMIN, /상담 일정 조율 필요/);
   // 판정 근거는 서버가 확정한 optionIds다.
   assert.match(ADMIN, /details\?\.optionIds \?\? ""/);
 });
 
-test("MY 주문 상세가 상담 신청과 안내를 보여 준다", () => {
+test("MY 주문 상세: 이벤트 주문은 직접 예약 버튼을 보여 준다", () => {
   assert.match(MY_ORDER, /function hasSajuConsultation/);
-  assert.match(MY_ORDER, /결제 후 등록하신 연락처로 상담 일정을 안내드립니다/);
+  assert.match(MY_ORDER, /eventConsultationBookHref\(order\.id\)/);
+  assert.match(MY_ORDER, /1:1 사주상담 예약하기/);
 });
 
 /** 주석을 뺀 코드만 본다. 설명에 이름이 나오는 것과 실제로 부르는 것은 다르다. */
@@ -115,8 +118,8 @@ function codeOnly(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*/g, "");
 }
 
-test("상담 예약을 만들지 않는다", () => {
-  // 이 옵션 때문에 Consultation을 만들거나 슬롯을 잡는 코드가 생기면 안 된다.
+test("신청·관리자·MY 화면은 상담을 직접 만들지 않는다", () => {
+  // 예약은 bookEventConsultation 서버 관문 한 곳에서만 만든다. 이 화면들이 Consultation을 만들거나 슬롯을 잡으면 안 된다.
   for (const [name, source] of [
     ["apply step3", APPLY_STEP3],
     ["admin", ADMIN],

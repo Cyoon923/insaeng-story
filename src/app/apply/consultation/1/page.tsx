@@ -7,6 +7,7 @@ import { CONSULT_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper
 import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
 import { displayReviewsForProduct, summarizeReviews } from "@/lib/constants/reviews";
 import { CONSULT_TEACHERS, teacherNameById } from "@/lib/server/consultationSlots";
+import { EVENT_CONSULTATION_DRAFT_FLOW } from "@/lib/server/eventConsultation";
 
 type SlotStatus = "available" | "booked" | "blocked";
 
@@ -76,6 +77,12 @@ function ConsultationStep1Flow() {
   // 상세페이지에서 넘어온 선생님을 최초 선택값으로 쓴다.
   // 값이 없거나 목록에 없으면 기존 기본값(유비 선생)이다.
   const paramTeacher = params.get("teacher") ?? "";
+  /*
+   * OPEN EVENT 주문에 포함된 상담 예약 모드. 이 값이 있으면 추가 옵션·결제 단계 없이
+   * 3단계(상담 내용)에서 예약을 확정한다. 권한·결제 확인은 서버(bookEventConsultation)가 한다.
+   */
+  const eventOrderId = params.get("eventOrder") ?? "";
+  const draftFlow = eventOrderId ? EVENT_CONSULTATION_DRAFT_FLOW : "consultation";
   const [teacherId, setTeacherId] = useState(() =>
     isTeacherId(paramTeacher) ? paramTeacher : "yubi",
   );
@@ -117,8 +124,9 @@ function ConsultationStep1Flow() {
     const nextTime = next.time ?? time;
     const nextIsoDates = next.isoDates ?? isoDates;
     const nextPurposes = next.purposes ?? purposes;
-    const nextReport = next.report ?? report;
-    const nextExtra = next.extraPerson ?? extraPerson;
+    // 이벤트 예약에는 추가 옵션이 없다.
+    const nextReport = !eventOrderId && (next.report ?? report);
+    const nextExtra = !eventOrderId && (next.extraPerson ?? extraPerson);
     const options = [
       nextReport ? "상담 기록 요약 리포트" : "",
       nextExtra ? "추가 인원 1명(궁합)" : "",
@@ -126,7 +134,7 @@ function ConsultationStep1Flow() {
       .filter(Boolean)
       .join(" / ");
     if (!nextDate || !nextTime) return;
-    saveDraft("consultation", {
+    saveDraft(draftFlow, {
       teacher: teacherName,
       datetime: `${nextDate} ${nextTime}`,
       // 서버가 예약 절대시각(scheduledAt)을 만드는 데 쓴다. 화면 표시에는 쓰지 않는다.
@@ -151,14 +159,14 @@ function ConsultationStep1Flow() {
         );
         setDates(nextDates);
         setIsoDates(nextIsoDates);
-        const draft = getDraft("consultation");
+        const draft = getDraft(draftFlow);
         const initialDate =
           nextDates.find((item) => draft.datetime?.startsWith(item)) ?? nextDates[0] ?? "";
         setDate(initialDate);
         // draft 저장은 아래 date/teacher effect가 시간을 정한 뒤 한 번에 한다.
         // 그때 isoDates가 이미 채워져 있어 한국 날짜도 함께 담긴다.
       });
-  }, []);
+  }, [draftFlow]);
 
   useEffect(() => {
     if (!date) return;
@@ -169,7 +177,7 @@ function ConsultationStep1Flow() {
       .then((data) => {
         const nextSlots = (data.slots ?? []) as { time: string; status: SlotStatus }[];
         setSlots(nextSlots);
-        const draft = getDraft("consultation");
+        const draft = getDraft(draftFlow);
         const draftTime = teacherChanged.current
           ? undefined
           : nextSlots.find(
@@ -183,14 +191,14 @@ function ConsultationStep1Flow() {
           persist({ date, time: nextTime });
         }
       });
-  }, [date, teacherName]);
+  }, [date, teacherName, draftFlow]);
 
   useEffect(() => {
-    const draft = getDraft("consultation");
+    const draft = getDraft(draftFlow);
     if (draft.purpose) setPurposes(draft.purpose.split(" / ").filter(Boolean));
     if (draft.report === "1") setReport(true);
     if (draft.extraPerson === "1") setExtraPerson(true);
-  }, []);
+  }, [draftFlow]);
 
   // 실제 공개된 상담 후기가 있을 때만 평균 별점과 개수를 함께 보여 준다.
   const [reviewSummary, setReviewSummary] = useState<{ count: number; average: number } | null>(null);
@@ -219,15 +227,26 @@ function ConsultationStep1Flow() {
       step={1}
       title="사주 분석 시작하기"
       basePath="/apply/consultation"
-      steps={CONSULT_STEPS}
+      // 이벤트 모드에서는 단계 링크를 두지 않는다. 일반(결제) 흐름으로 넘어가지 않게 하려는 것이다.
+      steps={eventOrderId ? [] : CONSULT_STEPS}
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
-      backHref="/consultation"
-      nextHref={extraPerson ? "/apply/consultation/2?extra=1" : "/apply/consultation/2"}
+      backHref={eventOrderId ? `/my/orders/${encodeURIComponent(eventOrderId)}` : "/consultation"}
+      nextHref={
+        eventOrderId
+          ? `/apply/consultation/3?eventOrder=${encodeURIComponent(eventOrderId)}`
+          : extraPerson
+            ? "/apply/consultation/2?extra=1"
+            : "/apply/consultation/2"
+      }
       heroText={"혼자 고민했던 이야기를\n편안하게 들려주세요"}
     >
       <h2 className="text-[22px] font-bold text-[#403A49]">1. 상담 예약</h2>
-      <p className="mt-2 text-[14px] text-[#6B6570]">선생님, 날짜, 시간, 상담 목적과 옵션을 선택해 주세요.</p>
+      <p className="mt-2 text-[14px] text-[#6B6570]">
+        {eventOrderId
+          ? "OPEN EVENT에 포함된 상담입니다. 선생님, 날짜, 시간, 상담 목적을 선택해 주세요."
+          : "선생님, 날짜, 시간, 상담 목적과 옵션을 선택해 주세요."}
+      </p>
 
       <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
         <p className="text-[16px] font-bold text-[#403A49]">선생님</p>
@@ -357,6 +376,7 @@ function ConsultationStep1Flow() {
         </div>
       </section>
 
+      {eventOrderId ? null : (
       <section className="mt-5 space-y-3">
         <p className="text-[16px] font-bold text-[#403A49]">상담 옵션</p>
         <button
@@ -397,6 +417,7 @@ function ConsultationStep1Flow() {
           <span className="text-[14px] text-[#403A49]">{extraPerson ? "선택됨" : "선택"}</span>
         </button>
       </section>
+      )}
     </ApplyLayout>
   );
 }

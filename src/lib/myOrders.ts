@@ -47,6 +47,8 @@ export interface MyOrderItem {
    * 두 상태를 같은 무게로 나란히 두지 않기 위해 대표 값을 하나로 정한다.
    */
   displayStatus: string;
+  /** OPEN EVENT 주문에 포함된 상담(details.eventOrderId). 금액 대신 "OPEN EVENT 포함"으로 보인다. */
+  eventIncluded?: boolean;
   /** 실제 결제 금액. 할인이 적용됐으면 할인 뒤 금액이다. */
   amount: number;
   /** 구매·신청 시각. 정렬 기준이며 상담 예약일이 아니다. */
@@ -133,16 +135,22 @@ export function buildMyOrderItems(
     /*
      * 짝이 되는 주문이 없으므로 환불 문의도 있을 수 없다. 환불 완료로 추정하지 않고
      * 기존 상담 상태를 그대로 대표 값으로 둔다.
+     * 예외: OPEN EVENT 주문으로 예약한 상담은 원 이벤트 주문(details.eventOrderId)의
+     * 환불 완료로 판단한다.
      */
+    const eventOrderId = consult.details?.eventOrderId ?? "";
+    const eventRefunded = eventOrderId ? refunded(eventOrderId) : false;
     items.push({
       id: consult.id,
       kind: "consultation",
       product: "consultation",
       title: "1:1 사주상담",
       status: consult.status,
-      refundCompleted: false,
-      displayStatus: consult.status,
+      refundCompleted: eventRefunded,
+      displayStatus: eventRefunded ? REFUND_COMPLETED_STATUS : consult.status,
       amount: consult.amount,
+      // 이벤트 상담은 따로 낸 금액이 없다(원 이벤트 주문 결제에 포함). 화면이 "0원" 대신 쓴다.
+      ...(eventOrderId ? { eventIncluded: true } : {}),
       createdAt: consult.createdAt,
       href: `/my/consultations/${consult.id}`,
       teacher: text(consult.teacher),

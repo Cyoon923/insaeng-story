@@ -34,6 +34,7 @@ import {
   summarizeOrderPaymentStatuses,
 } from "@/lib/server/store";
 import { evaluateFreeCouponRefund } from "@/lib/server/freeCouponRefund";
+import { findEventConsultation, isEventConsultationOrder } from "@/lib/server/eventConsultation";
 import { listRefundRestoredOrderIds } from "@/lib/server/pointTransactions";
 import type {
   ActiveRefundRequestSummary,
@@ -418,10 +419,16 @@ export async function createRefundRequest(input: {
    * app_store JSONB에 있어 여기서만 따로 읽는다.
    * 찾지 못하면(주문만 남은 옛 자료 등) 예약 시각을 지어내지 않고 null로 둔다.
    */
+  /*
+   * 상담 주문은 같은 id의 상담, OPEN EVENT 주문은 그 주문으로 예약한 상담(있을 때만)을
+   * 근거로 남긴다. 상담이 완료되었더라도 접수를 막지 않는다(판단은 관리자).
+   */
   const consultation =
     order.product === "consultation"
       ? ((await readData()).consultations.find((item) => item.id === order.id) ?? null)
-      : null;
+      : isEventConsultationOrder(order)
+        ? (findEventConsultation((await readData()).consultations, order.id, order.userId) ?? null)
+        : null;
   const evidence = buildRefundRequestEvidence({ order, consultation, requestedAt });
 
   const rows = (await sql.query(

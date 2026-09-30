@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, listPaymentsByOrderId, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -39,6 +39,7 @@ import {
   createRefundRequest,
   listActiveRefundRequestsByUser,
   listLatestRefundRequestsByUser,
+  listRefundRequestsByOrderId,
 } from "@/lib/server/refundRequests";
 import {
   loadedLatestRefundRequests,
@@ -77,8 +78,10 @@ import {
   applyPoints,
   applyReferral,
   commitConsultation,
+  commitEventConsultation,
   commitOrder,
 } from "@/lib/server/applyOrder";
+import { readEventConsultationInput } from "@/lib/server/eventConsultation";
 import { maskName } from "@/lib/constants/reviews";
 
 /** 챗봇 상담원 문의를 다른 접수와 구분하는 값. 관리자 "문의" 탭에 그대로 보인다. */
@@ -1846,6 +1849,32 @@ async function handlePost(request: Request) {
       method: body.method,
       option: body.option,
       details: (body.details as Record<string, string>) ?? {},
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    return NextResponse.json({ ok: true, consultation: result.consultation });
+  }
+
+  if (action === "bookEventConsultation") {
+    /**
+     * OPEN EVENT 주문에 포함된 1:1 사주상담 예약. 추가 결제 없이 Consultation만 만든다.
+     *
+     * 클라이언트가 정하는 값은 주문 id와 예약 선택값(선생님·일시·목적·방식·내용)뿐이다.
+     * 주문·결제·환불 상태와 사주 기본정보는 여기서 서버가 읽어 넘긴다.
+     */
+    const phoneGate = verifiedPhoneGate(user);
+    if (phoneGate) return phoneGate;
+    const input = readEventConsultationInput(body);
+    const order = input.orderId ? await getOrderById(input.orderId) : null;
+    // 남의 주문이면 결제·환불 기록도 읽지 않는다. 판정은 아래 함수가 같은 규칙으로 다시 한다.
+    const owned = order && order.userId === user.id;
+    const result = await commitEventConsultation(data, user, input, {
+      order,
+      payments: owned ? await listPaymentsByOrderId(order.id) : [],
+      refundStatuses: owned
+        ? (await listRefundRequestsByOrderId(order.id)).map((item) => item.status)
+        : [],
     });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });

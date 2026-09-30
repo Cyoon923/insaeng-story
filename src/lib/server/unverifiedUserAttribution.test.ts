@@ -204,8 +204,9 @@ test("문의 접수 자체와 비회원 문의는 그대로다", () => {
 
 test("STEP 1 신청·결제 관문이 그대로 있다", () => {
   const calls = APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? [];
-  assert.equal(calls.length, 3, "STEP 1 관문 세 곳이 유지되어야 한다");
-  for (const action of ["createOrder", "createConsultation", "preparePayment"]) {
+  // STEP 1 관문 세 곳 + OPEN EVENT 상담 예약(bookEventConsultation).
+  assert.equal(calls.length, 4, "STEP 1 관문 세 곳과 이벤트 상담 예약 관문이 유지되어야 한다");
+  for (const action of ["createOrder", "createConsultation", "preparePayment", "bookEventConsultation"]) {
     const start = APP_ROUTE.indexOf(`if (action === "${action}")`);
     assert.ok(start > 0);
     const gateAt = APP_ROUTE.indexOf("verifiedPhoneGate(user)", start);

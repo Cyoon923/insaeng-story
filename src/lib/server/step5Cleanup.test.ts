@@ -294,6 +294,6 @@ test("금지 항목에 손대지 않았다", () => {
   for (const path of ["src/lib/types/app.ts", "src/lib/constants/legal.ts"]) {
     assert.ok(!codeOnly(read(path)).includes("phoneVerifiedAt"), path);
   }
-  // STEP 1 서버 관문 3곳 유지.
-  assert.equal((route.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 3);
+  // STEP 1 서버 관문 3곳 + bookEventConsultation 유지.
+  assert.equal((route.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 4);
 });

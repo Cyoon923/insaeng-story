@@ -106,18 +106,20 @@ export interface RefundRequestEvidence {
  * 같은 순간이 되고, 3시간 경계에서 둘이 어긋나지 않는다.
  *
  * 상담 주문에서만 예약·취소창 값을 만든다. 인생곡 주문에는 해당 개념이 없어 null이다.
+ * 예외: OPEN EVENT 인생곡 주문으로 예약한 상담이 있으면 호출부가 그 상담을 넘기고,
+ * 같은 규칙으로 예약·취소창 값을 남긴다(판단 근거일 뿐 접수를 막지 않는다).
  * productionStartedAt은 상품과 무관하게 주문에 있는 값이므로 언제나 그대로 옮긴다.
  * 값이 없을 때 null인 것은 "제작 전"이 아니라 "기록 없음"이라는 뜻이다.
  */
 export function buildRefundRequestEvidence(args: {
   order: Pick<Order, "product" | "productionStartedAt">;
-  /** 상담 주문일 때 같은 id의 상담. 찾지 못했으면 null. */
+  /** 상담 주문일 때 같은 id의 상담, OPEN EVENT 주문일 때 그 주문으로 예약한 상담. 없으면 null. */
   consultation: Pick<Consultation, "scheduledAt"> | null;
   /** 서버가 만든 접수 순간. */
   requestedAt: Date;
 }): RefundRequestEvidence {
   const productionStartedAtSnapshot = args.order.productionStartedAt ?? null;
-  if (args.order.product !== "consultation") {
+  if (args.order.product !== "consultation" && !args.consultation) {
     return {
       productionStartedAtSnapshot,
       scheduledAtSnapshot: null,

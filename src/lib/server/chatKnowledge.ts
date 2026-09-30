@@ -29,7 +29,7 @@ const ORDER_OPTION_LABELS: Record<keyof typeof ORDER_OPTION_PRICES, string> = {
   // 다른 인생곡에도 붙일 수 있는 것처럼 읽힌다.
   "saju-report-2026-2027": "2026·2027년 사주풀이 리포트 (사주 인생곡 전용)",
   // 오픈 이벤트 신청에서만 함께 신청할 수 있어 그 사실을 이름에 함께 적는다.
-  "saju-consultation": "1:1 사주상담 (사주 인생곡 오픈 이벤트 전용)",
+  "saju-consultation": "1:1 사주상담 (사주 인생곡 오픈 이벤트 전용, 결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약)",
 };
 
 /** 1:1 사주상담 추가 옵션의 화면 이름. 가격은 pricing.ts에서 가져온다. */

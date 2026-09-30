@@ -5,6 +5,11 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 import {
+  consultationRefundOrderId,
+  findEventConsultation,
+  isEventConsultationOrder,
+} from "@/lib/server/eventConsultation";
+import {
   hasCompletedRefund,
   pointsRestoreCardView,
   refundCardActions,
@@ -1130,6 +1135,34 @@ export default function AdminPage() {
   }
 
   /**
+   * 환불이 끝난 OPEN EVENT 주문의 상담 취소 표시 재시도. PG 환불을 다시 부르지 않는다.
+   * 보내는 값은 completed 환불 문의 id 하나다.
+   */
+  async function handleRetryEventConsultCancel(refundRequestId: string) {
+    if (!window.confirm("이벤트 상담 취소 반영을 다시 시도하시겠습니까?\n\n결제사에 환불을 다시 요청하지 않습니다.")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "retryEventConsultationCancel", refundRequestId }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; message?: string; error?: string }
+        | null;
+      window.alert(
+        res.ok && data?.ok
+          ? "상담 취소를 반영했습니다."
+          : (data?.message ?? data?.error ?? "처리하지 못했습니다. 상태를 확인해 주세요."),
+      );
+      await loadData();
+    } catch {
+      window.alert("요청에 실패했습니다. 상태를 확인해 주세요.");
+    }
+  }
+
+  /**
    * 환불이 끝난 주문의 적립금 복원 재시도.
    *
    * 환불을 다시 실행하는 버튼이 아니다. 결제사를 부르지 않고 결제·환불 상태도 바꾸지
@@ -2107,6 +2140,14 @@ export default function AdminPage() {
                * 버튼을 잠그는 것은 편의일 뿐이고, 실제 관문은 서버의 409 잠금이다.
                */
               const refunded = hasCompletedRefund(refundRequests.items, order.id);
+              /*
+               * OPEN EVENT 상담 포함 주문. 고객이 직접 예약하며, 예약하면 ce-{주문 id} 상담이
+               * details.eventOrderId로 이 주문에 연결된다. 이미 받아 둔 상담 목록에서만 찾는다.
+               */
+              const eventConsultOrder = isEventConsultationOrder(order);
+              const eventConsult = eventConsultOrder
+                ? findEventConsultation(consultations, order.id, order.userId)
+                : undefined;
               const paymentBadge = paymentBadgeLabel(
                 refunded,
                 order.amount,
@@ -2125,7 +2166,14 @@ export default function AdminPage() {
                         예약이 따로 만들어지지 않아 "사주상담" 탭에는 뜨지 않으므로,
                         여기서 먼저 눈에 띄게 알린다. 아래 신청 내용에 연락처가 있다.
                       */}
-                      {needsConsultationSchedule(order.details) ? (
+                      {eventConsultOrder ? (
+                        // 이벤트 주문: 예약 전에만 배지(환불 완료 건 제외). 예약 후에는 아래에 예약 일시를 적는다.
+                        eventConsult || refunded ? null : (
+                          <span className="rounded-full bg-[#8b3a2e] px-3 py-1 text-[12px] font-semibold text-white">
+                            상담 예약 대기
+                          </span>
+                        )
+                      ) : needsConsultationSchedule(order.details) ? (
                         <span className="rounded-full bg-[#8b3a2e] px-3 py-1 text-[12px] font-semibold text-white">
                           상담 일정 조율 필요
                         </span>
@@ -2157,7 +2205,25 @@ export default function AdminPage() {
                     {order.payment} · {formatDate(order.createdAt)}
                   </p>
                   {/* 무엇을 얼마에 함께 받았는지, 무엇을 해야 하는지 한 줄로 적는다. */}
-                  {needsConsultationSchedule(order.details) ? (
+                  {eventConsultOrder ? (
+                    eventConsult?.cancelledAt ? (
+                      <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#6B6570]">
+                        1:1 사주상담 상담 취소됨(환불) · {eventConsult.datetime} · {eventConsult.teacher}
+                      </p>
+                    ) : eventConsult ? (
+                      <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#403A49]">
+                        1:1 사주상담 예약 · {eventConsult.datetime} · {eventConsult.teacher}
+                        <span className="block font-normal text-[#6B6570]">
+                          사주상담 탭에서 확인할 수 있습니다.
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#8b3a2e]">
+                        1:1 사주상담 +{formatAmount(ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID])} ·
+                        고객이 MY에서 상담을 예약하기 전입니다.
+                      </p>
+                    )
+                  ) : needsConsultationSchedule(order.details) ? (
                     <p className="mt-2 text-[13px] font-semibold leading-relaxed text-[#8b3a2e]">
                       1:1 사주상담 +{formatAmount(ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID])} ·
                       아래 신청 내용의 연락처로 상담 일정을 잡아 주세요.
@@ -2231,7 +2297,14 @@ export default function AdminPage() {
                * 상담과 결제 귀속 주문은 같은 id를 쓰므로(applyOrder.ts) 그 id로 찾는다.
                * 짝이 되는 주문이 없는 옛 상담에는 환불 문의도 없어 기존 동작이 유지된다.
                */
-              const refunded = hasCompletedRefund(refundRequests.items, item.id);
+              // OPEN EVENT 상담은 원 이벤트 주문의 환불로 판단한다(서버 잠금과 같은 규칙).
+              const refunded = hasCompletedRefund(refundRequests.items, consultationRefundOrderId(item));
+              const eventRefundRequestId =
+                item.details?.eventOrderId && refunded
+                  ? refundRequests.items.find(
+                      (row) => row.orderId === item.details.eventOrderId && row.status === "completed",
+                    )?.id
+                  : undefined;
               /*
                * 결제 배지는 주문 카드와 같은 함수·같은 데이터로 정한다.
                * 상담 주문도 같은 id로 orderPayments에 들어 있어 추가 조회가 없다.
@@ -2281,16 +2354,39 @@ export default function AdminPage() {
                       {/* 환불 완료면 위 배지가 이미 그 사실을 말하므로 겹쳐 붙이지 않는다. */}
                       {refunded ? null : (
                         <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
-                          {consultPaymentBadge}
+                          {/* 이벤트 상담은 따로 결제하지 않는다(원 이벤트 주문 결제에 포함). */}
+                          {d.eventOrderId ? "OPEN EVENT 포함" : consultPaymentBadge}
                         </span>
                       )}
                       <span className="rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
                         {item.status}
                       </span>
+                      {/* OPEN EVENT 주문 환불로 취소된 상담. 슬롯은 다시 열린다. */}
+                      {item.cancelledAt ? (
+                        <span className="rounded-full bg-[#403A49] px-3 py-1 text-[12px] font-semibold text-white">
+                          상담 취소
+                        </span>
+                      ) : null}
                     </div>
                   </div>
+                  {eventRefundRequestId && !item.cancelledAt ? (
+                    // 환불은 끝났는데 상담 취소 표시가 빠진 건. PG 환불은 다시 부르지 않는다.
+                    <div className="mt-2 rounded-xl bg-[#fbeeee] p-3">
+                      <p className="text-[13px] font-semibold text-[#8b3a2e]">
+                        환불 완료 · 상담 취소 반영 필요
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleRetryEventConsultCancel(eventRefundRequestId)}
+                        className="mt-2 min-h-11 rounded-lg border border-[#d4c8ba] bg-white px-4 text-[14px] font-semibold text-[#5c3d2e]"
+                      >
+                        상담 취소 다시 반영
+                      </button>
+                    </div>
+                  ) : null}
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
-                    {member ? userLabel(member) : "회원 정보 없음"} · {formatAmount(item.amount)}
+                    {member ? userLabel(member) : "회원 정보 없음"} ·{" "}
+                    {d.eventOrderId ? `이벤트 주문 ${d.eventOrderId}` : formatAmount(item.amount)}
                   </p>
                   <p className="mt-1 text-[13px] text-[#6B6570]">
                     {item.datetime} · {item.method}
@@ -2484,12 +2580,21 @@ export default function AdminPage() {
                           </p>
                         </>
                       ) : (
-                        <p className="mt-1 text-[13px] text-[#403A49]">
-                          제작 착수{" "}
-                          {item.productionStartedAtSnapshot
-                            ? formatDate(item.productionStartedAtSnapshot)
-                            : "기록 없음"}
-                        </p>
+                        <>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            제작 착수{" "}
+                            {item.productionStartedAtSnapshot
+                              ? formatDate(item.productionStartedAtSnapshot)
+                              : "기록 없음"}
+                          </p>
+                          {/* OPEN EVENT 주문으로 예약한 상담이 있던 경우만 남는다. */}
+                          {item.scheduledAtSnapshot ? (
+                            <p className="mt-1 text-[13px] text-[#403A49]">
+                              이벤트 상담 예약 {formatDate(item.scheduledAtSnapshot)} ·{" "}
+                              {cancelWindowLabel(item.cancelWindowSnapshot)}
+                            </p>
+                          ) : null}
+                        </>
                       )}
                     </div>
                     <div className="rounded-xl border border-[#d4c8ba] bg-white p-3">
@@ -2507,12 +2612,23 @@ export default function AdminPage() {
                           </p>
                         </>
                       ) : (
-                        <p className="mt-1 text-[13px] text-[#403A49]">
-                          제작 착수{" "}
-                          {item.order.productionStartedAt
-                            ? formatDate(item.order.productionStartedAt)
-                            : "기록 없음"}
-                        </p>
+                        <>
+                          <p className="mt-1 text-[13px] text-[#403A49]">
+                            제작 착수{" "}
+                            {item.order.productionStartedAt
+                              ? formatDate(item.order.productionStartedAt)
+                              : "기록 없음"}
+                          </p>
+                          {item.consultation ? (
+                            <p className="mt-1 text-[13px] text-[#403A49]">
+                              이벤트 상담{" "}
+                              {item.consultation.scheduledAt
+                                ? formatDate(item.consultation.scheduledAt)
+                                : "기록 없음"}{" "}
+                              · {item.consultation.status}
+                            </p>
+                          ) : null}
+                        </>
                       )}
                     </div>
                   </div>

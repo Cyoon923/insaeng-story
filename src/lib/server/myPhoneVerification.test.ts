@@ -660,7 +660,8 @@ test("새 verify purpose를 만들지 않았다", () => {
 /* ── 9. STEP 1/2/3 회귀 ──────────────────────────── */
 
 test("STEP 1 신청·결제 관문이 그대로 있다", () => {
-  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 3);
+  // STEP 1 관문 3곳(createOrder/createConsultation/preparePayment) + bookEventConsultation. 위치는 phoneVerification.test.ts가 본다.
+  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 4);
 });
 
 test("STEP 2 방어가 그대로 있다", () => {
@@ -734,8 +735,8 @@ test("신청 연결은 공통 진입점 한 곳에만 있다", () => {
 });
 
 test("클라이언트 연결이 서버 관문을 대신하지 않는다", () => {
-  // 서버 관문 셋이 그대로 있고, 화면은 그 앞에서 안내만 한다.
-  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 3);
+  // 서버 관문(STEP 1 셋 + 이벤트 상담 예약)이 그대로 있고, 화면은 그 앞에서 안내만 한다.
+  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 4);
   const paySubmit = read("src/components/apply/PaySubmit.tsx");
   // 기존 로그인 관문도 그대로다.
   assert.ok(paySubmit.includes("신청을 접수하려면 먼저 로그인해 주세요."));

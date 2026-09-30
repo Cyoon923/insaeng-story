@@ -619,7 +619,8 @@ test("대역이 실제 비식별화와 같은 일을 한다", () => {
 
 test("STEP 1 신청·결제 관문이 그대로 있다", () => {
   const appRoute = read("src/app/api/app/route.ts");
-  assert.equal((appRoute.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 3);
+  // STEP 1 관문 3곳(createOrder/createConsultation/preparePayment) + bookEventConsultation. 위치는 phoneVerification.test.ts가 본다.
+  assert.equal((appRoute.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 4);
 });
 
 test("STEP 2 차단이 그대로 있다", () => {

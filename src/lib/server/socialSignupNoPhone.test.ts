@@ -329,8 +329,9 @@ test("관문 판정: 비로그인은 건드리지 않고 미인증만 보낸다"
   assert.ok(gate.includes('from "@/lib/phoneVerification"'));
 });
 
-test("서버 관문 3곳이 그대로 있다", () => {
-  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 3);
+test("서버 관문(3곳 + 이벤트 상담 예약)이 그대로 있다", () => {
+  // STEP 1 관문 3곳(createOrder/createConsultation/preparePayment) + bookEventConsultation. 위치는 phoneVerification.test.ts가 본다.
+  assert.equal((APP_ROUTE.match(/verifiedPhoneGate\(user\)/g) ?? []).length, 4);
 });
 
 test("PaySubmit 방어선이 남아 있고 중복 안내를 만들지 않는다", () => {

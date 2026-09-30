@@ -33,10 +33,21 @@ export function attachConsultations(
   consultations: Consultation[],
 ): AdminRefundRequestItem[] {
   const byId = new Map(consultations.map((item) => [item.id, item]));
+  /*
+   * OPEN EVENT 주문으로 예약한 상담(details.eventOrderId). 같은 회원의 것만 잇는다.
+   * 환불 판단에 쓰도록 지금 예약 시각·진행 상태를 붙인다. 인생곡 주문에는 원래 없어 null이다.
+   */
+  const byEventOrder = new Map(
+    consultations
+      .filter((item) => item.details?.eventOrderId)
+      .map((item) => [`${item.details.eventOrderId}::${item.userId}`, item]),
+  );
   return items.map((item) => ({
     ...item,
     consultation:
-      item.order.product === "consultation" ? view(byId.get(item.orderId)) : null,
+      item.order.product === "consultation"
+        ? view(byId.get(item.orderId))
+        : view(byEventOrder.get(`${item.orderId}::${item.userId}`)),
   }));
 }
 

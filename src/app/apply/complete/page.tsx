@@ -2,6 +2,9 @@ import Link from "next/link";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PaymentDraftCleanup } from "@/components/apply/PaymentDraftCleanup";
+import { getOrderById } from "@/lib/server/store";
+import { getActiveUserId } from "@/lib/server/withdrawAccount";
+import { eventConsultationBookHref, isEventConsultationOrder } from "@/lib/server/eventConsultation";
 
 export default async function ApplyCompletePage({
   searchParams,
@@ -24,6 +27,19 @@ export default async function ApplyCompletePage({
         : "/my/orders";
 
   const cleanupOrderId = (type === "order" || type === "consult") && id ? id : "";
+
+  /*
+   * OPEN EVENT 상담 포함 주문이면 예약 버튼을 보인다. 주소의 id를 믿지 않고 서버가 주문을 읽어
+   * 로그인 회원의 주문인지까지 확인한다. 예약 가능 여부(결제·환불·중복)는 예약 관문이 다시 정한다.
+   */
+  let bookHref = "";
+  if (type === "order" && id) {
+    const userId = await getActiveUserId();
+    const order = userId ? await getOrderById(id).catch(() => null) : null;
+    if (order && order.userId === userId && isEventConsultationOrder(order)) {
+      bookHref = eventConsultationBookHref(order.id);
+    }
+  }
 
   return (
     <MobileShell>
@@ -99,6 +115,19 @@ export default async function ApplyCompletePage({
       </div>
 
       <div className="mt-8 px-4 pb-8">
+        {bookHref ? (
+          <>
+            <Link
+              href={bookHref}
+              className="mb-3 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"
+            >
+              1:1 사주상담 예약하기
+            </Link>
+            <p className="mb-4 text-center text-[13px] text-[#6B6570]">
+              이벤트에 포함된 상담입니다. 추가 결제 없이 날짜와 시간을 예약하세요.
+            </p>
+          </>
+        ) : null}
         <Link
           href={detailHref}
           className="flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white"

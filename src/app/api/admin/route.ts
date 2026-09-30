@@ -60,6 +60,11 @@ import {
   readRestoreOrderPointsBody,
   restoreOrderPointsByAdmin,
 } from "@/lib/server/pointsRestoreRecoveryAdminApi";
+import { authorizePointsRestoreRecovery } from "@/lib/server/pointsRestoreRecoveryGate";
+import {
+  cleanupEventConsultationAfterRefund,
+  consultationRefundOrderId,
+} from "@/lib/server/eventConsultationRefund";
 import {
   markComplaintHandledFailureResponse,
   readCreateComplaintRecordBody,
@@ -481,6 +486,36 @@ async function handlePost(request: Request) {
     return NextResponse.json(response.body, { status: response.status });
   }
 
+  if (action === "retryEventConsultationCancel") {
+    /**
+     * 환불이 끝난 OPEN EVENT 주문의 상담 취소 표시 재시도.
+     *
+     * PG 환불을 다시 실행하지 않는다. 결제·환불 문의 상태도 바꾸지 않는다.
+     * 환불 완료 뒤 상담 취소 표시만 빠진 건을 다시 시도한다(정상·복구 경로는 실패를 삼킨다).
+     * 관리자가 정하는 값은 환불 문의 id뿐이며, completed 문의만 통과한다(적립금 복원 재시도와 같은 관문).
+     */
+    const refundRequestId = typeof body.refundRequestId === "string" ? body.refundRequestId.trim() : "";
+    if (!refundRequestId) {
+      return NextResponse.json({ error: "환불 문의를 확인해 주세요." }, { status: 400 });
+    }
+    const gate = await authorizePointsRestoreRecovery(refundRequestId);
+    if (gate.kind !== "authorized") {
+      return NextResponse.json(
+        { error: "환불이 완료된 문의만 다시 시도할 수 있습니다. 상태를 확인해 주세요." },
+        { status: 409 },
+      );
+    }
+    const result = await cleanupEventConsultationAfterRefund(gate.orderId);
+    if (result.kind === "cancelled" || result.kind === "already-cancelled") {
+      return NextResponse.json({ ok: true, status: result.kind });
+    }
+    return NextResponse.json({
+      ok: false,
+      status: result.kind,
+      message: "이 주문으로 예약한 이벤트 상담이 없어 처리할 것이 없습니다.",
+    });
+  }
+
   if (action === "toggleBlockSlot") {
     const data = await readData();
     const teacher = String(body.teacher ?? DEFAULT_TEACHER);
@@ -821,7 +856,8 @@ async function handlePost(request: Request) {
      * 주문과 달리 상담은 app_store JSONB 안에 있어 저장 문장 안에서 같은 조건을
      * 걸 수 없다. 그래서 이 확인이 유일한 관문이며, 남는 경합은 문서로 남긴다.
      */
-    if (await hasCompletedRefundRequestForOrder(id)) {
+    // OPEN EVENT 상담은 원 이벤트 주문의 환불로 잠근다. 일반 상담은 기존대로 상담 id(= 주문 id).
+    if (await hasCompletedRefundRequestForOrder(consultationRefundOrderId(item))) {
       const locked = progressLockedByRefundResponse("consultation");
       return NextResponse.json({ error: locked.error }, { status: locked.status });
     }

@@ -268,7 +268,7 @@ export default function MyPage() {
                 <p className="mt-1 text-[12px] text-[#6B6570]">신청일 {formatDate(item.createdAt)}</p>
                 {item.kind === "consultation" ? (
                   <p className="mt-0.5 break-keep text-[12px] text-[#6B6570]">
-                    {[item.teacher, item.datetime, formatPrice(item.amount)]
+                    {[item.teacher, item.datetime, item.eventIncluded ? "OPEN EVENT 포함" : formatPrice(item.amount)]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>

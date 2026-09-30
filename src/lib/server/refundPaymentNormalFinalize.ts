@@ -37,6 +37,7 @@ import type {
   FinalizeRefundPaymentResult,
 } from "./store.ts";
 import type { RefundPointsRestoreResult } from "./refundPointsRestore.ts";
+import { runEventConsultationCleanupSafely } from "./eventConsultationRefund.ts";
 
 /** 이 흐름이 쓰는 바깥 기능들. 테스트에서 바꿔 끼운다. */
 export interface RefundPaymentNormalFinalizeDeps {
@@ -46,6 +47,11 @@ export interface RefundPaymentNormalFinalizeDeps {
   inquirePayment: (input: { tid: string }) => Promise<NicepayPaymentInquiryOutcome>;
   /** 최종 반영. 결제와 환불 문의를 한 문장으로 바꾼다. */
   finalize: (input: FinalizeRefundPaymentInput) => Promise<FinalizeRefundPaymentResult>;
+  /**
+   * OPEN EVENT 주문이면 그 주문으로 예약한 상담을 취소 표시한다. completed 확정 뒤에만 부른다.
+   * 적립금 복원과 같이 결과·예외가 이 흐름의 반환값을 바꾸지 않는다(멱등, 없으면 건너뜀).
+   */
+  cleanupEventConsultation?: (orderId: string) => Promise<unknown>;
   /**
    * 적립금 복원. completed가 확정된 뒤에만 부른다.
    *
@@ -97,6 +103,8 @@ async function tryRestorePoints(
   orderId: string,
   paymentId: string,
 ): Promise<void> {
+  // completed 확정 뒤 공통 후처리. 이벤트 상담 정리는 던지지 않으며 환불 완료를 바꾸지 않는다.
+  await runEventConsultationCleanupSafely(deps.cleanupEventConsultation, orderId);
   let restored: RefundPointsRestoreResult;
   try {
     /*
@@ -233,5 +241,7 @@ export async function defaultRefundPaymentNormalFinalizeDeps(
     finalize: (input) => store.finalizeRefundPaymentCancel(input),
     restorePoints: async (input) =>
       points.runRefundPointsRestore(input, await points.defaultRefundPointsRestoreDeps()),
+    cleanupEventConsultation: async (orderId) =>
+      (await import("@/lib/server/eventConsultationRefund")).cleanupEventConsultationAfterRefund(orderId),
   };
 }
