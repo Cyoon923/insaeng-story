@@ -22,7 +22,7 @@ const config = {
     { icon: <MessageCircle className="h-5 w-5" />, label: "스토리상담", sub: "인생 이야기" },
     { icon: <Music className="h-5 w-5" />, label: "인생곡 제작", sub: "맞춤 음악" },
   ],
-  priceFrom: 399000,
+  priceFrom: 199000,
   applyHref: "/apply/premium/1",
   recommends: [
     {

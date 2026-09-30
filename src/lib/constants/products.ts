@@ -38,7 +38,7 @@ export const LIFE_SONG_PRODUCTS: LifeSongProduct[] = [
     shortTitle: "프리미엄",
     badge: "토탈 맞춤",
     description: "사주상담 → 스토리상담 → 인생곡 제작까지 한 번에",
-    priceFrom: 399000,
+    priceFrom: 199000,
     href: "/products/premium",
     applyHref: "/apply/premium/1",
     icon: "crown",
