@@ -16,6 +16,7 @@ import {
   AGENT_SEEN_KEY,
   hasUnseenAgentReply,
   readAgentSeenAt,
+  requestOpenAgentChat,
   writeAgentSeenAt,
 } from "@/lib/client/chatAgentUnseen";
 
@@ -1360,6 +1361,12 @@ export function ChatWidget() {
     };
     window.addEventListener(AGENT_OPEN_EVENT, onOpenRequest);
     return () => window.removeEventListener(AGENT_OPEN_EVENT, onOpenRequest);
+  }, []);
+
+  useEffect(() => {
+    // 알림톡 웹링크(?chat=agent)로 들어오면 상담원 대화를 연다. MY 알림과 같은 열기 부탁을 보낸다.
+    // 위 수신 effect가 먼저 등록된 뒤에 돈다(선언 순서). 어떤 방을 열지는 기존 선택 규칙 그대로다.
+    if (new URLSearchParams(window.location.search).get("chat") === "agent") requestOpenAgentChat();
   }, []);
 
   /**
