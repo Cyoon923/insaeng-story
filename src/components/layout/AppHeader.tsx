@@ -114,6 +114,7 @@ const SHARE_PUBLIC_PATHS = new Set([
   "/consultation",
   "/cases",
   "/events",
+  "/events/saju-song-open",
   "/reviews",
   "/faq",
   "/guide",
