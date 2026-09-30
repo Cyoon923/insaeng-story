@@ -6,7 +6,11 @@ import { ApplyLayout } from "@/components/apply/ApplyLayout";
 import { PaySubmit } from "@/components/apply/PaySubmit";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
 import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
-import { ORDER_OPTION_PRICES, SAJU_REPORT_OPTION_ID } from "@/lib/server/pricing";
+import {
+  ORDER_OPTION_PRICES,
+  SAJU_CONSULTATION_OPTION_ID,
+  SAJU_REPORT_OPTION_ID,
+} from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { getDraft } from "@/lib/client/api";
 import {
@@ -53,6 +57,11 @@ const OPTION_PRICES = [
     id: SAJU_REPORT_OPTION_ID,
     name: "2026·2027년 사주풀이 리포트",
     price: ORDER_OPTION_PRICES[SAJU_REPORT_OPTION_ID],
+  },
+  {
+    id: SAJU_CONSULTATION_OPTION_ID,
+    name: "1:1 사주상담",
+    price: ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID],
   },
 ];
 
