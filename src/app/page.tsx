@@ -67,6 +67,18 @@ export default function HomePage() {
         </section>
       ) : (
         <>
+          {/* OPEN EVENT 배너. 확정 이미지만 원본 비율(1672×941) 그대로 보여 준다(crop 없음). */}
+          <Link href="/events/saju-song-open" className="block">
+            <Image
+              src="/images/sajulog-open-event-hero-retro-final.png"
+              alt="사주 인생곡 오픈 이벤트 보러 가기"
+              width={1672}
+              height={941}
+              priority
+              sizes="430px"
+              className="h-auto w-full"
+            />
+          </Link>
           <HeroSection />
           <div className="px-4">
             <button
