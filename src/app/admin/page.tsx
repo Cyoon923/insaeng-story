@@ -1882,15 +1882,24 @@ export default function AdminPage() {
                     {(() => {
                       const userOrders = orders.filter((order) => order.userId === user.id);
                       const userConsults = consultations.filter((item) => item.userId === user.id);
+                      const userRefunds = refundRequests.items.filter((row) => row.userId === user.id);
                       const paymentCount = [...userOrders, ...userConsults].reduce(
                         (sum, item) => sum + (orderPayments.items[item.id]?.totalCount ?? 0),
                         0,
                       );
                       return (
-                        <p className="mt-1 text-[13px] text-[#6B6570]">
-                          연결 기록: 주문 {userOrders.length}건 · 상담 {userConsults.length}건 · 결제{" "}
-                          {orderPayments.loaded ? `${paymentCount}건` : "확인 필요"}
-                        </p>
+                        <>
+                          <p className="mt-1 text-[13px] text-[#6B6570]">
+                            연결 기록: 주문 {userOrders.length}건 · 상담 {userConsults.length}건 · 결제{" "}
+                            {orderPayments.loaded ? `${paymentCount}건` : "확인 필요"}
+                          </p>
+                          {/* 이미 받은 환불 문의 목록에서 같은 회원 id로만 센다. 목록을 못 읽었으면 0건이라 하지 않는다. */}
+                          <p className="mt-1 text-[13px] text-[#6B6570]">
+                            {refundRequests.loaded
+                              ? `환불 문의 ${userRefunds.length}건 (완료 ${userRefunds.filter((row) => row.status === "completed").length}건)`
+                              : "환불 문의 확인 필요"}
+                          </p>
+                        </>
                       );
                     })()}
                   </>
