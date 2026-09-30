@@ -268,6 +268,11 @@ export interface Inquiry {
   product: string;
   message: string;
   createdAt: string;
+  /**
+   * 관리자가 처리 완료로 표시한 시각(UTC ISO). 없으면 미처리다.
+   * 기존 문의에는 없으며 따로 채우지 않는다(lib/adminInquiries.ts).
+   */
+  handledAt?: string;
 }
 
 export interface BlockedSlot {

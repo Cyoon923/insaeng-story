@@ -63,6 +63,7 @@ import {
 import { authorizePointsRestoreRecovery } from "@/lib/server/pointsRestoreRecoveryGate";
 import { toAdminUserView } from "@/lib/server/adminUserView";
 import { removeReviewById } from "@/lib/adminReviews";
+import { setInquiryHandled } from "@/lib/adminInquiries";
 import {
   cleanupEventConsultationAfterRefund,
   consultationRefundOrderId,
@@ -904,6 +905,25 @@ async function handlePost(request: Request) {
     review.visible = visible;
     await writeData(data);
     return NextResponse.json({ ok: true, review });
+  }
+
+  if (action === "markInquiryHandled") {
+    /**
+     * 문의·이벤트 신청 1건의 처리 여부 기록. 관리자 인증은 이 함수 앞의 공통 관문이 한다.
+     * 처리 시각은 서버 시각만 쓴다. 다른 문의·주문·상담은 건드리지 않는다.
+     * 저장은 app_store CAS(writeData)이며, 겹치면 POST 최상위가 409로 돌려준다.
+     */
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    if (!id || typeof body.handled !== "boolean") {
+      return NextResponse.json({ error: "문의를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const inquiry = setInquiryHandled(data, id, body.handled, new Date().toISOString());
+    if (!inquiry) {
+      return NextResponse.json({ error: "문의를 찾을 수 없습니다." }, { status: 404 });
+    }
+    await writeData(data);
+    return NextResponse.json({ ok: true, id: inquiry.id, handledAt: inquiry.handledAt ?? null });
   }
 
   if (action === "deleteReview") {

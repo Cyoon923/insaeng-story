@@ -5,6 +5,11 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { formatAdminDate } from "@/lib/adminDate";
 import { reviewKindLabel, reviewTargetLabel } from "@/lib/adminReviews";
+import {
+  isInquiryHandled,
+  matchesInquiryFilter,
+  type InquiryHandledFilter,
+} from "@/lib/adminInquiries";
 import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 import {
   consultationRefundOrderId,
@@ -432,6 +437,83 @@ function referralCodeFor(user: User): string {
   return `IS${tail}`;
 }
 
+/** 이벤트·문의 탭의 처리 여부 필터. 회원·후기 탭 필터와 같은 모양이다. */
+function HandledFilterButtons({
+  label,
+  items,
+  value,
+  onChange,
+}: {
+  label: string;
+  items: Inquiry[];
+  value: InquiryHandledFilter;
+  onChange: (next: InquiryHandledFilter) => void;
+}) {
+  const handled = items.filter(isInquiryHandled).length;
+  const options: [InquiryHandledFilter, string][] = [
+    ["all", `전체 ${items.length}`],
+    ["pending", `미처리 ${items.length - handled}`],
+    ["handled", `처리 완료 ${handled}`],
+  ];
+  return (
+    <div className="flex gap-2" role="group" aria-label={label}>
+      {options.map(([option, text]) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+          className={`h-11 flex-1 rounded-xl px-2 text-[13px] font-semibold ${
+            value === option ? "bg-[#5c3d2e] text-white" : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+          }`}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 처리 여부 배지와 전환 버튼. 처리 완료면 처리 시각(한국 시각)을 함께 보인다. */
+function HandledControls({
+  item,
+  onToggle,
+}: {
+  item: Inquiry;
+  onToggle: (id: string, handled: boolean) => void;
+}) {
+  const handled = isInquiryHandled(item);
+  return (
+    <div className="mt-3">
+      {handled ? (
+        <p className="text-[13px] text-[#6B6570]">처리 완료 {formatAdminDate(item.handledAt)}</p>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => onToggle(item.id, !handled)}
+        className={`mt-2 min-h-10 rounded-lg px-3 text-[13px] font-semibold ${
+          handled ? "border border-[#d4c8ba] bg-white text-[#5c3d2e]" : "bg-[#5c3d2e] text-white"
+        }`}
+      >
+        {handled ? "미처리로 되돌리기" : "처리 완료로 표시"}
+      </button>
+    </div>
+  );
+}
+
+function HandledBadge({ item }: { item: Inquiry }) {
+  const handled = isInquiryHandled(item);
+  return (
+    <span
+      className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ${
+        handled ? "bg-[#403A49] text-white" : "bg-[#f5efe6] text-[#5c3d2e]"
+      }`}
+    >
+      {handled ? "처리 완료" : "신청접수"}
+    </span>
+  );
+}
+
 function isEventInquiry(item: Inquiry) {
   return item.product.startsWith("이벤트");
 }
@@ -516,6 +598,9 @@ export default function AdminPage() {
   const [userFilter, setUserFilter] = useState<"all" | "active" | "withdrawn">("all");
   // 후기 탭 목록 필터. 상태는 기존 visible 하나로만 가른다(true = 공개, 그 외 = 승인대기).
   const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "visible">("all");
+  // 이벤트·문의 탭 처리 여부 필터. 판정은 handledAt 하나다.
+  const [eventFilter, setEventFilter] = useState<InquiryHandledFilter>("all");
+  const [inquiryFilter, setInquiryFilter] = useState<InquiryHandledFilter>("all");
   const [users, setUsers] = useState<User[]>([]);
   const [paymentReview, setPaymentReview] = useState<{
     stale: PaymentReviewItem[];
@@ -1327,6 +1412,35 @@ export default function AdminPage() {
     setReviews((list) => list.map((item) => (item.id === next.id ? { ...item, visible: next.visible } : item)));
   }
 
+  /** 문의·이벤트 신청 처리 여부 기록. 서버가 성공하면 그 1건만 화면에 반영한다. */
+  async function handleMarkInquiryHandled(id: string, handled: boolean) {
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markInquiryHandled", id, handled }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; handledAt?: string | null; error?: string }
+        | null;
+      if (!res.ok || !data?.ok) {
+        window.alert(data?.error ?? "처리 상태를 바꾸지 못했습니다. 다시 시도해 주세요.");
+        return;
+      }
+      setInquiries((list) =>
+        list.map((item) => {
+          if (item.id !== id) return item;
+          const next = { ...item };
+          if (data.handledAt) next.handledAt = data.handledAt;
+          else delete next.handledAt;
+          return next;
+        }),
+      );
+    } catch {
+      window.alert("요청에 실패했습니다. 다시 시도해 주세요.");
+    }
+  }
+
   /** 후기 1건 삭제. 되돌릴 수 없어 먼저 확인받는다. 성공하면 목록에서 바로 뺀다. */
   async function handleDeleteReview(id: string) {
     if (!window.confirm("이 후기를 삭제하시겠습니까?\n\n삭제하면 되돌릴 수 없고, 고객 화면에서도 더 이상 보이지 않습니다.")) {
@@ -1552,6 +1666,8 @@ export default function AdminPage() {
   const inquiryItems = inquiries.filter(
     (item) => !isEventInquiry(item) && item.product !== CHAT_INQUIRY_PRODUCT,
   );
+  const filteredEventItems = eventItems.filter((item) => matchesInquiryFilter(item, eventFilter));
+  const filteredInquiryItems = inquiryItems.filter((item) => matchesInquiryFilter(item, inquiryFilter));
   const codeUses = adminCodeUses(orders, consultations);
   const currentCodeUses = codeUses.filter((item) => item.code === adminPromo?.code);
   // 탈퇴한 회원은 이름과 개인정보만 비운 채 행이 남는다. 숫자에서는 빼고 목록에는 그대로 둔다.
@@ -2626,16 +2742,22 @@ export default function AdminPage() {
             ))
           : null}
 
+        {tab === "events" ? (
+          <HandledFilterButtons
+            label="이벤트 신청 필터"
+            items={eventItems}
+            value={eventFilter}
+            onChange={setEventFilter}
+          />
+        ) : null}
         {tab === "events"
-          ? eventItems.map((item) => {
+          ? filteredEventItems.map((item) => {
               const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[16px] font-bold text-[#403A49]">{eventTitle(item)}</p>
-                    <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
-                      신청접수
-                    </span>
+                    <HandledBadge item={item} />
                   </div>
                   <p className="mt-2 text-[14px] text-[#5c3d2e]">
                     {item.name || member?.name || "이름 없음"} · {item.phone || member?.phone || "-"}
@@ -2646,6 +2768,7 @@ export default function AdminPage() {
                     <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#6B6570]">{item.message}</p>
                   ) : null}
                   <p className="mt-2 text-[13px] text-[#6B6570]">{formatDate(item.createdAt)}</p>
+                  <HandledControls item={item} onToggle={handleMarkInquiryHandled} />
                 </article>
               );
             })
@@ -2918,12 +3041,23 @@ export default function AdminPage() {
           )
         ) : null}
 
+        {tab === "inquiries" ? (
+          <HandledFilterButtons
+            label="문의 필터"
+            items={inquiryItems}
+            value={inquiryFilter}
+            onChange={setInquiryFilter}
+          />
+        ) : null}
         {tab === "inquiries"
-          ? inquiryItems.map((item) => {
+          ? filteredInquiryItems.map((item) => {
               const member = userMap.get(item.userId ?? "");
               return (
                 <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                  <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[16px] font-bold text-[#403A49]">{item.name || member?.name || "이름 없음"}</p>
+                    <HandledBadge item={item} />
+                  </div>
                   <p className="mt-1 text-[14px] text-[#5c3d2e]">
                     {item.phone || member?.phone || "-"} · {item.method}
                   </p>
@@ -2931,6 +3065,7 @@ export default function AdminPage() {
                   <p className="mt-2 text-[13px] text-[#6B6570]">
                     {item.product} · {formatDate(item.createdAt)}
                   </p>
+                  <HandledControls item={item} onToggle={handleMarkInquiryHandled} />
                 </article>
               );
             })
@@ -3316,7 +3451,11 @@ export default function AdminPage() {
           ? visibleUsers.length
           : tab === "reviews"
             ? filteredReviews.length
-            : counts[tab as Exclude<TabId, "schedule">]) === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
+            : tab === "events"
+              ? filteredEventItems.length
+              : tab === "inquiries"
+                ? filteredInquiryItems.length
+                : counts[tab as Exclude<TabId, "schedule">]) === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
           <div className="rounded-2xl bg-[#f5efe6] px-4 py-10 text-center text-[15px] text-[#8b6f5c]">
             아직 등록된 내역이 없습니다.
           </div>
