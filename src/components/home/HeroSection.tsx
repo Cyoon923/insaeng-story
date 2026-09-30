@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -67,11 +67,14 @@ const OPEN_EVENT_SLIDE = {
   image: "/images/photo-gift.jpg",
   imageClass: "object-center",
   imageAlt: "",
-  primaryHref: `/apply/saju-song/1?promotion=${OPEN_EVENT_PROMOTION}`,
+  primaryHref: "/events/saju-song-open",
   primaryLabel: "19,000원 신청하기",
   secondaryHref: "",
   secondaryLabel: "",
 } as const;
+
+/** 날짜는 구독할 대상이 없다. 새로 그릴 때마다 다시 읽는다. */
+const noSubscribe = () => () => {};
 
 export function HeroSection() {
   const [index, setIndex] = useState(0);
@@ -84,10 +87,20 @@ export function HeroSection() {
    * 두 곳에 있으면 한쪽만 고쳤을 때 "배너에는 이벤트, 결제는 거절"이 된다. 그 함수는
    * UTC에 +9시간을 더해 한국 날짜를 읽으므로 보는 사람의 시간대가 한국이 아니어도 같은 날에 바뀐다.
    *
-   * 목록 길이는 그대로 3장이다. 슬라이드를 더하거나 빼지 않는다.
+   * 오픈 뒤에는 OPEN EVENT를 맨 앞에 두고 기존 event 자리는 뺀다(story → subscribe 순서는 그대로).
+   * 목록 길이는 그대로 3장이다. 오픈 전 구성과 순서는 바뀌지 않는다.
+   *
+   * 서버 값은 false(오픈 전)로 둔다. 홈은 빌드 때 미리 그려지므로, 오픈 전에 만든 HTML과
+   * 오픈 뒤 브라우저의 첫 화면(index 0)이 달라 hydration이 어긋나지 않게 하기 위해서다.
+   * 브라우저에서는 hydration 직후 실제 판정으로 다시 그린다.
    */
-  const slides = isPromotionOpen(OPEN_EVENT_PROMOTION)
-    ? SLIDES.map((item) => (item.id === "event" ? OPEN_EVENT_SLIDE : item))
+  const open = useSyncExternalStore(
+    noSubscribe,
+    () => isPromotionOpen(OPEN_EVENT_PROMOTION),
+    () => false,
+  );
+  const slides = open
+    ? [OPEN_EVENT_SLIDE, ...SLIDES.filter((item) => item.id !== "event")]
     : SLIDES;
 
   const goTo = (next: number) => {
