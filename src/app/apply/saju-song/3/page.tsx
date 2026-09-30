@@ -1,245 +1,142 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { ApplyLayout } from "@/components/apply/ApplyLayout";
+import { PaySubmit } from "@/components/apply/PaySubmit";
 import { SAJU_STEPS, CHARCOAL_STEPPER } from "@/components/apply/ApplyStepper";
-import { formatPrice } from "@/lib/constants/products";
-import { fetchMe, getDraft, saveDraft } from "@/lib/client/api";
+import { formatPrice, LIFE_SONG_PRODUCTS } from "@/lib/constants/products";
 import {
-  checkSajuReportDelivery,
   ORDER_OPTION_PRICES,
   SAJU_CONSULTATION_OPTION_ID,
   SAJU_REPORT_OPTION_ID,
 } from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
 import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
-import type { User } from "@/lib/types/app";
+import { getDraft } from "@/lib/client/api";
+import {
+  COPYRIGHT_CONSENT_LABEL,
+  COPYRIGHT_NOTICE_PARAGRAPHS,
+  COPYRIGHT_NOTICE_TITLE,
+} from "@/lib/constants/legal";
 
-const VIDEO_STYLES = [
-  {
-    name: "AI 실사 영상풍",
-    desc: "실제 사람처럼 보이는 영상",
-    image: "/images/video-style-live.png",
-  },
-  {
-    name: "과거 레트로풍",
-    desc: "옛날 사진처럼 따뜻하고 빛바랜 느낌",
-    image: "/images/video-style-retro.png",
-  },
-  {
-    name: "애니메이션풍",
-    desc: "만화처럼 부드럽고 따뜻한 그림 느낌",
-    image: "/images/video-style-animation.png",
-  },
-  {
-    name: "스타일 상담 후 결정",
-    desc: "어떤 스타일이 어울릴지 모르시겠다면 전화 상담을 통해 함께 결정해드립니다.",
-    image: "/images/photo-video-style-consultation.png",
-  },
-];
+const BASE_PRICE = LIFE_SONG_PRODUCTS[2].priceFrom;
 
-const OPTIONS = [
-  {
-    id: "ai-mv",
-    title: "내 얼굴 AI 뮤직비디오",
-    price: 100000,
-    desc: "얼굴 사진을 바탕으로 노래에 맞는 AI 뮤직비디오를 제작합니다.",
-  },
-  {
-    id: "photo-mv",
-    title: "추억사진 영상 제작",
-    price: 50000,
-    desc: "보내주신 사진을 인생곡에 맞춰 영상으로 편집합니다.",
-  },
-  {
-    id: "lyric-edit",
-    title: "가사 수정 1회 추가",
-    price: 10000,
-    desc: "기본 수정 1회에 더해 가사 수정을 1회 추가합니다.",
-  },
+/**
+ * 지금 이 신청에 적용할 수 있는 프로모션. 없으면 undefined다.
+ *
+ * 이벤트 링크로 들어왔더라도 시작일(2026-10-04 KST) 전이면 없는 것으로 본다.
+ * 시작 전에는 팔 수 없는 가격이라, 화면에 판매가처럼 띄워 두면 눌렀을 때 서버가
+ * 거절한다. 기간 규칙은 서버 검증과 같은 isPromotionOpen 하나를 쓴다.
+ */
+function usablePromotion(draft: Record<string, string>) {
+  const promotion = draft.promotion;
+  if (!isPromotionId(promotion)) return undefined;
+  if (PROMOTION_PRICES[promotion].product !== "saju-song") return undefined;
+  // localhost 미리보기에서는 오픈 전에도 화면만 보여 준다. 서버 판정은 그대로다.
+  if (!isPromotionOpen(promotion) && !DEV_APPLY_PREVIEW) return undefined;
+  return promotion;
+}
+
+/**
+ * 이 신청에 적용되는 기본가.
+ *
+ * 쓸 수 있는 이벤트일 때만 이벤트 기본가를 보여 준다. 화면에 숫자를 새로 적지 않고
+ * 서버와 같은 가격표(PROMOTION_PRICES)를 읽는다. 표시와 결제가 어긋나지 않게 하려는 것이다.
+ *
+ * 여기서 정해지는 것은 "보여 줄 금액"뿐이다. 실제 결제 금액은 서버가 다시 계산하며
+ * (PaySubmit이 화면 금액을 결제창에 넘기지 않는다), 최종 기간 판정도 서버가 한다.
+ */
+function basePriceOf(promotion: ReturnType<typeof usablePromotion>): number {
+  return promotion ? PROMOTION_PRICES[promotion].basePrice : BASE_PRICE;
+}
+/** 서버(src/lib/server/pricing.ts)와 같은 id·가격을 쓴다. 표시용 이름만 여기서 붙인다. */
+const OPTION_PRICES = [
+  { id: "ai-mv", name: "내 얼굴 AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
+  { id: "photo-mv", name: "추억사진 영상 제작", price: ORDER_OPTION_PRICES["photo-mv"] },
+  { id: "lyric-edit", name: "가사 수정 1회 추가", price: ORDER_OPTION_PRICES["lyric-edit"] },
   {
     id: SAJU_REPORT_OPTION_ID,
-    title: "2026·2027년 사주풀이 리포트",
-    // 가격은 서버 가격표에서 읽는다. 여기에 숫자를 따로 적으면 서버와 갈라진다.
+    name: "2026·2027년 사주풀이 리포트",
     price: ORDER_OPTION_PRICES[SAJU_REPORT_OPTION_ID],
-    desc: "2026년과 2027년의 전체 흐름, 핵심 키워드, 주의할 점과 활용 방향을 PDF로 정리해 드립니다.",
   },
   {
     id: SAJU_CONSULTATION_OPTION_ID,
-    title: "1:1 사주상담",
+    name: "1:1 사주상담",
     price: ORDER_OPTION_PRICES[SAJU_CONSULTATION_OPTION_ID],
-    desc: "결제 후 MY에서 원하는 상담 날짜와 시간을 직접 예약할 수 있습니다.",
-    /** 오픈 이벤트 신청에서만 보여 준다. 정가 신청에는 팔지 않는 옵션이다. */
-    eventOnly: true,
   },
 ];
 
-/**
- * 지금 이 신청이 오픈 이벤트인지.
- *
- * 4단계와 같은 방식으로 draft의 값만 보고, 가격표·기간까지 맞을 때만 참이다.
- * 최종 판정은 서버가 한다(pricing.ts의 OPTION_ONLY_FOR_PROMOTION). 여기서는
- * 팔지 않는 옵션을 화면에 내지 않기 위해서만 쓴다.
- */
-function isEventApply(draft: Record<string, string>): boolean {
-  const promotion = draft.promotion;
-  if (!isPromotionId(promotion)) return false;
-  if (PROMOTION_PRICES[promotion].product !== "saju-song") return false;
-  // localhost 미리보기에서는 오픈 전에도 화면만 보여 준다. 서버 판정은 그대로다.
-  return isPromotionOpen(promotion) || DEV_APPLY_PREVIEW;
+/** 확인 화면에 보여 줄 리포트 전달 방법. 옵션을 고르지 않았으면 빈 문자열이다. */
+function reportDeliveryLabel(draft: Record<string, string>): string {
+  if (!(draft.optionIds ?? "").split(",").includes(SAJU_REPORT_OPTION_ID)) return "";
+  if (draft.sajuReportDelivery === "kakao") {
+    return draft.phone ? `카카오톡 (${draft.phone})` : "카카오톡";
+  }
+  if (draft.sajuReportDelivery === "email") {
+    return draft.sajuReportEmail ? `이메일 (${draft.sajuReportEmail})` : "이메일";
+  }
+  return "";
+}
+const PAYMENT_METHODS = ["신용/체크카드", "무통장 입금", "카카오페이", "네이버페이"];
+/** 지금 실제로 결제되는 유일한 수단. 나머지는 준비 중이라 고를 수 없다. */
+const CARD_PAYMENT = "신용/체크카드";
+
+function selectedOptions(draft: Record<string, string>) {
+  const ids = (draft.optionIds ?? "").split(",").filter(Boolean);
+  if (ids.length) return OPTION_PRICES.filter((opt) => ids.includes(opt.id));
+  // optionIds 이전에 저장된 draft는 기존처럼 한글 이름으로 복원한다.
+  const raw = draft.options ?? "";
+  if (!raw) return [];
+  return OPTION_PRICES.filter((opt) => raw.includes(opt.name));
 }
 
-/** 리포트를 받는 방법. 저장값은 이 두 가지뿐이다. */
-const DELIVERY_CHOICES = [
-  { id: "kakao", label: "카카오톡" },
-  { id: "email", label: "이메일" },
-] as const;
+function sajuLabel(draft: Record<string, string>) {
+  const parts = [
+    draft.name,
+    draft.birth,
+    draft.calendar,
+    draft.unknownTime === "1" ? "태어난 시간 모름" : draft.birthTime,
+  ].filter(Boolean);
+  return parts.join(" / ") || "입력 없음";
+}
 
-export default function ApplyStep5Page() {
-  const [selected, setSelected] = useState<string[]>([]);
-  /** 오픈 이벤트 신청인지. 이벤트 전용 옵션을 낼지 정한다. */
-  const [eventApply, setEventApply] = useState(false);
-  const [videoStyle, setVideoStyle] = useState("AI 실사 영상풍");
-  /** 리포트를 받는 방법. 아직 고르지 않았으면 빈 문자열이다. */
-  const [delivery, setDelivery] = useState("");
-  const [reportEmail, setReportEmail] = useState("");
-  /** 신청서에 적힌 연락처. 카카오톡으로 받을 때 어디로 가는지 보여 주기만 한다. */
-  const [applyPhone, setApplyPhone] = useState("");
-
-  /*
-   * 저장은 이 함수 하나로만 한다.
-   *
-   * 옵션을 해제하거나 카카오톡으로 바꾸면 쓰지 않게 된 값을 빈 문자열로 덮어써
-   * 지난 선택이 draft에 남지 않게 한다(영상 스타일을 비우는 기존 처리와 같다).
-   * 휴대폰 번호는 저장하지 않는다. 신청서의 연락처(phone) 하나로 충분하다.
-   */
-  const persist = (ids: string[], style: string, nextDelivery: string, nextEmail: string) => {
-    const labels = OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title);
-    const wantsReport = ids.includes(SAJU_REPORT_OPTION_ID);
-    const usableDelivery = wantsReport ? nextDelivery : "";
-    saveDraft("saju-song", {
-      // 표시용 한글 문자열과, 서버가 금액을 계산할 때 쓰는 id를 함께 남긴다.
-      options: labels.join(", "),
-      optionIds: ids.join(","),
-      videoStyle: ids.includes("ai-mv") ? style : "",
-      sajuReportDelivery: usableDelivery,
-      sajuReportEmail: usableDelivery === "email" ? nextEmail.trim() : "",
-    });
-  };
+export default function ApplyStep6Page() {
+  const [agreed, setAgreed] = useState(false);
+  // 취소·환불 [필수] 동의. 저작권 동의(agreed)와 독립적으로 관리한다.
+  const [refundAgreed, setRefundAgreed] = useState(false);
+  const [payment, setPayment] = useState(CARD_PAYMENT);
+  const [draft, setDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const draft = getDraft("saju-song");
-    const isEvent = isEventApply(draft);
-    setEventApply(isEvent);
-    /*
-     * 이벤트 전용 옵션은 이벤트 신청에서만 되살린다. 이벤트 링크로 들어왔다가
-     * 정가 신청으로 돌아온 경우에 지난 선택이 남아 있으면 서버가 주문을 만들지 않는다.
-     */
-    const sellable = OPTIONS.filter((opt) => isEvent || !opt.eventOnly);
-    // 되돌아온 경우: optionIds가 있으면 그것을 쓰고, 예전 draft는 한글명으로 복원한다.
-    const savedIds = (draft.optionIds ?? "").split(",").filter(Boolean);
-    const ids = savedIds.length
-      ? sellable.filter((opt) => savedIds.includes(opt.id)).map((opt) => opt.id)
-      : draft.options
-        ? sellable.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id)
-        : [];
-    if (ids.length) setSelected(ids);
-    if (draft.videoStyle) {
-      const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
-      setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
-    }
-    if (draft.sajuReportDelivery === "kakao" || draft.sajuReportDelivery === "email") {
-      setDelivery(draft.sajuReportDelivery);
-    }
-    if (draft.sajuReportEmail) setReportEmail(draft.sajuReportEmail);
-    // 1단계에서 받은 연락처. 카카오톡 안내에 보여 주기만 하고 다시 저장하지 않는다.
-    if (draft.phone) setApplyPhone(draft.phone);
+    setDraft(getDraft("saju-song"));
   }, []);
 
+  const options = selectedOptions(draft);
+  const optionLabel = [
+    options.map((opt) => opt.name).join(", ") || "없음",
+    draft.videoStyle ? `영상 스타일: ${draft.videoStyle}` : "",
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const optionsTotal = options.reduce((sum, opt) => sum + opt.price, 0);
   /*
-   * 이메일 기본값은 회원 정보에서 한 번만 가져온다.
-   *
-   * 이미 적어 둔 값이 있으면 건드리지 않는다. 소셜 가입 회원은 이메일이 비어 있을 수
-   * 있어, 값이 없으면 빈 칸으로 두고 직접 적게 한다.
-   *
-   * ★ 판단 기준은 화면 상태가 아니라 draft다.
-   *
-   * 결제에 실리는 값은 draft이고(PaySubmit이 draft를 그대로 보낸다) 화면 상태는 그 사본일
-   * 뿐이다. 응답이 늦게 도착했을 때 화면만 채우면, 입력칸에는 주소가 보이는데 draft는
-   * 비어 있어 결제 단계에서 "이메일 주소를 입력해 주세요"로 막힌다.
-   * 그래서 draft를 보고 정하고, 채울 때는 화면과 draft에 같은 값을 남긴다.
+   * 이벤트 진입이면 기본가만 바뀐다. 옵션가 합산은 그대로다(서버 계산과 같은 규칙).
+   * 시작 전이면 promotion이 undefined라 정가가 보이고, 결제에도 실려 가지 않는다.
    */
-  useEffect(() => {
-    let cancelled = false;
-    fetchMe()
-      .then((data) => {
-        if (cancelled) return;
-        const user = (data?.user ?? null) as User | null;
-        if (!user?.email) return;
-        const draft = getDraft("saju-song");
-        // 응답을 기다리는 사이에 직접 적으셨다면 그 값이 우선이다. 덮어쓰지 않는다.
-        if (draft.sajuReportEmail) return;
-        setReportEmail(user.email);
-        // 이미 이메일로 받기로 한 상태라면 draft도 함께 맞춘다. 아직 고르지 않았다면
-        // 나중에 고르는 순간 persist가 이 값을 담아 저장하므로 여기서 쓰지 않는다
-        // (카카오톡을 고를 수도 있어, 쓰지 않을 주소를 미리 남기지 않는다).
-        if (draft.sajuReportDelivery === "email") {
-          saveDraft("saju-song", { sajuReportEmail: user.email });
-        }
-      })
-      .catch(() => {
-        // 회원 정보를 읽지 못해도 직접 입력으로 진행할 수 있다.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
-      const style = id === "ai-mv" && !next.includes("ai-mv") ? "AI 실사 영상풍" : videoStyle;
-      if (id === "ai-mv" && !next.includes("ai-mv")) {
-        setVideoStyle("AI 실사 영상풍");
-      }
-      // 리포트를 빼면 받는 방법도 함께 지운다. 화면과 draft가 같은 상태를 보게 한다.
-      const nextDelivery = next.includes(SAJU_REPORT_OPTION_ID) ? delivery : "";
-      if (!next.includes(SAJU_REPORT_OPTION_ID)) setDelivery("");
-      persist(next, style, nextDelivery, reportEmail);
-      return next;
-    });
-  };
-
-  const chooseDelivery = (next: string) => {
-    setDelivery(next);
-    persist(selected, videoStyle, next, reportEmail);
-  };
-
-  const changeReportEmail = (next: string) => {
-    setReportEmail(next);
-    persist(selected, videoStyle, delivery, next);
-  };
-
-  /*
-   * 다음 단계로 가기 전 확인. 규칙은 서버와 같은 함수(checkSajuReportDelivery)가 정한다.
-   * 화면에만 규칙을 두면 결제 단계에서 다른 이유로 막힐 수 있다.
-   */
-  const validateNext = () => {
-    const check = checkSajuReportDelivery(selected, {
-      sajuReportDelivery: delivery,
-      sajuReportEmail: reportEmail,
-    });
-    return check.ok ? "" : check.error;
-  };
-
-  /** 이 신청에서 실제로 팔 수 있는 옵션만 화면에 낸다. */
-  const visibleOptions = OPTIONS.filter((opt) => eventApply || !opt.eventOnly);
-
-  const total = OPTIONS.filter((opt) => selected.includes(opt.id)).reduce(
-    (sum, opt) => sum + (opt.price ?? 0),
-    0
-  );
+  const reportDelivery = reportDeliveryLabel(draft);
+  const promotion = usablePromotion(draft);
+  const basePrice = basePriceOf(promotion);
+  const finalPrice = basePrice + optionsTotal;
+  const rows = [
+    { label: "사주 정보", value: sajuLabel(draft), href: "/apply/saju-song/1" },
+    { label: "추가 옵션", value: optionLabel, href: "/apply/saju-song/2" },
+    // 리포트를 고른 경우에만 한 줄 더 보여 준다. 고르지 않았으면 기존 화면 그대로다.
+    ...(reportDelivery
+      ? [{ label: "리포트 받는 방법", value: reportDelivery, href: "/apply/saju-song/2" }]
+      : []),
+    { label: "예상 제작 기간", value: "결제 후 평균 5~7일", href: "" },
+  ];
 
   return (
     <ApplyLayout
@@ -248,145 +145,179 @@ export default function ApplyStep5Page() {
       basePath="/apply/saju-song"
       steps={SAJU_STEPS}
       prevHref="/apply/saju-song/2"
-      nextHref="/apply/saju-song/4"
-      validateNext={validateNext}
-      heroText={"필요한 추가 옵션을\n선택해 주세요"}
+      hideNav
+      heroText={"입력하신 내용을 확인하고\n결제를 진행해 주세요"}
     
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="text-[22px] font-bold text-[#403A49]">3. 추가 옵션을 선택해주세요</h2>
-      <p className="mt-2 text-[14px] text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
+      <h2 className="text-[22px] font-bold text-[#403A49]">3. 확인 및 결제</h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-[#6B6570]">
+        입력하신 정보를 확인하고 결제를 진행해 주세요. 결제 후 담당자가 확인한 뒤 제작을 시작하며,
+        제작이 시작되면 주문 상태가 &ldquo;제작중&rdquo;으로 바뀝니다.
+      </p>
 
-      <div className="mt-5 space-y-3">
-        {visibleOptions.map((opt) => {
-          const active = selected.includes(opt.id);
-          return (
-            <div
-              key={opt.id}
-              className={`rounded-2xl border p-4 ${
-                active ? "border-[#403A49] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
-              }`}
-            >
-              <button type="button" onClick={() => toggle(opt.id)} className="flex w-full items-start gap-3 text-left">
-                <span
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 text-[12px] ${
-                    active ? "border-[#403A49] bg-[#403A49] text-white" : "border-[#d4c8ba] bg-white"
-                  }`}
-                >
-                  {active ? "✓" : ""}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[16px] font-bold text-[#403A49]">{opt.title}</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">{opt.desc}</p>
-                  <p className="mt-2 text-[15px] font-bold text-[#403A49]">
-                    {opt.price !== null ? `+ ${formatPrice(opt.price)}` : "가격 별도 문의"}
-                  </p>
-                </div>
-              </button>
-
-              {opt.id === "ai-mv" && active ? (
-                <div className="mt-4 border-t border-[#ebe3d8] pt-4">
-                  <p className="text-[17px] font-semibold text-[#403A49]">
-                    영상 스타일 <span className="text-red-500">*</span>
-                  </p>
-                  <p className="mt-1 text-[14px] text-[#6B6570]">사진을 보고 1개를 골라 주세요.</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {VIDEO_STYLES.map((style) => {
-                      const styleActive = videoStyle === style.name;
-                      return (
-                        <button
-                          key={style.name}
-                          type="button"
-                          onClick={() => {
-                            setVideoStyle(style.name);
-                            persist(selected, style.name, delivery, reportEmail);
-                          }}
-                          className={`overflow-hidden rounded-2xl bg-white text-left ${
-                            styleActive ? "ring-2 ring-[#403A49]" : "ring-1 ring-[#ebe3d8]"
-                          }`}
-                        >
-                          <div className="relative h-[88px] w-full bg-[#f5efe6]">
-                            <Image src={style.image} alt="" fill className="object-cover" sizes="160px" />
-                          </div>
-                          <div className="px-2 py-2.5">
-                            <p className="text-[14px] font-bold leading-snug text-[#3d2b1f]">{style.name}</p>
-                            <p className="mt-1 text-[12px] leading-snug text-[#6B6570]">{style.desc}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {opt.id === SAJU_REPORT_OPTION_ID && active ? (
-                <div className="mt-4 border-t border-[#ebe3d8] pt-4">
-                  <p className="text-[17px] font-semibold text-[#403A49]">
-                    받으실 방법 <span className="text-red-500">*</span>
-                  </p>
-                  <p className="mt-1 text-[14px] text-[#6B6570]">1개를 골라 주세요.</p>
-                  <div className="mt-3 flex gap-2">
-                    {DELIVERY_CHOICES.map((choice) => {
-                      const choiceActive = delivery === choice.id;
-                      return (
-                        <button
-                          key={choice.id}
-                          type="button"
-                          onClick={() => chooseDelivery(choice.id)}
-                          className={`h-12 flex-1 rounded-xl text-[15px] font-semibold ${
-                            choiceActive
-                              ? "bg-[#403A49] text-white"
-                              : "border border-[#d4c8ba] bg-white text-[#3d2b1f]"
-                          }`}
-                        >
-                          {choice.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {delivery === "kakao" ? (
-                    <p className="mt-3 rounded-xl bg-[#f5efe6] p-3 text-[14px] leading-relaxed text-[#3d2b1f]">
-                      {applyPhone
-                        ? `신청 연락처 ${applyPhone}으로 보내드립니다.`
-                        : "1단계에 적으신 신청 연락처로 보내드립니다."}
-                    </p>
-                  ) : null}
-
-                  {delivery === "email" ? (
-                    <div className="mt-3">
-                      <label
-                        className="block text-[15px] font-semibold text-[#403A49]"
-                        htmlFor="saju-report-email"
-                      >
-                        이메일 주소 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        id="saju-report-email"
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        value={reportEmail}
-                        onChange={(event) => changeReportEmail(event.target.value)}
-                        placeholder="example@email.com"
-                        className="mt-2 h-12 w-full rounded-xl border border-[#e8dfd4] bg-white px-4 text-[16px] outline-none focus:border-[#403A49]"
-                      />
-                    </div>
-                  ) : null}
-                </div>
+      <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <h3 className="text-[16px] font-bold text-[#403A49]">주문 정보 확인</h3>
+        <div className="mt-2">
+          {rows.map((row) => (
+            <div key={row.label} className="flex items-start justify-between border-b border-[#ebe3d8] py-3 last:border-0">
+              <div>
+                <p className="text-[13px] text-[#6B6570]">{row.label}</p>
+                <p className="mt-0.5 text-[15px] font-medium text-[#3d2b1f]">{row.value}</p>
+              </div>
+              {row.href ? (
+                <Link href={row.href} className="text-[13px] font-medium text-[#403A49]">
+                  수정
+                </Link>
               ) : null}
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#f5efe6] p-4">
-        <span className="text-[14px] text-[#3d2b1f]">선택한 추가 옵션 금액</span>
-        <span className="text-[20px] font-bold text-[#403A49]">{formatPrice(total)}</span>
+      <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
+        <h3 className="text-[16px] font-bold text-[#403A49]">결제 금액 확인</h3>
+        <div className="mt-3 space-y-2 text-[14px]">
+          <div className="flex justify-between">
+            <span className="text-[#6B6570]">사주 인생곡</span>
+            <span className="text-[#3d2b1f]">{formatPrice(basePrice)}</span>
+          </div>
+          {options.map((opt) => (
+            <div key={opt.name} className="flex justify-between">
+              <span className="text-[#6B6570]">{opt.name}</span>
+              <span className="text-[#3d2b1f]">+ {formatPrice(opt.price)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-xl bg-[#f5efe6] p-4 text-center">
+          <p className="text-[13px] text-[#6B6570]">최종 결제 금액</p>
+          <p className="mt-1 text-[24px] font-bold text-[#403A49]">{formatPrice(finalPrice)}</p>
+        </div>
       </div>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#6B6570]">
-        기본 상품 금액과 합산된 최종 금액은 다음 단계에서 확인하실 수 있습니다.
+
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#403A49]">사진 안내</h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#403A49]">
+          얼굴 사진, 추억 사진은 지금 올리지 않으셔도 됩니다. 결제 후 카카오톡으로 연락드려 사진을
+          받겠습니다.
+        </p>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#403A49]">{COPYRIGHT_NOTICE_TITLE}</h3>
+        {COPYRIGHT_NOTICE_PARAGRAPHS.map((text) => (
+          <p key={text} className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
+            {text}
+          </p>
+        ))}
+        <label className="mt-3 flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-1 h-5 w-5 accent-[#403A49]"
+          />
+          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
+            {COPYRIGHT_CONSENT_LABEL}
+          </span>
+        </label>
+      </div>
+
+      {/*
+        취소·환불 [필수] 동의.
+        이 문구가 어느 판인지는 legal.ts의 신청 동의 버전(= 시행일)이 가리킨다.
+        문구를 고치면 그 상수도 함께 올려야 증빙이 가리키는 문구가 갈라지지 않는다.
+      */}
+      <div className="mt-4 rounded-2xl bg-[#f5efe6] p-4">
+        <h3 className="text-[16px] font-bold text-[#403A49]">취소·환불 안내 [필수]</h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-[#403A49]">
+          맞춤 제작 상품의 특성상 제작 진행 상태에 따라 취소·환불이 제한될 수 있습니다. 자세한 기준은{" "}
+          <Link href="/refund" className="font-semibold underline underline-offset-2">
+            취소·환불 안내
+          </Link>
+          에서 확인하실 수 있습니다.
+        </p>
+        <label className="mt-3 flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={refundAgreed}
+            onChange={(e) => setRefundAgreed(e.target.checked)}
+            className="mt-1 h-5 w-5 accent-[#403A49]"
+          />
+          <span className="text-[14px] leading-relaxed text-[#3d2b1f]">
+            취소·환불 안내를 확인했으며 동의합니다. [필수]
+          </span>
+        </label>
+      </div>
+
+      <div className="mt-5">
+        <h3 className="mb-3 text-[16px] font-bold text-[#403A49]">결제 방법 선택</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {PAYMENT_METHODS.map((method) => {
+            /*
+             * 지금 실제로 결제되는 것은 카드뿐이다(PaySubmit의 CARD_ONLY_MESSAGE 방어와 같은 기준).
+             * 나머지는 목록에서 빼지 않고 누를 수 없게 두고 "준비 중"임을 그 자리에서 알린다.
+             * 고를 수 있게 두면 결제 단계까지 가서야 막혀 헛걸음이 된다.
+             */
+            const ready = method === CARD_PAYMENT;
+            return (
+              <button
+                key={method}
+                type="button"
+                // disabled면 클릭 이벤트가 발생하지 않으므로 payment는 바뀌지 않는다.
+                disabled={!ready}
+                onClick={() => setPayment(method)}
+                className={`min-h-12 rounded-xl text-[14px] font-medium flex flex-col items-center justify-center ${
+                  payment === method
+                    ? "bg-[#403A49] text-white"
+                    : ready
+                      ? "border border-[#e8dfd4] bg-white text-[#3d2b1f]"
+                      : "border border-[#ebe3d8] bg-[#f5efe6] text-[#9a938c]"
+                }`}
+              >
+                {method}
+                {ready ? null : (
+                  <span className="mt-0.5 text-[12px] font-normal">준비 중</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {agreed && refundAgreed ? (
+        <PaySubmit
+          flow="saju-song"
+          kind="order"
+          product="saju-song"
+          title="사주 인생곡"
+          amount={finalPrice}
+          optionIds={options.map((opt) => opt.id)}
+          promotion={promotion}
+          payment={payment}
+          details={{
+            // [필수] 동의 두 건을 각각 전달한다. 화면에서 따로 눌리므로 따로 보낸다.
+            // 보내는 것은 동의 여부뿐이다. 시각과 버전은 서버가 채운다
+            // (refundConsent / copyrightConsent 증빙).
+            applyConsent: refundAgreed ? "1" : "",
+            copyrightConsent: agreed ? "1" : "",
+            사주정보: sajuLabel(draft),
+            옵션: optionLabel,
+          }}
+          label={`${formatPrice(finalPrice)} 결제하기`}
+        />
+      ) : (
+        <button
+          type="button"
+          disabled
+          className="mt-6 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white opacity-40"
+        >
+          {formatPrice(finalPrice)} 결제하기
+        </button>
+      )}
+      <p className="mt-2 text-center text-[12px] text-[#6B6570]">
+        모든 결제 정보는 안전하게 암호화되어 처리됩니다.
       </p>
     </ApplyLayout>
   );

@@ -16,7 +16,7 @@ const config = {
   badge: "사주 정보만 입력하면 OK!",
   heroImage: "/images/photo-ohaeng.png",
   description:
-    "상담 없이 사주 정보와 당신의 이야기, 음악 취향을 함께 반영해 인생곡을 제작합니다.",
+    "상담 없이 사주 정보를 바탕으로 인생의 흐름과 필요한 메시지를 담아 인생곡을 제작합니다.",
   features: [
     { icon: <Grid3X3 className="h-5 w-5" />, label: "사주 분석", sub: "운명 흐름" },
     { icon: <Mic className="h-5 w-5" />, label: "메시지 구성", sub: "자동 구성" },
@@ -45,8 +45,8 @@ const config = {
   ],
   process: [
     { num: "01", title: "사주 정보 입력", desc: "생년월일·시간을 입력합니다" },
-    { num: "02", title: "당신의 이야기", desc: "글로 쓰거나 말로 들려주세요" },
-    { num: "03", title: "AI 작사·작곡", desc: "사주와 이야기를 담아 곡을 만듭니다" },
+    { num: "02", title: "사주 흐름 살펴보기", desc: "인생의 흐름과 필요한 메시지를 찾습니다" },
+    { num: "03", title: "AI 작사·작곡", desc: "사주 흐름과 메시지를 담아 곡을 만듭니다" },
     { num: "04", title: "완성·전달", desc: "음원과 가사를 전달합니다" },
   ],
   faqs: [
@@ -56,7 +56,7 @@ const config = {
     },
     {
       question: "상담을 하나요?",
-      answer: "하지 않습니다. 사주 정보와 당신의 이야기, 음악 취향만으로 제작합니다.",
+      answer: "하지 않습니다. 입력하신 사주 정보만으로 제작합니다.",
     },
     {
       question: "제작 기간은?",
@@ -75,12 +75,8 @@ const config = {
 
 const EASY_STEPS = [
   { title: "1. 사주 정보 넣기" },
-  {
-    title: "2. 이야기와 좋아하는 노래 고르기",
-    note: "이야기는 글로 쓰거나, 말로 할 수 있습니다",
-  },
-  { title: "3. 노래 만들기" },
-  { title: "4. 완성해서 보내드리기" },
+  { title: "2. 노래 만들기" },
+  { title: "3. 완성해서 보내드리기" },
 ];
 
 export default function SajuSongProductPage() {
@@ -109,9 +105,6 @@ export default function SajuSongProductPage() {
               {EASY_STEPS.map((step) => (
                 <li key={step.title}>
                   <p className="text-[16px] leading-relaxed text-[#5c3d2e]">{step.title}</p>
-                  {step.note ? (
-                    <p className="mt-0.5 text-[14px] leading-relaxed text-[#6B6570]">{step.note}</p>
-                  ) : null}
                 </li>
               ))}
             </ul>

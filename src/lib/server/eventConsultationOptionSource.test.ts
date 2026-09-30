@@ -13,7 +13,7 @@ import { PROMOTION_PRICES } from "../constants/promotions.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const PRICING = read("./pricing.ts");
-const APPLY_STEP3 = read("../../app/apply/saju-song/3/page.tsx");
+const APPLY_STEP3 = read("../../app/apply/saju-song/2/page.tsx");
 const ADMIN = read("../../app/admin/page.tsx");
 const MY_ORDER = read("../../app/my/orders/[id]/page.tsx");
 

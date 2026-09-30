@@ -70,7 +70,7 @@ const PROCESS = [
 
 const SAJU_PROCESS = [
   { num: "01", label: "사주 정보", icon: ClipboardList },
-  { num: "02", label: "이야기·취향", icon: Pencil },
+  { num: "02", label: "사주 흐름", icon: Pencil },
   { num: "03", label: "작사·작곡", icon: Music },
   { num: "04", label: "완성·전달", icon: Music },
 ];
@@ -218,7 +218,7 @@ export default function ProductsPage() {
         <section className="px-4 pb-6">
           <h3 className="text-[17px] font-bold text-[#403A49]">사주 인생곡 제작 과정</h3>
           <p className="mt-1 text-[13px] text-[#6B6570]">
-            상담은 하지 않습니다. 사주 정보와 이야기로 노래를 만듭니다.
+            상담 없이 사주 정보를 바탕으로 인생의 흐름과 필요한 메시지를 담아 노래를 만듭니다.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             {SAJU_PROCESS.map((step) => (

@@ -16,10 +16,9 @@ export const STORY_STEPS = [
 ];
 
 export const SAJU_STEPS = [
-  { num: 1, label: "사주 정보" },
-  { num: 2, label: "노래 스타일" },
-  { num: 3, label: "추가 옵션" },
-  { num: 4, label: "확인 및 결제" },
+  { num: 1, label: "본인 정보" },
+  { num: 2, label: "추가 옵션" },
+  { num: 3, label: "확인 및 결제" },
 ];
 
 export const CONSULT_STEPS = [

@@ -28,8 +28,8 @@ const OPTIONS = [
 
 const STEPS = [
   { num: "01", title: "사주 정보 입력", desc: "생년월일과 태어난 시간을 넣어 주세요" },
-  { num: "02", title: "이야기와 노래 취향", desc: "하고 싶은 이야기와 좋아하는 노래를 알려 주세요" },
-  { num: "03", title: "인생곡 제작", desc: "사주 흐름과 이야기를 담아 곡을 만듭니다" },
+  { num: "02", title: "사주 흐름 살펴보기", desc: "인생의 흐름과 필요한 메시지를 찾습니다" },
+  { num: "03", title: "인생곡 제작", desc: "사주 흐름과 메시지를 담아 곡을 만듭니다" },
   { num: "04", title: "완성·전달", desc: "음원과 가사를 전달해 드립니다" },
 ];
 
@@ -113,7 +113,7 @@ export default function SajuSongOpenEventPage() {
       <section className="px-4 py-6">
         <SectionTitle>사주 인생곡이란?</SectionTitle>
         <p className="mt-3 text-[16px] leading-relaxed text-[#403A49]">
-          상담 없이 사주 정보와 당신의 이야기, 좋아하는 음악을 함께 담아 세상에 하나뿐인 노래를
+          상담 없이 사주 정보를 바탕으로 인생의 흐름과 필요한 메시지를 담아 세상에 하나뿐인 노래를
           만들어 드립니다.
         </p>
       </section>
@@ -124,7 +124,7 @@ export default function SajuSongOpenEventPage() {
           <p className="text-[17px] font-bold text-[#403A49]">사주 인생곡 1곡</p>
           <ul className="mt-3 space-y-2 text-[16px] leading-relaxed text-[#5c3d2e]">
             <li>· 사주 흐름을 담은 맞춤 가사</li>
-            <li>· 이야기와 취향을 반영한 음악</li>
+            <li>· 사주 흐름과 메시지를 담은 음악</li>
             <li>· 음원 파일과 가사 전달</li>
           </ul>
           <p className="mt-4 text-[16px] text-[#403A49]">
@@ -195,7 +195,7 @@ export default function SajuSongOpenEventPage() {
       <section className="px-4 pb-10 pt-6">
         <div className="rounded-2xl bg-white p-5 text-center ring-1 ring-[#ebe3d8]">
           <p className="font-serif text-[20px] font-bold leading-snug text-[#403A49]">
-            당신의 사주와 이야기를
+            당신의 사주 흐름을
             <br />
             노래로 간직하세요
           </p>

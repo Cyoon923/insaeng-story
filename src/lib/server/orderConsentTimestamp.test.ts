@@ -258,7 +258,7 @@ test("인생곡 화면은 동의 여부만 보낸다", () => {
   for (const relative of [
     "../../app/apply/story-song/6/page.tsx",
     "../../app/apply/premium/6/page.tsx",
-    "../../app/apply/saju-song/4/page.tsx",
+    "../../app/apply/saju-song/3/page.tsx",
   ]) {
     const source = read(relative);
     assert.match(source, /applyConsent: refundAgreed \? "1" : "",/, relative);

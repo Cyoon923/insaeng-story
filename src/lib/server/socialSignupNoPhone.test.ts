@@ -282,11 +282,11 @@ test("신청 관문은 신청 화면 공통 레이아웃 한 곳에 있다", () 
   assert.ok(layout.includes("<ApplyPhoneGate />"), "레이아웃이 관문을 렌더한다");
 });
 
-test("신청 화면 20개가 모두 그 레이아웃을 쓴다", () => {
+test("신청 화면 19개가 모두 그 레이아웃을 쓴다", () => {
   const bases = [
     ["story-song", 6],
     ["premium", 6],
-    ["saju-song", 4],
+    ["saju-song", 3],
     ["consultation", 4],
   ] as const;
   let count = 0;
@@ -297,7 +297,7 @@ test("신청 화면 20개가 모두 그 레이아웃을 쓴다", () => {
       count += 1;
     }
   }
-  assert.equal(count, 20, "네 상품 20단계를 모두 확인했다");
+  assert.equal(count, 19, "네 상품 19단계를 모두 확인했다");
 });
 
 test("네 상품 페이지에 관문을 복붙하지 않았다", () => {

@@ -727,7 +727,7 @@ test("신청 연결은 공통 진입점 한 곳에만 있다", () => {
   for (const file of [
     "src/app/apply/story-song/6/page.tsx",
     "src/app/apply/premium/6/page.tsx",
-    "src/app/apply/saju-song/4/page.tsx",
+    "src/app/apply/saju-song/3/page.tsx",
     "src/app/apply/consultation/4/page.tsx",
   ]) {
     assert.ok(!read(file).includes("verify-phone"), `${file}는 손대지 않았다`);

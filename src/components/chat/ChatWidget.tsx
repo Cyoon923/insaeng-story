@@ -243,7 +243,7 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   compare: {
     label: "세 상품은 뭐가 달라요?",
     answer:
-      "차이는 상담이 들어가는지예요 🐾\n\n· 이야기로 만드는 인생곡\n  직접 쓰신 이야기로 제작해요.\n\n· 사주 인생곡\n  상담 없이 사주 정보와 이야기로 제작해요.\n\n· 프리미엄 인생곡\n  사주상담과 스토리상담을 함께 진행해요.\n\n뮤직비디오는 세 상품 모두 추가 옵션이에요.",
+      "차이는 상담이 들어가는지예요 🐾\n\n· 이야기로 만드는 인생곡\n  직접 쓰신 이야기로 제작해요.\n\n· 사주 인생곡\n  상담 없이 사주 정보를 바탕으로 인생의 흐름과 필요한 메시지를 담아 제작해요.\n\n· 프리미엄 인생곡\n  사주상담과 스토리상담을 함께 진행해요.\n\n뮤직비디오는 세 상품 모두 추가 옵션이에요.",
     next: ["choose", "story", "premium", "saju-song"],
   },
   choose: {
@@ -267,7 +267,7 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   },
   "saju-song": {
     label: "사주 인생곡",
-    answer: `상담 없이 사주 정보와 고객님의 이야기,\n음악 취향을 함께 담아 만드는 인생곡이에요 🐾\n\n가격은 ${productPriceFrom("saju-song")}이에요.\n\n생년월일과 태어난 시간을 입력해 주시면 되고,\n시간을 모르셔도 신청하실 수 있어요.`,
+    answer: `상담 없이 사주 정보를 바탕으로\n인생의 흐름과 필요한 메시지를 담아\n만드는 인생곡이에요 🐾\n\n가격은 ${productPriceFrom("saju-song")}이에요.\n\n생년월일과 태어난 시간을 입력해 주시면 되고,\n시간을 모르셔도 신청하실 수 있어요.`,
     next: ["compare", "price", "lyric-edit", "apply"],
     cta: { label: "사주 인생곡 자세히 보기", href: productHref("saju-song") },
   },
