@@ -249,7 +249,7 @@ function isBlocked(data: AppData, teacher: string, date: string, time: string): 
 
 function isBooked(data: AppData, teacher: string, date: string, time: string): boolean {
   return data.consultations.some((item) => {
-    // 취소 표시된 상담(환불된 이벤트 상담)은 슬롯을 점유하지 않는다. 일반 상담에는 이 값이 없다.
+    // 취소 표시된 상담(환불이 끝난 이벤트·일반 상담)은 슬롯을 점유하지 않는다.
     if (item.cancelledAt) return false;
     if (item.teacher !== teacher) return false;
     const parsed = parseDatetime(item.datetime);

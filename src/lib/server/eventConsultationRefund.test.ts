@@ -9,11 +9,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
+  cancelConsultationAfterRefund,
   cancelEventConsultationAfterRefund,
+  cancelRefundedConsultation,
   consultationRefundOrderId,
   markEventConsultationCancelled,
+  markRefundedConsultationCancelled,
   runEventConsultationCleanupSafely,
 } from "./eventConsultationRefund.ts";
+import { executeApprovedRefund } from "./refundExecuteAdminApi.ts";
+import type { ExecuteApprovedRefundDeps } from "./refundExecuteAdminApi.ts";
 import type { EventConsultationCleanupDeps } from "./eventConsultationRefund.ts";
 import { eventConsultationId } from "./eventConsultation.ts";
 import { isSlotAvailable } from "./consultationSlots.ts";
@@ -288,8 +293,174 @@ test("관리자: 상태 변경 잠금은 consultationRefundOrderId, 재시도는
   const start = route.indexOf('if (action === "retryEventConsultationCancel")');
   const block = route.slice(start, route.indexOf("\n  if (action ===", start + 10));
   assert.match(block, /authorizePointsRestoreRecovery\(refundRequestId\)/);
-  assert.match(block, /cleanupEventConsultationAfterRefund\(gate\.orderId\)/);
+  assert.match(block, /cleanupConsultationAfterRefund\(gate\.orderId\)/);
   for (const name of ["executeApprovedRefund", "runRefundPaymentNormalFinalize", "cancelNicepayPayment", "runRefundPaymentRecovery"]) {
     assert.equal(block.includes(name), false, name);
   }
+});
+
+/* ── 일반 1:1 상담: 환불 completed → 같은 id 상담 취소 표시 → 슬롯 반환 ── */
+
+const C_ID = "c-is-gen1";
+
+function generalConsult(overrides: Partial<Consultation> = {}): Consultation {
+  return consult({ id: C_ID, amount: 100000, details: {}, ...overrides });
+}
+
+function consultOrder(overrides: Partial<Order> = {}): Order {
+  return {
+    id: C_ID,
+    userId: "u-1",
+    product: "consultation",
+    title: "1:1 사주상담",
+    status: "신청접수",
+    amount: 100000,
+    payment: "신용/체크카드",
+    details: {},
+    createdAt: "2026-10-05T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function generalDeps(overrides: Partial<EventConsultationCleanupDeps> & { store?: AppData } = {}) {
+  return deps({ store: data([generalConsult()]), getOrder: async () => consultOrder(), ...overrides });
+}
+
+test("일반 상담: 환불 completed → 같은 id 상담에 cancelledAt 기록, 슬롯이 다시 열린다", async () => {
+  const h = generalDeps();
+  assert.equal(isSlotAvailable(h.store, "유비 선생", "10월 12일(월)", "오전 10:00"), false);
+  const result = await cancelRefundedConsultation(C_ID, h.d);
+  assert.deepEqual(result, { kind: "cancelled", consultationId: C_ID });
+  assert.equal(h.store.consultations[0].cancelledAt, NOW);
+  assert.equal(h.writes.length, 1);
+  assert.equal(isSlotAvailable(h.store, "유비 선생", "10월 12일(월)", "오전 10:00"), true);
+});
+
+test("일반 상담: completed 전에는 읽지도 바꾸지도 않는다", async () => {
+  let read = 0;
+  const h = generalDeps({
+    isRefundCompleted: async () => false,
+    getOrder: async () => {
+      read += 1;
+      return consultOrder();
+    },
+  });
+  assert.deepEqual(await cancelRefundedConsultation(C_ID, h.d), { kind: "not-refunded" });
+  assert.equal(read, 0);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.store.consultations[0].cancelledAt, undefined);
+});
+
+test("일반 상담: 다른 회원·다른 id·이벤트 상담은 건드리지 않는다", () => {
+  const foreign = generalConsult({ userId: "u-9" });
+  const otherId = generalConsult({ id: "c-is-other" });
+  const eventLike = generalConsult({ details: { eventOrderId: C_ID } });
+  const d = data([foreign, otherId, eventLike]);
+  assert.deepEqual(markRefundedConsultationCancelled(d, consultOrder(), NOW), { kind: "no-consultation" });
+  assert.equal(d.consultations.every((item) => !item.cancelledAt), true);
+});
+
+test("일반 상담: 반복 실행은 멱등이고 최초 cancelledAt을 유지한다", async () => {
+  const h = generalDeps();
+  await cancelRefundedConsultation(C_ID, h.d);
+  const again = await cancelRefundedConsultation(C_ID, { ...h.d, now: () => new Date(LATER) });
+  assert.deepEqual(again, { kind: "already-cancelled", consultationId: C_ID });
+  assert.equal(h.store.consultations[0].cancelledAt, NOW);
+  assert.equal(h.writes.length, 1);
+});
+
+test("일반 상담: 저장 충돌이면 재시도, 3회 모두 충돌이면 던지고 상태는 그대로", async () => {
+  let calls = 0;
+  const once = generalDeps({
+    writeData: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("conflict");
+    },
+  });
+  assert.equal((await cancelRefundedConsultation(C_ID, once.d)).kind, "cancelled");
+  assert.equal(calls, 2);
+  const always = generalDeps({
+    writeData: async () => {
+      throw new Error("conflict");
+    },
+  });
+  await assert.rejects(cancelRefundedConsultation(C_ID, always.d), /conflict/);
+  assert.equal(always.store.consultations[0].cancelledAt, undefined);
+});
+
+test("일반 상담: 인생곡 등 다른 상품 주문은 not-applicable, 저장 없음", async () => {
+  for (const product of ["story", "premium", "saju-song"] as const) {
+    const h = generalDeps({ getOrder: async () => consultOrder({ product }) });
+    assert.deepEqual(await cancelRefundedConsultation(C_ID, h.d), { kind: "not-applicable" });
+    assert.equal(h.writes.length, 0);
+  }
+});
+
+test("진입점: 이벤트 주문은 기존 이벤트 결과 그대로, 일반 상담 주문은 일반 규칙, 인생곡은 no-op", async () => {
+  const ev = deps();
+  assert.deepEqual(await cancelConsultationAfterRefund(ORDER_ID, ev.d), { kind: "cancelled", consultationId: CONSULT_ID });
+  const gen = generalDeps();
+  assert.deepEqual(await cancelConsultationAfterRefund(C_ID, gen.d), { kind: "cancelled", consultationId: C_ID });
+  const song = generalDeps({ getOrder: async () => consultOrder({ product: "story" }) });
+  assert.deepEqual(await cancelConsultationAfterRefund(C_ID, song.d), { kind: "not-applicable" });
+  assert.equal(song.writes.length, 0);
+  // 이벤트 주문에는 일반 규칙이 끼어들지 않는다(같은 id 일반 상담이 있어도 이벤트 대상만).
+  const mixed = deps({ store: data([consult(), generalConsult({ id: ORDER_ID })]) });
+  await cancelConsultationAfterRefund(ORDER_ID, mixed.d);
+  assert.equal(mixed.store.consultations[1].cancelledAt, undefined);
+});
+
+test("세 유료 완료 경로의 기본 deps는 이벤트+일반 진입점에 연결된다", () => {
+  for (const file of ["./refundPaymentRecovery.ts", "./refundPaymentSucceededRecovery.ts", "./refundPaymentNormalFinalize.ts"]) {
+    const src = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.match(src, /\)\.cleanupConsultationAfterRefund\(orderId\)/, file);
+    assert.equal(src.includes("cleanupEventConsultationAfterRefund"), false, file);
+  }
+});
+
+function freeCouponDeps(
+  result: "completed" | "not-completed" | "not-applicable",
+  cleanup: (orderId: string) => Promise<unknown>,
+) {
+  const calls = { execute: 0 };
+  const d: ExecuteApprovedRefundDeps = {
+    authorize: async () => ({ kind: "allowed", orderId: C_ID }) as never,
+    execute: async () => {
+      calls.execute += 1;
+      return { kind: "completed", paymentId: "p", orderId: C_ID, alreadyFinalized: false } as never;
+    },
+    completeFreeCoupon: async () =>
+      (result === "completed"
+        ? { kind: "completed", alreadyCompleted: false }
+        : result === "not-completed"
+          ? { kind: "not-completed" }
+          : { kind: "not-applicable", reason: "x" }) as never,
+    cleanupConsultation: (orderId) => cleanup(orderId),
+  };
+  return { d, calls };
+}
+
+test("무료 쿠폰 0원 상담 환불: completed 뒤 상담 정리 1회, 정리가 던져도 응답은 completed", async () => {
+  const seen: string[] = [];
+  const ok = freeCouponDeps("completed", async (orderId) => {
+    seen.push(orderId);
+  });
+  const res = await executeApprovedRefund("rr-1", ok.d);
+  assert.equal(res.status, 200);
+  assert.deepEqual(seen, [C_ID]);
+  assert.equal(ok.calls.execute, 0);
+  const boom = freeCouponDeps("completed", async () => {
+    throw new Error("store down");
+  });
+  const res2 = await executeApprovedRefund("rr-1", boom.d);
+  assert.equal(res2.status, 200);
+});
+
+test("무료 쿠폰 0원: completed가 아니면 상담 정리를 부르지 않는다", async () => {
+  let cleaned = 0;
+  const h = freeCouponDeps("not-completed", async () => {
+    cleaned += 1;
+  });
+  await executeApprovedRefund("rr-1", h.d);
+  assert.equal(cleaned, 0);
 });

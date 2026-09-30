@@ -237,10 +237,11 @@ export interface Consultation {
   completedAt?: string;
 
   /**
-   * 취소된 시각(UTC ISO). 지금은 OPEN EVENT 주문 전체 환불이 끝난 이벤트 상담
-   * (details.eventOrderId)에만 서버가 남긴다(lib/server/eventConsultationRefund.ts).
+   * 취소된 시각(UTC ISO). 환불이 completed가 된 상담에만 서버가 남긴다
+   * (lib/server/eventConsultationRefund.ts): OPEN EVENT 주문 환불의 이벤트 상담,
+   * 같은 id 주문 환불의 일반 1:1 상담.
    * 한 번 기록되면 덮어쓰지 않는다. 값이 있으면 슬롯을 점유하지 않는다.
-   * 일반 상담에는 기록하지 않으며, 기존 상담에는 없다("취소 기록 없음").
+   * 이 기록이 생기기 전에 환불된 상담에는 없다("취소 기록 없음", 자동 소급 없음).
    */
   cancelledAt?: string;
 

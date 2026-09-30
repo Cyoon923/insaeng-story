@@ -1252,7 +1252,7 @@ export default function AdminPage() {
    * 보내는 값은 completed 환불 문의 id 하나다.
    */
   async function handleRetryEventConsultCancel(refundRequestId: string) {
-    if (!window.confirm("이벤트 상담 취소 반영을 다시 시도하시겠습니까?\n\n결제사에 환불을 다시 요청하지 않습니다.")) {
+    if (!window.confirm("상담 취소 반영을 다시 시도하시겠습니까?\n\n결제사에 환불을 다시 요청하지 않습니다.")) {
       return;
     }
     try {
@@ -2580,12 +2580,12 @@ export default function AdminPage() {
                */
               // OPEN EVENT 상담은 원 이벤트 주문의 환불로 판단한다(서버 잠금과 같은 규칙).
               const refunded = hasCompletedRefund(refundRequests.items, consultationRefundOrderId(item));
-              const eventRefundRequestId =
-                item.details?.eventOrderId && refunded
-                  ? refundRequests.items.find(
-                      (row) => row.orderId === item.details.eventOrderId && row.status === "completed",
-                    )?.id
-                  : undefined;
+              // 환불은 끝났는데 취소 표시가 빠진 상담의 재시도 대상. 이벤트는 원 주문, 일반은 같은 id 주문.
+              const eventRefundRequestId = refunded
+                ? refundRequests.items.find(
+                    (row) => row.orderId === consultationRefundOrderId(item) && row.status === "completed",
+                  )?.id
+                : undefined;
               /*
                * 결제 배지는 주문 카드와 같은 함수·같은 데이터로 정한다.
                * 상담 주문도 같은 id로 orderPayments에 들어 있어 추가 조회가 없다.

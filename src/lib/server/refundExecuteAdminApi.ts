@@ -29,6 +29,7 @@
 import type { RefundExecutionGateResult } from "./refundExecutionGate.ts";
 import type { RefundPaymentNormalFinalizeResult } from "./refundPaymentNormalFinalize.ts";
 import type { FreeCouponRefundResult } from "./freeCouponRefund.ts";
+import { runEventConsultationCleanupSafely } from "./eventConsultationRefund.ts";
 
 /** 이 흐름이 쓰는 바깥 기능. 취소·복구·선점 함수는 여기에 없다. */
 export interface ExecuteApprovedRefundDeps {
@@ -42,6 +43,11 @@ export interface ExecuteApprovedRefundDeps {
    * execute를 부르지 않는다. 없으면 이 분기 자체가 없다(기존 흐름만 탄다).
    */
   completeFreeCoupon?: (orderId: string) => Promise<FreeCouponRefundResult>;
+  /**
+   * 무료 쿠폰 0원 건이 completed가 된 뒤 상담 취소 표시(슬롯 반환). 유료 경로의 정상·복구 흐름과
+   * 같은 후처리다. 실패해도 응답을 바꾸지 않는다. 없으면 부르지 않는다.
+   */
+  cleanupConsultation?: (orderId: string) => Promise<unknown>;
 }
 
 /** 무료 쿠폰 0원 건 완료 안내. PG 취소가 없었다는 사실을 함께 알린다. */
@@ -259,6 +265,7 @@ export async function executeApprovedRefund(
       };
     }
     if (free.kind === "completed") {
+      await runEventConsultationCleanupSafely(deps.cleanupConsultation, gate.orderId);
       return {
         status: 200,
         body: { ok: true, status: "completed", message: FREE_COUPON_COMPLETED_MESSAGE },
@@ -316,5 +323,7 @@ export async function defaultExecuteApprovedRefundDeps(): Promise<ExecuteApprove
         await normal.defaultRefundPaymentNormalFinalizeDeps(),
       ),
     completeFreeCoupon: (orderId) => freeCoupon.completeFreeCouponRefund(orderId),
+    cleanupConsultation: async (orderId) =>
+      (await import("@/lib/server/eventConsultationRefund")).cleanupConsultationAfterRefund(orderId),
   };
 }

@@ -372,6 +372,6 @@ export async function defaultRefundPaymentRecoveryDeps(): Promise<RefundPaymentR
     restorePoints: async (input) =>
       points.runRefundPointsRestore(input, await points.defaultRefundPointsRestoreDeps()),
     cleanupEventConsultation: async (orderId) =>
-      (await import("@/lib/server/eventConsultationRefund")).cleanupEventConsultationAfterRefund(orderId),
+      (await import("@/lib/server/eventConsultationRefund")).cleanupConsultationAfterRefund(orderId),
   };
 }

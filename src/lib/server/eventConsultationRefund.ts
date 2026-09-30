@@ -9,7 +9,7 @@
  *
  * - 대상은 이벤트 상담(ce-{주문 id}, details.eventOrderId === 주문 id, 같은 회원) 한 건뿐이다.
  * - 기록은 cancelledAt 하나이며 최초값을 유지한다. 몇 번을 불러도 결과가 같다.
- * - 일반 1:1 상담에는 기록하지 않는다(일반 상담 환불·슬롯 동작은 그대로).
+ * - 일반 1:1 상담은 아래 cancelRefundedConsultation이 같은 방식으로 따로 맡는다.
  * - 취소 표시된 상담은 consultationSlots.isBooked에서 빠져 슬롯이 다시 열린다.
  *
  * 순수 판정과 흐름만 둔다. 저장·조회 모듈은 기본 deps가 필요할 때만 읽는다.
@@ -121,4 +121,68 @@ export async function defaultEventConsultationCleanupDeps(): Promise<EventConsul
 /** 환불 완료 흐름의 deps에 끼울 기본 후처리. */
 export async function cleanupEventConsultationAfterRefund(orderId: string): Promise<EventConsultationCleanupResult> {
   return cancelEventConsultationAfterRefund(orderId, await defaultEventConsultationCleanupDeps());
+}
+
+/*
+ * ── 일반 1:1 상담 ──────────────────────────────
+ *
+ * 일반 유료(또는 무료 쿠폰 0원) 상담은 결제 귀속 주문과 상담이 같은 id를 쓴다(applyOrder.ts).
+ * 그 주문의 환불이 completed가 된 뒤에만 같은 id 상담에 cancelledAt을 남겨 슬롯을 연다.
+ * 이벤트 상담과 같은 규칙(최초값 유지, CAS 재시도, 실패해도 환불 완료는 그대로)이며
+ * 위 이벤트 함수는 건드리지 않는다.
+ */
+
+/** 일반 상담 취소 표시. 주문과 id·회원이 같은 상담 한 건만 본다. data를 직접 바꾼다. */
+export function markRefundedConsultationCancelled(
+  data: AppData,
+  order: Pick<Order, "id" | "userId">,
+  nowIso: string,
+): Exclude<EventConsultationCleanupResult, { kind: "not-refunded" } | { kind: "not-applicable" }> {
+  const target = data.consultations.find(
+    (item) => item.id === order.id && item.userId === order.userId && !item.details?.eventOrderId,
+  );
+  if (!target) return { kind: "no-consultation" };
+  if (target.cancelledAt) return { kind: "already-cancelled", consultationId: target.id };
+  target.cancelledAt = nowIso;
+  return { kind: "cancelled", consultationId: target.id };
+}
+
+/** 일반 상담 주문(product "consultation")의 환불 완료 후처리. 그 밖의 주문은 not-applicable. */
+export async function cancelRefundedConsultation(
+  orderId: string,
+  deps: EventConsultationCleanupDeps,
+): Promise<EventConsultationCleanupResult> {
+  const id = orderId.trim();
+  if (!id || !(await deps.isRefundCompleted(id))) return { kind: "not-refunded" };
+  const order = await deps.getOrder(id);
+  if (!order || order.id !== id || order.product !== "consultation") return { kind: "not-applicable" };
+  for (let attempt = 1; ; attempt += 1) {
+    const data = await deps.readData();
+    const result = markRefundedConsultationCancelled(data, order, (deps.now?.() ?? new Date()).toISOString());
+    if (result.kind !== "cancelled") return result;
+    try {
+      await deps.writeData(data);
+      return result;
+    } catch (error) {
+      if (!deps.isConflict(error) || attempt >= SAVE_ATTEMPTS) throw error;
+    }
+  }
+}
+
+/**
+ * 환불 완료 뒤 상담 정리 진입점. 이벤트 주문이면 기존 이벤트 함수 결과를 그대로 돌려주고,
+ * 이벤트 대상이 아닐 때(not-applicable)만 일반 상담을 본다. 인생곡 주문은 둘 다 not-applicable이다.
+ */
+export async function cancelConsultationAfterRefund(
+  orderId: string,
+  deps: EventConsultationCleanupDeps,
+): Promise<EventConsultationCleanupResult> {
+  const event = await cancelEventConsultationAfterRefund(orderId, deps);
+  if (event.kind !== "not-applicable") return event;
+  return cancelRefundedConsultation(orderId, deps);
+}
+
+/** 환불 완료 흐름의 deps에 끼울 기본 후처리(이벤트 + 일반 상담). */
+export async function cleanupConsultationAfterRefund(orderId: string): Promise<EventConsultationCleanupResult> {
+  return cancelConsultationAfterRefund(orderId, await defaultEventConsultationCleanupDeps());
 }

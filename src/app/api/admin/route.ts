@@ -65,7 +65,7 @@ import { toAdminUserView } from "@/lib/server/adminUserView";
 import { removeReviewById } from "@/lib/adminReviews";
 import { setInquiryHandled } from "@/lib/adminInquiries";
 import {
-  cleanupEventConsultationAfterRefund,
+  cleanupConsultationAfterRefund,
   consultationRefundOrderId,
 } from "@/lib/server/eventConsultationRefund";
 import {
@@ -509,14 +509,15 @@ async function handlePost(request: Request) {
         { status: 409 },
       );
     }
-    const result = await cleanupEventConsultationAfterRefund(gate.orderId);
+    // 이벤트 상담이면 기존 이벤트 규칙, 일반 1:1 상담 주문이면 같은 id 상담을 취소 표시한다.
+    const result = await cleanupConsultationAfterRefund(gate.orderId);
     if (result.kind === "cancelled" || result.kind === "already-cancelled") {
       return NextResponse.json({ ok: true, status: result.kind });
     }
     return NextResponse.json({
       ok: false,
       status: result.kind,
-      message: "이 주문으로 예약한 이벤트 상담이 없어 처리할 것이 없습니다.",
+      message: "이 주문으로 예약한 상담이 없어 처리할 것이 없습니다.",
     });
   }
 
