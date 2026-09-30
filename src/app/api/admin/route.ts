@@ -62,6 +62,7 @@ import {
 } from "@/lib/server/pointsRestoreRecoveryAdminApi";
 import { authorizePointsRestoreRecovery } from "@/lib/server/pointsRestoreRecoveryGate";
 import { toAdminUserView } from "@/lib/server/adminUserView";
+import { removeReviewById } from "@/lib/adminReviews";
 import {
   cleanupEventConsultationAfterRefund,
   consultationRefundOrderId,
@@ -903,6 +904,24 @@ async function handlePost(request: Request) {
     review.visible = visible;
     await writeData(data);
     return NextResponse.json({ ok: true, review });
+  }
+
+  if (action === "deleteReview") {
+    /**
+     * 후기 1건 삭제. 관리자 인증은 이 함수 앞의 공통 관문이 한다.
+     * 서버가 읽은 목록에서 id가 정확히 같은 후기만 뺀다. 다른 후기·주문·상담은 그대로다.
+     * 저장은 app_store CAS(writeData)이며, 겹치면 POST 최상위가 409로 돌려준다.
+     */
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    if (!id) {
+      return NextResponse.json({ error: "후기를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    if (!removeReviewById(data, id)) {
+      return NextResponse.json({ error: "후기를 찾을 수 없습니다." }, { status: 404 });
+    }
+    await writeData(data);
+    return NextResponse.json({ ok: true, id });
   }
 
   return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });

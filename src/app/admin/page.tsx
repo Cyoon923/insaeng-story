@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { formatAdminDate } from "@/lib/adminDate";
+import { reviewKindLabel, reviewTargetLabel } from "@/lib/adminReviews";
 import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 import {
   consultationRefundOrderId,
@@ -105,6 +106,8 @@ type ReviewItem = {
   text: string;
   createdAt: string;
   visible?: boolean;
+  kind?: string;
+  targetKey?: string;
 };
 
 const TABS: { id: TabId; label: string }[] = [
@@ -511,6 +514,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState<TabId>("users");
   // 회원 탭 목록 필터. 탈퇴 여부는 withdrawnAt 하나로 가른다(isActiveUser와 같은 기준).
   const [userFilter, setUserFilter] = useState<"all" | "active" | "withdrawn">("all");
+  // 후기 탭 목록 필터. 상태는 기존 visible 하나로만 가른다(true = 공개, 그 외 = 승인대기).
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "visible">("all");
   const [users, setUsers] = useState<User[]>([]);
   const [paymentReview, setPaymentReview] = useState<{
     stale: PaymentReviewItem[];
@@ -1322,6 +1327,28 @@ export default function AdminPage() {
     setReviews((list) => list.map((item) => (item.id === next.id ? { ...item, visible: next.visible } : item)));
   }
 
+  /** 후기 1건 삭제. 되돌릴 수 없어 먼저 확인받는다. 성공하면 목록에서 바로 뺀다. */
+  async function handleDeleteReview(id: string) {
+    if (!window.confirm("이 후기를 삭제하시겠습니까?\n\n삭제하면 되돌릴 수 없고, 고객 화면에서도 더 이상 보이지 않습니다.")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deleteReview", id }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        window.alert(data?.error ?? "삭제하지 못했습니다. 다시 시도해 주세요.");
+        return;
+      }
+      setReviews((list) => list.filter((item) => item.id !== id));
+    } catch {
+      window.alert("요청에 실패했습니다. 다시 시도해 주세요.");
+    }
+  }
+
   /**
    * 상담원 답변 저장. 성공한 메시지만 화면에 더하고, 목록의 마지막 말과 시간도 함께 맞춘다.
    * 관리자 전체 데이터를 다시 불러오지 않는다.
@@ -1530,6 +1557,10 @@ export default function AdminPage() {
   // 탈퇴한 회원은 이름과 개인정보만 비운 채 행이 남는다. 숫자에서는 빼고 목록에는 그대로 둔다.
   const activeUsers = users.filter((user) => !user.withdrawnAt);
   // 회원 탭 목록과 빈 상태는 지금 고른 필터 결과로 판단한다. 탭 숫자(정상회원 수)의 뜻은 그대로다.
+  const pendingReviewCount = reviews.filter((item) => !item.visible).length;
+  const filteredReviews = reviews.filter((item) =>
+    reviewFilter === "all" ? true : reviewFilter === "visible" ? Boolean(item.visible) : !item.visible,
+  );
   const visibleUsers = users.filter((user) =>
     userFilter === "all" ? true : userFilter === "withdrawn" ? Boolean(user.withdrawnAt) : !user.withdrawnAt,
   );
@@ -2528,8 +2559,33 @@ export default function AdminPage() {
             })
           : null}
 
+        {tab === "reviews" ? (
+          <div className="flex gap-2" role="group" aria-label="후기 필터">
+            {(
+              [
+                ["all", `전체 ${reviews.length}`],
+                ["pending", `승인대기 ${pendingReviewCount}`],
+                ["visible", `공개 ${reviews.length - pendingReviewCount}`],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={reviewFilter === value}
+                onClick={() => setReviewFilter(value)}
+                className={`h-11 flex-1 rounded-xl px-2 text-[13px] font-semibold ${
+                  reviewFilter === value
+                    ? "bg-[#5c3d2e] text-white"
+                    : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {tab === "reviews"
-          ? reviews.map((item) => (
+          ? filteredReviews.map((item) => (
               <article key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-[16px] font-bold text-[#403A49]">{item.title || "후기"}</p>
@@ -2537,6 +2593,10 @@ export default function AdminPage() {
                     {item.visible ? "공개" : "대기"}
                   </span>
                 </div>
+                {/* 상품 종류와 후기 대상(주문/상담 id). 저장된 kind·targetKey만 쓴다. */}
+                <p className="mt-1 text-[13px] text-[#6B6570]">
+                  {reviewKindLabel(item.title, item.kind)} · {reviewTargetLabel(item.targetKey)}
+                </p>
                 <p className="mt-2 text-[14px] text-[#5c3d2e]">
                   {item.name || "이름 없음"} · 별점 {item.rating}점
                 </p>
@@ -2554,6 +2614,13 @@ export default function AdminPage() {
                   }`}
                 >
                   {item.visible ? "대기로 바꾸기" : "상품에 공개"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteReview(item.id)}
+                  className="ml-2 mt-3 min-h-10 rounded-lg border border-[#e3b7b0] bg-white px-3 text-[13px] font-semibold text-[#8b3a2e]"
+                >
+                  삭제
                 </button>
               </article>
             ))
@@ -3245,7 +3312,11 @@ export default function AdminPage() {
           </>
         ) : null}
 
-        {(tab === "users" ? visibleUsers.length : counts[tab as Exclude<TabId, "schedule">]) === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
+        {(tab === "users"
+          ? visibleUsers.length
+          : tab === "reviews"
+            ? filteredReviews.length
+            : counts[tab as Exclude<TabId, "schedule">]) === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
           <div className="rounded-2xl bg-[#f5efe6] px-4 py-10 text-center text-[15px] text-[#8b6f5c]">
             아직 등록된 내역이 없습니다.
           </div>
