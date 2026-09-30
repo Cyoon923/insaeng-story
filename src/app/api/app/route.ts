@@ -1,5 +1,11 @@
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
+import {
+  defaultLoginAttemptStore,
+  gatePasswordLogin,
+  LOGIN_RATE_LIMITED_MESSAGE,
+  requestIp,
+} from "@/lib/server/loginRateLimit";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
@@ -1129,6 +1135,12 @@ async function handlePost(request: Request) {
     if (!password) {
       return NextResponse.json({ error: "비밀번호를 입력해 주세요." }, { status: 400 });
     }
+    // 반복 시도 제한. 비밀번호를 확인하기 전에 센다. 없는 아이디도 입력값 그대로 같은 규칙이다.
+    const loginAttempts = await defaultLoginAttemptStore();
+    const loginGate = await gatePasswordLogin(loginAttempts, loginId, requestIp(request));
+    if (!loginGate.ok) {
+      return NextResponse.json({ error: LOGIN_RATE_LIMITED_MESSAGE }, { status: 429 });
+    }
     // 탈퇴 회원은 아이디가 지워지지만, 판정은 isActiveUser로 명시해 둔다.
     const user = data.users.find(
       (item) => isActiveUser(item) && normalizeLoginId(item.loginId ?? "") === loginId,
@@ -1141,6 +1153,8 @@ async function handlePost(request: Request) {
         { status: 400 },
       );
     }
+    // 성공하면 이 아이디+IP 기록만 지운다(IP 전체 기록은 그대로). 지우기 실패가 로그인을 막지 않는다.
+    await loginAttempts.clear(loginGate.accountKey).catch(() => {});
     await setUserId(user.id);
     return NextResponse.json({ ok: true, user: toPublicUser(user) });
   }

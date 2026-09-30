@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  defaultLoginAttemptStore,
+  gateAdminLogin,
+  LOGIN_RATE_LIMITED_MESSAGE,
+  requestIp,
+} from "@/lib/server/loginRateLimit";
+import {
   clearAdminSession,
   CURRENT_ADMIN_ACTOR,
   getAdminPassword,
@@ -295,6 +301,12 @@ async function handlePost(request: Request) {
     if (!adminPassword) {
       return NextResponse.json({ error: "관리자 로그인을 사용할 수 없습니다." }, { status: 503 });
     }
+    // 반복 시도 제한(IP 기준). 비밀번호를 비교하기 전에 센다.
+    const loginAttempts = await defaultLoginAttemptStore();
+    const loginGate = await gateAdminLogin(loginAttempts, requestIp(request));
+    if (!loginGate.ok) {
+      return NextResponse.json({ error: LOGIN_RATE_LIMITED_MESSAGE }, { status: 429 });
+    }
     const password = String(body.password ?? "");
     if (password !== adminPassword) {
       return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 401 });
@@ -302,6 +314,8 @@ async function handlePost(request: Request) {
     if (!(await setAdminAuthenticated())) {
       return NextResponse.json({ error: "관리자 로그인을 사용할 수 없습니다." }, { status: 503 });
     }
+    // 성공하면 이 IP의 실패 기록을 지운다. 지우기 실패가 로그인을 막지 않는다.
+    await loginAttempts.clear(loginGate.adminKey).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
