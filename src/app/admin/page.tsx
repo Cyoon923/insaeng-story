@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
+import { formatAdminDate } from "@/lib/adminDate";
 import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
 import {
   consultationRefundOrderId,
@@ -156,9 +157,9 @@ function buildCalendarCells(dates: string[]) {
   return cells;
 }
 
+/** 관리자 화면의 날짜·시각은 모두 한국 시각으로 보인다(lib/adminDate.ts). */
 function formatDate(value: string) {
-  if (!value) return "-";
-  return value.slice(0, 16).replace("T", " ").replaceAll("-", ".");
+  return formatAdminDate(value);
 }
 
 /**
@@ -508,6 +509,8 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabId>("users");
+  // 회원 탭 목록 필터. 탈퇴 여부는 withdrawnAt 하나로 가른다(isActiveUser와 같은 기준).
+  const [userFilter, setUserFilter] = useState<"all" | "active" | "withdrawn">("all");
   const [users, setUsers] = useState<User[]>([]);
   const [paymentReview, setPaymentReview] = useState<{
     stale: PaymentReviewItem[];
@@ -1526,6 +1529,10 @@ export default function AdminPage() {
   const currentCodeUses = codeUses.filter((item) => item.code === adminPromo?.code);
   // 탈퇴한 회원은 이름과 개인정보만 비운 채 행이 남는다. 숫자에서는 빼고 목록에는 그대로 둔다.
   const activeUsers = users.filter((user) => !user.withdrawnAt);
+  // 회원 탭 목록과 빈 상태는 지금 고른 필터 결과로 판단한다. 탭 숫자(정상회원 수)의 뜻은 그대로다.
+  const visibleUsers = users.filter((user) =>
+    userFilter === "all" ? true : userFilter === "withdrawn" ? Boolean(user.withdrawnAt) : !user.withdrawnAt,
+  );
   const counts: Record<Exclude<TabId, "schedule">, number> = {
     users: activeUsers.length,
     points: activeUsers.length,
@@ -1665,10 +1672,43 @@ export default function AdminPage() {
       ) : null}
 
       <div className="space-y-3 px-4 py-5">
+        {tab === "users" ? (
+          <div className="flex gap-2" role="group" aria-label="회원 필터">
+            {(
+              [
+                ["all", `전체 ${users.length}`],
+                ["active", `정상회원 ${activeUsers.length}`],
+                ["withdrawn", `탈퇴회원 ${users.length - activeUsers.length}`],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={userFilter === value}
+                onClick={() => setUserFilter(value)}
+                className={`h-11 flex-1 rounded-xl px-2 text-[13px] font-semibold ${
+                  userFilter === value
+                    ? "bg-[#5c3d2e] text-white"
+                    : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {tab === "users"
-          ? users.map((user) => (
+          ? visibleUsers
+              .map((user) => (
               <article key={user.id} className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]">
-                <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[16px] font-bold text-[#403A49]">{userLabel(user)}</p>
+                  {user.withdrawnAt ? (
+                    <span className="shrink-0 rounded-full bg-[#403A49] px-3 py-1 text-[12px] font-semibold text-white">
+                      탈퇴
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-[14px] text-[#5c3d2e]">{contactLabel(user)}</p>
                 {/*
                   추천인 코드는 휴대폰 본인확인을 마친 회원에게만 표시한다.
@@ -1685,6 +1725,29 @@ export default function AdminPage() {
                   <p className="mt-2 text-[13px] text-[#6B6570]">추천인 코드 — 본인확인 전</p>
                 )}
                 <p className="mt-1 text-[13px] text-[#6B6570]">가입일 {formatDate(user.createdAt)}</p>
+                {user.withdrawnAt ? (
+                  <>
+                    <p className="mt-1 text-[13px] text-[#6B6570]">탈퇴일 {formatDate(user.withdrawnAt)}</p>
+                    {/*
+                      이미 받아 둔 목록에서 같은 회원 id로만 센다. 탈퇴 전 개인정보는 쓰지 않는다.
+                      결제는 인생곡 주문과 상담(= 결제 귀속 주문 id)의 결제 요약을 더한다.
+                    */}
+                    {(() => {
+                      const userOrders = orders.filter((order) => order.userId === user.id);
+                      const userConsults = consultations.filter((item) => item.userId === user.id);
+                      const paymentCount = [...userOrders, ...userConsults].reduce(
+                        (sum, item) => sum + (orderPayments.items[item.id]?.totalCount ?? 0),
+                        0,
+                      );
+                      return (
+                        <p className="mt-1 text-[13px] text-[#6B6570]">
+                          연결 기록: 주문 {userOrders.length}건 · 상담 {userConsults.length}건 · 결제{" "}
+                          {orderPayments.loaded ? `${paymentCount}건` : "확인 필요"}
+                        </p>
+                      );
+                    })()}
+                  </>
+                ) : null}
               </article>
             ))
           : null}
@@ -3182,7 +3245,7 @@ export default function AdminPage() {
           </>
         ) : null}
 
-        {counts[tab as Exclude<TabId, "schedule">] === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
+        {(tab === "users" ? visibleUsers.length : counts[tab as Exclude<TabId, "schedule">]) === 0 && tab !== "schedule" && tab !== "coupons" && tab !== "codes" ? (
           <div className="rounded-2xl bg-[#f5efe6] px-4 py-10 text-center text-[15px] text-[#8b6f5c]">
             아직 등록된 내역이 없습니다.
           </div>

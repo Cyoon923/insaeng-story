@@ -61,6 +61,7 @@ import {
   restoreOrderPointsByAdmin,
 } from "@/lib/server/pointsRestoreRecoveryAdminApi";
 import { authorizePointsRestoreRecovery } from "@/lib/server/pointsRestoreRecoveryGate";
+import { toAdminUserView } from "@/lib/server/adminUserView";
 import {
   cleanupEventConsultationAfterRefund,
   consultationRefundOrderId,
@@ -227,7 +228,8 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    users: data.users,
+    // 비밀번호 해시·소셜 로그인 id는 관리자 브라우저로 보내지 않는다.
+    users: data.users.map(toAdminUserView),
     paymentsNeedingReview,
     orders,
     /**
@@ -573,7 +575,7 @@ async function handlePost(request: Request) {
     const current = user.points ?? 0;
     user.points = direction === "add" ? current + amount : Math.max(0, current - amount);
     await writeData(data);
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true, user: toAdminUserView(user) });
   }
 
   if (action === "giveCoupon") {
