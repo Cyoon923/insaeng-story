@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { clearDraft, fetchMe, getDraft, postApp } from "@/lib/client/api";
 import { openNicepayCard } from "@/lib/client/nicepay";
 import { formatPrice } from "@/lib/constants/products";
+import { DEV_APPLY_PREVIEW, DEV_APPLY_PREVIEW_FLOW } from "@/lib/devApplyPreview";
 import { phoneDigits } from "@/lib/phoneVerification";
 import type { Coupon, CouponProduct } from "@/lib/types/app";
 
 /** 결제수단 선택 화면이 쓰는 값. NICEPAY 연결은 아직 이 카드 결제만 지원한다. */
 const CARD_PAYMENT = "신용/체크카드";
 const CARD_ONLY_MESSAGE = "지금은 신용/체크카드로만 결제할 수 있습니다. 결제수단을 카드로 선택해 주세요.";
+const DEV_PREVIEW_MESSAGE = "개발 미리보기입니다. 결제·신청 요청을 보내지 않습니다.";
 
 export function PaySubmit({
   flow,
@@ -44,6 +46,8 @@ export function PaySubmit({
   promotion?: string;
 }) {
   const router = useRouter();
+  // localhost 미리보기(사주 인생곡만). Production 빌드에서는 언제나 false다.
+  const devPreview = DEV_APPLY_PREVIEW && flow === DEV_APPLY_PREVIEW_FLOW;
   const [error, setError] = useState("");
   // 로그인 여부는 기존 세션 판별(GET /api/app 의 user)을 그대로 쓴다.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
@@ -129,6 +133,11 @@ export function PaySubmit({
   }, []);
 
   const submit = async () => {
+    // localhost 미리보기: 결제 준비·주문·상담 요청을 보내지 않는다.
+    if (devPreview) {
+      setError(DEV_PREVIEW_MESSAGE);
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -357,11 +366,16 @@ export function PaySubmit({
           </Link>
         </div>
       ) : null}
+      {devPreview ? (
+        <p className="mt-3 rounded-lg bg-[#fff4d6] p-3 text-center text-[14px] font-semibold text-[#8a5a3b]">
+          {DEV_PREVIEW_MESSAGE}
+        </p>
+      ) : null}
       {error ? <p className="mt-3 text-center text-[14px] text-red-600">{error}</p> : null}
       <button
         type="button"
         onClick={submit}
-        disabled={loading || loggedIn !== true}
+        disabled={loading || (loggedIn !== true && !devPreview)}
         className="mt-4 flex h-14 w-full items-center justify-center rounded-lg bg-[#403A49] text-[16px] font-bold text-white disabled:opacity-40"
       >
         {loading

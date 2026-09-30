@@ -13,6 +13,7 @@ import {
   SAJU_REPORT_OPTION_ID,
 } from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
+import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
 import type { User } from "@/lib/types/app";
 
 const VIDEO_STYLES = [
@@ -85,7 +86,8 @@ function isEventApply(draft: Record<string, string>): boolean {
   const promotion = draft.promotion;
   if (!isPromotionId(promotion)) return false;
   if (PROMOTION_PRICES[promotion].product !== "saju-song") return false;
-  return isPromotionOpen(promotion);
+  // localhost 미리보기에서는 오픈 전에도 화면만 보여 준다. 서버 판정은 그대로다.
+  return isPromotionOpen(promotion) || DEV_APPLY_PREVIEW;
 }
 
 /** 리포트를 받는 방법. 저장값은 이 두 가지뿐이다. */

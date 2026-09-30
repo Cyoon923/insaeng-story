@@ -12,6 +12,7 @@ import {
   SAJU_REPORT_OPTION_ID,
 } from "@/lib/server/pricing";
 import { isPromotionId, isPromotionOpen, PROMOTION_PRICES } from "@/lib/constants/promotions";
+import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
 import { getDraft } from "@/lib/client/api";
 import {
   COPYRIGHT_CONSENT_LABEL,
@@ -32,7 +33,8 @@ function usablePromotion(draft: Record<string, string>) {
   const promotion = draft.promotion;
   if (!isPromotionId(promotion)) return undefined;
   if (PROMOTION_PRICES[promotion].product !== "saju-song") return undefined;
-  if (!isPromotionOpen(promotion)) return undefined;
+  // localhost 미리보기에서는 오픈 전에도 화면만 보여 준다. 서버 판정은 그대로다.
+  if (!isPromotionOpen(promotion) && !DEV_APPLY_PREVIEW) return undefined;
   return promotion;
 }
 

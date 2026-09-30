@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getDraft } from "@/lib/client/api";
+import { DEV_APPLY_PREVIEW } from "@/lib/devApplyPreview";
 
 export const STORY_STEPS = [
   { num: 1, label: "기본정보" },
@@ -142,6 +143,11 @@ export function ApplyNavButtons({
   const goNext = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!requireContactFlow && !validateNext) return;
     event.preventDefault();
+    // localhost 미리보기: 사주 인생곡 신청만 입력 확인 없이 넘긴다(devApplyPreview.ts).
+    if (DEV_APPLY_PREVIEW && nextHref.startsWith("/apply/saju-song/")) {
+      router.push(nextHref);
+      return;
+    }
     const message = requireContactFlow ? contactMissingMessage(requireContactFlow) : "";
     if (message) {
       window.alert(message);
