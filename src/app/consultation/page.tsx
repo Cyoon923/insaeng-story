@@ -326,6 +326,15 @@ export default function ConsultationPage() {
             </div>
           ))}
         </div>
+        {/* 상담 후기만 모아 보는 /reviews 필터로 잇는다. 후기가 없으면 두지 않는다. */}
+        {reviews.length > 0 ? (
+          <Link
+            href="/reviews?kind=consultation"
+            className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-[#e8dfd4] bg-white text-[14px] font-semibold text-[#403A49]"
+          >
+            전체 후기 보기
+          </Link>
+        ) : null}
       </section>
 
       <section className="px-4 pb-8">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRight, MessageCircle, Music, Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -179,6 +180,14 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
               </div>
             ))}
           </div>
+          {/* 이 상품 후기만 모아 보는 /reviews 필터로 잇는다. */}
+          <Link
+            href={`/reviews?kind=${encodeURIComponent(config.slug)}`}
+            className="mt-3 flex min-h-11 items-center justify-center gap-0.5 rounded-xl border border-[#e8dfd4] bg-white text-[14px] font-semibold text-[#403A49]"
+          >
+            전체 후기 보기
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
         </section>
       ) : null}
 

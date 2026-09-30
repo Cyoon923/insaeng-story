@@ -70,3 +70,31 @@ export function displayReviewsForProduct(
       verified: Boolean(item.verified),
     }));
 }
+
+/** 공개 후기 목록·홈에서 쓰는 상품 종류 짧은 이름. */
+export const REVIEW_KIND_LABELS: Record<ReviewKind, string> = {
+  story: "이야기 인생곡",
+  premium: "프리미엄 인생곡",
+  "saju-song": "사주 인생곡",
+  consultation: "1:1 사주상담",
+};
+
+/** 주소의 ?kind= 값. 네 가지 상품 종류만 받고, 그 밖의 값이나 빈 값은 null(= 전체)이다. */
+export function reviewKindFromQuery(value: string | null | undefined): ReviewKind | null {
+  return value === "story" || value === "premium" || value === "saju-song" || value === "consultation"
+    ? value
+    : null;
+}
+
+/**
+ * 홈 후기 섹션에 보여 줄 값. 공개 후기는 서버가 최신순으로 준다(createReview가 앞에 추가).
+ * 최신 limit개와 전체 공개 후기의 평균·개수를 돌려준다. 후기가 없으면 null(섹션을 숨긴다).
+ */
+export function pickHomeReviews<T extends { rating: number }>(
+  published: T[],
+  limit = 3,
+): { items: T[]; summary: { count: number; average: number } } | null {
+  const summary = summarizeReviews(published);
+  if (!summary) return null;
+  return { items: published.slice(0, limit), summary };
+}

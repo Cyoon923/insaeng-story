@@ -5,7 +5,12 @@ import { Star } from "lucide-react";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { fetchMe } from "@/lib/client/api";
-import { reviewKindFromSaved, type ReviewKind } from "@/lib/constants/reviews";
+import {
+  REVIEW_KIND_LABELS,
+  reviewKindFromQuery,
+  reviewKindFromSaved,
+  type ReviewKind,
+} from "@/lib/constants/reviews";
 
 /** 공개 후기 응답. 작성일과 targetKey는 공개 API에 담기지 않는다. */
 type PublicReview = {
@@ -27,13 +32,6 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: "saju-song", label: "사주 인생곡" },
   { id: "consultation", label: "1:1 사주상담" },
 ];
-
-const KIND_LABEL: Record<ReviewKind, string> = {
-  story: "이야기 인생곡",
-  premium: "프리미엄 인생곡",
-  "saju-song": "사주 인생곡",
-  consultation: "1:1 사주상담",
-};
 
 const PER_PAGE = 6;
 /** 페이지가 많아져도 현재 페이지 주변 번호만 보여 준다. */
@@ -58,6 +56,12 @@ export default function ReviewsPage() {
     fetchMe()
       .then((data) => {
         setReviews((data.reviews ?? []) as PublicReview[]);
+        /*
+         * 상품 상세·상담에서 "전체 후기 보기"로 들어오면 ?kind=로 처음 필터를 정한다.
+         * 잘못된 값이나 없는 값은 전체. 이후 버튼으로 바꾼 필터는 주소에 다시 쓰지 않는다.
+         */
+        const kind = reviewKindFromQuery(new URLSearchParams(window.location.search).get("kind"));
+        if (kind) setFilter(kind);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -135,7 +139,7 @@ export default function ReviewsPage() {
                   ))}
                 </div>
               </div>
-              <p className="mt-1 text-[12px] text-[#6B6570]">{KIND_LABEL[kind]}</p>
+              <p className="mt-1 text-[12px] text-[#6B6570]">{REVIEW_KIND_LABELS[kind]}</p>
               {review.title ? (
                 <p className="mt-2 text-[15px] font-semibold text-[#403A49]">{review.title}</p>
               ) : null}

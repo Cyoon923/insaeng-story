@@ -8,6 +8,7 @@ import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { HeroSection } from "@/components/home/HeroSection";
 import { ProgramGrid } from "@/components/home/ProgramGrid";
+import { ReviewSection } from "@/components/home/ReviewSection";
 import { YouTubeSection } from "@/components/home/YouTubeSection";
 import { QuickLinks } from "@/components/home/QuickLinks";
 
@@ -107,6 +108,7 @@ export default function HomePage() {
             </button>
           </div>
           <ProgramGrid />
+          <ReviewSection />
           <YouTubeSection />
           <QuickLinks />
         </>
