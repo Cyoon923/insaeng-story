@@ -285,7 +285,8 @@ export async function POST(request: Request) {
   }
 
   // 10) 여기까지 온 요청만 승인한다. 금액은 서버가 확정한 값만 쓴다.
-  const outcome = await approveNicepayPayment({ tid, amount: recalculated });
+  // 응답의 tid·orderId·amount가 이 세 값과 모두 같아야 approved가 된다. 아니면 unknown이다.
+  const outcome = await approveNicepayPayment({ tid, amount: recalculated, merchantOrderId });
 
   // 11-B) 결과를 확정할 수 없으면 상태를 바꾸지 않는다.
   //       processing으로 남겨 두고 사람이 확인한다. 결제 실패라고 말하지 않는다.
@@ -308,7 +309,8 @@ export async function POST(request: Request) {
   //       이 UPDATE가 먼저 성공해야 저장이 실패해도 "돈은 받았고 주문은 없다"는 사실이 남는다.
   const paid = await claimPaymentApproved({
     merchantOrderId,
-    pgTid: outcome.result?.tid ?? tid,
+    // approved는 응답 tid가 이 값과 같다는 것을 확인한 결과다.
+    pgTid: tid,
     approvedAmount: recalculated,
     method: outcome.result?.payMethod ?? null,
     approvedAt: outcome.result?.paidAt ?? null,

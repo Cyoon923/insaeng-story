@@ -183,7 +183,7 @@ test("NICEPAY return은 주문·상담 모두 PG에 보낸 금액을 승인 금�
     assert.match(block, /mode: "paid-approved"/, call);
     assert.match(block, /approvedAmount: recalculated,/, call);
   }
-  assert.match(RETURN_ROUTE, /approveNicepayPayment\(\{ tid, amount: recalculated \}\)/);
+  assert.match(RETURN_ROUTE, /approveNicepayPayment\(\{ tid, amount: recalculated, merchantOrderId \}\)/);
 });
 
 test("관리자 recommit은 기존 금액 대조를 유지하고 승인 금액을 넘긴다", () => {

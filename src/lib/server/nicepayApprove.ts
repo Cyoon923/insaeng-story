@@ -10,8 +10,10 @@
  *           body: amount(필수), ediDate·signData·returnCharSet(선택)
  *           signData = hex(sha256(tid + amount + ediDate + SecretKey))
  *  - 성공   resultCode === "0000" && status === "paid"
+ *           그리고 응답의 tid·orderId·amount가 우리가 승인 요청한 거래와 모두 같아야 한다
  */
 import { createHash, timingSafeEqual } from "crypto";
+import { readWonAmount } from "./refundPaymentReconciliation.ts";
 
 const APPROVE_ENDPOINT = "https://api.nicepay.co.kr/v1/payments";
 
@@ -97,12 +99,32 @@ export function verifyReturnSignature(input: {
 }
 
 /**
+ * 성공 응답이 우리가 승인 요청한 거래인지. tid·orderId·amount가 모두 있고 모두 같아야 한다.
+ * 누락·형식 오류·불일치는 모두 false다. 금액은 원 단위 정수로 읽는다(숫자 문자열도 받는다).
+ */
+function isExpectedTransaction(
+  result: NicepayApproveResult,
+  expected: { tid: string; merchantOrderId: string; amount: number },
+): boolean {
+  const raw = result as Record<string, unknown>;
+  return (
+    typeof raw.tid === "string" &&
+    raw.tid === expected.tid &&
+    typeof raw.orderId === "string" &&
+    raw.orderId === expected.merchantOrderId &&
+    readWonAmount(raw.amount) === expected.amount
+  );
+}
+
+/**
  * 승인 요청. 호출 전에 서버 검증을 모두 끝낸 상태여야 한다.
  * amount는 서버가 확정한 금액만 넘긴다.
+ * merchantOrderId는 결제창에 넘긴 주문번호다. 승인 응답의 orderId와 맞춰 본다.
  */
 export async function approveNicepayPayment(input: {
   tid: string;
   amount: number;
+  merchantOrderId: string;
 }): Promise<NicepayApproveOutcome> {
   const clientKey = nicepayClientKey();
   const secretKey = nicepaySecretKey();
@@ -164,6 +186,22 @@ export async function approveNicepayPayment(input: {
   const result = raw as NicepayApproveResult;
   const ok = result.resultCode === "0000" && result.status === "paid";
   if (ok) {
+    /*
+     * 성공 응답이어도 다른 거래의 응답이면 승인으로 보지 않는다.
+     * 그렇다고 거절(declined)로 확정하지도 않는다. PG에서는 실제로 승인됐을 수 있어,
+     * 실패로 확정하면 "돈은 나갔는데 실패"가 된다. unknown으로 돌려 결제를 processing에
+     * 남기고 사람이 확인하게 한다(호출자는 unknown이면 상태를 바꾸지 않는다).
+     */
+    if (!isExpectedTransaction(result, input)) {
+      return {
+        kind: "unknown",
+        ok: false,
+        reason: "결제 결과를 확인하는 중입니다.",
+        raw,
+        result: null,
+        httpStatus: response.status,
+      };
+    }
     return { kind: "approved", ok: true, reason: "", raw, result, httpStatus: response.status };
   }
   return {
