@@ -31,7 +31,9 @@ let version = 0;
 const readVersions = new WeakMap<object, number>();
 let payments: Record<string, Row>;
 let orderRows: Row[];
-let failNextOrderWrite = false;
+/** 확정 저장(writeDataWithOrderForPayment) 회차별 개입. 비어 있으면 그대로 저장한다. */
+let orderWriteSteps: ("conflict" | "unrelated-write" | "recommitted" | Error)[] = [];
+let orderWriteCalls = 0;
 /** 참이면 승인 API가 불린 뒤의 모든 app_store 쓰기를 CAS 충돌로 밀어낸다. */
 let conflictAfterApprove = false;
 let approveOutcome: "approved" | "declined" | "unknown" = "approved";
@@ -112,10 +114,20 @@ mock.module("@/lib/server/store", {
       throw new Error("not used");
     },
     writeDataWithOrderForPayment: async (data: Row, order: Row, merchantOrderId: string) => {
-      // 확정 저장 1회를 CAS 충돌로 밀어낸다(그사이 다른 요청이 app_store를 쓴 상황).
-      if (failNextOrderWrite) {
-        failNextOrderWrite = false;
-        throw new AppStoreConflictError();
+      orderWriteCalls += 1;
+      const step = orderWriteSteps.shift();
+      if (step === "conflict") throw new AppStoreConflictError();
+      if (step instanceof Error) throw step;
+      if (step === "unrelated-write") {
+        // 무관한 다른 요청(다른 회원의 찜)이 먼저 저장했다. version이 올라 아래 CAS가 밀린다.
+        db.wishlists = { ...(db.wishlists as Row), "u-2": ["p-x"] };
+        version += 1;
+      }
+      if (step === "recommitted") {
+        // 그사이 같은 건이 다른 경로(관리자 재접수)로 확정됐다.
+        db.consultations = [{ id: `c-${merchantOrderId}`, teacher: TEACHER, datetime: DATETIME }, ...(db.consultations as Row[])];
+        db.consultationHolds = [];
+        version += 1;
       }
       commitCas(data); // app_store CAS가 실패하면 아래 주문·결제 연결도 일어나지 않는다(한 문장)
       orderRows.push(order);
@@ -224,7 +236,8 @@ function reset(...ids: string[]) {
   payments = {};
   for (const [index, id] of ids.entries()) payments[id] = payment(id, index === 0 ? "u-1" : "u-2");
   orderRows = [];
-  failNextOrderWrite = false;
+  orderWriteSteps = [];
+  orderWriteCalls = 0;
   conflictAfterApprove = false;
   approveOutcome = "approved";
   approveCalls = [];
@@ -311,9 +324,9 @@ test("D. 승인 결과 불명: processing 유지, hold 유지, 슬롯 막힘", a
 
 /* ── E. 승인 후 commit CAS 실패 → recommit ─────────── */
 
-test("E. 승인 후 저장 CAS 실패 → paid+미연결·hold 유지 → recommit이 hold를 상담으로 전환", async () => {
+test("E. 승인 후 저장 CAS 충돌 3회 소진 → paid+미연결·hold 유지 → recommit이 hold를 상담으로 전환", async () => {
   reset("is-a");
-  failNextOrderWrite = true;
+  orderWriteSteps = ["conflict", "conflict", "conflict"];
   const html = await (await nicepayReturn("is-a")).text();
   assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
   assert.equal(payments["is-a"].status, "paid");
@@ -321,6 +334,8 @@ test("E. 승인 후 저장 CAS 실패 → paid+미연결·hold 유지 → recomm
   assert.equal(holds().length, 1);
   assert.equal(consultations().length, 0);
   assert.equal(await slotAvailable(), false);
+  assert.equal(orderWriteCalls, 3);
+  assert.deepEqual(approveCalls, ["is-a"]);
 
   const response = await recommit("is-a");
   const json = await response.json();
@@ -366,4 +381,49 @@ test("G'. 정상 승인 전환도 다른 결제 hold(다른 시간)는 남긴다
   await nicepayReturn("is-a");
   assert.equal(consultations().length, 1);
   assert.deepEqual(holds().map((item) => item.merchantOrderId), ["is-other"]);
+});
+
+/* ── P1-05: 승인 뒤 확정 저장의 CAS 충돌 재시도 ─────────── */
+
+test("P1-05 상담: 무관한 저장과 겹쳐 첫 확정이 밀림 → 새로 읽어 자기 hold로 다시 확정, 승인 1회", async () => {
+  reset("is-a");
+  orderWriteSteps = ["unrelated-write"];
+  const response = await nicepayReturn("is-a");
+  assert.equal(response.status, 303);
+  assert.match(String(response.headers.get("Location")), /type=consult&id=c-is-a/);
+  assert.deepEqual(approveCalls, ["is-a"]);
+  assert.equal(orderWriteCalls, 2);
+  assert.equal(payments["is-a"].status, "paid");
+  assert.equal(payments["is-a"].orderId, "c-is-a");
+  // 자기 hold는 재시도에서도 점유로 보지 않고, 확정과 같은 저장에서 상담으로 바뀐다.
+  assert.equal(holds().length, 0);
+  assert.equal(consultations().length, 1);
+  assert.equal(orderRows.length, 1);
+  // 먼저 저장된 무관한 변경은 그대로 남는다(최신 데이터 위에서 다시 확정했다).
+  assert.deepEqual((db.wishlists as Row)["u-2"], ["p-x"]);
+  assert.equal(await slotAvailable(), false);
+});
+
+test("P1-05 상담: CAS 충돌이 아닌 오류 → 재시도 없이 pending, paid+미연결·hold 유지", async () => {
+  reset("is-a");
+  orderWriteSteps = [new Error("db down")];
+  const html = await (await nicepayReturn("is-a")).text();
+  assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
+  assert.equal(orderWriteCalls, 1);
+  assert.deepEqual(approveCalls, ["is-a"]);
+  assert.equal(payments["is-a"].status, "paid");
+  assert.equal(payments["is-a"].orderId, null);
+  assert.equal(holds().length, 1);
+  assert.equal(consultations().length, 0);
+});
+
+test("P1-05 상담: 재시도 전에 같은 건이 이미 확정됐으면 다시 확정하지 않는다(중복 상담 없음)", async () => {
+  reset("is-a");
+  orderWriteSteps = ["recommitted"];
+  const html = await (await nicepayReturn("is-a")).text();
+  assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
+  assert.equal(orderWriteCalls, 1);
+  assert.deepEqual(approveCalls, ["is-a"]);
+  assert.equal(consultations().length, 1);
+  assert.equal(orderRows.length, 0);
 });

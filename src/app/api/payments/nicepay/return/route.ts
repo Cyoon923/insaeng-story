@@ -100,6 +100,12 @@ function positiveInt(value: unknown): number | null {
   return num;
 }
 
+/**
+ * 승인 뒤 확정 저장이 app_store CAS 충돌로 밀렸을 때의 최대 시도 횟수(P1-05).
+ * 기존 app_store 작업들(CONSULTATION_HOLD_MAX_ATTEMPTS 등)과 같은 3이다.
+ */
+export const PAID_COMMIT_MAX_ATTEMPTS = 3;
+
 export async function POST(request: Request) {
   if (!nicepayConfigured()) {
     return failed("결제 설정이 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.");
@@ -387,14 +393,6 @@ export async function POST(request: Request) {
 
   // 12~13) paid가 된 요청만 주문/상담을 확정한다.
   //        쿠폰 사용·적립금 차감·추천인 적립은 여기(commit*)에서 처음 실제로 반영된다.
-  const liveData = await readData();
-  const liveUser = liveData.users.find((item) => item.id === userId);
-  // 승인과 이 사이에 탈퇴가 끝났을 수도 있다. 그때는 주문을 만들지 않는다.
-  // 다만 돈은 이미 승인된 뒤라 실패라고 말하지 않는다. 기존처럼 pending으로 두고
-  // paid + order_id NULL 상태를 운영자 복구 대상으로 남긴다.
-  if (!isActiveUser(liveUser)) {
-    return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
-  }
   // 할인 의도는 snapshot.discount가 기준이다. details의 할인 문자열로 덮이지 않게 한다.
   const commitDetails: Record<string, string> = {
     ...((asObject(snapshot.details) ?? {}) as Record<string, string>),
@@ -403,84 +401,117 @@ export async function POST(request: Request) {
     usePoints: usePoints > 0 ? "1" : "",
   };
 
-  try {
-    if (kind === "order") {
-      const result = await commitOrder(
+  /*
+   * 확정 저장은 app_store 전체 version CAS라, 무관한 요청이 그사이 저장하면 밀린다(P1-05).
+   * 밀렸을 때(AppStoreConflictError)만 정해진 횟수까지 다시 한다. 밀린 저장은 app_store·orders·
+   * payments 어느 것도 바꾸지 않았으므로(한 문장) 다시 해도 이중 반영이 없다.
+   * 회차마다 readData부터 새로 해서 회원·쿠폰·적립금·슬롯을 최신 상태로 다시 검증한다.
+   * 승인 API는 다시 부르지 않는다. 그 밖의 오류와 result.ok=false는 기존처럼 바로 pending이다.
+   */
+  const targetId =
+    kind === "consultation" ? consultationIdForPayment(merchantOrderId) : orderIdForPayment(merchantOrderId);
+  for (let attempt = 1; ; attempt += 1) {
+    const liveData = await readData();
+    const liveUser = liveData.users.find((item) => item.id === userId);
+    // 승인과 이 사이에 탈퇴가 끝났을 수도 있다. 그때는 주문을 만들지 않는다.
+    // 다만 돈은 이미 승인된 뒤라 실패라고 말하지 않는다. 기존처럼 pending으로 두고
+    // paid + order_id NULL 상태를 운영자 복구 대상으로 남긴다.
+    if (!isActiveUser(liveUser)) {
+      return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
+    }
+    // 그사이 같은 건이 이미 확정됐으면(관리자 재접수 등) commit을 다시 부르지 않는다.
+    // commit*은 쿠폰·적립금·추천인을 다시 처리하므로 여기서 멈춰야 이중 차감이 없다.
+    const alreadyCommitted =
+      kind === "consultation"
+        ? liveData.consultations.some((item) => item.id === targetId)
+        : liveData.orders.some((item) => item.id === targetId);
+    if (alreadyCommitted) {
+      return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
+    }
+
+    try {
+      if (kind === "order") {
+        const result = await commitOrder(
+          liveData,
+          liveUser,
+          {
+            product: request_.product,
+            title: request_.title,
+            options: request_.options,
+            // 위 재계산과 같은 값을 넘긴다. 주문에도 같은 증빙이 남는다.
+            promotion: request_.promotion,
+            payment: request_.payment,
+            details: commitDetails,
+          },
+          {
+            // 예전 snapshot에는 동의 값이 없다. 승인이 끝난 뒤이므로 막지 않는다.
+          requireConsent: false,
+          // 동의를 검증한 시각. 없으면 넘기지 않고, 증빙에도 시각을 만들지 않는다.
+          ...(consentedAt ? { consentedAt } : {}),
+          orderId: orderIdForPayment(merchantOrderId),
+            write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
+            // 승인이 끝난 뒤에만 유료 금액을 확정할 수 있다. 위 claimPaymentApproved가 성공한 지점이다.
+            mode: "paid-approved",
+            // PG가 승인한 금액. 승인 뒤 적립금 잔액이 바뀌어 확정 금액이 달라지면 저장하지 않는다.
+            approvedAmount: recalculated,
+          },
+        );
+        if (!result.ok) {
+          return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
+        }
+        return completed(request, "order", result.order.id);
+      }
+
+      const result = await commitConsultation(
         liveData,
         liveUser,
         {
-          product: request_.product,
           title: request_.title,
-          options: request_.options,
-          // 위 재계산과 같은 값을 넘긴다. 주문에도 같은 증빙이 남는다.
-          promotion: request_.promotion,
+          report: request_.report,
+          extraPerson: request_.extraPerson,
           payment: request_.payment,
+          teacher: request_.teacher,
+          datetime: request_.datetime,
+          purpose: request_.purpose,
+          method: request_.method,
+          option: request_.option,
           details: commitDetails,
         },
         {
-          // 예전 snapshot에는 동의 값이 없다. 승인이 끝난 뒤이므로 막지 않는다.
-        requireConsent: false,
-        // 동의를 검증한 시각. 없으면 넘기지 않고, 증빙에도 시각을 만들지 않는다.
-        ...(consentedAt ? { consentedAt } : {}),
-        orderId: orderIdForPayment(merchantOrderId),
+          // 동의 값도 같은 이유로 복구 경로에서는 없으면 넘어간다.
+          requireConsent: false,
+          // 주문과 같다. 값이 있을 때만 넘긴다.
+          ...(consentedAt ? { consentedAt } : {}),
+          // 이 기능이 생기기 전에 준비된 결제에는 snapshot에 scheduledDate가 없다.
+          // 승인이 끝난 뒤이므로 그 건까지 막지 않는다. 새 결제는 preparePayment가
+          // 이미 검증했으므로 여기까지 오면 값이 유효하다.
+          requireSchedule: false,
+          // 판매 가능 날짜 목록은 한국 날짜 기준으로 매일 앞으로 밀린다. 결제 준비와
+          // 승인 사이에 자정이 지나면 같은 예약이 목록에서 빠지므로, 이 예약을 그 목록으로
+          // 다시 보지 않는다. 형식·표시 문구 짝·시각·슬롯 충돌 검증은 그대로다.
+          verifyOfferedDate: false,
+          consultationId: consultationIdForPayment(merchantOrderId),
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
-          // 승인이 끝난 뒤에만 유료 금액을 확정할 수 있다. 위 claimPaymentApproved가 성공한 지점이다.
+          // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.
           mode: "paid-approved",
-          // PG가 승인한 금액. 승인 뒤 적립금 잔액이 바뀌어 확정 금액이 달라지면 저장하지 않는다.
           approvedAmount: recalculated,
+          // 9-1)에서 이 결제가 확보한 hold를 같은 저장에서 상담으로 바꾼다.
+          holdOwnerMerchantOrderId: merchantOrderId,
         },
       );
       if (!result.ok) {
+        // 슬롯이 그사이 찼거나 저장에 실패한 경우. 결제는 이미 성공했으므로
+        // 결제 실패로 안내하지 않는다. payment는 paid + order_id NULL로 남아 복구 대상이 된다.
         return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
       }
-      return completed(request, "order", result.order.id);
-    }
-
-    const result = await commitConsultation(
-      liveData,
-      liveUser,
-      {
-        title: request_.title,
-        report: request_.report,
-        extraPerson: request_.extraPerson,
-        payment: request_.payment,
-        teacher: request_.teacher,
-        datetime: request_.datetime,
-        purpose: request_.purpose,
-        method: request_.method,
-        option: request_.option,
-        details: commitDetails,
-      },
-      {
-        // 동의 값도 같은 이유로 복구 경로에서는 없으면 넘어간다.
-        requireConsent: false,
-        // 주문과 같다. 값이 있을 때만 넘긴다.
-        ...(consentedAt ? { consentedAt } : {}),
-        // 이 기능이 생기기 전에 준비된 결제에는 snapshot에 scheduledDate가 없다.
-        // 승인이 끝난 뒤이므로 그 건까지 막지 않는다. 새 결제는 preparePayment가
-        // 이미 검증했으므로 여기까지 오면 값이 유효하다.
-        requireSchedule: false,
-        // 판매 가능 날짜 목록은 한국 날짜 기준으로 매일 앞으로 밀린다. 결제 준비와
-        // 승인 사이에 자정이 지나면 같은 예약이 목록에서 빠지므로, 이 예약을 그 목록으로
-        // 다시 보지 않는다. 형식·표시 문구 짝·시각·슬롯 충돌 검증은 그대로다.
-        verifyOfferedDate: false,
-        consultationId: consultationIdForPayment(merchantOrderId),
-        write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
-        // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.
-        mode: "paid-approved",
-        approvedAmount: recalculated,
-        // 9-1)에서 이 결제가 확보한 hold를 같은 저장에서 상담으로 바꾼다.
-        holdOwnerMerchantOrderId: merchantOrderId,
-      },
-    );
-    if (!result.ok) {
-      // 슬롯이 그사이 찼거나 저장에 실패한 경우. 결제는 이미 성공했으므로
-      // 결제 실패로 안내하지 않는다. payment는 paid + order_id NULL로 남아 복구 대상이 된다.
+      return completed(request, "consult", result.consultation.id);
+    } catch (error) {
+      if (isAppStoreConflict(error) && attempt < PAID_COMMIT_MAX_ATTEMPTS) {
+        console.warn(`[nicepay-return] commit store conflict on attempt ${attempt}`);
+        continue;
+      }
+      // 저장 실패(또는 충돌 소진). paid + order_id NULL을 그대로 두고 사람이 복구한다.
       return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
     }
-    return completed(request, "consult", result.consultation.id);
-  } catch {
-    // 저장 실패. paid + order_id NULL을 그대로 두고 사람이 복구한다.
-    return pending("결제는 완료되었으나 접수 처리를 확인 중입니다.");
   }
 }

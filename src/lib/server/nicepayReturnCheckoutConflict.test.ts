@@ -17,6 +17,14 @@ let claimBehavior: () => Promise<unknown> = async () => null;
 let currentPayment: Record<string, unknown> | null = null;
 
 class CheckoutPaymentActiveError extends Error {}
+class AppStoreConflictError extends Error {}
+
+/** commitOrder 회차별 결과. 비어 있으면 성공이다(P1-05 재시도 확인용). */
+let commitOrderOutcomes: ("conflict" | Error)[] = [];
+/** readData 호출 수. 승인 전 1회 + 확정 회차마다 1회. */
+let reads = 0;
+/** 이 회차(1부터) 이후의 readData는 이미 확정된 주문을 돌려준다(그사이 재접수 흉내). */
+let committedFromRead = Infinity;
 
 const MOID = "is-checkout-1";
 const AMOUNT = 99000; // 사주 인생곡 정가, 할인 없음
@@ -60,7 +68,16 @@ mock.module("@/lib/server/store", {
       calls.push("markFailed");
       return null;
     },
-    readData: async () => ({ users: [{ id: "u-1" }], consultations: [], blockedSlots: [] }),
+    isAppStoreConflict: (error: unknown) => error instanceof AppStoreConflictError,
+    readData: async () => {
+      reads += 1;
+      return {
+        users: [{ id: "u-1" }],
+        orders: reads >= committedFromRead ? [{ id: `o-${MOID}` }] : [],
+        consultations: [],
+        blockedSlots: [],
+      };
+    },
     writeDataWithOrderForPayment: async () => {
       calls.push("write");
     },
@@ -94,6 +111,9 @@ mock.module("@/lib/server/applyOrder", {
     consultationIdForPayment: (id: string) => `c-${id}`,
     commitOrder: async () => {
       calls.push("commitOrder");
+      const outcome = commitOrderOutcomes.shift();
+      if (outcome === "conflict") throw new AppStoreConflictError();
+      if (outcome) throw outcome;
       return { ok: true, order: { id: `o-${MOID}` } };
     },
     commitConsultation: async () => {
@@ -127,6 +147,9 @@ function returnRequest(): Request {
 function reset(claim: () => Promise<unknown>, payment = readyPayment()) {
   calls.length = 0;
   claimArgs.length = 0;
+  commitOrderOutcomes = [];
+  reads = 0;
+  committedFromRead = Infinity;
   approveTids.length = 0;
   claimBehavior = claim;
   currentPayment = payment;
@@ -177,4 +200,49 @@ test("선점 성공이면 그 다음에만 승인하고 기존 확정 흐름을 
   // 선점에 넘긴 시도 tid는 인증 return의 tid이고, 승인 API에 넘긴 tid와 같다.
   assert.deepEqual(claimArgs, [[MOID, "tid-1"]]);
   assert.deepEqual(approveTids, ["tid-1"]);
+});
+
+/* ── P1-05: 승인 뒤 확정 저장의 CAS 충돌 재시도 ─────────── */
+
+const AFTER_APPROVE = ["getPayment", "claimProcessing", "approve", "claimApproved"];
+
+test("P1-05 일반 주문: 첫 확정이 CAS 충돌 → 새로 읽고 다시 확정해 완료, 승인은 1회", async () => {
+  reset(async () => readyPayment("processing"));
+  commitOrderOutcomes = ["conflict"];
+  const response = await POST(returnRequest());
+  assert.equal(response.status, 303);
+  assert.match(String(response.headers.get("Location")), /\/apply\/complete\?type=order&id=o-is-checkout-1/);
+  assert.deepEqual(calls, [...AFTER_APPROVE, "commitOrder", "commitOrder"]);
+  assert.deepEqual(approveTids, ["tid-1"]);
+  // 승인 전 1회 + 확정 회차마다 새로 읽는다(이전 liveData를 다시 쓰지 않는다).
+  assert.equal(reads, 3);
+});
+
+test("P1-05 일반 주문: CAS 충돌 3회 → 기존 pending(paid+미연결은 관리자 재접수로 복구), 승인 1회", async () => {
+  reset(async () => readyPayment("processing"));
+  commitOrderOutcomes = ["conflict", "conflict", "conflict", "conflict"];
+  const response = await POST(returnRequest());
+  const html = await response.text();
+  assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
+  assert.deepEqual(calls, [...AFTER_APPROVE, "commitOrder", "commitOrder", "commitOrder"]);
+  assert.deepEqual(approveTids, ["tid-1"]);
+  assert.equal(reads, 4);
+});
+
+test("P1-05 일반 주문: CAS 충돌이 아닌 오류 → 재시도 없이 기존 pending", async () => {
+  reset(async () => readyPayment("processing"));
+  commitOrderOutcomes = [new Error("db down")];
+  const html = await (await POST(returnRequest())).text();
+  assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
+  assert.deepEqual(calls, [...AFTER_APPROVE, "commitOrder"]);
+  assert.equal(reads, 2);
+});
+
+test("P1-05 일반 주문: 재시도 전에 같은 주문이 이미 확정됐으면 commit을 다시 부르지 않는다", async () => {
+  reset(async () => readyPayment("processing"));
+  commitOrderOutcomes = ["conflict"];
+  committedFromRead = 3; // 두 번째 확정 회차의 readData부터 o-<MOID>가 있다
+  const html = await (await POST(returnRequest())).text();
+  assert.match(html, /결제는 완료되었으나 접수 처리를 확인 중입니다/);
+  assert.deepEqual(calls, [...AFTER_APPROVE, "commitOrder"]);
 });
