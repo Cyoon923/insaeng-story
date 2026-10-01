@@ -17,6 +17,8 @@
  *  - 거래조회 GET https://api.nicepay.co.kr/v1/payments/{tid}
  *    Authorization: Basic base64(clientKey:secretKey)   (승인·취소와 같은 계열)
  *    본문 없음
+ *  - 주문번호 조회 GET https://api.nicepay.co.kr/v1/payments/find/{orderId}?orderDate=YYYYMMDD
+ *    승인 결과를 받지 못해 tid가 없는 결제(승인 processing)를 확인할 때 쓴다.
  *  - 구형 webapi.nicepay.co.kr/webapi/inquery/trans_status.jsp는 쓰지 않는다.
  *  - 망취소(/v1/payments/netcancel)는 다른 기능이라 여기서 쓰지 않는다.
  */
@@ -43,6 +45,10 @@ export interface NicepayPaymentInquiryResult {
   balanceAmt?: number;
   approvedAt?: string;
   cancelledAt?: string;
+  /** 승인 시각. NICEPAY v1 거래 객체의 필드다. */
+  paidAt?: string;
+  /** 결제수단. */
+  payMethod?: string;
 }
 
 /**
@@ -107,14 +113,41 @@ export async function inquireNicepayPayment(
   const tid = input.tid.trim();
   // 빈 값으로 부르면 무엇을 조회하는지 알 수 없다. 요청 자체를 보내지 않는다.
   if (!tid) throw new NicepayInquiryInputError("조회할 거래 번호가 없습니다.");
+  return requestInquiry(`${PAYMENTS_ENDPOINT}/${encodeURIComponent(tid)}`, fetchImpl);
+}
 
+/**
+ * 주문번호(우리 merchantOrderId)와 주문일자로 거래 1건을 조회한다. 읽기만 한다.
+ * 결과 분류는 tid 조회와 같다. 응답이 거래 객체 하나가 아니면(목록 등) found가 되지 않는다.
+ */
+export async function inquireNicepayPaymentByOrderId(
+  input: { orderId: string; orderDate: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<NicepayPaymentInquiryOutcome> {
+  const orderId = input.orderId.trim();
+  if (!orderId) throw new NicepayInquiryInputError("조회할 주문번호가 없습니다.");
+  if (!/^\d{8}$/.test(input.orderDate)) {
+    throw new NicepayInquiryInputError("주문일자 형식이 올바르지 않습니다.");
+  }
+  const query = new URLSearchParams({ orderDate: input.orderDate });
+  return requestInquiry(
+    `${PAYMENTS_ENDPOINT}/find/${encodeURIComponent(orderId)}?${query.toString()}`,
+    fetchImpl,
+  );
+}
+
+/** 조회 요청 1회와 결과 분류. 두 조회 방식이 함께 쓴다. */
+async function requestInquiry(
+  url: string,
+  fetchImpl: typeof fetch,
+): Promise<NicepayPaymentInquiryOutcome> {
   const clientKey = nicepayClientKey();
   const secretKey = nicepaySecretKey();
   const authorization = Buffer.from(`${clientKey}:${secretKey}`, "utf8").toString("base64");
 
   let response: Response;
   try {
-    response = await fetchImpl(`${PAYMENTS_ENDPOINT}/${encodeURIComponent(tid)}`, {
+    response = await fetchImpl(url, {
       method: "GET",
       cache: "no-store",
       headers: { Authorization: `Basic ${authorization}` },

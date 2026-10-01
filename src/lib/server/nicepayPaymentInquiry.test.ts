@@ -11,9 +11,8 @@ import test from "node:test";
 process.env.NEXT_PUBLIC_NICEPAY_CLIENT_KEY = "test-client-key";
 process.env.NICEPAY_SECRET_KEY = "test-secret-key";
 
-const { inquireNicepayPayment, NicepayInquiryInputError } = await import(
-  "./nicepayPaymentInquiry.ts"
-);
+const { inquireNicepayPayment, inquireNicepayPaymentByOrderId, NicepayInquiryInputError } =
+  await import("./nicepayPaymentInquiry.ts");
 
 function fakeFetch(handler: () => Promise<Response> | Response) {
   const calls: { url: string; init: RequestInit }[] = [];
@@ -187,4 +186,79 @@ test("확인하지 못해도 다시 부르지 않는다", async () => {
   const outcome = await inquireNicepayPayment(INPUT, impl);
   assert.equal(outcome.kind, "unknown");
   assert.equal(calls.length, 1);
+});
+
+/* ── 주문번호 조회 (P1-02) ─────────────────────────── */
+
+const ORDER_INPUT = { orderId: "is-abc", orderDate: "20261001" };
+
+test("주문번호 조회는 /v1/payments/find/{orderId}?orderDate=YYYYMMDD로 보낸다", async () => {
+  const { impl, calls } = fakeFetch(() => jsonResponse({ resultCode: "0000", tid: "tid-1" }));
+  await inquireNicepayPaymentByOrderId(ORDER_INPUT, impl);
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    "https://api.nicepay.co.kr/v1/payments/find/is-abc?orderDate=20261001",
+  );
+  assert.equal(calls[0].init.method, "GET");
+  const auth = (calls[0].init.headers as Record<string, string>).Authorization;
+  assert.equal(
+    auth,
+    `Basic ${Buffer.from("test-client-key:test-secret-key").toString("base64")}`,
+  );
+});
+
+test("주문번호 조회 입력이 잘못되면 요청을 보내지 않는다", async () => {
+  const { impl, calls } = fakeFetch(() => jsonResponse({}));
+  for (const input of [
+    { orderId: " ", orderDate: "20261001" },
+    { orderId: "is-abc", orderDate: "2026-10-01" },
+    { orderId: "is-abc", orderDate: "261001" },
+    { orderId: "is-abc", orderDate: "" },
+  ]) {
+    await assert.rejects(inquireNicepayPaymentByOrderId(input, impl), NicepayInquiryInputError);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("주문번호 조회: 정상 paid 응답과 paidAt·payMethod·balanceAmt를 읽는다", async () => {
+  const { impl } = fakeFetch(() =>
+    jsonResponse({
+      resultCode: "0000",
+      tid: "tid-1",
+      orderId: "is-abc",
+      status: "paid",
+      amount: 89000,
+      balanceAmt: 89000,
+      paidAt: "2026-10-01T10:00:00.000+0900",
+      payMethod: "card",
+    }),
+  );
+  const outcome = await inquireNicepayPaymentByOrderId(ORDER_INPUT, impl);
+  assert.equal(outcome.kind, "found");
+  if (outcome.kind !== "found") return;
+  assert.equal(outcome.result.orderId, "is-abc");
+  assert.equal(outcome.result.status, "paid");
+  assert.equal(outcome.result.amount, 89000);
+  assert.equal(outcome.result.balanceAmt, 89000);
+  assert.equal(outcome.result.paidAt, "2026-10-01T10:00:00.000+0900");
+  assert.equal(outcome.result.payMethod, "card");
+});
+
+test("주문번호 조회: 404면 not-found", async () => {
+  const { impl } = fakeFetch(() => jsonResponse({ resultCode: "9999" }, 404));
+  assert.equal((await inquireNicepayPaymentByOrderId(ORDER_INPUT, impl)).kind, "not-found");
+});
+
+test("주문번호 조회: 네트워크 오류·5xx·본문 파싱 실패·목록 응답은 unknown", async () => {
+  const cases: (() => Promise<Response> | Response)[] = [
+    () => Promise.reject(new TypeError("fetch failed")),
+    () => jsonResponse({ resultCode: "0000", tid: "tid-1" }, 502),
+    () => new Response("not json", { status: 200 }),
+    () => jsonResponse([{ resultCode: "0000", tid: "tid-1" }]),
+  ];
+  for (const handler of cases) {
+    const { impl } = fakeFetch(handler);
+    assert.equal((await inquireNicepayPaymentByOrderId(ORDER_INPUT, impl)).kind, "unknown");
+  }
 });

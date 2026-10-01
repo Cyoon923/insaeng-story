@@ -720,6 +720,9 @@ export default function AdminPage() {
   const [recommitting, setRecommitting] = useState("");
   // 재접수 결과 안내. 주문번호별로 한 줄씩 보여 준다.
   const [recommitMessage, setRecommitMessage] = useState<Record<string, string>>({});
+  // 결제 조회 중인 processing 결제의 주문번호와 조회 결과 안내.
+  const [inquiring, setInquiring] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState<Record<string, string>>({});
 
   /**
    * 새 상담원 문의방 목록. 관리자 화면을 처음 읽을 때 한 번, 그리고 챗봇 문의 탭에
@@ -913,6 +916,43 @@ export default function AdminPage() {
       }));
     } finally {
       setRecommitting("");
+    }
+  }
+
+  /**
+   * 승인이 processing으로 남은 결제를 NICEPAY에서 조회한다.
+   *
+   * 판단과 상태 변경은 전부 서버(/api/admin/payments/processing-inquiry)가 한다.
+   * paid로 확인되면 그 건은 "결제 완료 / 접수 확인 필요" 목록으로 옮겨 가므로,
+   * 안내 문구를 그 카드(같은 주문번호의 재접수 안내 자리)에 남기고 목록을 다시 읽는다.
+   * 주문 접수는 관리자가 재접수 버튼으로 따로 한다.
+   */
+  async function handleProcessingInquiry(merchantOrderId: string) {
+    if (inquiring) return;
+    setInquiring(merchantOrderId);
+    setInquiryMessage((current) => ({ ...current, [merchantOrderId]: "" }));
+    try {
+      const res = await fetch("/api/admin/payments/processing-inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantOrderId }),
+      });
+      const data = await res.json();
+      const message: string =
+        data.message ?? data.error ?? "결제 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      if (res.ok && data.ok) {
+        setRecommitMessage((current) => ({ ...current, [merchantOrderId]: message }));
+        await loadData();
+        return;
+      }
+      setInquiryMessage((current) => ({ ...current, [merchantOrderId]: message }));
+    } catch {
+      setInquiryMessage((current) => ({
+        ...current,
+        [merchantOrderId]: "결제 조회 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      }));
+    } finally {
+      setInquiring("");
     }
   }
 
@@ -1832,6 +1872,19 @@ export default function AdminPage() {
                 <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
                   결제 승인 여부를 NICEPAY 관리자에서 확인해 주세요.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => handleProcessingInquiry(item.merchantOrderId)}
+                  disabled={inquiring === item.merchantOrderId}
+                  className="mt-3 h-11 w-full rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-50"
+                >
+                  {inquiring === item.merchantOrderId ? "조회 중..." : "결제 조회"}
+                </button>
+                {inquiryMessage[item.merchantOrderId] ? (
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
+                    {inquiryMessage[item.merchantOrderId]}
+                  </p>
+                ) : null}
               </article>
             ))}
             {paymentReview.unlinked.map((item) => (
