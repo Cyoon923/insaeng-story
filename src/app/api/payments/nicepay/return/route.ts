@@ -360,6 +360,8 @@ export async function POST(request: Request) {
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
           // 승인이 끝난 뒤에만 유료 금액을 확정할 수 있다. 위 claimPaymentApproved가 성공한 지점이다.
           mode: "paid-approved",
+          // PG가 승인한 금액. 승인 뒤 적립금 잔액이 바뀌어 확정 금액이 달라지면 저장하지 않는다.
+          approvedAmount: recalculated,
         },
       );
       if (!result.ok) {
@@ -400,6 +402,7 @@ export async function POST(request: Request) {
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
         // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.
         mode: "paid-approved",
+        approvedAmount: recalculated,
       },
     );
     if (!result.ok) {

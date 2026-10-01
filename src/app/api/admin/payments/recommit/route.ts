@@ -225,6 +225,8 @@ export async function POST(request: Request) {
           write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
           // 승인이 이미 끝난 건이라는 사실은 위 3)에서 확인했다.
           mode: "paid-approved",
+          // paid-approved 확정에 필요한 인자. 금액 대조 자체는 위 재계산에서 이미 했다.
+          approvedAmount,
         },
       );
       if (!result.ok) return manual(result.error);
@@ -261,6 +263,7 @@ export async function POST(request: Request) {
         consultationId: targetId,
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
         mode: "paid-approved",
+        approvedAmount,
       },
     );
     // 슬롯이 이미 찼으면 여기서 막힌다. 비워 두는 것이 맞고 강제로 넣지 않는다.

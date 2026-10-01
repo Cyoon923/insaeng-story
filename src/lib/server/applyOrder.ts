@@ -313,6 +313,29 @@ function paidCommitAllowed(amount: number, mode: CommitMode): boolean {
   return amount <= 0 || mode === "paid-approved";
 }
 
+/** 승인 금액과 확정 금액이 다를 때의 응답. 아무것도 저장하지 않은 채 돌려준다. */
+const APPROVED_AMOUNT_MISMATCH = {
+  ok: false as const,
+  error: "결제 승인 금액과 신청 금액이 일치하지 않아 신청을 확정할 수 없습니다.",
+  status: 409,
+};
+
+/**
+ * paid-approved 확정의 금액 불변조건. 최종금액(적립금까지 적용)이 PG 승인 금액과 같아야 한다.
+ *
+ * 승인 경로는 승인 뒤 저장소를 다시 읽어 확정하므로, 그사이 적립금 잔액이 바뀌면
+ * applyPoints가 다른 금액을 만든다. 그 금액으로 주문을 남기면 받은 돈과 주문 금액,
+ * 실제 차감 적립금이 어긋난다. 다르면 저장하지 않고 결제를 paid + order_id NULL로
+ * 남겨 기존 복구(recommit)·수동 처리로 넘긴다.
+ *
+ * 승인 금액을 넘기지 않은 paid-approved 호출도 막는다(fail-closed).
+ * free-only는 0원만 통과하므로 여기서 보지 않는다.
+ */
+function approvedAmountMatches(amount: number, mode: CommitMode, approvedAmount?: number): boolean {
+  if (mode !== "paid-approved") return true;
+  return typeof approvedAmount === "number" && amount === approvedAmount;
+}
+
 /**
  * NICEPAY 승인 경로가 쓸 주문 id. 같은 merchantOrderId면 항상 같은 값이라
  * 승인 callback이 두 번 들어와도 orders의 ON CONFLICT (id) DO NOTHING이 실제로 동작한다.
@@ -339,6 +362,8 @@ export async function commitOrder(
     orderId?: string;
     write?: CommitWriter;
     mode?: CommitMode;
+    /** PG가 실제로 승인한 금액. mode가 paid-approved면 반드시 넘긴다. */
+    approvedAmount?: number;
     /**
      * 신청 단계 [필수] 동의를 반드시 받아야 하는지. 기본값 true다.
      *
@@ -444,6 +469,10 @@ export async function commitOrder(
   if (!paidCommitAllowed(pointed.amount, mode)) {
     return PAYMENT_REQUIRED;
   }
+  // 승인 금액과 다르면 여기서 끝낸다. 위와 같이 아직 아무것도 저장하지 않았다.
+  if (!approvedAmountMatches(pointed.amount, mode, options.approvedAmount)) {
+    return APPROVED_AMOUNT_MISMATCH;
+  }
 
   const order: Order = {
     id: options.orderId ?? nowId(),
@@ -489,6 +518,8 @@ export async function commitConsultation(
     consultationId?: string;
     write?: CommitWriter;
     mode?: CommitMode;
+    /** PG가 실제로 승인한 금액. mode가 paid-approved면 반드시 넘긴다. */
+    approvedAmount?: number;
     /**
      * 예약 절대시각(scheduledAt)을 반드시 만들 수 있어야 하는지.
      *
@@ -582,6 +613,10 @@ export async function commitConsultation(
   // 주문과 같은 관문. 상담을 만들기 전에 막으므로 슬롯도 점유되지 않는다.
   if (!paidCommitAllowed(pointed.amount, mode)) {
     return PAYMENT_REQUIRED;
+  }
+  // 주문과 같은 금액 불변조건. 상담을 만들기 전이라 슬롯도 점유되지 않는다.
+  if (!approvedAmountMatches(pointed.amount, mode, options.approvedAmount)) {
+    return APPROVED_AMOUNT_MISMATCH;
   }
 
   // 상담과 결제 귀속용 주문이 같은 건임을 알 수 있도록 id와 시각을 공유한다.
