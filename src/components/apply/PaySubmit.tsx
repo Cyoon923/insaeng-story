@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { clearDraft, fetchMe, getDraft, postApp } from "@/lib/client/api";
+import { clearDraft, fetchMe, getDraft, postApp, saveDraft } from "@/lib/client/api";
 import { openNicepayCard } from "@/lib/client/nicepay";
 import { formatPrice } from "@/lib/constants/products";
 import { DEV_APPLY_PREVIEW, DEV_APPLY_PREVIEW_FLOW } from "@/lib/devApplyPreview";
@@ -14,6 +14,54 @@ import type { Coupon, CouponProduct } from "@/lib/types/app";
 const CARD_PAYMENT = "신용/체크카드";
 const CARD_ONLY_MESSAGE = "지금은 신용/체크카드로만 결제할 수 있습니다. 결제수단을 카드로 선택해 주세요.";
 const DEV_PREVIEW_MESSAGE = "개발 미리보기입니다. 결제·신청 요청을 보내지 않습니다.";
+
+/**
+ * 이 신청 draft의 checkoutId. 없으면 한 번 만들어 draft에 저장하고, 있으면 그대로 쓴다.
+ *
+ * 같은 신청이면 새로고침·다른 탭·재시도에서도 같은 값이 나온다(같은 localStorage draft).
+ * 서버는 이 값으로 같은 신청의 결제가 두 번 승인되지 않게 막는다.
+ * 완료 화면에서 draft가 지워질 때 함께 사라지므로 다음 신청은 새 값을 쓴다.
+ */
+function ensureCheckoutId(
+  flow: string,
+  deps: {
+    getDraft: (flow: string) => Record<string, string>;
+    saveDraft: (flow: string, values: Record<string, string>) => void;
+    randomUUID: () => string;
+  } = { getDraft, saveDraft, randomUUID: () => crypto.randomUUID() },
+): string {
+  const existing = deps.getDraft(flow).checkoutId;
+  if (existing) return existing;
+  const checkoutId = deps.randomUUID();
+  deps.saveDraft(flow, { checkoutId });
+  return checkoutId;
+}
+
+/** 신청 details로 보낼 draft. checkoutId는 요청 최상위로만 보내므로 여기서 뺀다. */
+function draftWithoutCheckoutId(draft: Record<string, string>): Record<string, string> {
+  const values = { ...draft };
+  delete values.checkoutId;
+  return values;
+}
+
+/**
+ * 진행 중이면 다시 실행하지 않는다. 버튼 disabled는 다음 렌더에야 걸리므로,
+ * 그 사이 두 번째 누름을 이 잠금이 즉시 막는다. 실행이 끝나면 다시 누를 수 있다
+ * (결제창이 떠 있는 동안의 재클릭은 기존 loading이 막는다).
+ */
+async function runExclusive(lock: { current: boolean }, run: () => Promise<void>): Promise<boolean> {
+  if (lock.current) return false;
+  lock.current = true;
+  try {
+    await run();
+  } finally {
+    lock.current = false;
+  }
+  return true;
+}
+
+/** 테스트용 내부 함수. 런타임 동작에는 영향을 주지 않는다. */
+export const __paySubmitInternals = { ensureCheckoutId, draftWithoutCheckoutId, runExclusive };
 
 export function PaySubmit({
   flow,
@@ -91,10 +139,10 @@ export function PaySubmit({
    */
   const releasePaymentWatch = useRef<(() => void) | null>(null);
   /**
-   * beforeSubmit 확인이 진행 중인지. state(loading)는 다음 렌더에야 버튼을 잠그므로,
-   * 확인 요청을 기다리는 사이 두 번째 누름은 이 ref로 즉시 막는다.
+   * submit이 진행 중인지. state(loading)는 다음 렌더에야 버튼을 잠그므로,
+   * beforeSubmit 확인이나 결제 준비 요청을 기다리는 사이 두 번째 누름은 이 ref로 즉시 막는다.
    */
-  const beforeSubmitRunning = useRef(false);
+  const submitting = useRef(false);
 
   // 화면을 벗어나도 리스너가 남지 않게 한다.
   useEffect(() => () => releasePaymentWatch.current?.(), []);
@@ -143,15 +191,14 @@ export function PaySubmit({
       });
   }, []);
 
-  const submit = async () => {
+  const submit = () => runExclusive(submitting, submitOnce);
+
+  const submitOnce = async () => {
     if (beforeSubmit) {
-      if (beforeSubmitRunning.current) return;
-      beforeSubmitRunning.current = true;
       setError("");
       // 확인을 기다리는 동안에도 버튼을 잠근다. 막히면 아래에서 다시 푼다.
       setLoading(true);
       const blocked = await beforeSubmit().catch(() => "잠시 후 다시 시도해 주세요.");
-      beforeSubmitRunning.current = false;
       if (blocked) {
         setError(blocked);
         setLoading(false);
@@ -194,7 +241,8 @@ export function PaySubmit({
        */
       const merged: Record<string, string> = {
         ...details,
-        ...draft,
+        // checkoutId는 details에 섞지 않는다. 결제 준비 요청 최상위로만 보낸다.
+        ...draftWithoutCheckoutId(draft),
         referralCode: usingCoupon || discountBlocked ? "" : referralCode.trim().toUpperCase(),
         couponId: discountBlocked ? "" : couponId,
         usePoints: !usingCoupon && !discountBlocked && usePoints ? "1" : "",
@@ -231,8 +279,14 @@ export function PaySubmit({
         throw new Error(CARD_ONLY_MESSAGE);
       }
 
+      /*
+       * 같은 신청의 결제가 두 번 승인되지 않도록 신청 식별자를 함께 보낸다.
+       * 0원이면 서버가 결제 기록을 만들지 않으므로 이 값은 쓰이지 않고 draft에만 남는다.
+       * 실패(409 포함)·결제창 닫기 뒤 다시 눌러도 같은 draft라 같은 값을 쓴다.
+       */
+      const checkoutId = ensureCheckoutId(flow);
       // 금액은 서버가 다시 계산한다. 화면의 payAmount는 결제창에 넘기지 않는다.
-      const prepared = await postApp({ action: "preparePayment", kind, ...applyBody });
+      const prepared = await postApp({ action: "preparePayment", kind, checkoutId, ...applyBody });
 
       if (prepared.requiresPayment) {
         if (payment !== CARD_PAYMENT) {

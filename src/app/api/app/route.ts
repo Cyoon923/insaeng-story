@@ -9,7 +9,7 @@ import {
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
 import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
-import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, readData, writeData, listOrdersByUser, getOrderById, listPaymentsByOrderId, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
+import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, hasActiveCheckoutPayment, readData, writeData, listOrdersByUser, getOrderById, listPaymentsByOrderId, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
   readSocialLinkPendingForCommit,
@@ -502,6 +502,23 @@ function orderConsentVersionGate(): NextResponse | null {
  *
  * 조회와 상품 열람에도 넣지 않는다. 인증 전에도 둘러볼 수 있어야 한다.
  */
+const CHECKOUT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 결제 준비 요청의 신청(checkout) 식별자. 요청 최상위 값만 읽는다(details 안의 값은 보지 않는다).
+ *
+ * 값이 없으면(undefined·null) 예전 화면과의 호환을 위해 null로 허용한다. 신청 단위 중복 방지
+ * 대상에서만 빠진다. 값이 있으면 UUID 형식의 문자열이어야 하고, 아니면 받지 않는다.
+ * 비교가 대소문자에 갈리지 않도록 소문자로 맞춘다.
+ */
+function readCheckoutId(value: unknown): { ok: true; checkoutId: string | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, checkoutId: null };
+  if (typeof value !== "string") return { ok: false };
+  const trimmed = value.trim();
+  if (!CHECKOUT_ID_PATTERN.test(trimmed)) return { ok: false };
+  return { ok: true, checkoutId: trimmed.toLowerCase() };
+}
+
 function verifiedPhoneGate(user: User): NextResponse | null {
   if (hasVerifiedPhone(user)) return null;
   return NextResponse.json(
@@ -1945,6 +1962,12 @@ async function handlePost(request: Request) {
     if (kind !== "order" && kind !== "consultation") {
       return NextResponse.json({ error: "신청 종류를 확인해 주세요." }, { status: 400 });
     }
+    // 신청 식별자 형식은 다른 검증보다 먼저 본다. 잘못된 값으로는 아무것도 조회하지 않는다.
+    const checkoutRead = readCheckoutId(body.checkoutId);
+    if (!checkoutRead.ok) {
+      return NextResponse.json({ error: "신청 정보를 확인해 주세요." }, { status: 400 });
+    }
+    const checkoutId = checkoutRead.checkoutId;
 
     // 기존 applyFreeCoupon/applyReferral/applyPoints는 data와 user를 직접 바꾼다.
     // 규칙을 베껴 쓰지 않고 그대로 재사용하되, 저장하지 않는 사본 위에서만 실행한다.
@@ -2132,6 +2155,21 @@ async function handlePost(request: Request) {
       return NextResponse.json({ ok: true, requiresPayment: false, amount: 0, goodsName });
     }
 
+    /*
+     * 같은 신청의 결제가 이미 승인 중이거나 승인되었으면 결제창을 다시 띄우지 않는다.
+     * 화면 안내용 사전 확인이다. 동시에 들어온 요청까지 막는 최종 보장은
+     * payments_checkout_active_key 인덱스와 승인 직전 claimPaymentProcessing이 한다.
+     */
+    if (checkoutId && (await hasActiveCheckoutPayment(checkoutId))) {
+      return NextResponse.json(
+        {
+          error:
+            "이미 같은 신청의 결제가 진행 중이거나 완료되었습니다. MY에서 결제 상태를 확인해 주세요.",
+        },
+        { status: 409 },
+      );
+    }
+
     const merchantOrderId = `is-${nowId()}`;
     const payment = await createPayment({
       provider: "nicepay",
@@ -2139,6 +2177,7 @@ async function handlePost(request: Request) {
       requestedAmount: amount,
       status: "ready",
       method: "card",
+      checkoutId,
       orderSnapshot: {
         version: 1,
         kind,
@@ -2158,6 +2197,8 @@ async function handlePost(request: Request) {
         // 서버가 동의를 검증한 시각. 결제 준비 시각(preparedAt)과 뜻이 달라 따로 담는다.
         consentedAt,
         preparedAt: new Date().toISOString(),
+        // 신청 식별자. details 밖(최상위)에 둔다. 탈퇴·보관 정리가 details를 키째 지우기 때문이다.
+        ...(checkoutId ? { checkoutId } : {}),
       },
     });
     // 주문번호가 겹치면 남의 결제 준비를 이어받게 되므로 재사용하지 않고 실패시킨다.

@@ -116,16 +116,18 @@ test("확인 및 결제: 상담 일정 요약과 결제 직전 슬롯 재확인"
 
 test("결제 직전 확인 중 이중 제출 차단: ref로 즉시 막고, 확인 전에 잠그고, 막히면 푼다", () => {
   const PAY = read("../../components/apply/PaySubmit.tsx");
-  const start = PAY.indexOf("const submit = async () => {");
+  const start = PAY.indexOf("const submitOnce = async () => {");
   const guard = PAY.slice(start, PAY.indexOf("setError(DEV_PREVIEW_MESSAGE);", start));
-  // 두 번째 누름은 await 전에 ref로 돌려보낸다.
-  assert.match(guard, /if \(beforeSubmitRunning\.current\) return;\s*beforeSubmitRunning\.current = true;/);
+  // 두 번째 누름은 await 전에 ref로 돌려보낸다. submit 전체(beforeSubmit 확인 포함)가 공통 잠금 안이다.
+  assert.match(PAY, /const submit = \(\) => runExclusive\(submitting, submitOnce\);/);
+  const exclusive = PAY.slice(PAY.indexOf("async function runExclusive("), PAY.indexOf("export const __paySubmitInternals"));
+  assert.match(exclusive, /if \(lock\.current\) return false;\s*lock\.current = true;\s*try \{\s*await run\(\);/);
   // loading은 beforeSubmit을 기다리기 전에 켠다.
   assert.ok(guard.indexOf("setLoading(true)") < guard.indexOf("await beforeSubmit()"));
   // 막히면 에러를 보이고 버튼을 다시 푼다.
   assert.match(guard, /if \(blocked\) \{\s*setError\(blocked\);\s*setLoading\(false\);\s*return;/);
-  // 확인이 끝나면 ref를 푼다(성공·실패 공통).
-  assert.ok(guard.indexOf("beforeSubmitRunning.current = false;") > guard.indexOf("await beforeSubmit()"));
+  // 실행이 끝나면 ref를 푼다(성공·실패 공통).
+  assert.match(exclusive, /\} finally \{\s*lock\.current = false;\s*\}/);
   // beforeSubmit이 없는 일반 상품은 이 블록을 지나지 않는다.
   assert.match(guard, /if \(beforeSubmit\) \{/);
 });

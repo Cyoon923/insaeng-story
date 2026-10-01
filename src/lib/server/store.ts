@@ -245,7 +245,55 @@ async function runPaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient
      */
     txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_execution_status TEXT`),
     txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_claimed_at TIMESTAMPTZ`),
+    /*
+     * 신청(checkout) 단위 중복 결제 방지 (P1-03).
+     *
+     * 같은 신청 draft에서 만든 결제는 같은 checkout_id를 가진다. ready는 여러 개여도
+     * 되지만(결제창을 닫고 다시 여는 경우), 승인 직전 선점(processing)과 승인 완료(paid)는
+     * 한 신청에 한 건만 있을 수 있다. 같은 신청의 두 번째 결제는 승인 API를 부르기 전
+     * claimPaymentProcessing에서 이 인덱스에 걸린다.
+     *
+     * 기존 행은 NULL로 남는다(소급해 채우지 않는다). NULL은 이 인덱스에 들어오지 않아
+     * checkout_id가 없는 결제는 지금과 똑같이 동작한다. 값이 있는 행이 아직 없으므로
+     * 인덱스 생성이 기존 데이터 때문에 실패할 수 없다. 실패하면 이 트랜잭션 전체가
+     * 실패해 결제 함수가 드러나게 멈춘다(fail-loud).
+     */
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS checkout_id TEXT`),
+    txn.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS ${CHECKOUT_ACTIVE_INDEX}
+        ON payments (checkout_id)
+        WHERE provider = 'nicepay'
+          AND status IN ('processing', 'paid')
+          AND checkout_id IS NOT NULL
+    `),
   ]);
+}
+
+/** 같은 신청의 processing / paid 결제를 한 건으로 묶는 부분 UNIQUE 인덱스 이름. */
+export const CHECKOUT_ACTIVE_INDEX = "payments_checkout_active_key";
+
+/**
+ * 같은 신청의 다른 결제가 이미 승인 중이거나 승인되어 선점하지 못했을 때 던진다.
+ * claimPaymentProcessing의 null("ready가 아님")과 뜻이 달라 따로 둔다.
+ * 이 예외를 받은 호출부는 승인 API를 부르면 안 된다.
+ */
+export class CheckoutPaymentActiveError extends Error {}
+
+/**
+ * 위 인덱스 위반인지. PostgreSQL unique_violation(23505)이면서 제약 이름이 정확히
+ * 같을 때만 참이다. 다른 UNIQUE 위반(merchant_order_id 등)이나 다른 오류는 거짓이다.
+ */
+export function isCheckoutActiveConflict(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { code, constraint } = error as { code?: unknown; constraint?: unknown };
+  return code === "23505" && constraint === CHECKOUT_ACTIVE_INDEX;
+}
+
+/** 선점 UPDATE의 오류를 호출부에 넘길 모양으로 바꾼다. 해당 충돌만 바꾸고 나머지는 그대로다. */
+export function claimProcessingError(error: unknown): unknown {
+  return isCheckoutActiveConflict(error)
+    ? new CheckoutPaymentActiveError("같은 신청의 결제가 이미 진행 중이거나 완료되었습니다.")
+    : error;
 }
 
 /** 서버 인스턴스당 한 번만 실행하기 위한 기억. 실패하면 지워서 다음에 다시 시도한다. */
@@ -1156,6 +1204,8 @@ export async function createPayment(input: {
   status: PaymentStatus;
   method?: string | null;
   orderSnapshot?: Record<string, unknown> | null;
+  /** 신청 draft 식별자. 없으면 NULL이며 신청 단위 중복 방지 대상이 아니다. */
+  checkoutId?: string | null;
 }): Promise<Payment | null> {
   const sql = paymentsClient();
   await ensureTable(sql);
@@ -1170,9 +1220,10 @@ export async function createPayment(input: {
   const rows = (await sql.query(
     `
       INSERT INTO payments (
-        id, provider, merchant_order_id, requested_amount, status, method, order_snapshot
+        id, provider, merchant_order_id, requested_amount, status, method, order_snapshot,
+        checkout_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
       ON CONFLICT (merchant_order_id) DO NOTHING
       RETURNING ${PAYMENT_COLUMNS}
     `,
@@ -1184,9 +1235,32 @@ export async function createPayment(input: {
       input.status,
       input.method ?? null,
       input.orderSnapshot ? JSON.stringify(input.orderSnapshot) : null,
+      input.checkoutId ?? null,
     ],
   )) as PaymentRow[];
   return rows[0] ? toPayment(rows[0]) : null;
+}
+
+/**
+ * 같은 신청의 결제가 이미 승인 중(processing)이거나 승인(paid)되었는지.
+ * 결제 준비 화면에서 결제창을 띄우기 전에 안내하는 용도다. 경쟁 상황의 최종 보장은
+ * CHECKOUT_ACTIVE_INDEX와 claimPaymentProcessing이 한다.
+ */
+export async function hasActiveCheckoutPayment(checkoutId: string): Promise<boolean> {
+  const sql = paymentsClient();
+  await ensureTable(sql);
+  await ensurePaymentsMigration(sql);
+  const rows = (await sql.query(
+    `
+      SELECT 1 FROM payments
+      WHERE checkout_id = $1
+        AND provider = 'nicepay'
+        AND status IN ('processing', 'paid')
+      LIMIT 1
+    `,
+    [checkoutId],
+  )) as unknown[];
+  return rows.length > 0;
 }
 
 /** 결제창에 넘긴 주문번호로 결제 1건을 찾는다. */
@@ -1285,22 +1359,31 @@ export async function linkPaymentToOrder(input: {
  * 뒤에 온 요청은 행 잠금이 풀린 뒤 조건을 다시 평가해 0행이 되므로,
  * 정확히 한 요청만 row를 받아 승인을 진행한다.
  * null을 받은 요청은 승인 API를 절대 호출하면 안 된다.
+ *
+ * 같은 신청(checkout_id)의 다른 결제가 이미 processing / paid이면 UPDATE가
+ * CHECKOUT_ACTIVE_INDEX에 걸려 실패하고(행은 ready 그대로), CheckoutPaymentActiveError를
+ * 던진다. 이 예외를 받은 요청도 승인 API를 호출하면 안 된다. 그 밖의 DB 오류는 그대로 던진다.
  */
 export async function claimPaymentProcessing(merchantOrderId: string): Promise<Payment | null> {
   const sql = paymentsClient();
   await ensureTable(sql);
   await ensurePaymentsMigration(sql);
-  const rows = (await sql.query(
-    `
-      UPDATE payments
-      SET status = 'processing',
-          updated_at = now()
-      WHERE merchant_order_id = $1
-        AND status = 'ready'
-      RETURNING ${PAYMENT_COLUMNS}
-    `,
-    [merchantOrderId],
-  )) as PaymentRow[];
+  let rows: PaymentRow[];
+  try {
+    rows = (await sql.query(
+      `
+        UPDATE payments
+        SET status = 'processing',
+            updated_at = now()
+        WHERE merchant_order_id = $1
+          AND status = 'ready'
+        RETURNING ${PAYMENT_COLUMNS}
+      `,
+      [merchantOrderId],
+    )) as PaymentRow[];
+  } catch (error) {
+    throw claimProcessingError(error);
+  }
   return rows[0] ? toPayment(rows[0]) : null;
 }
 

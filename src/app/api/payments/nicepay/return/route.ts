@@ -29,6 +29,7 @@ import {
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import type { PromotionId } from "@/lib/constants/promotions";
 import {
+  CheckoutPaymentActiveError,
   claimPaymentApproved,
   claimPaymentProcessing,
   getPaymentByMerchantOrderId,
@@ -260,7 +261,21 @@ export async function POST(request: Request) {
 
   // 8) 승인 API를 부르기 전에 결제 1건을 선점한다.
   //    같은 결제로 콜백이 동시에 두 번 들어와도 여기서 하나만 통과한다.
-  const claimed = await claimPaymentProcessing(merchantOrderId);
+  //    같은 신청(checkout)의 다른 결제가 이미 승인 중이거나 승인되었으면 선점 자체가
+  //    거절된다(CheckoutPaymentActiveError). 이 결제는 ready로 남고 승인 API를 부르지 않으므로
+  //    청구되지 않는다. 다른 결제가 완료됐을 수 있어 "결제 실패"라고 말하지 않는다.
+  //    그 밖의 오류는 그대로 던진다(승인 API에 도달하지 않는다).
+  let claimed: Awaited<ReturnType<typeof claimPaymentProcessing>>;
+  try {
+    claimed = await claimPaymentProcessing(merchantOrderId);
+  } catch (error) {
+    if (error instanceof CheckoutPaymentActiveError) {
+      return pending(
+        "이미 같은 신청의 결제가 진행 중이거나 완료되었습니다. MY에서 결제 상태를 확인해 주세요.",
+      );
+    }
+    throw error;
+  }
   if (!claimed) {
     // 9) 선점하지 못한 요청은 승인도 주문 생성도 하지 않고 현재 상태만 안내한다.
     const current = await getPaymentByMerchantOrderId(merchantOrderId);
