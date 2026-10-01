@@ -64,7 +64,9 @@ import {
   issueCode,
   putToken,
   readVerification,
+  verifyCodeInTable,
 } from "@/lib/server/verificationCodes";
+import { runSendCode, SMS_RATE_LIMITED_MESSAGE } from "@/lib/server/smsVerification";
 import type { VerificationSource } from "@/lib/server/verificationCodes";
 import type { VerificationConsume } from "@/lib/server/store";
 import { unlinkKakao } from "@/lib/server/kakaoUnlink";
@@ -566,56 +568,74 @@ async function handlePost(request: Request) {
     }
     const key = verifyCodeKey(purpose, phone);
 
-    // 같은 번호로의 재발송은 60초 쿨다운을 둔다.
-    // 전환 이전에 발급된 값이 남아 있을 수 있어 그쪽 쿨다운도 함께 본다.
-    const legacyWait = cooldownLeft(data.codes[key]);
-    if (legacyWait > 0) {
-      return NextResponse.json(
-        { error: `인증번호는 ${legacyWait}초 후에 다시 요청할 수 있습니다.` },
-        { status: 429 },
-      );
-    }
-
-    const issued = await issueCode({
-      storageKey: key,
-      code,
-      expiresAt: now + CODE_TTL_MS,
-      sentAt: now,
-      cooldownMs: RESEND_COOLDOWN_MS,
-    });
-    if (!issued.ok) {
-      return NextResponse.json(
-        { error: `인증번호는 ${issued.waitSeconds}초 후에 다시 요청할 수 있습니다.` },
-        { status: 429 },
-      );
-    }
-
-    // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
-    // 개발에서는 발송하지 않고 devCode로 확인한다.
-    if (IS_PRODUCTION) {
-      try {
-        await sendVerificationSms(String(body.phone ?? ""), code);
-      } catch (error) {
-        // 임시 진단용 로그. 원인 파악이 끝나면 제거한다.
-        // 에러 종류와 메시지만 남기고, SOLAPI 메시지에 수신번호가 섞여 들어오는
-        // 경우를 대비해 9자리 이상 숫자열은 마스킹한다.
-        if (IS_PRODUCTION && error instanceof Error) {
-          console.error(
-            "[sendCode] SMS 발송 실패",
-            error.name,
-            error.message.replace(/\d{9,}/g, "[redacted]"),
-          );
-        }
+    /*
+     * 같은 번호·목적의 재발송은 60초 쿨다운을 둔다. 쿨다운 중이면 횟수 제한을 세지 않는다.
+     * 그다음 목적과 무관한 번호·IP 횟수 제한을 발송 직전에 센다(P1-06, smsVerification.ts).
+     * 전환 이전에 발급된 값이 남아 있을 수 있어 그쪽 쿨다운도 함께 본다.
+     */
+    const outcome = await runSendCode(
+      { phone, ip: requestIp(request) },
+      {
+        cooldownLeft: async () => {
+          const legacyWait = cooldownLeft(data.codes[key]);
+          if (legacyWait > 0) return legacyWait;
+          // 시도를 모두 쓴 값도 행이 남아 있으므로 여기서 쿨다운이 그대로 보인다.
+          const saved = await readVerification(key, data);
+          const left = saved?.sentAt ? saved.sentAt + RESEND_COOLDOWN_MS - Date.now() : 0;
+          return left > 0 ? Math.ceil(left / 1000) : 0;
+        },
+        store: await defaultLoginAttemptStore(),
+        issueCode: () =>
+          issueCode({
+            storageKey: key,
+            code,
+            expiresAt: now + CODE_TTL_MS,
+            sentAt: now,
+            cooldownMs: RESEND_COOLDOWN_MS,
+          }),
+        // 운영에서는 휴대폰 인증번호를 실제 SMS로 보낸다.
+        // 개발에서는 발송하지 않고 devCode로 확인한다.
+        send: IS_PRODUCTION
+          ? async () => {
+              try {
+                await sendVerificationSms(String(body.phone ?? ""), code);
+              } catch (error) {
+                // 임시 진단용 로그. 원인 파악이 끝나면 제거한다.
+                // 에러 종류와 메시지만 남기고, SOLAPI 메시지에 수신번호가 섞여 들어오는
+                // 경우를 대비해 9자리 이상 숫자열은 마스킹한다.
+                if (error instanceof Error) {
+                  console.error(
+                    "[sendCode] SMS 발송 실패",
+                    error.name,
+                    error.message.replace(/\d{9,}/g, "[redacted]"),
+                  );
+                }
+                throw error;
+              }
+            }
+          : null,
         // 발송 실패 시 방금 저장한 코드를 폐기해 쿨다운·시도 횟수가 남지 않게 한다.
         // 단, 그 사이 다른 요청이 같은 key에 새 코드를 저장했을 수 있으므로
         // code와 sentAt이 모두 이번 요청이 저장한 값일 때만 삭제한다.
-        // 실패 원인(SOLAPI 응답·키 정보)은 응답에 담지 않는다.
-        await deleteIssuedCode({ storageKey: key, code, sentAt: now });
-        return NextResponse.json(
-          { error: "인증번호를 보내지 못했습니다. 잠시 후 다시 시도해 주세요." },
-          { status: 502 },
-        );
-      }
+        // 횟수 제한 카운터는 되돌리지 않는다.
+        deleteIssued: () => deleteIssuedCode({ storageKey: key, code, sentAt: now }),
+      },
+    );
+    if (outcome.kind === "cooldown") {
+      return NextResponse.json(
+        { error: `인증번호는 ${outcome.waitSeconds}초 후에 다시 요청할 수 있습니다.` },
+        { status: 429 },
+      );
+    }
+    if (outcome.kind === "rate-limited") {
+      return NextResponse.json({ error: SMS_RATE_LIMITED_MESSAGE }, { status: 429 });
+    }
+    if (outcome.kind === "send-failed") {
+      // 실패 원인(SOLAPI 응답·키 정보)은 응답에 담지 않는다.
+      return NextResponse.json(
+        { error: "인증번호를 보내지 못했습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 502 },
+      );
     }
 
     // 운영에서는 인증번호를 응답에 절대 담지 않는다.
@@ -636,23 +656,39 @@ async function handlePost(request: Request) {
     const verifyInput = String(body.code ?? "");
     // 인증번호는 목적별 키에 들어 있다. 발급한 목적과 같아야 찾을 수 있다.
     const codeKey = verifyCodeKey(purpose, phone);
-    const checked = await checkCode({
-      data,
+    /*
+     * DB 모드: 대조 전에 시도권을 원자적으로 선점하고, 맞으면 그 자리에서 소비한다(P1-06).
+     * 코드 1개당 대조는 최대 MAX_VERIFY_ATTEMPTS회이고, 같은 정답이 동시에 와도
+     * 소비에 성공한 1건만 통과한다. 시도를 다 쓴 값은 지우지 않아 재발송 쿨다운이 유지된다.
+     */
+    const verified = await verifyCodeInTable({
       storageKey: codeKey,
       input: verifyInput,
       maxAttempts: MAX_VERIFY_ATTEMPTS,
     });
-    if (!checked.ok) {
-      // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
-      if (checked.source === "legacy") await writeData(data);
-      return NextResponse.json({ error: checked.error }, { status: 400 });
+    if (verified && !verified.ok) {
+      return NextResponse.json({ error: verified.error }, { status: 400 });
     }
-    // 인증만 확인하는 단계라 app_store와 묶을 것이 없다. 그 자리에서 소비한다.
-    if (checked.source === "legacy") {
-      delete data.codes[codeKey];
-      await writeData(data);
-    } else {
-      await consumeVerification(codeKey, verifyInput);
+    if (!verified) {
+      // 파일 모드(DATABASE_URL 없음): 예전 checkCode 경로 그대로.
+      const checked = await checkCode({
+        data,
+        storageKey: codeKey,
+        input: verifyInput,
+        maxAttempts: MAX_VERIFY_ATTEMPTS,
+      });
+      if (!checked.ok) {
+        // 전환 이전 값의 시도 횟수만 app_store에 있다. 새 값은 이미 테이블에 저장됐다.
+        if (checked.source === "legacy") await writeData(data);
+        return NextResponse.json({ error: checked.error }, { status: 400 });
+      }
+      // 인증만 확인하는 단계라 app_store와 묶을 것이 없다. 그 자리에서 소비한다.
+      if (checked.source === "legacy") {
+        delete data.codes[codeKey];
+        await writeData(data);
+      } else if (!(await consumeVerification(codeKey, verifyInput))) {
+        return NextResponse.json({ error: "인증번호가 올바르지 않습니다." }, { status: 400 });
+      }
     }
     const tokenExpiresAt = Date.now() + 15 * 60 * 1000;
 

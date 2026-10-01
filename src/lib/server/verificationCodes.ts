@@ -462,3 +462,94 @@ export async function checkCode(input: {
   }
   return { ok: false, error: message, source: saved.source };
 }
+
+/* ------------------------------------------------------------------ *
+ * 인증번호 검증 원자화 (P1-06 1단계)
+ * ------------------------------------------------------------------ */
+
+/** 이 파일이 쓰는 SQL 기능만. store.ts의 sqlClient() 결과와 같은 모양이다. */
+export interface VerificationSql {
+  query: (text: string, params: unknown[]) => Promise<unknown>;
+}
+
+export type AtomicVerifyResult = { ok: true } | { ok: false; error: string };
+
+const WRONG_CODE_MESSAGE = "인증번호가 올바르지 않습니다.";
+const EXHAUSTED_MESSAGE = "인증 시도 횟수를 초과했습니다. 인증번호를 다시 받아주세요.";
+
+/**
+ * verification_codes 위에서 인증번호를 검증하고, 맞으면 그 자리에서 소비한다.
+ *
+ * 1) 시도권 선점: 대조하기 전에 attempts를 한 문장으로 1 올린다.
+ *    WHERE에 attempts < max가 있어, 동시에 몇 건이 와도 행을 돌려받는(=대조할 수 있는)
+ *    요청은 코드 1개당 최대 max건이다. 행 잠금 뒤 조건을 다시 평가하기 때문이다.
+ * 2) 대조: 선점한 요청만 돌려받은 code와 입력값을 비교한다.
+ * 3) 소비: 맞으면 DELETE ... RETURNING으로 지운다. 지운 요청 1건만 성공이다.
+ *    같은 정답이 동시에 들어와도 두 번째 요청은 0행이라 실패로 끝난다.
+ *
+ * 시도를 모두 쓴 행은 지우지 않는다. sent_at이 남아 issueCode의 재발송 쿨다운이 그대로
+ * 유지된다(지우면 5회 오입력 직후 바로 새 SMS를 받을 수 있었다). 이 행은 만료까지 남고,
+ * 쿨다운이 지나 재발송하면 issueCode가 code·attempts=0·sent_at을 새로 쓴다.
+ */
+export async function verifyCodeWith(
+  sql: VerificationSql,
+  input: { storageKey: string; input: string; maxAttempts: number },
+): Promise<AtomicVerifyResult> {
+  const claimed = (await sql.query(
+    `
+      UPDATE verification_codes
+      SET attempts = attempts + 1
+      WHERE storage_key = $1
+        AND expires_at > now()
+        AND attempts < $2
+      RETURNING code, attempts
+    `,
+    [input.storageKey, input.maxAttempts],
+  )) as { code: string; attempts: string | number }[];
+
+  if (!claimed[0]) {
+    // 대조하지 않는다. 없거나 만료면 기존 문구, 시도를 다 쓴 값이면 초과 문구다.
+    const current = (await sql.query(
+      `
+        SELECT attempts FROM verification_codes
+        WHERE storage_key = $1 AND expires_at > now()
+      `,
+      [input.storageKey],
+    )) as { attempts: string | number }[];
+    const exhausted = current[0] !== undefined && Number(current[0].attempts) >= input.maxAttempts;
+    return { ok: false, error: exhausted ? EXHAUSTED_MESSAGE : WRONG_CODE_MESSAGE };
+  }
+
+  if (input.input.length === 0 || claimed[0].code !== input.input) {
+    const used = Number(claimed[0].attempts);
+    return { ok: false, error: used >= input.maxAttempts ? EXHAUSTED_MESSAGE : WRONG_CODE_MESSAGE };
+  }
+
+  // consumeVerification과 같은 조건의 소비. 지운 행이 있어야만 성공이다.
+  const consumed = (await sql.query(
+    `
+      DELETE FROM verification_codes
+      WHERE storage_key = $1
+        AND code = $2
+        AND expires_at > now()
+      RETURNING storage_key
+    `,
+    [input.storageKey, input.input],
+  )) as { storage_key: string }[];
+  return consumed[0] ? { ok: true } : { ok: false, error: WRONG_CODE_MESSAGE };
+}
+
+/**
+ * 제품 코드용. DB 모드에서만 결과를 돌려주고, 파일 모드에서는 null이다.
+ * null이면 호출부가 기존 checkCode(legacy) 경로를 그대로 탄다.
+ */
+export async function verifyCodeInTable(input: {
+  storageKey: string;
+  input: string;
+  maxAttempts: number;
+}): Promise<AtomicVerifyResult | null> {
+  const sql = sqlClient();
+  if (!sql) return null;
+  await ensureTable(sql);
+  return verifyCodeWith(sql, input);
+}
