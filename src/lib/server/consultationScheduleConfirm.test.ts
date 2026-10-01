@@ -166,7 +166,8 @@ test("슬롯 충돌 검사는 예약시각 판정보다 먼저 일어난다", ()
   const at_ = APPLY_ORDER.indexOf("export async function commitConsultation");
   assert.notEqual(at_, -1);
   const body = APPLY_ORDER.slice(at_);
-  const slotCheck = body.indexOf("if (!isSlotAvailable(data, teacher, parsed.date, parsed.time))");
+  // 슬롯 검사는 P1-04에서 자기 결제의 hold 예외(ownerMerchantOrderId) 인자가 붙었다. 호출 자체를 찾는다.
+  const slotCheck = body.indexOf("!isSlotAvailable(data, teacher, parsed.date, parsed.time,");
   const resolve = body.indexOf("resolveConfirmedScheduledAt(scheduledDate");
   assert.notEqual(slotCheck, -1, "슬롯 검사가 없다");
   assert.notEqual(resolve, -1, "확정 경로 호출이 없다");

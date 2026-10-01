@@ -19,6 +19,7 @@ import {
   orderIdForPayment,
 } from "@/lib/server/applyOrder";
 import { readServerConsentedAt } from "@/lib/server/consents";
+import { acquireConsultationHold, releaseConsultationHold } from "@/lib/server/consultationHold";
 import { isSlotAvailable, parseDatetime } from "@/lib/server/consultationSlots";
 import {
   approveNicepayPayment,
@@ -33,8 +34,10 @@ import {
   claimPaymentApproved,
   claimPaymentProcessing,
   getPaymentByMerchantOrderId,
+  isAppStoreConflict,
   markPaymentFailed,
   readData,
+  writeData,
   writeDataWithOrderForPayment,
 } from "@/lib/server/store";
 import { isActiveUser } from "@/lib/server/withdrawAccount";
@@ -267,7 +270,8 @@ export async function POST(request: Request) {
   //    그 밖의 오류는 그대로 던진다(승인 API에 도달하지 않는다).
   let claimed: Awaited<ReturnType<typeof claimPaymentProcessing>>;
   try {
-    claimed = await claimPaymentProcessing(merchantOrderId);
+    // 아래 승인 API에 넘길 같은 tid를 선점과 함께 남긴다(processing 복구가 이 거래를 직접 조회한다).
+    claimed = await claimPaymentProcessing(merchantOrderId, tid);
   } catch (error) {
     if (error instanceof CheckoutPaymentActiveError) {
       return pending(
@@ -299,6 +303,37 @@ export async function POST(request: Request) {
     return pending("결제 결과를 확인하고 있습니다. 잠시 후 MY에서 확인해 주세요.");
   }
 
+  // 9-1) 일반 상담은 선점한 결제가 슬롯을 먼저 확보해야 승인한다(P1-04).
+  //      위 7)의 확인은 화면 안내용이고, 같은 슬롯 경쟁은 이 CAS 확보에서 한 결제만 통과한다.
+  //      확보하지 못하면 승인 API를 부르지 않으므로 청구되지 않는다. 그래서 failed로 확정해
+  //      같은 신청의 재결제(P1-03)를 막지 않는다. 그 밖의 저장 오류는 상태를 확신할 수 없어
+  //      failed로 바꾸지 않고 그대로 던진다(결제는 processing으로 남고 승인되지 않는다).
+  if (kind === "consultation") {
+    const parsed = parseDatetime(String(request_.datetime ?? ""));
+    if (!parsed) return failed("상담 시간을 확인하지 못했습니다.");
+    const held = await acquireConsultationHold(
+      {
+        teacher: String(request_.teacher ?? "유비 선생"),
+        date: parsed.date,
+        time: parsed.time,
+        merchantOrderId,
+        checkoutId: typeof snapshot.checkoutId === "string" ? snapshot.checkoutId : null,
+        createdAt: new Date().toISOString(),
+      },
+      { readData, writeData, isConflict: isAppStoreConflict },
+    );
+    if (held.kind === "slot-unavailable") {
+      await markPaymentFailed({ merchantOrderId });
+      return failed(
+        "선택하신 상담 시간이 이미 예약되었습니다. 결제는 진행되지 않았습니다. 다른 시간을 선택해 주세요.",
+      );
+    }
+    if (held.kind === "retry-later") {
+      await markPaymentFailed({ merchantOrderId });
+      return failed("지금은 상담 시간을 확정하지 못했습니다. 결제는 진행되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
   // 10) 여기까지 온 요청만 승인한다. 금액은 서버가 확정한 값만 쓴다.
   // 응답의 tid·orderId·amount가 이 세 값과 모두 같아야 approved가 된다. 아니면 unknown이다.
   const outcome = await approveNicepayPayment({ tid, amount: recalculated, merchantOrderId });
@@ -317,6 +352,20 @@ export async function POST(request: Request) {
      * 저장하지 않는 것이 기본이다(기존 열과 과거 데이터는 그대로 둔다).
      */
     await markPaymentFailed({ merchantOrderId });
+    // 일반 상담은 승인 전에 확보한 hold를 푼다. 결제 실패 확정이 먼저이고,
+    // 해제가 실패해도 결제 결과는 바꾸지 않는다(hold만 남고 기록으로 확인한다).
+    if (kind === "consultation") {
+      try {
+        const released = await releaseConsultationHold(merchantOrderId, {
+          readData,
+          writeData,
+          isConflict: isAppStoreConflict,
+        });
+        if (released.kind !== "released") console.warn("[consultation-hold] release not completed after decline");
+      } catch {
+        console.warn("[consultation-hold] release failed after decline");
+      }
+    }
     return failed(outcome.reason || "카드사 승인이 완료되지 않았습니다.");
   }
 
@@ -420,6 +469,8 @@ export async function POST(request: Request) {
         // 주문과 같다. 승인 성공 뒤에만 유료 상담을 확정한다.
         mode: "paid-approved",
         approvedAmount: recalculated,
+        // 9-1)에서 이 결제가 확보한 hold를 같은 저장에서 상담으로 바꾼다.
+        holdOwnerMerchantOrderId: merchantOrderId,
       },
     );
     if (!result.ok) {

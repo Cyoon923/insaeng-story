@@ -22,7 +22,9 @@ import {
   listPaymentsNeedingReview,
   summarizeOrderPaymentStatuses,
   getOrderById,
+  getPaymentByMerchantOrderId,
 } from "@/lib/server/store";
+import { listHoldsForAdmin } from "@/lib/server/consultationHold";
 import {
   DEFAULT_TEACHER,
   CONSULT_TEACHERS,
@@ -237,10 +239,17 @@ export async function GET() {
     orderPayments = { loaded: false, items: {} };
   }
 
+  /*
+   * 결제 승인 전에 확보된 상담 시간(hold). 각 hold의 결제를 다시 읽어 지금 상태와
+   * 해제 가능 여부를 서버가 붙인다. 결제를 읽지 못한 hold는 해제 불가로 표시된다.
+   */
+  const consultationHolds = await listHoldsForAdmin(data, getPaymentByMerchantOrderId);
+
   return NextResponse.json({
     // 비밀번호 해시·소셜 로그인 id는 관리자 브라우저로 보내지 않는다.
     users: data.users.map(toAdminUserView),
     paymentsNeedingReview,
+    consultationHolds,
     orders,
     /**
      * 주문 id별 결제 요약. { loaded, items } 모양이며 loaded가 false면

@@ -282,6 +282,24 @@ export interface BlockedSlot {
   time: string;
 }
 
+/**
+ * 일반 1:1 상담 결제의 슬롯 확보 (P1-04).
+ *
+ * 결제 승인 전에 그 결제(merchantOrderId)가 슬롯을 먼저 잡아 두는 기록이다. 다른 결제는
+ * 이 슬롯을 예약된 것으로 본다. 상담이 확정되면 실제 Consultation으로 바뀐다.
+ * 개인정보는 담지 않는다(누가 결제했는지는 payments에서 찾는다).
+ */
+export interface ConsultationHold {
+  teacher: string;
+  date: string;
+  time: string;
+  /** 확보한 결제. 이 결제 자신의 슬롯 판정에서는 이 hold를 점유로 보지 않는다. */
+  merchantOrderId: string;
+  /** 같은 신청(P1-03) 참고용 사본. 판정에는 쓰지 않는다. */
+  checkoutId?: string;
+  createdAt: string;
+}
+
 export interface AdminPromo {
   code: string;
   percent: number;
@@ -460,6 +478,12 @@ export interface Payment {
   cancelExecutionStatus?: PaymentCancelExecutionStatus | null;
   /** 취소 실행권을 선점한 시각. 서버(DB now())가 만든다. */
   cancelClaimedAt?: string | null;
+  /**
+   * 승인 시도 거래키. processing 선점 때 승인 API에 넘긴 tid이며 승인 여부와 무관하다.
+   * 승인 완료 거래키(pgTid)와 다르다. 취소·환불·화면에 쓰지 않고 processing 복구 조회에만 쓴다.
+   * 이 열이 생기기 전에 선점된 결제는 null이다.
+   */
+  approveAttemptTid?: string | null;
 }
 
 /**
@@ -841,6 +865,11 @@ export interface AppData {
   notificationSettings: Record<string, NotificationSettings>;
   codes: Record<string, VerificationCode>;
   blockedSlots: BlockedSlot[];
+  /**
+   * 결제 승인 전 상담 슬롯 확보 목록. 이 구조가 생기기 전의 저장소에는 키가 없으며,
+   * 읽을 때 빈 배열로 채워진다(store.ts mergeData). 읽는 쪽도 없으면 빈 배열로 본다.
+   */
+  consultationHolds?: ConsultationHold[];
   adminPromo: AdminPromo | null;
   testResetAt?: string;
 }

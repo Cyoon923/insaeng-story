@@ -11,6 +11,8 @@ import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 
 const calls: string[] = [];
+const claimArgs: unknown[][] = [];
+const approveTids: string[] = [];
 let claimBehavior: () => Promise<unknown> = async () => null;
 let currentPayment: Record<string, unknown> | null = null;
 
@@ -41,8 +43,9 @@ function readyPayment(status = "ready"): Record<string, unknown> {
 mock.module("@/lib/server/store", {
   namedExports: {
     CheckoutPaymentActiveError,
-    claimPaymentProcessing: async () => {
+    claimPaymentProcessing: async (...args: unknown[]) => {
       calls.push("claimProcessing");
+      claimArgs.push(args);
       return claimBehavior();
     },
     claimPaymentApproved: async () => {
@@ -69,8 +72,9 @@ mock.module("@/lib/server/nicepayApprove", {
     nicepayConfigured: () => true,
     nicepayClientKey: () => "client-1",
     verifyReturnSignature: () => true,
-    approveNicepayPayment: async () => {
+    approveNicepayPayment: async (input: { tid: string }) => {
       calls.push("approve");
+      approveTids.push(input.tid);
       return { kind: "approved", ok: true, reason: "", raw: {}, result: {}, httpStatus: 200 };
     },
   },
@@ -122,6 +126,8 @@ function returnRequest(): Request {
 
 function reset(claim: () => Promise<unknown>, payment = readyPayment()) {
   calls.length = 0;
+  claimArgs.length = 0;
+  approveTids.length = 0;
   claimBehavior = claim;
   currentPayment = payment;
 }
@@ -168,4 +174,7 @@ test("선점 성공이면 그 다음에만 승인하고 기존 확정 흐름을 
   assert.equal(response.status, 303);
   assert.match(String(response.headers.get("Location")), /\/apply\/complete\?type=order&id=o-is-checkout-1/);
   assert.deepEqual(calls, ["getPayment", "claimProcessing", "approve", "claimApproved", "commitOrder"]);
+  // 선점에 넘긴 시도 tid는 인증 return의 tid이고, 승인 API에 넘긴 tid와 같다.
+  assert.deepEqual(claimArgs, [[MOID, "tid-1"]]);
+  assert.deepEqual(approveTids, ["tid-1"]);
 });

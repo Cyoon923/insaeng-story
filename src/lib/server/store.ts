@@ -35,6 +35,7 @@ const EMPTY: AppData = {
   notificationSettings: {},
   codes: {},
   blockedSlots: [],
+  consultationHolds: [],
   adminPromo: null,
 };
 
@@ -246,6 +247,15 @@ async function runPaymentsMigration(sql: NonNullable<ReturnType<typeof sqlClient
     txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_execution_status TEXT`),
     txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS cancel_claimed_at TIMESTAMPTZ`),
     /*
+     * 승인 시도 거래키 (P1-04 Stage 5 보강).
+     *
+     * processing 선점 때 승인 API에 넘길 tid를 같은 UPDATE에서 남긴다. 승인 여부와 무관하며
+     * 승인 완료 거래키(pg_tid)와 섞지 않는다. 취소·환불·화면에는 쓰지 않고, processing 복구가
+     * "우리가 승인 요청한 바로 그 거래"를 tid로 직접 조회하는 데만 쓴다.
+     * 기존 행은 NULL로 남는다(소급해 채우지 않는다). NULL은 레거시 복구 경로를 탄다.
+     */
+    txn.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS approve_attempt_tid TEXT`),
+    /*
      * 신청(checkout) 단위 중복 결제 방지 (P1-03).
      *
      * 같은 신청 draft에서 만든 결제는 같은 checkout_id를 가진다. ready는 여러 개여도
@@ -413,9 +423,17 @@ function advanceVersion(data: AppData, version: number): void {
   readVersions.set(data, version);
 }
 
-function mergeData(value: unknown): AppData {
+/** 저장된 값을 지금 AppData 모양으로 맞춘다. 순수 함수라 테스트에서도 부른다. */
+export function mergeData(value: unknown): AppData {
   if (!value || typeof value !== "object") return structuredClone(EMPTY);
-  return { ...EMPTY, ...(value as AppData) };
+  const source = value as AppData;
+  return {
+    ...EMPTY,
+    ...source,
+    // 상담 슬롯 확보(P1-04)가 생기기 전 저장소에는 키가 없다. 소급해 채우지 않고 읽을 때만
+    // 빈 배열로 둔다. 매번 새 배열이라 여러 읽기가 EMPTY의 배열을 나눠 쓰지 않는다.
+    consultationHolds: Array.isArray(source.consultationHolds) ? source.consultationHolds : [],
+  };
 }
 
 /**
@@ -1135,6 +1153,7 @@ interface PaymentRow {
   cancel_response_raw: unknown;
   cancel_execution_status: string | null;
   cancel_claimed_at: string | Date | null;
+  approve_attempt_tid: string | null;
 }
 
 const PAYMENT_COLUMNS = `id, order_id, provider, merchant_order_id, pg_tid,
@@ -1142,7 +1161,7 @@ const PAYMENT_COLUMNS = `id, order_id, provider, merchant_order_id, pg_tid,
   approved_at, cancelled_at, order_snapshot, raw, created_at, updated_at,
   cancel_attempted_at, cancel_result_kind, cancel_result_code,
   cancel_result_message, cancel_response_raw,
-  cancel_execution_status, cancel_claimed_at`;
+  cancel_execution_status, cancel_claimed_at, approve_attempt_tid`;
 
 function toIso(value: string | Date | null): string | null {
   if (value === null) return null;
@@ -1181,6 +1200,7 @@ function toPayment(row: PaymentRow): Payment {
     cancelExecutionStatus:
       (row.cancel_execution_status as PaymentCancelExecutionStatus | null) ?? null,
     cancelClaimedAt: toIso(row.cancel_claimed_at),
+    approveAttemptTid: row.approve_attempt_tid ?? null,
   };
 }
 
@@ -1363,8 +1383,14 @@ export async function linkPaymentToOrder(input: {
  * 같은 신청(checkout_id)의 다른 결제가 이미 processing / paid이면 UPDATE가
  * CHECKOUT_ACTIVE_INDEX에 걸려 실패하고(행은 ready 그대로), CheckoutPaymentActiveError를
  * 던진다. 이 예외를 받은 요청도 승인 API를 호출하면 안 된다. 그 밖의 DB 오류는 그대로 던진다.
+ *
+ * attemptTid는 이 요청이 곧 승인 API에 넘길 tid다. 선점과 같은 UPDATE에서 approve_attempt_tid로
+ * 남겨, 선점한 요청 하나만 기록하고 진 요청은 아무것도 쓰지 못한다. pg_tid는 건드리지 않는다.
  */
-export async function claimPaymentProcessing(merchantOrderId: string): Promise<Payment | null> {
+export async function claimPaymentProcessing(
+  merchantOrderId: string,
+  attemptTid: string,
+): Promise<Payment | null> {
   const sql = paymentsClient();
   await ensureTable(sql);
   await ensurePaymentsMigration(sql);
@@ -1374,12 +1400,13 @@ export async function claimPaymentProcessing(merchantOrderId: string): Promise<P
       `
         UPDATE payments
         SET status = 'processing',
+            approve_attempt_tid = $2,
             updated_at = now()
         WHERE merchant_order_id = $1
           AND status = 'ready'
         RETURNING ${PAYMENT_COLUMNS}
       `,
-      [merchantOrderId],
+      [merchantOrderId, attemptTid],
     )) as PaymentRow[];
   } catch (error) {
     throw claimProcessingError(error);

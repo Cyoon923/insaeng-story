@@ -11,6 +11,7 @@ import {
   type InquiryHandledFilter,
 } from "@/lib/adminInquiries";
 import { ORDER_OPTION_PRICES, SAJU_CONSULTATION_OPTION_ID } from "@/lib/server/pricing";
+import type { AdminConsultationHold } from "@/lib/server/consultationHold";
 import {
   consultationRefundOrderId,
   findEventConsultation,
@@ -113,6 +114,27 @@ type ReviewItem = {
   visible?: boolean;
   kind?: string;
   targetKey?: string;
+};
+
+/** 상담 시간 확보 카드의 결제 상태 표시. */
+const HOLD_PAYMENT_LABEL: Record<string, string> = {
+  ready: "결제 대기",
+  processing: "결제 결과 확인 필요",
+  paid: "결제 완료",
+  failed: "결제 실패",
+  cancelled: "결제 취소",
+  partialCancelled: "부분 취소",
+  missing: "결제 기록 없음",
+  unavailable: "결제 확인 불가",
+};
+
+/** 해제할 수 없는 상태의 안내. 결정은 서버가 하고 화면은 문구만 보인다. */
+const HOLD_GUIDE: Record<string, string> = {
+  processing: "승인 결과를 아직 모릅니다. 위 '결제 결과 확인 필요'에서 결제 조회 후 처리해 주세요.",
+  paid: "결제 완료 — 재접수 또는 환불을 먼저 확인해 주세요.",
+  partialCancelled: "부분취소된 결제입니다. 결제 정보를 직접 확인해 주세요.",
+  missing: "결제 기록을 찾을 수 없습니다. 결제 정보를 직접 확인해 주세요.",
+  unavailable: "결제 상태를 읽지 못했습니다. 잠시 후 새로고침해 주세요.",
 };
 
 const TABS: { id: TabId; label: string }[] = [
@@ -720,6 +742,10 @@ export default function AdminPage() {
   const [recommitting, setRecommitting] = useState("");
   // 재접수 결과 안내. 주문번호별로 한 줄씩 보여 준다.
   const [recommitMessage, setRecommitMessage] = useState<Record<string, string>>({});
+  // 결제 승인 전에 확보된 상담 시간(hold). 해제 가능 여부는 서버가 정해 내려준다.
+  const [consultationHolds, setConsultationHolds] = useState<AdminConsultationHold[]>([]);
+  const [holdReleasing, setHoldReleasing] = useState("");
+  const [holdMessage, setHoldMessage] = useState<Record<string, string>>({});
   // 결제 조회 중인 processing 결제의 주문번호와 조회 결과 안내.
   const [inquiring, setInquiring] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState<Record<string, string>>({});
@@ -762,6 +788,7 @@ export default function AdminPage() {
         unlinked: PaymentReviewItem[];
       },
     );
+    setConsultationHolds((data.consultationHolds ?? []) as AdminConsultationHold[]);
     // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
     setOrders(
       ((data.orders ?? []) as Order[]).filter((order) => order.product !== "consultation"),
@@ -941,7 +968,13 @@ export default function AdminPage() {
       const message: string =
         data.message ?? data.error ?? "결제 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.";
       if (res.ok && data.ok) {
-        setRecommitMessage((current) => ({ ...current, [merchantOrderId]: message }));
+        // 결제 상태가 바뀌어 이 카드는 목록에서 빠진다. 안내를 다음 할 일의 카드에 남긴다.
+        // paid 확인 → 재접수 카드, failed 확정 → 상담 시간 확보 카드(있을 때).
+        if (data.nextAction === "release-hold") {
+          setHoldMessage((current) => ({ ...current, [merchantOrderId]: message }));
+        } else {
+          setRecommitMessage((current) => ({ ...current, [merchantOrderId]: message }));
+        }
         await loadData();
         return;
       }
@@ -953,6 +986,36 @@ export default function AdminPage() {
       }));
     } finally {
       setInquiring("");
+    }
+  }
+
+  /**
+   * 남은 상담 시간 확보(hold) 해제. 해제해도 되는지는 서버가 결제 상태를 다시 읽어 정한다.
+   * 성공하면 목록을 다시 읽어 해제된 줄이 빠지게 한다. 실패해도 다시 부르지 않는다.
+   */
+  async function handleHoldRelease(merchantOrderId: string) {
+    if (holdReleasing) return;
+    setHoldReleasing(merchantOrderId);
+    setHoldMessage((current) => ({ ...current, [merchantOrderId]: "" }));
+    try {
+      const res = await fetch("/api/admin/payments/hold-release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantOrderId }),
+      });
+      const data = await res.json();
+      setHoldMessage((current) => ({
+        ...current,
+        [merchantOrderId]: data.message ?? data.error ?? "해제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      }));
+      if (res.ok && data.ok) await loadData();
+    } catch {
+      setHoldMessage((current) => ({
+        ...current,
+        [merchantOrderId]: "해제 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      }));
+    } finally {
+      setHoldReleasing("");
     }
   }
 
@@ -1926,6 +1989,53 @@ export default function AdminPage() {
                 {recommitMessage[item.merchantOrderId] ? (
                   <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
                     {recommitMessage[item.merchantOrderId]}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {consultationHolds.length > 0 ? (
+        <section className="px-4 pt-5">
+          <p className="text-[16px] font-bold text-[#403A49]">상담 시간 확보</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">
+            결제 승인 전에 잡아 둔 상담 시간입니다. 결제가 끝나지 않은 채 남은 경우에만 해제할 수 있습니다.
+          </p>
+          <div className="mt-2 space-y-3">
+            {consultationHolds.map((hold) => (
+              <article
+                key={`hold-${hold.merchantOrderId}-${hold.date}-${hold.time}`}
+                className="rounded-2xl bg-white p-4 ring-1 ring-[#ebe3d8]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[16px] font-bold text-[#403A49]">
+                    {hold.teacher} · {hold.date} {hold.time}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-[#f5efe6] px-3 py-1 text-[12px] font-semibold text-[#5c3d2e]">
+                    {HOLD_PAYMENT_LABEL[hold.paymentStatus] ?? hold.paymentStatus}
+                  </span>
+                </div>
+                <p className="mt-1 text-[13px] text-[#6B6570]">주문번호 {hold.merchantOrderId}</p>
+                <p className="mt-1 text-[13px] text-[#6B6570]">확보 시각 {formatDate(hold.createdAt)}</p>
+                {hold.releasable ? (
+                  <button
+                    type="button"
+                    onClick={() => handleHoldRelease(hold.merchantOrderId)}
+                    disabled={holdReleasing === hold.merchantOrderId}
+                    className="mt-3 h-11 w-full rounded-xl bg-[#403A49] text-[15px] font-semibold text-white disabled:opacity-50"
+                  >
+                    {holdReleasing === hold.merchantOrderId ? "처리 중..." : "홀드 해제"}
+                  </button>
+                ) : (
+                  <p className="mt-3 text-[13px] leading-relaxed text-[#6B6570]">
+                    {HOLD_GUIDE[hold.paymentStatus] ?? "결제 정보를 직접 확인해 주세요."}
+                  </p>
+                )}
+                {holdMessage[hold.merchantOrderId] ? (
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#5c3d2e]">
+                    {holdMessage[hold.merchantOrderId]}
                   </p>
                 ) : null}
               </article>

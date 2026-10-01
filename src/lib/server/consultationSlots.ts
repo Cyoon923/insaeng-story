@@ -257,14 +257,44 @@ function isBooked(data: AppData, teacher: string, date: string, time: string): b
   });
 }
 
+/**
+ * 결제 승인 전 다른 결제가 확보해 둔 슬롯인지 (P1-04).
+ * ownerMerchantOrderId를 주면 그 결제가 가진 hold는 빼고 본다(자기 결제의 확정 판정용).
+ * 주지 않으면 모든 hold를 점유로 본다.
+ */
+function isHeld(
+  data: AppData,
+  teacher: string,
+  date: string,
+  time: string,
+  ownerMerchantOrderId?: string,
+): boolean {
+  return (data.consultationHolds ?? []).some(
+    (hold) =>
+      hold.teacher === teacher &&
+      hold.date === date &&
+      hold.time === time &&
+      !(ownerMerchantOrderId && hold.merchantOrderId === ownerMerchantOrderId),
+  );
+}
+
+/** 슬롯 판정 선택값. 기존 호출부는 넘기지 않는다. */
+export interface SlotCheckOptions {
+  /** 이 결제가 확보한 hold는 점유로 보지 않는다. */
+  ownerMerchantOrderId?: string;
+}
+
 export function getSlotStatus(
   data: AppData,
   teacher: string,
   date: string,
   time: string,
+  options: SlotCheckOptions = {},
 ): SlotStatus {
   if (isBooked(data, teacher, date, time)) return "booked";
   if (isBlocked(data, teacher, date, time)) return "blocked";
+  // 다른 결제가 승인 전에 확보한 슬롯은 예약된 것과 같이 본다.
+  if (isHeld(data, teacher, date, time, options.ownerMerchantOrderId)) return "booked";
   return "available";
 }
 
@@ -279,8 +309,23 @@ export function listSlotStatuses(
   }));
 }
 
-export function isSlotAvailable(data: AppData, teacher: string, date: string, time: string): boolean {
-  return getSlotStatus(data, teacher, date, time) === "available";
+export function isSlotAvailable(
+  data: AppData,
+  teacher: string,
+  date: string,
+  time: string,
+  options: SlotCheckOptions = {},
+): boolean {
+  return getSlotStatus(data, teacher, date, time, options) === "available";
+}
+
+/**
+ * 관리자 차단이 손대면 안 되는 시간인지. 고객 예약에 더해, 결제 승인 전에 확보된 시간(hold)도
+ * 포함한다. hold된 시간을 차단하면 그 결제의 확정 저장이 blocked로 막혀 돈만 받고 상담이
+ * 없는 상태가 되기 때문이다(P1-04).
+ */
+function isReserved(data: AppData, teacher: string, date: string, time: string): boolean {
+  return isBooked(data, teacher, date, time) || isHeld(data, teacher, date, time);
 }
 
 export function toggleBlockedSlot(
@@ -290,7 +335,7 @@ export function toggleBlockedSlot(
   time: string,
 ): BlockedSlot[] {
   const current = data.blockedSlots ?? [];
-  if (isBooked(data, teacher, date, time)) {
+  if (isReserved(data, teacher, date, time)) {
     return current;
   }
   const exists = current.some(
@@ -320,7 +365,7 @@ export function setSlotBlocked(
   blocked: boolean,
 ): BlockedSlot[] {
   const current = data.blockedSlots ?? [];
-  if (isBooked(data, teacher, date, time)) return current;
+  if (isReserved(data, teacher, date, time)) return current;
   const rest = current.filter((slot) => !sameSlot(slot, teacher, date, time));
   return blocked ? [...rest, { teacher, date, time }] : rest;
 }
@@ -341,7 +386,7 @@ export function setDayBlocked(
   const bookedCount = CONSULT_TIMES.filter((time) => isBooked(data, teacher, date, time)).length;
   const rest = current.filter((slot) => !(slot.teacher === teacher && slot.date === date));
   if (!blocked) return { blockedSlots: rest, bookedCount };
-  const added = CONSULT_TIMES.filter((time) => !isBooked(data, teacher, date, time)).map((time) => ({
+  const added = CONSULT_TIMES.filter((time) => !isReserved(data, teacher, date, time)).map((time) => ({
     teacher,
     date,
     time,

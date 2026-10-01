@@ -126,13 +126,16 @@ test("claimProcessingError: 다른 오류는 같은 객체를 그대로 돌려�
   assert.equal(claimProcessingError(network), network);
 });
 
-test("claimPaymentProcessing: 정상/null 경로는 그대로이고 오류만 claimProcessingError를 거친다", () => {
+test("claimPaymentProcessing: 정상/null 경로는 그대로이고 오류만 claimProcessingError를 거친다(시도 tid는 같은 UPDATE에서 원자 저장)", () => {
   const body = squash(bodyOf("export async function claimPaymentProcessing("));
   assert.match(body, /Promise<Payment \| null>/);
   assert.match(
     body,
-    /UPDATE payments SET status = 'processing', updated_at = now\(\) WHERE merchant_order_id = \$1 AND status = 'ready'/,
+    /UPDATE payments SET status = 'processing', approve_attempt_tid = \$2, updated_at = now\(\) WHERE merchant_order_id = \$1 AND status = 'ready'/,
   );
+  // 선점과 시도 tid 기록은 같은 UPDATE 한 문장이다. pg_tid는 여기서 쓰지 않는다.
+  assert.match(body, /\[merchantOrderId, attemptTid\]/);
+  assert.doesNotMatch(body, /pg_tid/);
   assert.match(body, /catch \(error\) \{ throw claimProcessingError\(error\); \}/);
   assert.match(body, /return rows\[0\] \? toPayment\(rows\[0\]\) : null;/);
 });

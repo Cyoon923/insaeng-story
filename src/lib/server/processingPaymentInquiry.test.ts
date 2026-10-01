@@ -15,6 +15,7 @@ import {
 import type { ProcessingInquiryDeps } from "./processingPaymentInquiry.ts";
 import type { NicepayPaymentInquiryOutcome } from "./nicepayPaymentInquiry.ts";
 import type { Payment } from "../types/app.ts";
+import { holdReleaseDecision, runAdminHoldRelease } from "./consultationHold.ts";
 
 const MOID = "is-abc";
 const AMOUNT = 89000;
@@ -71,22 +72,33 @@ function harness(
   p: Payment | null,
   outcomes: NicepayPaymentInquiryOutcome[],
   claimResult: Payment | null = payment({ status: "paid" }),
+  failResult: Payment | null = payment({ status: "failed" }),
 ) {
   const inquiries: { orderId: string; orderDate: string }[] = [];
+  const tidInquiries: string[] = [];
   const claims: Parameters<ProcessingInquiryDeps["claimApproved"]>[0][] = [];
+  const fails: string[] = [];
   const deps: ProcessingInquiryDeps = {
     getPayment: async () => p,
     inquireByOrderId: async (input) => {
       inquiries.push(input);
       return outcomes[inquiries.length - 1] ?? UNKNOWN;
     },
+    inquireByTid: async ({ tid }) => {
+      tidInquiries.push(tid);
+      return outcomes[tidInquiries.length - 1] ?? UNKNOWN;
+    },
     claimApproved: async (input) => {
       claims.push(input);
       return claimResult;
     },
+    markFailed: async ({ merchantOrderId }) => {
+      fails.push(merchantOrderId);
+      return failResult;
+    },
     now: () => NOW,
   };
-  return { deps, inquiries, claims };
+  return { deps, inquiries, tidInquiries, claims, fails };
 }
 
 /* ── 주문일자 후보 ─────────────────────────────────── */
@@ -181,17 +193,17 @@ for (const [name, body] of [
 
 for (const [pgStatus, expected] of [
   ["ready", "pg-ready"],
-  ["failed", "pg-failed"],
-  ["expired", "pg-expired"],
   ["cancelled", "pg-cancelled"],
   ["partialCancelled", "pg-partial-cancelled"],
 ] as const) {
-  test(`NICEPAY ${pgStatus} → ${expected}, claim 0`, async () => {
-    const { deps, claims } = harness(payment(), [found({ ...PAID, status: pgStatus })]);
+  test(`NICEPAY ${pgStatus} → ${expected}, 표시만(claim 0, failed 확정 0, 상태 변경 없음)`, async () => {
+    const { deps, claims, fails } = harness(payment(), [found({ ...PAID, status: pgStatus })]);
     const result = await runProcessingPaymentInquiry(MOID, deps);
     assert.equal(result.status, expected);
     assert.equal(result.nextAction, "manual");
+    assert.equal(result.changed, false);
     assert.equal(claims.length, 0);
+    assert.deepEqual(fails, []);
   });
 }
 
@@ -277,13 +289,15 @@ const ROUTE = readFileSync(
 test("복구 모듈과 route는 주문 생성·실패 전환·재승인 기능을 부르지 않는다", () => {
   for (const source of [MODULE, ROUTE]) {
     for (const forbidden of [
-      "markPaymentFailed",
       "approveNicepayPayment",
       "commitOrder",
       "commitConsultation",
       "recommit/route",
       "linkPaymentToOrder",
       "writeData",
+      // 상담 시간 확보는 이 흐름이 풀지 않는다(관리자가 따로 해제한다, P1-04 Stage 5).
+      "releaseConsultationHold",
+      "consultationHolds",
     ]) {
       assert.equal(source.includes(forbidden), false, forbidden);
     }
@@ -297,4 +311,216 @@ test("route는 관리자 확인이 먼저이고 원문·tid·userId를 돌려주
   for (const leak of ["raw", "pgTid", "tid:", "userId"]) {
     assert.equal(responses.includes(leak), false, leak);
   }
+});
+
+/* ── P1-04 Stage 5: 승인 시도 tid로 검증된 failed / expired → 내부 failed 확정 ─────── */
+
+// 승인 시도 tid가 남아 있는 결제. 조회는 이 tid로만 한다.
+const attempt = (overrides: Partial<Payment> = {}) => payment({ approveAttemptTid: "tid-pg", ...overrides });
+
+for (const [pgStatus, expected] of [
+  ["failed", "pg-failed"],
+  ["expired", "pg-expired"],
+] as const) {
+  test(`processing + NICEPAY ${pgStatus}(같은 거래·금액) → markFailed 1회, 변경됨, 홀드 해제 안내`, async () => {
+    const { deps, claims, fails } = harness(attempt(), [found({ ...PAID, status: pgStatus })]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, expected);
+    assert.equal(result.changed, true);
+    assert.equal(result.nextAction, "release-hold");
+    assert.match(result.message, /실패로 정리했습니다/);
+    assert.deepEqual(fails, [MOID]);
+    assert.equal(claims.length, 0);
+  });
+}
+
+for (const [name, body] of [
+  ["orderId 불일치", { ...PAID, status: "failed", orderId: "is-other" }],
+  ["tid 누락", { ...PAID, status: "failed", tid: "" }],
+  ["amount 불일치", { ...PAID, status: "expired", amount: 1000 }],
+  ["amount 누락", (() => { const b: Record<string, unknown> = { ...PAID, status: "expired" }; delete b.amount; return b; })()],
+] as const) {
+  test(`NICEPAY failed/expired라도 ${name} → mismatch, 상태 변경 없음`, async () => {
+    const { deps, fails } = harness(attempt(), [found(body as Record<string, unknown>)]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, "mismatch");
+    assert.equal(result.changed, false);
+    assert.deepEqual(fails, []);
+  });
+}
+
+test("NICEPAY not-found / unknown → 상태 변경 없음", async () => {
+  const notFound = harness(attempt(), [NOT_FOUND]);
+  assert.equal((await runProcessingPaymentInquiry(MOID, notFound.deps)).status, "not-found");
+  assert.deepEqual(notFound.fails, []);
+  const unknown = harness(attempt(), [UNKNOWN]);
+  assert.equal((await runProcessingPaymentInquiry(MOID, unknown.deps)).status, "retry");
+  assert.deepEqual(unknown.fails, []);
+});
+
+test("paid는 기존 paid 전환 그대로(failed 확정 없음)", async () => {
+  const { deps, claims, fails } = harness(payment(), [found(PAID)]);
+  const result = await runProcessingPaymentInquiry(MOID, deps);
+  assert.equal(result.status, "paid-confirmed");
+  assert.equal(result.changed, true);
+  assert.equal(claims.length, 1);
+  assert.deepEqual(fails, []);
+});
+
+test("그사이 paid 등으로 바뀌어 markFailed가 null이면 concurrent-change(덮어쓰지 않음)", async () => {
+  const { deps, fails } = harness(attempt(), [found({ ...PAID, status: "failed" })], undefined, null);
+  const result = await runProcessingPaymentInquiry(MOID, deps);
+  assert.equal(result.status, "concurrent-change");
+  assert.equal(result.changed, false);
+  assert.deepEqual(fails, [MOID]);
+});
+
+test("이미 failed인 결제는 조회 대상이 아니다(조회·변경 없음)", async () => {
+  const { deps, inquiries, fails } = harness(payment({ status: "failed" }), [found({ ...PAID, status: "failed" })]);
+  assert.equal((await runProcessingPaymentInquiry(MOID, deps)).status, "not-eligible");
+  assert.deepEqual(inquiries, []);
+  assert.deepEqual(fails, []);
+});
+
+test("store.markPaymentFailed는 processing일 때만 바꾸는 조건부 UPDATE다", () => {
+  const STORE = readFileSync(new URL("./store.ts", import.meta.url), "utf8");
+  const body = STORE.slice(STORE.indexOf("export async function markPaymentFailed("));
+  const sql = body.slice(0, body.indexOf("RETURNING")).replace(/\s+/g, " ");
+  assert.match(sql, /SET status = 'failed'/);
+  assert.match(sql, /WHERE merchant_order_id = \$1 AND status = 'processing'/);
+  assert.match(ROUTE, /markFailed: \(input\) => markPaymentFailed\(input\),/);
+});
+
+test("failed 확정 뒤 상담 시간 확보는 그대로이고, 관리자 해제가 그때부터 허용된다", async () => {
+  // 조회 흐름의 deps에는 app_store 쓰기가 없다. hold는 이 단계에서 바뀌지 않는다.
+  const holds = [
+    { teacher: "유비 선생", date: "10월 20일(화)", time: "오전 10:00", merchantOrderId: MOID, createdAt: "x" },
+  ];
+  let paymentNow = attempt();
+  const { deps } = harness(paymentNow, [found({ ...PAID, status: "expired" })]);
+  deps.markFailed = async () => {
+    paymentNow = { ...paymentNow, status: "failed" };
+    return paymentNow;
+  };
+  // 조회 전: processing이라 해제 불가
+  assert.equal(holdReleaseDecision(paymentNow).ok, false);
+  await runProcessingPaymentInquiry(MOID, deps);
+  assert.equal(holds.length, 1);
+  assert.equal(holdReleaseDecision(paymentNow).ok, true);
+  // 관리자 "홀드 해제" (Stage 4)
+  let saved = { consultationHolds: holds } as unknown as Record<string, unknown>;
+  const released = await runAdminHoldRelease(MOID, {
+    getPayment: async () => paymentNow,
+    readData: async () => structuredClone(saved) as never,
+    writeData: async (data) => {
+      saved = structuredClone(data) as unknown as Record<string, unknown>;
+    },
+    isConflict: () => false,
+  });
+  assert.equal(released.ok, true);
+  assert.deepEqual(saved.consultationHolds, []);
+});
+
+test("hold가 없는 일반 processing 결제도 같은 규칙(failed 확정, 해제 대상 없음)", async () => {
+  const { deps, fails } = harness(attempt(), [found({ ...PAID, status: "failed" })]);
+  const result = await runProcessingPaymentInquiry(MOID, deps);
+  assert.equal(result.status, "pg-failed");
+  assert.deepEqual(fails, [MOID]);
+});
+
+/* ── 승인 시도 tid 우선 조회 ─────────────────────────── */
+
+test("시도 tid + paid → tid로 1회 조회, 주문번호 조회 0, claim(pgTid = 시도 tid)", async () => {
+  const { deps, inquiries, tidInquiries, claims, fails } = harness(attempt(), [found(PAID)]);
+  const result = await runProcessingPaymentInquiry(MOID, deps);
+  assert.equal(result.status, "paid-confirmed");
+  assert.equal(result.changed, true);
+  assert.deepEqual(tidInquiries, ["tid-pg"]);
+  assert.deepEqual(inquiries, []);
+  assert.equal(claims.length, 1);
+  assert.equal(claims[0].pgTid, "tid-pg");
+  assert.equal(claims[0].approvedAmount, AMOUNT);
+  assert.deepEqual(fails, []);
+});
+
+for (const pgStatus of ["paid", "failed", "expired"] as const) {
+  test(`시도 tid와 응답 tid가 다르면(${pgStatus}) mismatch, 상태 변경 없음`, async () => {
+    const { deps, inquiries, claims, fails } = harness(attempt(), [
+      found({ ...PAID, status: pgStatus, tid: "tid-other" }),
+    ]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, "mismatch");
+    assert.equal(result.changed, false);
+    assert.deepEqual(inquiries, []);
+    assert.equal(claims.length, 0);
+    assert.deepEqual(fails, []);
+  });
+}
+
+for (const [name, outcome, expected] of [
+  ["ready", found({ ...PAID, status: "ready" }), "pg-ready"],
+  ["cancelled", found({ ...PAID, status: "cancelled" }), "pg-cancelled"],
+  ["partialCancelled", found({ ...PAID, status: "partialCancelled" }), "pg-partial-cancelled"],
+  ["not-found", NOT_FOUND, "not-found"],
+  ["unknown", UNKNOWN, "retry"],
+] as const) {
+  test(`시도 tid + ${name} → ${expected}, 주문번호 조회로 넘어가지 않고 상태 변경 없음`, async () => {
+    const { deps, inquiries, tidInquiries, claims, fails } = harness(attempt(), [outcome, found(PAID)]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, expected);
+    assert.equal(result.changed, false);
+    assert.equal(tidInquiries.length, 1);
+    assert.deepEqual(inquiries, []);
+    assert.equal(claims.length, 0);
+    assert.deepEqual(fails, []);
+  });
+}
+
+test("시도 tid 조회가 예외를 던지면 retry, 주문번호 조회·변경 없음", async () => {
+  const h = harness(attempt(), [found(PAID)]);
+  h.deps.inquireByTid = async () => {
+    throw new Error("network");
+  };
+  const result = await runProcessingPaymentInquiry(MOID, h.deps);
+  assert.equal(result.status, "retry");
+  assert.deepEqual(h.inquiries, []);
+  assert.equal(h.claims.length, 0);
+  assert.deepEqual(h.fails, []);
+});
+
+test("시도 tid가 공백뿐이면 레거시 경로(주문번호 조회)", async () => {
+  const { deps, inquiries, tidInquiries } = harness(attempt({ approveAttemptTid: "  " }), [found(PAID)]);
+  assert.equal((await runProcessingPaymentInquiry(MOID, deps)).status, "paid-confirmed");
+  assert.deepEqual(tidInquiries, []);
+  assert.equal(inquiries.length, 1);
+});
+
+/* ── 레거시(approveAttemptTid 없음): paid만 확정 ─────────── */
+
+for (const legacy of [payment(), payment({ approveAttemptTid: null })]) {
+  test(`레거시(${String(legacy.approveAttemptTid)}) + paid → 주문번호 조회로 기존 P1-02 paid 전환`, async () => {
+    const { deps, inquiries, tidInquiries, claims } = harness(legacy, [found(PAID)]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, "paid-confirmed");
+    assert.deepEqual(tidInquiries, []);
+    assert.equal(inquiries.length, 1);
+    assert.equal(claims[0].pgTid, "tid-pg");
+  });
+}
+
+for (const pgStatus of ["failed", "expired"] as const) {
+  test(`레거시 + NICEPAY ${pgStatus} → markFailed 0, processing 유지, 수동 확인 안내`, async () => {
+    const { deps, claims, fails } = harness(payment(), [found({ ...PAID, status: pgStatus })]);
+    const result = await runProcessingPaymentInquiry(MOID, deps);
+    assert.equal(result.status, "pg-failed-unverified");
+    assert.equal(result.changed, false);
+    assert.equal(result.nextAction, "manual");
+    assert.match(result.message, /바꾸지 않았습니다/);
+    assert.deepEqual(fails, []);
+    assert.equal(claims.length, 0);
+  });
+}
+
+test("route는 tid 조회를 기존 inquireNicepayPayment로 연결한다", () => {
+  assert.match(ROUTE, /inquireByTid: \(input\) => inquireNicepayPayment\(input\),/);
 });

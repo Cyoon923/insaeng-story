@@ -264,6 +264,9 @@ export async function POST(request: Request) {
         write: (next, order) => writeDataWithOrderForPayment(next, order, merchantOrderId),
         mode: "paid-approved",
         approvedAmount,
+        // 승인 경로에서 이 결제가 확보해 둔 hold가 있으면 같은 저장에서 상담으로 바꾼다.
+        // hold가 없는 예전 결제는 기존과 같이 판정한다.
+        holdOwnerMerchantOrderId: merchantOrderId,
       },
     );
     // 슬롯이 이미 찼으면 여기서 막힌다. 비워 두는 것이 맞고 강제로 넣지 않는다.

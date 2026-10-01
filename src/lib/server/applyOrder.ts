@@ -553,6 +553,14 @@ export async function commitConsultation(
     requireConsent?: boolean;
     /** 서버가 동의를 최초로 검증한 시각(UTC ISO). commitOrder와 같은 뜻이다. */
     consentedAt?: string;
+    /**
+     * 이 상담 결제의 merchantOrderId (P1-04 슬롯 확보).
+     *
+     * 주면 그 결제가 승인 전에 확보한 hold는 슬롯 판정에서 점유로 보지 않고, 확정할 때
+     * 같은 data에서 그 hold를 지운다. 지우기와 상담 생성은 아래 write 한 번(CAS)에 함께
+     * 저장되므로, 저장이 밀리면 둘 다 일어나지 않는다. 승인 경로와 recommit만 넘긴다.
+     */
+    holdOwnerMerchantOrderId?: string;
   } = {},
 ): Promise<CommitResult<{ consultation: Consultation; order: Order }>> {
   const mode: CommitMode = options.mode ?? "free-only";
@@ -566,7 +574,11 @@ export async function commitConsultation(
   if (!parsed) {
     return { ok: false, error: "상담 시간을 다시 선택해 주세요.", status: 400 };
   }
-  if (!isSlotAvailable(data, teacher, parsed.date, parsed.time)) {
+  if (
+    !isSlotAvailable(data, teacher, parsed.date, parsed.time, {
+      ownerMerchantOrderId: options.holdOwnerMerchantOrderId,
+    })
+  ) {
     return {
       ok: false,
       error: "이미 예약되었거나 선택할 수 없는 시간입니다. 다른 시간을 선택해 주세요.",
@@ -668,6 +680,19 @@ export async function commitConsultation(
     details: pointed.details,
     createdAt,
   };
+  // 이 결제가 확보해 둔 hold를 실제 상담으로 바꾼다. 다른 결제의 hold는 건드리지 않는다.
+  const holdOwner = options.holdOwnerMerchantOrderId;
+  if (holdOwner && data.consultationHolds) {
+    data.consultationHolds = data.consultationHolds.filter(
+      (hold) =>
+        !(
+          hold.merchantOrderId === holdOwner &&
+          hold.teacher === teacher &&
+          hold.date === parsed.date &&
+          hold.time === parsed.time
+        ),
+    );
+  }
   data.consultations.unshift(item);
 
   // 결제는 주문 단위로 귀속시킨다. 상담 진행 상태는 위 Consultation이 계속 관리하므로

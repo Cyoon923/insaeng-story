@@ -1,7 +1,7 @@
 /**
  * 관리자 결제 조회 (P1-02).
  *
- * 승인이 processing으로 남은 결제를 NICEPAY 주문번호 조회로 확인한다.
+ * 승인이 processing으로 남은 결제를 NICEPAY 거래 조회(승인 시도 tid가 있으면 tid, 없으면 주문번호)로 확인한다.
  * 검증이 모두 끝난 paid만 processing → paid로 바꾸고, 그 밖의 결과는 상태를 바꾸지 않는다.
  * 주문·상담은 만들지 않는다. paid가 되면 기존 "재접수"(admin/payments/recommit)가 이어 받는다.
  *
@@ -9,9 +9,16 @@
  */
 import { NextResponse } from "next/server";
 import { badRequest, readJsonBody, requireAdmin } from "@/lib/server/chatInquiryApi";
-import { inquireNicepayPaymentByOrderId } from "@/lib/server/nicepayPaymentInquiry";
+import {
+  inquireNicepayPayment,
+  inquireNicepayPaymentByOrderId,
+} from "@/lib/server/nicepayPaymentInquiry";
 import { runProcessingPaymentInquiry } from "@/lib/server/processingPaymentInquiry";
-import { claimPaymentApproved, getPaymentByMerchantOrderId } from "@/lib/server/store";
+import {
+  claimPaymentApproved,
+  getPaymentByMerchantOrderId,
+  markPaymentFailed,
+} from "@/lib/server/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +37,17 @@ export async function POST(request: Request) {
     const result = await runProcessingPaymentInquiry(merchantOrderId, {
       getPayment: getPaymentByMerchantOrderId,
       inquireByOrderId: (input) => inquireNicepayPaymentByOrderId(input),
+      // 승인 시도 tid가 남아 있는 결제는 그 거래를 직접 조회한다(주문번호 조회보다 우선).
+      inquireByTid: (input) => inquireNicepayPayment(input),
       // raw는 넘기지 않는다. 승인 경로와 같은 저장 최소화 방침이다.
       claimApproved: (input) => claimPaymentApproved(input),
+      // 검증된 같은 거래가 failed / expired일 때만 processing → failed (WHERE status='processing').
+      markFailed: (input) => markPaymentFailed(input),
       now: () => new Date(),
     });
     return NextResponse.json({
-      ok: result.status === "paid-confirmed",
+      // 내부 결제 상태가 바뀌었는지(paid 전환 또는 failed 확정). 화면은 이때 목록을 다시 읽는다.
+      ok: result.changed,
       status: result.status,
       message: result.message,
       nextAction: result.nextAction,
