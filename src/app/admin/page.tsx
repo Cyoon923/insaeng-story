@@ -702,6 +702,8 @@ export default function AdminPage() {
   const [chatError, setChatError] = useState("");
   // 주문 검색어. 화면에 있는 목록만 걸러 낸다.
   const [orderQuery, setOrderQuery] = useState("");
+  /** 주문 탭 상품 필터. 검색어와 함께(AND) 적용한다. */
+  const [orderProduct, setOrderProduct] = useState<"all" | Order["product"]>("all");
   // 신청 내용을 펼친 주문 하나. 기본은 모두 닫힘이다.
   const [openOrderDetailId, setOpenOrderDetailId] = useState("");
   const [selectedChatId, setSelectedChatId] = useState("");
@@ -1630,9 +1632,11 @@ export default function AdminPage() {
   }
 
   const userMap = new Map(users.map((user) => [user.id, user]));
-  // 검색어에 걸린 주문만. 서버가 준 최신순(created_at DESC)을 그대로 유지한다.
-  const visibleOrders = orders.filter((order) =>
-    orderMatchesQuery(order, userMap.get(order.userId), orderQuery),
+  // 상품 필터와 검색어에 함께 걸린 주문만. 서버가 준 최신순(created_at DESC)을 그대로 유지한다.
+  const visibleOrders = orders.filter(
+    (order) =>
+      (orderProduct === "all" || order.product === orderProduct) &&
+      orderMatchesQuery(order, userMap.get(order.userId), orderQuery),
   );
 
   if (loading) {
@@ -2395,6 +2399,34 @@ export default function AdminPage() {
         ) : null}
 
         {tab === "orders" ? (
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="주문 상품 필터">
+            {(
+              [
+                ["all", "전체"],
+                ["story", "이야기 인생곡"],
+                ["premium", "프리미엄 인생곡"],
+                ["saju-song", "사주 인생곡"],
+                ["consultation", "1:1 사주상담"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={orderProduct === value}
+                onClick={() => setOrderProduct(value)}
+                className={`h-11 rounded-xl px-1 text-[13px] font-semibold ${
+                  orderProduct === value
+                    ? "bg-[#5c3d2e] text-white"
+                    : "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {tab === "orders" ? (
           <div className="mb-3">
             <input
               type="search"
@@ -2409,7 +2441,7 @@ export default function AdminPage() {
 
         {tab === "orders" && visibleOrders.length === 0 ? (
           <p className="rounded-2xl bg-white p-5 text-center text-[14px] text-[#6B6570] ring-1 ring-[#ebe3d8]">
-            {orderQuery.trim() ? "검색 결과가 없습니다." : "주문이 없습니다."}
+            {orderQuery.trim() || orderProduct !== "all" ? "검색 결과가 없습니다." : "주문이 없습니다."}
           </p>
         ) : null}
 
