@@ -543,9 +543,9 @@ function eventTitle(item: Inquiry) {
 }
 
 function scheduleStatusLabel(status: SlotStatus) {
-  if (status === "booked") return "예약됨";
-  if (status === "blocked") return "막힘";
-  return "가능";
+  if (status === "booked") return "고객 예약 완료";
+  if (status === "blocked") return "관리자 차단";
+  return "예약 가능";
 }
 
 /**
@@ -653,6 +653,8 @@ export default function AdminPage() {
   const [scheduleDates, setScheduleDates] = useState<string[]>([]);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleSlots, setScheduleSlots] = useState<{ time: string; status: SlotStatus }[]>([]);
+  /** 일정 탭 처리 결과 안내(휴무 처리·실패 등). 선생님이나 날짜를 바꾸면 지운다. */
+  const [scheduleMessage, setScheduleMessage] = useState("");
   const [teacher, setTeacher] = useState("유비 선생");
   /** 선택할 수 있는 선생님 목록. API가 주지 않으면 빈 배열이라 선택 UI를 그리지 않는다. */
   const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
@@ -942,7 +944,9 @@ export default function AdminPage() {
     setCouponSearched(false);
   }
 
-  async function handleToggleSlot(time: string) {
+  /** 한 시간을 원하는 상태로 지정한다(반전하지 않는다). 고객 예약 시간은 서버가 바꾸지 않는다. */
+  async function handleToggleSlot(time: string, blocked: boolean) {
+    setScheduleMessage("");
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -951,11 +955,45 @@ export default function AdminPage() {
         teacher,
         date: scheduleDate,
         time,
+        blocked,
       }),
     });
-    const data = await res.json();
-    if (!res.ok) return;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setScheduleMessage(data.error ?? "변경하지 못했습니다. 다시 시도해 주세요.");
+      await loadSchedule(scheduleDate);
+      return;
+    }
     setScheduleSlots((data.slots ?? []) as { time: string; status: SlotStatus }[]);
+  }
+
+  /** 이 선생님의 이 날짜 전체 휴무 지정/해제. 고객 예약은 그대로 둔다. */
+  async function handleDayBlocked(blocked: boolean) {
+    const question = blocked
+      ? `${teacher} · ${scheduleDate}\n예약되지 않은 모든 시간을 막을까요?\n(고객 예약은 그대로 유지됩니다)`
+      : `${teacher} · ${scheduleDate}\n관리자 차단을 모두 해제할까요?`;
+    if (!window.confirm(question)) return;
+    setScheduleMessage("");
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "setDayBlocked", teacher, date: scheduleDate, blocked }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setScheduleMessage(data.error ?? "변경하지 못했습니다. 다시 시도해 주세요.");
+      await loadSchedule(scheduleDate);
+      return;
+    }
+    setScheduleSlots((data.slots ?? []) as { time: string; status: SlotStatus }[]);
+    const booked = Number(data.bookedCount ?? 0);
+    setScheduleMessage(
+      blocked
+        ? booked > 0
+          ? `휴무 처리했습니다. 기존 예약 ${booked}건은 유지됩니다.`
+          : "휴무 처리했습니다."
+        : "휴무를 해제했습니다.",
+    );
   }
 
   async function handleGeneratePromo() {
@@ -3470,7 +3508,10 @@ export default function AdminPage() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setTeacher(item.name)}
+                      onClick={() => {
+                        setTeacher(item.name);
+                        setScheduleMessage("");
+                      }}
                       aria-pressed={active}
                       className={`h-11 rounded-xl px-2 text-[13px] font-semibold ${
                         active
@@ -3508,7 +3549,10 @@ export default function AdminPage() {
                     <button
                       key={cell.date}
                       type="button"
-                      onClick={() => setScheduleDate(cell.date)}
+                      onClick={() => {
+                        setScheduleDate(cell.date);
+                        setScheduleMessage("");
+                      }}
                       className={`flex aspect-square items-center justify-center rounded-full text-[15px] font-bold ${
                         scheduleDate === cell.date ? "bg-[#5c3d2e] text-white" : "bg-[#f5efe6] text-[#3d2b1f]"
                       }`}
@@ -3519,6 +3563,31 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+            {scheduleDate && scheduleSlots.length > 0 ? (
+              (() => {
+                // 예약되지 않은 시간이 모두 관리자 차단이면 휴무 상태로 본다.
+                const open = scheduleSlots.filter((item) => item.status !== "booked");
+                const dayOff = open.length > 0 && open.every((item) => item.status === "blocked");
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleDayBlocked(!dayOff)}
+                    className={`mt-4 h-12 w-full rounded-xl text-[15px] font-semibold ${
+                      dayOff
+                        ? "border border-[#d4c8ba] bg-white text-[#5c3d2e]"
+                        : "bg-[#5c3d2e] text-white"
+                    }`}
+                  >
+                    {dayOff ? "휴무 해제" : "이 날 전체 휴무"}
+                  </button>
+                );
+              })()
+            ) : null}
+            {scheduleMessage ? (
+              <p className="mt-3 rounded-xl bg-[#f5efe6] p-3 text-[14px] text-[#403A49]" role="status">
+                {scheduleMessage}
+              </p>
+            ) : null}
             <div className="mt-4 space-y-2">
               {scheduleSlots.map((item) => (
                 <div
@@ -3534,7 +3603,7 @@ export default function AdminPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handleToggleSlot(item.time)}
+                      onClick={() => handleToggleSlot(item.time, item.status !== "blocked")}
                       className={`h-10 rounded-full px-4 text-[13px] font-semibold ${
                         item.status === "blocked"
                           ? "border border-[#d4c8ba] bg-white text-[#5c3d2e]"

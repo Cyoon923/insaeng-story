@@ -303,3 +303,48 @@ export function toggleBlockedSlot(
   }
   return [...current, { teacher, date, time }];
 }
+
+function sameSlot(slot: BlockedSlot, teacher: string, date: string, time: string): boolean {
+  return slot.teacher === teacher && slot.date === date && slot.time === time;
+}
+
+/**
+ * 한 시간을 요청한 상태로 지정한다(반전하지 않는다). 고객 예약이 있는 시간은 바꾸지 않는다.
+ * 이미 원하는 상태면 그대로 돌려준다.
+ */
+export function setSlotBlocked(
+  data: AppData,
+  teacher: string,
+  date: string,
+  time: string,
+  blocked: boolean,
+): BlockedSlot[] {
+  const current = data.blockedSlots ?? [];
+  if (isBooked(data, teacher, date, time)) return current;
+  const rest = current.filter((slot) => !sameSlot(slot, teacher, date, time));
+  return blocked ? [...rest, { teacher, date, time }] : rest;
+}
+
+/**
+ * 한 선생님의 하루 전체 휴무 지정/해제.
+ * - 휴무: 예약되지 않은 상담 시간을 모두 관리자 차단으로 둔다. 고객 예약 시간은 건너뛴다.
+ * - 해제: 그 선생님·그 날짜의 관리자 차단만 지운다. 고객 예약·다른 날짜·다른 선생님은 그대로다.
+ * bookedCount는 그 날 고객 예약 수다(관리자 안내용).
+ */
+export function setDayBlocked(
+  data: AppData,
+  teacher: string,
+  date: string,
+  blocked: boolean,
+): { blockedSlots: BlockedSlot[]; bookedCount: number } {
+  const current = data.blockedSlots ?? [];
+  const bookedCount = CONSULT_TIMES.filter((time) => isBooked(data, teacher, date, time)).length;
+  const rest = current.filter((slot) => !(slot.teacher === teacher && slot.date === date));
+  if (!blocked) return { blockedSlots: rest, bookedCount };
+  const added = CONSULT_TIMES.filter((time) => !isBooked(data, teacher, date, time)).map((time) => ({
+    teacher,
+    date,
+    time,
+  }));
+  return { blockedSlots: [...rest, ...added], bookedCount };
+}

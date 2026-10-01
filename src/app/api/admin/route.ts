@@ -28,6 +28,8 @@ import {
   CONSULT_TEACHERS,
   CONSULT_TIMES,
   toggleBlockedSlot,
+  setSlotBlocked,
+  setDayBlocked,
   upcomingConsultDates,
   listSlotStatuses,
   parseIsoDate,
@@ -543,10 +545,33 @@ async function handlePost(request: Request) {
     if (!date || !CONSULT_TIMES.includes(time)) {
       return NextResponse.json({ error: "날짜와 시간을 확인해 주세요." }, { status: 400 });
     }
-    data.blockedSlots = toggleBlockedSlot(data, teacher, date, time);
+    // blocked를 보내면 그 상태로 지정한다. 없으면 예전처럼 반전한다(하위 호환).
+    // 고객 예약이 있는 시간은 어느 쪽이든 바뀌지 않는다.
+    data.blockedSlots =
+      typeof body.blocked === "boolean"
+        ? setSlotBlocked(data, teacher, date, time, body.blocked)
+        : toggleBlockedSlot(data, teacher, date, time);
     await writeData(data);
     return NextResponse.json({
       ok: true,
+      slots: listSlotStatuses(data, teacher, date),
+    });
+  }
+
+  if (action === "setDayBlocked") {
+    // 한 선생님의 하루 전체 휴무 지정/해제. 고객 예약 시간은 건드리지 않는다.
+    const teacher = String(body.teacher ?? "");
+    const date = String(body.date ?? "");
+    if (!CONSULT_TEACHERS.some((item) => item.name === teacher) || !date || typeof body.blocked !== "boolean") {
+      return NextResponse.json({ error: "선생님과 날짜를 확인해 주세요." }, { status: 400 });
+    }
+    const data = await readData();
+    const result = setDayBlocked(data, teacher, date, body.blocked);
+    data.blockedSlots = result.blockedSlots;
+    await writeData(data);
+    return NextResponse.json({
+      ok: true,
+      bookedCount: result.bookedCount,
       slots: listSlotStatuses(data, teacher, date),
     });
   }
