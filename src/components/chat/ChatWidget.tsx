@@ -1446,7 +1446,7 @@ export function ChatWidget() {
         | { message?: ChatInquiryMessageView; error?: string }
         | null;
       if (!response.ok || !result?.message) {
-        setAgentError("메시지를 보내지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setAgentError(result?.error ?? "메시지를 보내지 못했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
       const saved = result.message;

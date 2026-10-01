@@ -12,6 +12,7 @@
  */
 import { createHash, randomBytes } from "crypto";
 import { ensureTable, nowId, normalizePhone, sqlClient } from "@/lib/server/store";
+import { CHAT_PROFANITY_MESSAGE, containsBlockedExpression } from "@/lib/server/chatProfanity";
 
 export type ChatInquiryStatus = "new" | "in_progress" | "closed";
 export type ChatInquirySender = "customer" | "agent";
@@ -99,6 +100,14 @@ export function normalizeBody(value: unknown): string {
   const body = String(value ?? "").trim();
   if (!body) throw new ChatInquiryError("내용을 입력해 주세요.");
   return body.slice(0, BODY_MAX);
+}
+
+/**
+ * 고객 메시지 욕설 검사. DB 작업 전에 부른다. 걸린 원문은 저장하지도 로그에 남기지도 않는다.
+ * 상담원 답변(addAgentMessage)에는 쓰지 않는다.
+ */
+function assertCustomerMessageAllowed(body: string): void {
+  if (containsBlockedExpression(body)) throw new ChatInquiryError(CHAT_PROFANITY_MESSAGE);
 }
 
 function requireContactMethod(value: unknown): ChatContactMethod {
@@ -200,6 +209,7 @@ export async function createChatInquiry(
   const phone = normalizeMobilePhone(input.phone);
   const contactMethod = requireContactMethod(input.contactMethod);
   const body = normalizeBody(input.firstMessage);
+  assertCustomerMessageAllowed(body);
 
   const sql = await requireSql();
   const inquiryId = nowId();
@@ -358,6 +368,7 @@ export async function addCustomerMessage(
   const guestTokenHash = input.guestTokenHash?.trim() || null;
   if (!input.inquiryId || (!userId && !guestTokenHash)) return null;
   const body = normalizeBody(input.body);
+  assertCustomerMessageAllowed(body);
 
   const sql = await requireSql();
   const owned = (await sql.query(
