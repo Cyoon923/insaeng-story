@@ -23,6 +23,7 @@ const config = {
     { icon: <Music className="h-5 w-5" />, label: "인생곡 제작", sub: "맞춤 음악" },
   ],
   priceFrom: 199000,
+  servicePeriod: "상담 완료 후 30일 이내 제작·제공",
   applyHref: "/apply/premium/1",
   recommends: [
     {
@@ -99,6 +100,9 @@ export default function PremiumProductPage() {
           </p>
           <p className="mt-4 text-center text-[22px] font-bold text-[#403A49]">
             {formatPriceFrom(config.priceFrom)}
+          </p>
+          <p className="mt-2 text-center text-[15px] leading-relaxed text-[#5c3d2e]">
+            <span className="font-semibold">서비스 제공기간</span> · {config.servicePeriod}
           </p>
           <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
             <p className="text-[17px] font-bold text-[#403A49]">이렇게 진행됩니다</p>

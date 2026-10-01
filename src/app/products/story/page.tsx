@@ -17,6 +17,7 @@ const config = {
   description: "직접 작성한 자신의 이야기 또는 소중한 사람의 이야기를 바탕으로 맞춤 가사와 음악을 제작합니다.",
   features: STORY_FEATURES,
   priceFrom: 149000,
+  servicePeriod: "신청 및 결제 완료 후 14일 이내 제작·제공",
   applyHref: "/apply/story-song/1",
   recommends: [
     {
@@ -91,6 +92,9 @@ export default function StoryProductPage() {
           </p>
           <p className="mt-4 text-center text-[22px] font-bold text-[#403A49]">
             {formatPriceFrom(config.priceFrom)}
+          </p>
+          <p className="mt-2 text-center text-[15px] leading-relaxed text-[#5c3d2e]">
+            <span className="font-semibold">서비스 제공기간</span> · {config.servicePeriod}
           </p>
           <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
             <p className="text-[17px] font-bold text-[#403A49]">이렇게 진행됩니다</p>

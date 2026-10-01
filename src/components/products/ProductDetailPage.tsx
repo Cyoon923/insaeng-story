@@ -40,6 +40,8 @@ export interface ProductDetailConfig {
   description: string;
   features: ProductFeature[];
   priceFrom: number;
+  /** 서비스 제공기간 안내. 값이 있을 때만 가격·신청하기 아래에 보인다. */
+  servicePeriod?: string;
   applyHref: string;
   recommends: RecommendCard[];
   process: ProcessStep[];
@@ -138,6 +140,11 @@ export function ProductDetailPage({ config }: ProductDetailPageProps) {
           신청하기 <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </section>
+      {config.servicePeriod ? (
+        <p className="-mt-2 px-5 pb-4 text-[14px] leading-relaxed text-[#5c3d2e]">
+          <span className="font-semibold">서비스 제공기간</span> · {config.servicePeriod}
+        </p>
+      ) : null}
 
       {/* Recommend */}
       <section className="px-4 py-6">

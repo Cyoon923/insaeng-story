@@ -24,6 +24,7 @@ const config = {
     { icon: <Play className="h-5 w-5" />, label: "음원 파일", sub: "기본 제공" },
   ],
   priceFrom: 99000,
+  servicePeriod: "신청 및 결제 완료 후 14일 이내 제작·제공",
   applyHref: "/apply/saju-song/1",
   recommends: [
     {
@@ -98,6 +99,9 @@ export default function SajuSongProductPage() {
           </p>
           <p className="mt-4 text-center text-[22px] font-bold text-[#403A49]">
             {formatPriceFrom(config.priceFrom)}
+          </p>
+          <p className="mt-2 text-center text-[15px] leading-relaxed text-[#5c3d2e]">
+            <span className="font-semibold">서비스 제공기간</span> · {config.servicePeriod}
           </p>
           <div className="mt-6 rounded-2xl bg-white px-4 py-5 ring-1 ring-[#ebe3d8]">
             <p className="text-[17px] font-bold text-[#403A49]">이렇게 진행됩니다</p>

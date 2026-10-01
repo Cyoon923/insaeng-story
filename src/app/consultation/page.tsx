@@ -108,6 +108,9 @@ export default function ConsultationPage() {
               지금의 흐름을 이해하면 앞으로의 방향이 보입니다
             </h2>
             <p className="mt-4 text-[18px] font-bold text-[#403A49]">100,000원~</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[#5c3d2e]">
+              <span className="font-semibold">서비스 제공기간</span> · 결제 시 예약한 날짜에 상담 제공
+            </p>
           </div>
           {/*
             Hero 전체를 채우는 배경 이미지. 왼쪽 밝은 페이드가 원본에 그려져 있어
