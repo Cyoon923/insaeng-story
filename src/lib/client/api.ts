@@ -56,20 +56,72 @@ interface DraftEntry {
   savedAt: string;
 }
 
-/** localStorage 한 칸을 읽는다. 값이 없거나 깨져 있으면 빈 저장소로 본다. */
-function readDraftStore(): Record<string, unknown> {
+/**
+ * draft 주인 표식 (P1-07). 서버가 로그인할 때 세션과 함께 심는 쿠키다(lib/server/session.ts).
+ * 값은 회원별 HMAC이라 회원 원문을 담지 않는다. 화면에서 draft 격리에만 쓰고 인증에는 쓰지 않는다.
+ */
+const DRAFT_OWNER_COOKIE = "insaeng_draft_owner";
+
+/** draft 저장소 안에서 주인 표식을 담는 칸. flow 이름과 겹치지 않는다. */
+const DRAFT_OWNER_FIELD = "__owner";
+
+/** 지금 로그인한 회원의 draft 주인 표식. 로그아웃·만료·쿠키 없음이면 빈 문자열이다. */
+function currentDraftOwner(): string {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}");
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    return parsed as Record<string, unknown>;
+    if (typeof document === "undefined") return "";
+    for (const part of document.cookie.split(";")) {
+      const [name, ...rest] = part.trim().split("=");
+      if (name === DRAFT_OWNER_COOKIE) return rest.join("=");
+    }
   } catch {
-    return {};
+    // 쿠키를 읽지 못하면 주인이 없는 것으로 본다.
+  }
+  return "";
+}
+
+function removeDraftStore() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // 지우지 못해도 아래에서 그 값을 쓰지 않는다.
   }
 }
 
-function writeDraftStore(store: Record<string, unknown>) {
+/**
+ * localStorage 한 칸을 읽는다. 값이 없거나 깨져 있으면 빈 저장소로 본다.
+ *
+ * 저장된 주인 표식이 지금 회원의 표식과 같을 때만 그 내용을 쓴다. 다른 회원이 남긴 것,
+ * 로그아웃·만료로 표식이 없는 상태, 표식이 없는 예전 draft는 쓰지 않고 그 자리에서 지운다.
+ * 같은 브라우저에서 회원이 바뀌어도 이전 회원의 개인정보가 입력란에 채워지지 않게 한다.
+ */
+function readDraftStore(): Record<string, unknown> {
+  const owner = currentDraftOwner();
+  let parsed: unknown;
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(store));
+    parsed = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  const store = { ...(parsed as Record<string, unknown>) };
+  const savedOwner = store[DRAFT_OWNER_FIELD];
+  delete store[DRAFT_OWNER_FIELD];
+  if (!owner || savedOwner !== owner) {
+    if (Object.keys(store).length > 0 || savedOwner !== undefined) removeDraftStore();
+    return {};
+  }
+  return store;
+}
+
+/** 지금 회원의 주인 표식과 함께 저장한다. 표식이 없으면(로그아웃 등) 저장하지 않고 지운다. */
+function writeDraftStore(store: Record<string, unknown>) {
+  const owner = currentDraftOwner();
+  if (!owner) {
+    removeDraftStore();
+    return;
+  }
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...store, [DRAFT_OWNER_FIELD]: owner }));
   } catch {
     // 저장에 실패해도 신청 진행 자체는 막지 않는다.
   }
@@ -134,4 +186,4 @@ export function getDraft(flow: string): Record<string, string> {
 }
 
 /** 테스트용 내부 값. 런타임 동작에는 영향을 주지 않는다. */
-export const __draftInternals = { DRAFT_KEY, DRAFT_TTL_MS };
+export const __draftInternals = { DRAFT_KEY, DRAFT_TTL_MS, DRAFT_OWNER_COOKIE, DRAFT_OWNER_FIELD };

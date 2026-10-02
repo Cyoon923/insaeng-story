@@ -3,6 +3,16 @@ import { cookies } from "next/headers";
 
 const COOKIE = "insaeng_uid";
 
+/**
+ * 신청서 draft 주인 표식 쿠키 (P1-07).
+ *
+ * 브라우저의 신청 draft(localStorage "insaeng-draft")가 지금 로그인한 회원의 것인지
+ * 화면에서 가려내는 데만 쓴다. 인증·권한 판정에는 절대 쓰지 않는다(서버는 이 쿠키를 읽지 않는다).
+ * 화면 스크립트가 읽어야 하므로 이 쿠키만 httpOnly가 아니다. 값은 userId 원문이 아니라
+ * 세션 키로 만든 HMAC이라 밖에서 회원을 알아낼 수 없다.
+ */
+const DRAFT_OWNER_COOKIE = "insaeng_draft_owner";
+
 /** 로그인 유지 기간. 기존과 같은 30일. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -48,6 +58,14 @@ function decodeId(encoded: string): string | null {
   const userId = Buffer.from(encoded, "base64url").toString("utf8");
   // 되돌린 값을 다시 인코딩해 같은지 본다. 어긋나면 조작된 값이다.
   return userId && encodeId(userId) === encoded ? userId : null;
+}
+
+/**
+ * draft 주인 표식 값. 세션 토큰 서명과 섞이지 않게 서명 대상에 별도 구분자를 붙인다.
+ * 같은 회원이면 언제나 같은 값이고, 회원마다 다르다.
+ */
+function draftOwnerValue(userId: string, key: string): string {
+  return sign(`draft-owner.${encodeId(userId)}`, key);
 }
 
 /** 토큰 형식: "<base64url(userId)>.<만료시각(ms)>.<HMAC-SHA256>" */
@@ -98,13 +116,29 @@ export async function setUserId(userId: string): Promise<boolean> {
     path: "/",
     maxAge: SESSION_TTL_MS / 1000,
   });
+  // 세션과 같은 수명·범위로 draft 주인 표식을 둔다. 화면이 읽어야 해서 httpOnly만 다르다.
+  store.set(DRAFT_OWNER_COOKIE, draftOwnerValue(userId, key), {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: IS_PRODUCTION,
+    path: "/",
+    maxAge: SESSION_TTL_MS / 1000,
+  });
   return true;
 }
 
 export async function clearUserId(): Promise<void> {
   const store = await cookies();
   store.delete(COOKIE);
+  // 로그아웃하면 draft 주인 표식도 없앤다. 화면은 표식이 없으면 남은 draft를 쓰지 않는다.
+  store.delete(DRAFT_OWNER_COOKIE);
 }
 
 /** 테스트·검증용 내부 도우미. 런타임 동작에는 영향을 주지 않는다. */
-export const __sessionInternals = { createToken, readToken, SESSION_TTL_MS };
+export const __sessionInternals = {
+  createToken,
+  readToken,
+  draftOwnerValue,
+  SESSION_TTL_MS,
+  DRAFT_OWNER_COOKIE,
+};

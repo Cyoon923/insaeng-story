@@ -34,6 +34,8 @@ const storage = new MemoryStorage();
 const globals = globalThis as unknown as Record<string, unknown>;
 globals.window = globals.window ?? {};
 globals.localStorage = storage;
+// 로그인한 같은 회원의 draft 주인 표식(P1-07). 이 파일은 같은 회원 안에서의 7일 만료만 본다.
+globals.document = { cookie: "insaeng_draft_owner=owner-a" };
 
 const { saveDraft, getDraft, clearDraft, __draftInternals } = await import("./api.ts");
 const { DRAFT_KEY, DRAFT_TTL_MS } = __draftInternals;
@@ -222,7 +224,13 @@ test("한 flow가 만료되어도 다른 flow는 지우지 않는다", () => {
   assert.deepEqual(getDraft("premium"), { name: "B" });
   assert.deepEqual(getDraft("saju-song"), { name: "C" });
   assert.deepEqual(getDraft("consultation"), { name: "D" });
-  assert.deepEqual(Object.keys(rawStore()).sort(), ["consultation", "premium", "saju-song"]);
+  // 주인 표식 칸(P1-07)은 flow가 아니므로 빼고 본다.
+  assert.deepEqual(
+    Object.keys(rawStore())
+      .filter((key) => key !== "__owner")
+      .sort(),
+    ["consultation", "premium", "saju-song"],
+  );
 });
 
 test("legacy flow 하나가 섞여 있어도 유효한 flow는 보존한다", () => {
