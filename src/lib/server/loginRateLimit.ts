@@ -68,6 +68,11 @@ export function adminAttemptKey(ip: string): string {
 /** 카운터 저장소. hit은 이번 시도를 포함한 창 안 횟수, 저장소가 없으면 null. */
 export interface LoginAttemptStore {
   hit: (key: string, windowMs: number) => Promise<number | null>;
+  /**
+   * hit과 같이 센 뒤, 이 창이 끝나기까지 남은 시간(ms)도 함께 준다. 저장소가 없으면 null.
+   * 인증번호 발송 제한이 남은 대기시간을 알려 주는 데만 쓴다. 로그인 관문은 쓰지 않는다.
+   */
+  hitWithWait?: (key: string, windowMs: number) => Promise<{ attempts: number; waitMs: number } | null>;
   clear: (key: string) => Promise<void>;
 }
 
@@ -116,13 +121,15 @@ export function loginAttemptStoreFor(
   ensure: () => Promise<void> = async () => {},
 ): LoginAttemptStore {
   if (!sql) {
-    return { hit: async () => null, clear: async () => {} };
+    return { hit: async () => null, hitWithWait: async () => null, clear: async () => {} };
   }
-  return {
-    hit: async (key, windowMs) => {
-      await ensure();
-      const rows = (await sql.query(
-        `
+  /*
+   * 카운터 UPSERT. hit과 hitWithWait가 같은 문장을 쓰고 RETURNING만 다르다.
+   * 막힌 요청도 attempts만 늘고 expires_at은 그대로라, 창의 끝(해제 시각)은 늘어나지 않는다.
+   */
+  const upsert = (returning: string, key: string, windowMs: number) =>
+    sql.query(
+      `
           INSERT INTO verification_codes (storage_key, code, expires_at, attempts)
           VALUES ($1, '', now() + ($2::bigint * interval '1 millisecond'), 1)
           ON CONFLICT (storage_key) DO UPDATE SET
@@ -135,11 +142,25 @@ export function loginAttemptStoreFor(
                 THEN now() + ($2::bigint * interval '1 millisecond')
               ELSE verification_codes.expires_at
             END
-          RETURNING attempts
+          RETURNING ${returning}
         `,
-        [key, windowMs],
-      )) as { attempts: number | string }[];
+      [key, windowMs],
+    );
+  return {
+    hit: async (key, windowMs) => {
+      await ensure();
+      const rows = (await upsert("attempts", key, windowMs)) as { attempts: number | string }[];
       return Number(rows[0]?.attempts ?? 0);
+    },
+    hitWithWait: async (key, windowMs) => {
+      await ensure();
+      // 남은 시간은 DB 시계로 잰다(expires_at과 같은 시계라 서버 간 시차가 끼지 않는다).
+      const rows = (await upsert(
+        "attempts, GREATEST(0, CEIL(EXTRACT(EPOCH FROM (expires_at - now())) * 1000))::bigint AS wait_ms",
+        key,
+        windowMs,
+      )) as { attempts: number | string; wait_ms: number | string }[];
+      return { attempts: Number(rows[0]?.attempts ?? 0), waitMs: Number(rows[0]?.wait_ms ?? 0) };
     },
     clear: async (key) => {
       await ensure();

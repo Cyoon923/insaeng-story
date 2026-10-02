@@ -19,6 +19,9 @@ import {
   smsIpHourKey,
   smsPhoneDayKey,
   smsPhoneHourKey,
+  smsRateLimitedMessage,
+  smsSendBlock,
+  SMS_RATE_LIMITED_MESSAGE,
 } from "./smsVerification.ts";
 import type { SendCodeDeps } from "./smsVerification.ts";
 import type { LoginAttemptStore } from "./loginRateLimit.ts";
@@ -88,21 +91,31 @@ const verify = (sql: VerificationSql, input: string) =>
 
 function fakeStore(clock: { now: number }) {
   const counters = new Map<string, { attempts: number; expiresAt: number }>();
+  const hit = (key: string, windowMs: number) => {
+    const current = counters.get(key);
+    if (!current || current.expiresAt <= clock.now) {
+      counters.set(key, { attempts: 1, expiresAt: clock.now + windowMs });
+      return 1;
+    }
+    // 막힌 요청도 횟수만 늘고 창의 끝(expiresAt)은 그대로다.
+    current.attempts += 1;
+    return current.attempts;
+  };
   const store: LoginAttemptStore = {
-    hit: async (key, windowMs) => {
-      const current = counters.get(key);
-      if (!current || current.expiresAt <= clock.now) {
-        counters.set(key, { attempts: 1, expiresAt: clock.now + windowMs });
-        return 1;
-      }
-      current.attempts += 1;
-      return current.attempts;
+    hit: async (key, windowMs) => hit(key, windowMs),
+    hitWithWait: async (key, windowMs) => {
+      const attempts = hit(key, windowMs);
+      return { attempts, waitMs: counters.get(key)!.expiresAt - clock.now };
     },
     clear: async (key) => {
       counters.delete(key);
     },
   };
-  return { store, count: (key: string) => counters.get(key)?.attempts ?? 0 };
+  return {
+    store,
+    count: (key: string) => counters.get(key)?.attempts ?? 0,
+    expiresAt: (key: string) => counters.get(key)?.expiresAt,
+  };
 }
 
 /* ── 1. 검증 원자화 ──────────────────────────────────── */
@@ -349,11 +362,88 @@ test("route: sendCode는 runSendCode를 거치고 IP는 requestIp에서 얻는�
   const body = ROUTE.slice(ROUTE.indexOf('if (action === "sendCode")'), ROUTE.indexOf('if (action === "verifyCode")'));
   assert.match(body, /runSendCode\(\s*\{ phone, ip: requestIp\(request\) \}/);
   assert.match(body, /store: await defaultLoginAttemptStore\(\)/);
-  assert.match(body, /SMS_RATE_LIMITED_MESSAGE/);
+  // 제한 문구는 남은 시간(waitSeconds)으로 만들고, 알면 Retry-After(초)도 단다.
+  assert.match(body, /error: smsRateLimitedMessage\(outcome\.waitSeconds\)/);
+  assert.match(body, /"Retry-After": String\(outcome\.waitSeconds\)/);
   // SMS 발송은 runSendCode 안(send)에서만 일어난다.
   assert.equal(body.split("sendVerificationSms(").length - 1, 1);
 });
 
 test("목적 5개(signup/reset/link/setid/findid)가 같은 sendCode·verifyCode 경로를 탄다", () => {
   assert.match(ROUTE, /const VERIFY_PURPOSES = \["signup", "reset", "link", "setid", "findid"\] as const;/);
+});
+
+/* ── 3. 남은 대기시간 ────────────────────────────────── */
+
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+
+test("남은 시간 문구: 초 / 분·초 / 시간·분, 모르면 기존 문구", () => {
+  assert.equal(smsRateLimitedMessage(42), "인증번호는 42초 후 다시 요청할 수 있습니다.");
+  assert.equal(smsRateLimitedMessage(60), "인증번호는 1분 후 다시 요청할 수 있습니다.");
+  assert.equal(smsRateLimitedMessage(47 * 60 + 12), "인증번호는 47분 12초 후 다시 요청할 수 있습니다.");
+  // 1시간 이상은 분 단위로 올린다(안내보다 일찍 풀리는 쪽이 안전하다).
+  assert.equal(smsRateLimitedMessage(2 * 3600 + 5 * 60 + 1), "인증번호는 2시간 6분 후 다시 요청할 수 있습니다.");
+  assert.equal(smsRateLimitedMessage(23 * 3600), "인증번호는 23시간 후 다시 요청할 수 있습니다.");
+  assert.equal(smsRateLimitedMessage(null), SMS_RATE_LIMITED_MESSAGE);
+});
+
+test("1시간 5회 초과: 창 끝까지 남은 시간(60초 이하)을 돌려준다", async () => {
+  const clock = { now: 1_000_000 };
+  const h = sendHarness(clock);
+  for (let i = 0; i < SMS_SEND_LIMITS.phoneHour.max; i += 1) await runSendCode({ phone: PHONE, ip: IP }, h.deps);
+  clock.now += HOUR_MS - 42 * 1000;
+  assert.deepEqual(await runSendCode({ phone: PHONE, ip: IP }, h.deps), { kind: "rate-limited", waitSeconds: 42 });
+});
+
+test("1시간 5회 초과: 분·초 단위 남은 시간", async () => {
+  const clock = { now: 1_000_000 };
+  const h = sendHarness(clock);
+  for (let i = 0; i < SMS_SEND_LIMITS.phoneHour.max; i += 1) await runSendCode({ phone: PHONE, ip: IP }, h.deps);
+  clock.now += 12 * MINUTE_MS + 48 * 1000;
+  assert.deepEqual(await runSendCode({ phone: PHONE, ip: IP }, h.deps), {
+    kind: "rate-limited",
+    waitSeconds: 47 * 60 + 12,
+  });
+});
+
+test("여러 제한에 동시에 걸리면 가장 늦게 풀리는 창을 기준으로 한다", async () => {
+  const clock = { now: 1_000_000 };
+  const { store, expiresAt } = fakeStore(clock);
+  // 24시간 창을 먼저 열어 두고, 1시간 창은 나중에 열리게 한다.
+  for (let i = 0; i < SMS_SEND_LIMITS.phoneDay.max; i += 1) {
+    await smsSendBlock(store, PHONE, IP);
+    if (i === 4) clock.now += HOUR_MS; // 1시간 창이 한 번 끝나고 새로 시작한다.
+  }
+  const block = await smsSendBlock(store, PHONE, IP);
+  assert.equal(block.blocked, true);
+  const dayEnd = expiresAt(smsPhoneDayKey(PHONE))!;
+  const hourEnd = expiresAt(smsPhoneHourKey(PHONE))!;
+  assert.ok(dayEnd > hourEnd, "24시간 창이 더 늦게 끝나는 상황");
+  assert.equal(block.blocked && block.waitSeconds, Math.ceil((dayEnd - clock.now) / 1000));
+});
+
+test("막힌 요청은 창의 끝을 늘리지 않는다(남은 시간이 그대로 줄어든다)", async () => {
+  const clock = { now: 1_000_000 };
+  const { store, expiresAt } = fakeStore(clock);
+  for (let i = 0; i < SMS_SEND_LIMITS.phoneHour.max; i += 1) await smsSendBlock(store, PHONE, IP);
+  const end = expiresAt(smsPhoneHourKey(PHONE));
+  const first = await smsSendBlock(store, PHONE, IP);
+  clock.now += 10 * MINUTE_MS;
+  const second = await smsSendBlock(store, PHONE, IP);
+  assert.equal(expiresAt(smsPhoneHourKey(PHONE)), end);
+  assert.ok(first.blocked && second.blocked);
+  assert.equal(first.blocked && second.blocked && first.waitSeconds! - second.waitSeconds!, 10 * 60);
+  // 창이 끝나면 다시 보낼 수 있다(1시간 창만 걸려 있었으므로).
+  clock.now = end!;
+  assert.equal((await smsSendBlock(store, PHONE, IP)).blocked, false);
+});
+
+test("남은 시간을 주지 못하는 저장소(hit만)는 막되 waitSeconds는 null(기존 문구)", async () => {
+  const clock = { now: 1_000_000 };
+  const { store } = fakeStore(clock);
+  const hitOnly: LoginAttemptStore = { hit: store.hit, clear: store.clear };
+  for (let i = 0; i < SMS_SEND_LIMITS.phoneHour.max; i += 1) await smsSendBlock(hitOnly, PHONE, IP);
+  assert.deepEqual(await smsSendBlock(hitOnly, PHONE, IP), { blocked: true, waitSeconds: null });
+  assert.equal(await gateSmsSend(hitOnly, PHONE, IP), false);
 });

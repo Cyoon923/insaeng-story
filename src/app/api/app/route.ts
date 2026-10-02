@@ -66,7 +66,7 @@ import {
   readVerification,
   verifyCodeInTable,
 } from "@/lib/server/verificationCodes";
-import { runSendCode, SMS_RATE_LIMITED_MESSAGE } from "@/lib/server/smsVerification";
+import { runSendCode, smsRateLimitedMessage } from "@/lib/server/smsVerification";
 import { gatePublicInquiry, PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE } from "@/lib/server/publicInquiryRateLimit";
 import type { VerificationSource } from "@/lib/server/verificationCodes";
 import type { VerificationConsume } from "@/lib/server/store";
@@ -635,7 +635,16 @@ async function handlePost(request: Request) {
       );
     }
     if (outcome.kind === "rate-limited") {
-      return NextResponse.json({ error: SMS_RATE_LIMITED_MESSAGE }, { status: 429 });
+      // 남은 시간을 알면 문구와 Retry-After(초)에 담는다. 모르면 기존 문구 그대로다.
+      return NextResponse.json(
+        { error: smsRateLimitedMessage(outcome.waitSeconds) },
+        {
+          status: 429,
+          ...(outcome.waitSeconds !== null
+            ? { headers: { "Retry-After": String(outcome.waitSeconds) } }
+            : {}),
+        },
+      );
     }
     if (outcome.kind === "send-failed") {
       // 실패 원인(SOLAPI 응답·키 정보)은 응답에 담지 않는다.

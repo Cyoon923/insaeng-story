@@ -175,6 +175,24 @@ test("DB 저장소: 원자적 UPSERT(창 만료 시 1) + RETURNING, clear는 정
   assert.deepEqual(calls[1].params, ["loginrl:ip:abc"]);
 });
 
+test("DB 저장소 hitWithWait: hit과 같은 UPSERT에 DB 시계 기준 남은 시간(ms)을 함께 돌려준다", async () => {
+  const calls: { text: string; params: unknown[] }[] = [];
+  const store = loginAttemptStoreFor({
+    query: async (text, params) => {
+      calls.push({ text, params });
+      return [{ attempts: "6", wait_ms: "2832000" }];
+    },
+  });
+  await store.hit("smsrl:phone:h:abc", 3600000);
+  assert.deepEqual(await store.hitWithWait!("smsrl:phone:h:abc", 3600000), { attempts: 6, waitMs: 2832000 });
+  // RETURNING 앞의 UPSERT(고정 창 의미)는 hit과 글자 하나 다르지 않다.
+  const [hitUpsert, waitUpsert] = calls.map((call) => call.text.split("RETURNING")[0]);
+  assert.equal(waitUpsert, hitUpsert);
+  assert.match(calls[1].text, /RETURNING attempts, GREATEST\(0, CEIL\(EXTRACT\(EPOCH FROM \(expires_at - now\(\)\)\) \* 1000\)\)::bigint AS wait_ms/);
+  assert.deepEqual(calls[1].params, ["smsrl:phone:h:abc", 3600000]);
+  assert.equal(await loginAttemptStoreFor(null).hitWithWait!("k", 1000), null);
+});
+
 const APP = readFileSync(new URL("../../app/api/app/route.ts", import.meta.url), "utf8");
 const ADMIN = readFileSync(new URL("../../app/api/admin/route.ts", import.meta.url), "utf8");
 

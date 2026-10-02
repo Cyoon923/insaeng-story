@@ -54,23 +54,74 @@ export function smsIpHourKey(ip: string): string {
  * 저장소가 없으면(파일 모드, hit = null) 제한하지 않는다.
  */
 export async function gateSmsSend(store: LoginAttemptStore, phone: string, ip: string): Promise<boolean> {
+  return !(await smsSendBlock(store, phone, ip)).blocked;
+}
+
+/**
+ * gateSmsSend와 같은 판정에, 막혔을 때 다시 요청할 수 있기까지 남은 초를 더한다.
+ *
+ * 세는 키·순서·한도는 gateSmsSend와 같다(모두 센 뒤 판정). 막힌 제한이 여러 개면
+ * 그중 가장 늦게 풀리는 창을 기준으로 한다. 그 시각이 지나야 모든 제한이 풀린다.
+ * 저장소가 남은 시간을 주지 못하면(hitWithWait 없음) waitSeconds는 null이다.
+ */
+export async function smsSendBlock(
+  store: LoginAttemptStore,
+  phone: string,
+  ip: string,
+): Promise<{ blocked: false } | { blocked: true; waitSeconds: number | null }> {
   const checks: [string, { max: number; windowMs: number }][] = [
     [smsPhoneHourKey(phone), SMS_SEND_LIMITS.phoneHour],
     [smsPhoneDayKey(phone), SMS_SEND_LIMITS.phoneDay],
   ];
   if (ip !== UNKNOWN_IP) checks.push([smsIpHourKey(ip), SMS_SEND_LIMITS.ipHour]);
-  let allowed = true;
+  let blocked = false;
+  let waitMs: number | null = 0;
   for (const [key, limit] of checks) {
-    const attempts = await store.hit(key, limit.windowMs);
-    if (attempts !== null && attempts > limit.max) allowed = false;
+    if (store.hitWithWait) {
+      const result = await store.hitWithWait(key, limit.windowMs);
+      if (result !== null && result.attempts > limit.max) {
+        blocked = true;
+        if (waitMs !== null) waitMs = Math.max(waitMs, result.waitMs);
+      }
+    } else {
+      const attempts = await store.hit(key, limit.windowMs);
+      if (attempts !== null && attempts > limit.max) {
+        blocked = true;
+        waitMs = null;
+      }
+    }
   }
-  return allowed;
+  if (!blocked) return { blocked: false };
+  // 창이 막 끝나는 순간이어도 0초로 보이지 않게 최소 1초로 둔다.
+  return { blocked: true, waitSeconds: waitMs === null ? null : Math.max(1, Math.ceil(waitMs / 1000)) };
+}
+
+/**
+ * 발송 제한에 걸렸을 때 화면에 보일 문구. 남은 시간을 모르면 기존 문구를 그대로 쓴다.
+ * 1분 미만은 초, 1시간 미만은 분·초, 그 이상은 시간·분(분은 올림)으로 적는다.
+ */
+export function smsRateLimitedMessage(waitSeconds: number | null): string {
+  if (waitSeconds === null) return SMS_RATE_LIMITED_MESSAGE;
+  let wait: string;
+  if (waitSeconds < 60) {
+    wait = `${waitSeconds}초`;
+  } else if (waitSeconds < 60 * 60) {
+    const minutes = Math.floor(waitSeconds / 60);
+    const seconds = waitSeconds % 60;
+    wait = seconds > 0 ? `${minutes}분 ${seconds}초` : `${minutes}분`;
+  } else {
+    const totalMinutes = Math.ceil(waitSeconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    wait = minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`;
+  }
+  return `인증번호는 ${wait} 후 다시 요청할 수 있습니다.`;
 }
 
 export type SendCodeOutcome =
   | { kind: "sent" }
   | { kind: "cooldown"; waitSeconds: number }
-  | { kind: "rate-limited" }
+  | { kind: "rate-limited"; waitSeconds: number | null }
   | { kind: "send-failed" };
 
 export interface SendCodeDeps {
@@ -92,7 +143,8 @@ export async function runSendCode(
   const wait = await deps.cooldownLeft();
   if (wait > 0) return { kind: "cooldown", waitSeconds: wait };
 
-  if (!(await gateSmsSend(deps.store, input.phone, input.ip))) return { kind: "rate-limited" };
+  const block = await smsSendBlock(deps.store, input.phone, input.ip);
+  if (block.blocked) return { kind: "rate-limited", waitSeconds: block.waitSeconds };
 
   const issued = await deps.issueCode();
   if (!issued.ok) return { kind: "cooldown", waitSeconds: issued.waitSeconds };
