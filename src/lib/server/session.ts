@@ -116,7 +116,19 @@ export async function setUserId(userId: string): Promise<boolean> {
     path: "/",
     maxAge: SESSION_TTL_MS / 1000,
   });
-  // 세션과 같은 수명·범위로 draft 주인 표식을 둔다. 화면이 읽어야 해서 httpOnly만 다르다.
+  setDraftOwnerCookie(store, userId, key);
+  return true;
+}
+
+/**
+ * draft 주인 표식 쿠키를 심는다. 값과 속성은 이 함수 한 곳에서만 정한다.
+ * 세션과 같은 수명·범위로 둔다. 화면이 읽어야 해서 httpOnly만 다르다.
+ */
+function setDraftOwnerCookie(
+  store: Awaited<ReturnType<typeof cookies>>,
+  userId: string,
+  key: string,
+): void {
   store.set(DRAFT_OWNER_COOKIE, draftOwnerValue(userId, key), {
     httpOnly: false,
     sameSite: "lax",
@@ -124,7 +136,22 @@ export async function setUserId(userId: string): Promise<boolean> {
     path: "/",
     maxAge: SESSION_TTL_MS / 1000,
   });
-  return true;
+}
+
+/**
+ * 이미 유효한 세션에 draft 주인 표식이 없거나 다르면 다시 심는다.
+ *
+ * P1-07 이전에 로그인한 세션에는 이 쿠키가 없다(setUserId에서만 발급된다). 그대로 두면
+ * 화면의 draft 저장이 모두 버려진다(lib/client/api.ts는 표식이 없으면 저장하지 않는다).
+ * 세션 인증에는 관여하지 않는다. userId는 호출부가 이미 검증한 세션 회원이어야 한다.
+ * 이미 올바른 값이면 아무것도 하지 않는다.
+ */
+export async function ensureDraftOwnerCookie(userId: string): Promise<void> {
+  const key = sessionKey();
+  if (!key) return;
+  const store = await cookies();
+  if (store.get(DRAFT_OWNER_COOKIE)?.value === draftOwnerValue(userId, key)) return;
+  setDraftOwnerCookie(store, userId, key);
 }
 
 export async function clearUserId(): Promise<void> {

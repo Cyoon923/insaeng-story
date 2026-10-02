@@ -89,8 +89,17 @@ test("서버는 draft 주인 표식 쿠키를 인증에 쓰지 않는다(getUser
   );
   assert.match(getUserIdBody, /store\.get\(COOKIE\)/);
   assert.doesNotMatch(getUserIdBody, /DRAFT_OWNER_COOKIE/);
-  // 표식 쿠키를 읽는 서버 코드가 없다(쓰기·지우기만 있음).
-  assert.doesNotMatch(SOURCE, /store\.get\(DRAFT_OWNER_COOKIE\)/);
+  // 표식 쿠키를 읽는 서버 코드는 ensureDraftOwnerCookie의 일치 확인 한 곳뿐이다.
+  // 그 값은 "다시 심을지"만 정하고 인증·회원 판정에는 쓰지 않는다.
+  const reads = SOURCE.match(/store\.get\(DRAFT_OWNER_COOKIE\)/g) ?? [];
+  assert.equal(reads.length, 1, "표식 쿠키를 읽는 자리는 하나뿐이어야 한다");
+  const ensureStart = SOURCE.indexOf("export async function ensureDraftOwnerCookie(");
+  const ensureBody = SOURCE.slice(ensureStart, SOURCE.indexOf("\n}\n", ensureStart));
+  assert.ok(ensureStart > 0, "ensureDraftOwnerCookie가 있어야 한다");
+  assert.match(
+    ensureBody,
+    /if \(store\.get\(DRAFT_OWNER_COOKIE\)\?\.value === draftOwnerValue\(userId, key\)\) return;/,
+  );
 });
 
 test("클라이언트 api.ts와 서버가 같은 쿠키 이름을 쓴다", () => {

@@ -8,7 +8,7 @@ import {
 } from "@/lib/server/loginRateLimit";
 import { cookies } from "next/headers";
 import { sendVerificationSms } from "@/lib/server/sms";
-import { clearUserId, getUserId, setUserId } from "@/lib/server/session";
+import { clearUserId, ensureDraftOwnerCookie, getUserId, setUserId } from "@/lib/server/session";
 import { formatPhone, writeDataWithVerificationConsumes, isAppStoreConflict, normalizePhone, normalizeLoginId, isValidLoginId, nowId, createPayment, hasActiveCheckoutPayment, readData, writeData, listOrdersByUser, getOrderById, listPaymentsByOrderId, hashPassword, verifyPassword, emptyUser, registerUser, scrubPaymentSnapshotDetailsByUser, scrubOrderDetailsByUser } from "@/lib/server/store";
 import {
   clearSocialLinkCookie,
@@ -327,6 +327,8 @@ export async function GET() {
   if (!isActiveUser(user)) {
     return NextResponse.json({ user: null, reviews });
   }
+  // P1-07 이전 로그인 세션에 빠진 draft 주인 표식을 활성 회원 확인 뒤에만 복구한다.
+  await ensureDraftOwnerCookie(userId);
   return NextResponse.json({
     user: toPublicUser(user),
     /**
