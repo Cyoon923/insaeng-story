@@ -9,8 +9,10 @@
 import { calcConsultationAmount, calcOrderAmount } from "@/lib/server/pricing";
 import type { PromotionId } from "@/lib/constants/promotions";
 import {
+  CONSULT_TEACHERS,
   isSlotAvailable,
   parseDatetime,
+  parseIsoDate,
   resolveConfirmedScheduledAt,
   resolveScheduledAt,
 } from "@/lib/server/consultationSlots";
@@ -22,7 +24,7 @@ import {
 } from "@/lib/server/consents";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { nowId, writeData, writeDataWithOrder } from "@/lib/server/store";
-import { prepareEventConsultation } from "@/lib/server/eventConsultation";
+import { CONSULT_METHODS, prepareEventConsultation } from "@/lib/server/eventConsultation";
 import type { EventConsultationFacts, EventConsultationInput, EventConsultationResult } from "@/lib/server/eventConsultation";
 import type { AppData, Consultation, CouponProduct, Order, User } from "@/lib/types/app";
 
@@ -210,6 +212,160 @@ export function applyFreeCoupon(
   };
 }
 
+/**
+ * details 안에서 서버만 만들 수 있는 키 (P1-10 F1).
+ *
+ * 아래 apply*(쿠폰·추천인·적립금)와 가격표, OPEN EVENT 예약(prepareEventConsultation)이
+ * 계산해서 넣는 값이다. details는 클라이언트가 임의 키를 섞을 수 있는 자리라,
+ * 계산을 시작하기 전에 클라이언트가 보낸 같은 이름의 값을 먼저 지운다.
+ * 그래야 남는 값은 언제나 이번 요청에서 서버가 다시 만든 값뿐이다.
+ *
+ * 입력으로 남기는 키는 couponId·usePoints·referralCode 셋이다. apply*가 이 셋으로
+ * 서버 값을 다시 만든다(쿠폰 검증, 잔액 기준 차감, 코드 검증).
+ *
+ * eventOrderId는 OPEN EVENT 상담만 서버가 넣는다. 일반 주문·상담에 남으면
+ * 환불·탈퇴·관리자 잠금 판정(consultationRefundOrderId)이 다른 주문을 보게 된다.
+ */
+export const SERVER_OWNED_DETAIL_KEYS = [
+  "eventOrderId",
+  "couponFree",
+  "couponTitle",
+  "pointsUsed",
+  "referralDiscount",
+  "referralType",
+  "referralPercent",
+  "referrerId",
+  "promotion",
+] as const;
+
+/** 클라이언트가 보낸 details에서 서버 소유 키를 지운다. 받은 객체를 그대로 고친다. */
+export function stripServerOwnedDetails(details: Record<string, string>): void {
+  for (const key of SERVER_OWNED_DETAIL_KEYS) delete details[key];
+}
+
+/**
+ * 일반 1:1 상담의 선생님·상담 방법이 허용값과 정확히 같은지 (P1-10 F2).
+ *
+ * 슬롯 판정(isSlotAvailable)은 선생님 이름 문자열로 예약·차단을 찾는다. 목록에 없는
+ * 이름("유비 선생 " 등)을 받으면 실제 선생님의 예약·차단과 겹치지 않아 그대로 통과한다.
+ * 그래서 슬롯을 보기 전에 허용 목록(CONSULT_TEACHERS·CONSULT_METHODS)과 비교한다.
+ * 공백을 다듬어 맞춰 주지 않는다. 화면은 목록 값을 그대로 보낸다.
+ * OPEN EVENT 상담(prepareEventConsultation)과 같은 목록·같은 문구다.
+ *
+ * 통과하면 null, 아니면 화면에 보일 오류 문구.
+ */
+export function checkConsultationChoice(teacher: string, method: string): string | null {
+  if (!CONSULT_TEACHERS.some((item) => item.name === teacher)) return "선생님을 다시 선택해 주세요.";
+  if (!(CONSULT_METHODS as readonly string[]).includes(method)) return "상담 방법을 선택해 주세요.";
+  return null;
+}
+
+/**
+ * 신청·프로필 입력의 크기·형식 상한 (P1-10 F3). 한곳에서만 정한다.
+ *
+ * app_store는 JSONB 한 행이고 모든 요청이 통째로 읽는다. 직접 API로 큰 값이나
+ * 문자열이 아닌 값을 넣으면 서비스 전체의 읽기·쓰기가 무거워지거나 화면이 깨진다.
+ * 상한은 화면의 정상 최대 입력보다 넉넉하게 잡았다.
+ *  - details 값 2,000자: 신청 화면 자유서술 최대 1,000자(story/premium 3단계), 상담 내용 500자
+ *  - details 키 100개: 가장 긴 신청 draft도 수십 개 수준
+ *  - 이름 50자: 화면에 별도 상한 없음. 문의 이름 상한(40자)보다 조금 넉넉하게
+ */
+export const INPUT_LIMITS = {
+  detailsMaxKeys: 100,
+  detailsMaxKeyLength: 64,
+  detailsMaxValueLength: 2000,
+  titleMaxLength: 100,
+  purposeMaxLength: 300,
+  optionMaxLength: 200,
+  nameMaxLength: 50,
+} as const;
+
+/** 신청 입력이 상한·형식을 벗어났을 때. 어느 칸인지 알려 주지 않는 기존 문구와 같다. */
+const INVALID_APPLY_INPUT = "신청 내용을 다시 확인해 주세요.";
+
+/** 일반 객체인지(배열·null·문자열·숫자 등이 아닌). JSON 본문에서 온 값을 그대로 본다. */
+export function isDetailsRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * 클라이언트가 보낸 details의 크기·타입 (P1-10 F3). 통과하면 null, 아니면 오류 문구.
+ * 값은 문자열만 받는다. 다른 타입을 문자열로 바꿔 주지 않는다.
+ * 서버 소유 키는 stripServerOwnedDetails가 먼저 지운 뒤에 본다.
+ */
+export function checkClientDetails(details: unknown): string | null {
+  if (!isDetailsRecord(details)) return INVALID_APPLY_INPUT;
+  const entries = Object.entries(details);
+  if (entries.length > INPUT_LIMITS.detailsMaxKeys) return INVALID_APPLY_INPUT;
+  for (const [key, value] of entries) {
+    if (key.length > INPUT_LIMITS.detailsMaxKeyLength) return INVALID_APPLY_INPUT;
+    if (typeof value !== "string") return INVALID_APPLY_INPUT;
+    if (value.length > INPUT_LIMITS.detailsMaxValueLength) return INVALID_APPLY_INPUT;
+  }
+  return null;
+}
+
+/**
+ * 신청 제목·상담 목적·상담 옵션 문구의 길이 (P1-10 F3). 허용값은 보지 않고 길이만 본다.
+ * 값이 없으면(기본값을 쓰는 경우) 통과한다. 있으면 문자열이어야 한다.
+ */
+export function checkApplyText(input: { title?: unknown; purpose?: unknown; option?: unknown }): string | null {
+  const limits: [unknown, number][] = [
+    [input.title, INPUT_LIMITS.titleMaxLength],
+    [input.purpose, INPUT_LIMITS.purposeMaxLength],
+    [input.option, INPUT_LIMITS.optionMaxLength],
+  ];
+  for (const [value, max] of limits) {
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string" || value.length > max) return INVALID_APPLY_INPUT;
+  }
+  return null;
+}
+
+/** 화면이 실제로 보내는 혈액형 값. 신청 화면은 "A", 내 정보 화면은 "A형"·"모름"을 쓴다. */
+const PROFILE_BLOOD_TYPES = ["A", "B", "O", "AB", "A형", "B형", "O형", "AB형", "모름"];
+
+/**
+ * 태어난 시간. 신청 화면은 "9:30", 내 정보 화면은 "09:30"을 만든다.
+ * 0~23시, 분은 두 자리(00~59)만 받는다. 예전에 저장된 분 값도 그대로 다시 저장할 수 있다.
+ */
+const BIRTH_TIME_PATTERN = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * updateProfile로 보낸 값 (P1-10 F3). 보낸 항목만 본다. 통과하면 null, 아니면 오류 문구.
+ * 성별·양력/음력은 route가 기존대로 허용값만 반영한다(여기서 보지 않는다).
+ */
+export function checkProfileInput(profile: Record<string, unknown>): string | null {
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(profile, key);
+  const text = (key: string): string | null => {
+    const value = profile[key] ?? "";
+    return typeof value === "string" ? value : null;
+  };
+  if (has("name")) {
+    const name = text("name");
+    if (name === null || name.length > INPUT_LIMITS.nameMaxLength) return "이름을 확인해 주세요.";
+  }
+  if (has("birth")) {
+    const birth = text("birth");
+    if (birth === null || (birth !== "" && !parseIsoDate(birth))) {
+      return "생년월일을 예) 1990-01-01 형식으로 입력해 주세요.";
+    }
+  }
+  if (has("birthTime")) {
+    const birthTime = text("birthTime");
+    if (birthTime === null || (birthTime !== "" && !BIRTH_TIME_PATTERN.test(birthTime))) {
+      return "태어난 시간을 다시 선택해 주세요.";
+    }
+  }
+  if (has("bloodType")) {
+    const bloodType = text("bloodType");
+    if (bloodType === null || (bloodType !== "" && !PROFILE_BLOOD_TYPES.includes(bloodType))) {
+      return "혈액형을 다시 선택해 주세요.";
+    }
+  }
+  return null;
+}
+
 export function applyPoints(
   user: User,
   details: Record<string, string>,
@@ -390,6 +546,17 @@ export async function commitOrder(
   const requireConsent = options.requireConsent ?? true;
   const userId = user.id;
   const details = input.details;
+  if (!isDetailsRecord(details)) return { ok: false, error: INVALID_APPLY_INPUT, status: 400 };
+  // 서버 계산 전에 클라이언트가 보낸 서버 소유 값을 지운다(P1-10 F1).
+  stripServerOwnedDetails(details);
+  /*
+   * 크기·타입 상한(P1-10 F3). 결제 승인 확정은 preparePayment가 같은 함수로 검증한
+   * snapshot을 받으므로 다시 막지 않는다(승인 뒤 막으면 결제만 되고 주문이 없다).
+   */
+  if (mode !== "paid-approved") {
+    const inputError = checkClientDetails(details) ?? checkApplyText({ title: input.title });
+    if (inputError) return { ok: false, error: inputError, status: 400 };
+  }
 
   /**
    * 신청 단계 [필수] 동의. details의 문자열 "1"만 동의로 본다.
@@ -569,6 +736,16 @@ export async function commitConsultation(
   const requireConsent = options.requireConsent ?? true;
   const userId = user.id;
   const teacher = String(input.teacher ?? "유비 선생");
+  /*
+   * 선생님·상담 방법 허용값 (P1-10 F2). 슬롯 판정보다 먼저 본다.
+   * 결제 승인 확정(paid-approved)은 preparePayment가 같은 함수로 이미 검증해 고정한
+   * snapshot 값이 들어온다. 승인 뒤에 막으면 결제만 되고 상담이 없는 상태가 되므로
+   * 여기서는 0원 확정(free-only)만 막는다(verifyOfferedDate와 같은 원칙).
+   */
+  if (mode !== "paid-approved") {
+    const choiceError = checkConsultationChoice(teacher, String(input.method ?? "카카오톡 상담"));
+    if (choiceError) return { ok: false, error: choiceError, status: 400 };
+  }
   const datetime = String(input.datetime ?? "");
   const parsed = parseDatetime(datetime);
   if (!parsed) {
@@ -587,6 +764,17 @@ export async function commitConsultation(
   }
 
   const details = input.details;
+  if (!isDetailsRecord(details)) return { ok: false, error: INVALID_APPLY_INPUT, status: 400 };
+  // 서버 계산 전에 클라이언트가 보낸 서버 소유 값을 지운다(P1-10 F1).
+  // 일반 상담에는 eventOrderId가 남지 않는다(OPEN EVENT 상담은 commitEventConsultation 경로).
+  stripServerOwnedDetails(details);
+  // 크기·타입 상한(P1-10 F3). 승인 확정은 commitOrder와 같은 이유로 다시 막지 않는다.
+  if (mode !== "paid-approved") {
+    const inputError =
+      checkClientDetails(details) ??
+      checkApplyText({ title: input.title, purpose: input.purpose, option: input.option });
+    if (inputError) return { ok: false, error: inputError, status: 400 };
+  }
 
   // 신청 단계 [필수] 동의. 상담 화면의 "취소·환불 규정에 동의합니다"가 이 값이다.
   const consentAgreed = String(details.applyConsent ?? "") === "1";

@@ -86,6 +86,10 @@ import {
   promotionDiscountConflict,
   applyPoints,
   applyReferral,
+  checkApplyText,
+  checkClientDetails,
+  checkConsultationChoice,
+  checkProfileInput,
   commitConsultation,
   commitEventConsultation,
   commitOrder,
@@ -1445,6 +1449,11 @@ async function handlePost(request: Request) {
     // 회원이 직접 고칠 수 있는 항목만 반영한다. id·points·passwordHash처럼
     // 서버가 관리하는 값은 클라이언트가 보내도 무시한다.
     const profile = (body.profile as Record<string, unknown>) ?? {};
+    // 이름·생년월일·태어난 시간·혈액형 형식과 길이(P1-10 F3). 하나라도 어긋나면 아무것도 바꾸지 않는다.
+    const profileError = checkProfileInput(profile);
+    if (profileError) {
+      return NextResponse.json({ error: profileError }, { status: 400 });
+    }
     const next: User = { ...user };
     const has = (key: string) => Object.prototype.hasOwnProperty.call(profile, key);
 
@@ -2019,6 +2028,21 @@ async function handlePost(request: Request) {
       return NextResponse.json({ error: "회원 정보를 찾을 수 없습니다." }, { status: 401 });
     }
 
+    /*
+     * 크기·타입 상한(P1-10 F3). 결제 준비 기록보다 먼저, 원본 값 그대로 본다
+     * (펼쳐 복사하면 배열·문자열이 다른 모양으로 바뀐다). 확정(commit*)과 같은 함수다.
+     * 여기서 통과한 값만 snapshot에 담겨 승인 확정으로 넘어간다.
+     */
+    const inputError =
+      checkClientDetails(body.details ?? {}) ??
+      checkApplyText(
+        kind === "consultation"
+          ? { title: body.title, purpose: body.purpose, option: body.option }
+          : { title: body.title },
+      );
+    if (inputError) {
+      return NextResponse.json({ error: inputError }, { status: 400 });
+    }
     const details = { ...((body.details as Record<string, string>) ?? {}) };
     /**
      * 신청 단계 [필수] 동의를 결제 준비 전에 확인한다.
@@ -2123,6 +2147,11 @@ async function handlePost(request: Request) {
       };
     } else {
       const teacher = String(body.teacher ?? "유비 선생");
+      // 선생님·상담 방법 허용값 (P1-10 F2). 슬롯 확인·hold 생성보다 먼저 막는다.
+      const choiceError = checkConsultationChoice(teacher, String(body.method ?? "카카오톡 상담"));
+      if (choiceError) {
+        return NextResponse.json({ error: choiceError }, { status: 400 });
+      }
       const datetime = String(body.datetime ?? "");
       const parsed = parseDatetime(datetime);
       if (!parsed) {
