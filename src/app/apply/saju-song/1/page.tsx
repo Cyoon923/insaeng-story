@@ -21,6 +21,60 @@ function birthTimeValue(hour: string, minute: string): string {
   return `${Number(hour)}:${minute.padStart(2, "0")}`;
 }
 
+/**
+ * 한 사람의 사주정보 입력값. 본인과 다른 사람 값을 따로 들고 있어 서로 섞이지 않게 한다.
+ * 연락처는 사주 대상자가 아니라 신청자 본인의 것이라 여기에 넣지 않는다(전환해도 그대로 둔다).
+ */
+interface Person {
+  name: string;
+  birth: string;
+  bloodType: string;
+  hour: string;
+  minute: string;
+  gender: "male" | "female";
+  calendar: "solar" | "lunar";
+  unknownTime: boolean;
+}
+
+const EMPTY_PERSON: Person = {
+  name: "",
+  birth: "",
+  bloodType: "",
+  hour: "",
+  minute: "",
+  gender: "male",
+  calendar: "solar",
+  unknownTime: false,
+};
+
+/** 회원 프로필의 본인 정보. 비어 있는 항목은 화면 기본값으로 둔다. */
+function personFromUser(user: User): Person {
+  const [hour = "", minute = ""] = user.birthTime ? user.birthTime.split(":") : [];
+  return {
+    name: user.name ?? "",
+    birth: user.birth ?? "",
+    bloodType: user.bloodType ?? "",
+    hour,
+    minute,
+    gender: user.gender === "female" ? "female" : "male",
+    calendar: user.calendar === "lunar" ? "lunar" : "solar",
+    unknownTime: Boolean(user.unknownTime),
+  };
+}
+
+/** draft에 남기는 형식. 각 입력란이 commit하는 값과 같다. */
+function personDraft(person: Person): Record<string, string> {
+  return {
+    name: person.name,
+    birth: person.birth,
+    bloodType: person.bloodType,
+    birthTime: birthTimeValue(person.hour, person.minute),
+    gender: person.gender === "female" ? "여성" : "남성",
+    calendar: person.calendar === "lunar" ? "음력" : "양력",
+    unknownTime: person.unknownTime ? "1" : "",
+  };
+}
+
 export default function SajuStep1Page() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,6 +87,12 @@ export default function SajuStep1Page() {
   const [unknownTime, setUnknownTime] = useState(false);
   /** 이 사주정보가 누구 것인지. 본인 정보일 때만 회원 프로필에 저장한다. */
   const [subject, setSubject] = useState<"self" | "other">("self");
+  /** 늦게 도착한 회원정보가 지금 누구 화면인지 보고 채우도록 subject를 함께 들고 있는다. */
+  const subjectRef = useRef<"self" | "other">("self");
+  /** 불러온 회원 프로필. "내 정보"로 돌아올 때 본인 값을 되살리는 데 쓴다. */
+  const me = useRef<User | null>(null);
+  /** 화면에 보이지 않는 쪽의 입력값. 전환할 때만 쓰고 draft·서버에는 보내지 않는다. */
+  const stash = useRef<{ self?: Person; other?: Person }>({});
 
   /**
    * draft에 이미 있던 항목. 값이 빈 문자열이어도 "사용자가 정한 값"으로 보고
@@ -66,7 +126,10 @@ export default function SajuStep1Page() {
     if (draft.calendar === "음력") setCalendar("lunar");
     else if (draft.calendar === "양력") setCalendar("solar");
     if (draft.unknownTime === "1") setUnknownTime(true);
-    if (draft.subject === "other") setSubject("other");
+    if (draft.subject === "other") {
+      setSubject("other");
+      subjectRef.current = "other";
+    }
     // 기존 draft에 없으면 "내 정보"를 기본값으로 남겨 둔다.
     else if (!draft.subject) saveDraft("saju-song", { subject: "self" });
 
@@ -95,9 +158,13 @@ export default function SajuStep1Page() {
         if (cancelled) return;
         const user = (data?.user ?? null) as User | null;
         if (!user) return;
+        me.current = user;
 
+        // 다른 사람 정보 화면에는 내 사주정보를 채우지 않는다. 연락처는 신청자 것이라 그대로 채운다.
         const canFill = (key: string) =>
-          !draftKeys.current.has(key) && !touched.current.has(key);
+          (key === "phone" || subjectRef.current === "self") &&
+          !draftKeys.current.has(key) &&
+          !touched.current.has(key);
         // 자동입력한 값도 draft에 남겨 다음 단계와 복원에서 그대로 쓰이게 한다.
         const filled: Record<string, string> = {};
 
@@ -149,6 +216,40 @@ export default function SajuStep1Page() {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * "내 정보" ↔ "다른 사람 정보" 전환. 지금 보이는 사람의 값은 따로 두고,
+   * 돌아갈 사람의 값을 화면과 draft에 다시 채운다. 그래서 한 사람의 값이 다른 사람 칸에 남지 않는다.
+   * 본인 값은 이번 화면에서 입력하던 값, 없으면 회원 프로필 순서로 되살린다.
+   * 다른 사람 값은 이번 화면에서 입력하던 값만 되살리고, 없으면 빈 칸으로 시작한다.
+   * 연락처는 신청자 것이라 바꾸지 않는다.
+   */
+  const switchSubject = (next: "self" | "other") => {
+    if (next === subject) return;
+    stash.current[subject] = { name, birth, bloodType, hour, minute, gender, calendar, unknownTime };
+    const kept = stash.current[next];
+    const restored =
+      kept ?? (next === "self" && me.current ? personFromUser(me.current) : EMPTY_PERSON);
+
+    subjectRef.current = next;
+    setSubject(next);
+    setName(restored.name);
+    setBirth(restored.birth);
+    setBloodType(restored.bloodType);
+    setHour(restored.hour);
+    setMinute(restored.minute);
+    setGender(restored.gender);
+    setCalendar(restored.calendar);
+    setUnknownTime(restored.unknownTime);
+    // 되살린 값은 사용자가 정한 값으로 본다. 아무것도 없을 때만 늦게 온 프로필이 본인 빈 칸을 채운다.
+    // 사주정보 항목만 다시 정하고, 연락처의 보호 상태는 그대로 둔다.
+    for (const key of Object.keys(personDraft(restored))) {
+      touched.current.delete(key);
+      if (restored === EMPTY_PERSON) draftKeys.current.delete(key);
+      else draftKeys.current.add(key);
+    }
+    saveDraft("saju-song", { ...personDraft(restored), subject: next });
+  };
 
   // 화면에 필수(*)로 표시된 항목 중 기본값이 없는 것만 검사한다.
   // 태어난 시간은 "태어난 시간을 몰라요"를 정상값으로 인정한다.
@@ -215,18 +316,12 @@ export default function SajuStep1Page() {
           <div className="grid grid-cols-2 gap-3">
             <Toggle
               active={subject === "self"}
-              onClick={() => {
-                setSubject("self");
-                saveDraft("saju-song", { subject: "self" });
-              }}
+              onClick={() => switchSubject("self")}
               label="내 정보"
             />
             <Toggle
               active={subject === "other"}
-              onClick={() => {
-                setSubject("other");
-                saveDraft("saju-song", { subject: "other" });
-              }}
+              onClick={() => switchSubject("other")}
               label="다른 사람 정보"
             />
           </div>

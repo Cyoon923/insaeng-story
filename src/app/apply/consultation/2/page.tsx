@@ -21,6 +21,36 @@ function birthTimeValue(hour: string, minute: string): string {
   return `${Number(hour)}:${minute.padStart(2, "0")}`;
 }
 
+/**
+ * "누구의 정보인가요?"로 바뀌는 사주정보 draft 키. 본인과 다른 사람 값을 따로 들고 있어 서로 섞이지 않게 한다.
+ * 연락처는 신청자 것이라, 상대방(counterpart*)은 궁합 상대라 여기에 넣지 않는다(전환해도 그대로 둔다).
+ */
+const SUBJECT_KEYS = ["name", "birth", "bloodType", "birthTime", "gender", "calendar", "unknownTime"] as const;
+
+/** 처음 입력하는 사람의 값. 화면 기본값(남성·양력)과 같다. */
+const EMPTY_SUBJECT: Record<string, string> = {
+  name: "",
+  birth: "",
+  bloodType: "",
+  birthTime: "",
+  gender: "남성",
+  calendar: "양력",
+  unknownTime: "",
+};
+
+/** 회원 프로필의 본인 정보를 draft 형식으로. 비어 있는 항목은 화면 기본값으로 둔다. */
+function subjectFromUser(user: User): Record<string, string> {
+  return {
+    name: user.name ?? "",
+    birth: user.birth ?? "",
+    bloodType: user.bloodType ?? "",
+    birthTime: user.birthTime ?? "",
+    gender: user.gender === "female" ? "여성" : "남성",
+    calendar: user.calendar === "lunar" ? "음력" : "양력",
+    unknownTime: user.unknownTime ? "1" : "",
+  };
+}
+
 function PersonFields({ title, subject }: { title: string; subject: "self" | "other" }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -102,8 +132,8 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
    * draft에 없고 사용자가 아직 건드리지 않은 항목만 채운다.
    */
   useEffect(() => {
-    // 상대방 블록이거나 "다른 사람 정보"를 고른 경우에는 회원정보를 채우지 않는다.
-    if (!isSelf || subject !== "self") return;
+    // 상대방 블록에는 회원정보를 채우지 않는다.
+    if (!isSelf) return;
     let cancelled = false;
     fetchMe()
       .then((data) => {
@@ -111,8 +141,11 @@ function PersonFields({ title, subject }: { title: string; subject: "self" | "ot
         const user = (data?.user ?? null) as User | null;
         if (!user) return;
 
+        // "다른 사람 정보"에는 내 사주정보를 채우지 않는다. 연락처는 신청자 것이라 그대로 채운다.
         const canFill = (key: string) =>
-          !draftKeys.current.has(key) && !touched.current.has(key);
+          (key === "phone" || subject === "self") &&
+          !draftKeys.current.has(key) &&
+          !touched.current.has(key);
         const filled: Record<string, string> = {};
 
         if (user.name && canFill("name")) {
@@ -367,6 +400,34 @@ function ConsultationStep2Content() {
     getDraft("consultation").subject === "other" ? "other" : "self",
   );
 
+  /** 화면에 보이지 않는 쪽의 사주정보. 전환할 때만 쓰고 서버에는 보내지 않는다. */
+  const stash = useRef<{ self?: Record<string, string>; other?: Record<string, string> }>({});
+
+  /**
+   * "내 정보" ↔ "다른 사람 정보" 전환. 지금 사람의 사주정보는 따로 두고, 돌아갈 사람의 값을 draft에 다시 쓴다.
+   * 본인 값은 이번 화면에서 입력하던 값, 없으면 회원 프로필 순서로 되살린다.
+   * 다른 사람 값은 이번 화면에서 입력하던 값만 되살리고, 없으면 빈 칸으로 시작한다.
+   * 입력란은 아래 key={subject}로 새로 그려져 draft에서 다시 읽는다. 연락처와 상대방 정보는 건드리지 않는다.
+   */
+  const switchSubject = (next: "self" | "other") => {
+    if (next === subject) return;
+    const draft = getDraft("consultation");
+    stash.current[subject] = Object.fromEntries(SUBJECT_KEYS.map((key) => [key, draft[key] ?? ""]));
+    const apply = (values: Record<string, string>) => {
+      saveDraft("consultation", { ...values, subject: next });
+      setSubject(next);
+    };
+    const kept = stash.current[next];
+    if (kept) return apply(kept);
+    if (next === "other") return apply(EMPTY_SUBJECT);
+    fetchMe()
+      .then((data) => {
+        const user = (data?.user ?? null) as User | null;
+        apply(user ? subjectFromUser(user) : EMPTY_SUBJECT);
+      })
+      .catch(() => apply(EMPTY_SUBJECT));
+  };
+
   // 기존 draft에 subject가 없으면 "내 정보"를 기본값으로 남겨 둔다.
   useEffect(() => {
     if (!getDraft("consultation").subject) {
@@ -444,20 +505,14 @@ function ConsultationStep2Content() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => {
-                setSubject("self");
-                saveDraft("consultation", { subject: "self" });
-              }}
+              onClick={() => switchSubject("self")}
               className={`h-12 rounded-xl text-[15px] font-semibold ${subject === "self" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
             >
               내 정보
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSubject("other");
-                saveDraft("consultation", { subject: "other" });
-              }}
+              onClick={() => switchSubject("other")}
               className={`h-12 rounded-xl text-[15px] font-semibold ${subject === "other" ? "bg-[#403A49] text-white" : "border border-[#e8dfd4] bg-white text-[#403A49]"}`}
             >
               다른 사람 정보
@@ -467,7 +522,7 @@ function ConsultationStep2Content() {
             내 정보를 선택하시면 다음 신청부터 다시 입력하지 않으셔도 됩니다.
           </p>
         </div>
-        <PersonFields title="본인 상담 정보" subject={subject} />
+        <PersonFields key={subject} title="본인 상담 정보" subject={subject} />
         {showCounterpart ? <PersonFields title="상대방 정보" subject={subject} /> : null}
       </div>
     </ApplyLayout>
