@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { useRetryCountdown } from "@/lib/client/useRetryCountdown";
 
 /**
  * 로그인한 회원의 최초 휴대폰 본인확인.
@@ -34,6 +35,8 @@ export function MyVerifyPhoneForm({ next }: { next: string | null }) {
   // 자동 연결이 불가능한 경우. 이때는 다시 시도해도 같으므로 안내만 남긴다.
   const [blocked, setBlocked] = useState(false);
   const [error, setError] = useState("");
+  /** 인증번호 재요청 대기시간(서버 Retry-After 기준). */
+  const retry = useRetryCountdown();
   const [loading, setLoading] = useState(false);
 
   const sendCode = async () => {
@@ -44,7 +47,9 @@ export function MyVerifyPhoneForm({ next }: { next: string | null }) {
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, phone)) {
+        setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -134,7 +139,7 @@ export function MyVerifyPhoneForm({ next }: { next: string | null }) {
             <button
               type="button"
               onClick={sendCode}
-              disabled={loading || blocked}
+              disabled={loading || blocked || retry.left(phone) > 0}
               className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
             >
               인증번호
@@ -163,7 +168,9 @@ export function MyVerifyPhoneForm({ next }: { next: string | null }) {
           ) : null}
         </div>
 
-        {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+        {error || retry.message(phone) ? (
+          <p className="text-[15px] text-red-600">{error || retry.message(phone)}</p>
+        ) : null}
 
         {blocked ? (
           <div className="rounded-xl bg-[#F7F6F8] p-4">

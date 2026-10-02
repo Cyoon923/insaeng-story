@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { useRetryCountdown } from "@/lib/client/useRetryCountdown";
 import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 
 /**
@@ -80,6 +81,8 @@ export default function LoginPage() {
   const [newLoginId, setNewLoginId] = useState("");
 
   const [error, setError] = useState("");
+  /** 인증번호 재요청 대기시간(서버 Retry-After 기준). 제한은 번호별이라 세 흐름이 함께 쓴다. */
+  const retry = useRetryCountdown();
   const [recentLogin, setRecentLogin] = useState<RecentLoginMethod | null>(null);
 
   /**
@@ -200,7 +203,9 @@ export default function LoginPage() {
       setCodeSent(true);
       setResetStep("code");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, resetPhone)) {
+        setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -283,7 +288,9 @@ export default function LoginPage() {
       setCodeSent(true);
       setFindIdStep("code");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, findIdPhone)) {
+        setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -332,7 +339,9 @@ export default function LoginPage() {
       setCodeSent(true);
       setSetIdStep("code");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, setIdPhone)) {
+        setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -498,7 +507,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={sendFindIdCode}
-                        disabled={loading}
+                        disabled={loading || retry.left(findIdPhone) > 0}
                         className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
                       >
                         인증번호
@@ -506,7 +515,9 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+                  {error || retry.message(findIdPhone) ? (
+                    <p className="text-[15px] text-red-600">{error || retry.message(findIdPhone)}</p>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -621,7 +632,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={sendSetIdCode}
-                        disabled={loading}
+                        disabled={loading || retry.left(setIdPhone) > 0}
                         className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
                       >
                         인증번호
@@ -629,7 +640,9 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+                  {error || retry.message(setIdPhone) ? (
+                    <p className="text-[15px] text-red-600">{error || retry.message(setIdPhone)}</p>
+                  ) : null}
                 </>
               ) : setIdStep === "code" ? (
                 <>
@@ -784,7 +797,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={sendResetCode}
-                        disabled={loading}
+                        disabled={loading || retry.left(resetPhone) > 0}
                         className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
                       >
                         인증번호
@@ -792,7 +805,9 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+                  {error || retry.message(resetPhone) ? (
+                    <p className="text-[15px] text-red-600">{error || retry.message(resetPhone)}</p>
+                  ) : null}
                 </>
               ) : resetStep === "code" ? (
                 <>

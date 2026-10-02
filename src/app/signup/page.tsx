@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { useRetryCountdown } from "@/lib/client/useRetryCountdown";
 import { LOGIN_DEFAULT_PATH, safeNextPath } from "@/lib/loginRedirect";
 
 /**
@@ -152,6 +153,8 @@ function SignupFlow() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const [phoneError, setPhoneError] = useState("");
+  /** 인증번호 재요청 대기시간(서버 Retry-After 기준). */
+  const retry = useRetryCountdown();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -273,7 +276,9 @@ function SignupFlow() {
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
     } catch (err) {
-      setPhoneError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, phone)) {
+        setPhoneError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -547,7 +552,7 @@ function SignupFlow() {
             <button
               type="button"
               onClick={sendCode}
-              disabled={loading || phoneVerified}
+              disabled={loading || phoneVerified || retry.left(phone) > 0}
               className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
             >
               {codeSent ? "다시 받기" : "인증번호 받기"}
@@ -591,7 +596,9 @@ function SignupFlow() {
               인증번호를 문자로 보냈습니다.
             </p>
           ) : null}
-          {phoneError ? <p className="mt-2 text-[15px] text-red-600">{phoneError}</p> : null}
+          {phoneError || retry.message(phone) ? (
+            <p className="mt-2 text-[15px] text-red-600">{phoneError || retry.message(phone)}</p>
+          ) : null}
         </div>
 
         <div className="border-t border-[#e8dfd4] pt-5">

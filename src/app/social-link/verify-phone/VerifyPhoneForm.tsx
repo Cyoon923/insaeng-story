@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { postApp } from "@/lib/client/api";
+import { useRetryCountdown } from "@/lib/client/useRetryCountdown";
 import type { SocialProvider } from "@/lib/server/socialLink";
 
 /**
@@ -75,6 +76,8 @@ export function VerifyPhoneForm({ provider }: { provider: SocialProvider }) {
 
   const [step, setStep] = useState<Step>("phone");
   const [error, setError] = useState("");
+  /** 인증번호 재요청 대기시간(서버 Retry-After 기준). */
+  const retry = useRetryCountdown();
   const [loading, setLoading] = useState(false);
 
   // 필수 2종이 동의 항목 전부이므로 "전체 동의" 체크 상태와 같다.
@@ -93,7 +96,9 @@ export function VerifyPhoneForm({ provider }: { provider: SocialProvider }) {
       setSentCode(result.devCode ?? "");
       setCodeSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      if (!retry.startFrom(err, phone)) {
+        setError(err instanceof Error ? err.message : "인증번호를 보내지 못했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -187,7 +192,7 @@ export function VerifyPhoneForm({ provider }: { provider: SocialProvider }) {
             <button
               type="button"
               onClick={sendCode}
-              disabled={loading}
+              disabled={loading || retry.left(phone) > 0}
               className="h-14 shrink-0 rounded-xl bg-[#403A49] px-4 text-[15px] font-semibold text-white disabled:opacity-40"
             >
               인증번호
@@ -243,7 +248,9 @@ export function VerifyPhoneForm({ provider }: { provider: SocialProvider }) {
           </div>
         </div>
 
-        {error ? <p className="text-[15px] text-red-600">{error}</p> : null}
+        {error || retry.message(phone) ? (
+          <p className="text-[15px] text-red-600">{error || retry.message(phone)}</p>
+        ) : null}
 
         <button
           type="button"

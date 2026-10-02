@@ -29,9 +29,23 @@ export async function postApp(body: Record<string, unknown>) {
   });
   const data = await res.json();
   if (!res.ok) {
+    /*
+     * 429에 Retry-After(초)가 있으면 오류에 함께 담는다(인증번호 재요청 안내에만 쓴다).
+     * 메시지는 같은 서버 문구라 err.message만 보는 기존 호출부는 달라지지 않는다.
+     */
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    if (res.status === 429 && Number.isInteger(retryAfter) && retryAfter > 0) {
+      throw Object.assign(new Error(data.error ?? "요청에 실패했습니다."), { retryAfterSeconds: retryAfter });
+    }
     throw new Error(data.error ?? "요청에 실패했습니다.");
   }
   return data;
+}
+
+/** postApp 오류에 담긴 Retry-After(초). 없으면 null이다. */
+export function retryAfterSeconds(error: unknown): number | null {
+  const value = (error as { retryAfterSeconds?: unknown } | null)?.retryAfterSeconds;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 const DRAFT_KEY = "insaeng-draft";
