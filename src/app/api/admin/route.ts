@@ -158,16 +158,21 @@ export async function GET() {
   }
 
   const data = await readData();
-  // 결제 기록은 DATABASE_URL이 있어야 읽을 수 있다. 없으면 관리자 화면 전체가
-  // 깨지지 않도록 빈 목록으로 둔다. 조회 전용이라 실패해도 부작용이 없다.
-  let paymentsNeedingReview: Awaited<ReturnType<typeof listPaymentsNeedingReview>> = {
-    stale: [],
-    unlinked: [],
+  /*
+   * 결제 확인 필요 목록. 결제 기록은 DATABASE_URL이 있어야 읽을 수 있다.
+   * 읽지 못해도 관리자 화면 전체가 깨지지 않도록 빈 목록으로 두되, 실패를 0건으로
+   * 숨기지 않는다(P2-05). "확인할 결제가 없다"와 "목록을 읽지 못했다"는 관리자가
+   * 해야 할 일이 전혀 다르므로 loaded로 구분한다. 환불 문의 목록과 같은 방식이다.
+   * 오류 내용은 서버 기록에만 남기고 응답에는 담지 않는다.
+   */
+  let paymentsNeedingReview: Awaited<ReturnType<typeof listPaymentsNeedingReview>> & {
+    loaded: boolean;
   };
   try {
-    paymentsNeedingReview = await listPaymentsNeedingReview();
-  } catch {
-    paymentsNeedingReview = { stale: [], unlinked: [] };
+    paymentsNeedingReview = { ...(await listPaymentsNeedingReview()), loaded: true };
+  } catch (error) {
+    console.error("[admin] payments needing review failed", error);
+    paymentsNeedingReview = { stale: [], unlinked: [], loaded: false };
   }
 
   /*

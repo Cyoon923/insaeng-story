@@ -645,7 +645,9 @@ export default function AdminPage() {
   const [paymentReview, setPaymentReview] = useState<{
     stale: PaymentReviewItem[];
     unlinked: PaymentReviewItem[];
-  }>({ stale: [], unlinked: [] });
+    /** 목록을 읽었는지. false면 0건이 아니라 조회 실패다(P2-05). */
+    loaded: boolean;
+  }>({ stale: [], unlinked: [], loaded: true });
   const [orders, setOrders] = useState<Order[]>([]);
   /**
    * 주문 id별 결제 요약. 환불 문의와 같은 이유로 loaded를 함께 들고 있는다.
@@ -782,12 +784,12 @@ export default function AdminPage() {
     }
     const data = await res.json();
     setUsers(data.users ?? []);
-    setPaymentReview(
-      (data.paymentsNeedingReview ?? { stale: [], unlinked: [] }) as {
-        stale: PaymentReviewItem[];
-        unlinked: PaymentReviewItem[];
-      },
-    );
+    const review = (data.paymentsNeedingReview ?? { stale: [], unlinked: [] }) as {
+      stale: PaymentReviewItem[];
+      unlinked: PaymentReviewItem[];
+      loaded?: boolean;
+    };
+    setPaymentReview({ ...review, loaded: review.loaded !== false });
     setConsultationHolds((data.consultationHolds ?? []) as AdminConsultationHold[]);
     // 상담 주문은 결제 귀속용이므로 인생곡 중심 화면에서는 제외한다.
     setOrders(
@@ -1909,7 +1911,15 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {paymentReview.stale.length > 0 || paymentReview.unlinked.length > 0 ? (
+      {!paymentReview.loaded ? (
+        <section className="px-4 pt-5">
+          <p className="text-[16px] font-bold text-[#403A49]">결제 확인 필요</p>
+          {/* 읽지 못한 것을 0건처럼 숨기지 않는다(P2-05). */}
+          <p className="mt-2 rounded-2xl bg-white p-4 text-[14px] leading-relaxed text-[#8a5a3b] ring-1 ring-[#ebe3d8]">
+            결제 확인 목록을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.
+          </p>
+        </section>
+      ) : paymentReview.stale.length > 0 || paymentReview.unlinked.length > 0 ? (
         <section className="px-4 pt-5">
           <p className="text-[16px] font-bold text-[#403A49]">결제 확인 필요</p>
           <div className="mt-2 space-y-3">
