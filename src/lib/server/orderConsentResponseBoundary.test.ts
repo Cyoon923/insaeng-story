@@ -71,7 +71,14 @@ test("일반 사용자 응답에 증빙을 실어 보내는 자리가 없다", (
 /* ── 관리자 경계 유지 ──────────────────────────────── */
 
 test("관리자 응답은 그대로 둔다", () => {
-  assert.match(ADMIN_CODE, /orders: await listAllOrders\(\),/);
+  // GET 응답의 orders는 listAllOrders 결과 그대로다(가공·재할당 없이 그 변수를 담는다).
+  const get = ADMIN_CODE.slice(
+    ADMIN_CODE.indexOf("export async function GET("),
+    ADMIN_CODE.indexOf("export async function POST("),
+  );
+  assert.match(get, /const orders = await listAllOrders\(\);/);
+  assert.equal(get.match(/\borders\s*=(?!=)/g)?.length, 1, "orders는 한 번만 정해진다");
+  assert.match(get, /return NextResponse\.json\(\{[\s\S]*\n\s+orders,\n/);
   // 관리자 쪽에 공개 사본을 끌어다 쓰지 않는다.
   assert.equal(ADMIN_CODE.includes("toPublicOrder"), false);
 });
