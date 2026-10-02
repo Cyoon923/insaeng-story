@@ -7,9 +7,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { hasCompletedRefund, pointsRestoreCardView, refundCardActions } from "./refundCardActions.ts";
 import type { AdminRefundRequestItem, RefundRequestStatus } from "@/lib/types/app";
+import { readFileSync } from "node:fs";
+import { decideZeroPointsRefund } from "./server/zeroPointsRefund.ts";
+import type { ZeroPointsRefundFacts } from "./server/zeroPointsRefund.ts";
 
 type Projection = AdminRefundRequestItem["refundExecution"];
-const PROJECTIONS: Projection[] = ["executable", "recoverable", "manual-review", "unknown"];
+const PROJECTIONS: Projection[] = [
+  "executable",
+  "recoverable",
+  "manual-review",
+  "unknown",
+  "free-coupon-no-payment",
+  "zero-points-no-payment",
+];
 
 test("executable → 실제 환불 실행만", () => {
   assert.deepEqual(refundCardActions("approved", "executable"), {
@@ -163,4 +173,121 @@ test("표시 문구에 환불 재실행으로 읽힐 말을 넣지 않는다", (
       assert.ok(!label.includes(word), `${label} / ${word}`);
     }
   }
+});
+
+/* ── 적립금 전액 사용 0원 (P1-09 4단계) ────────────────────── */
+
+test("zero-points-no-payment + approved → 실행 버튼(적립금 0원 표시), 복구 버튼·안내 없음", () => {
+  assert.deepEqual(refundCardActions("approved", "zero-points-no-payment"), {
+    execute: true,
+    recover: false,
+    notice: null,
+    zeroPoints: true,
+  });
+});
+
+test("무료 쿠폰·일반 PG 표시는 그대로이고 적립금 0원 표시가 섞이지 않는다", () => {
+  assert.deepEqual(refundCardActions("approved", "free-coupon-no-payment"), {
+    execute: true,
+    recover: false,
+    notice: null,
+    freeCoupon: true,
+  });
+  assert.deepEqual(refundCardActions("approved", "executable"), {
+    execute: true,
+    recover: false,
+    notice: null,
+  });
+});
+
+test("requested·reviewing·rejected·completed에는 적립금 0원 실행 버튼이 없다", () => {
+  for (const status of ["requested", "reviewing", "rejected", "completed"] as RefundRequestStatus[]) {
+    assert.deepEqual(refundCardActions(status, "zero-points-no-payment"), {
+      execute: false,
+      recover: false,
+      notice: null,
+    });
+  }
+});
+
+/**
+ * 관리자 목록이 정하는 표시값의 모형. listRefundRequestsForAdmin의 순서와 같다
+ * (무료 쿠폰 먼저 → 적립금 0원 → 결제 요약). 결제 행이 없는 0원 건의 결제 요약은 unknown이다.
+ * 아래 원문 테스트가 실제 목록이 이 순서를 따르는지 고정한다.
+ */
+function zeroPointsProjection(facts: ZeroPointsRefundFacts): Projection {
+  return decideZeroPointsRefund(facts).kind === "eligible" ? "zero-points-no-payment" : "unknown";
+}
+
+function zeroFacts(
+  details: Record<string, string> = {},
+  overrides: Partial<NonNullable<ZeroPointsRefundFacts["order"]>> = {},
+  rest: Partial<ZeroPointsRefundFacts> = {},
+): ZeroPointsRefundFacts {
+  return {
+    order: {
+      id: "mabc123-x1y2z3",
+      product: "story",
+      amount: 0,
+      baseAmount: 149000,
+      payment: "적립금",
+      details: { optionIds: "", usePoints: "1", pointsUsed: "149000", ...details },
+      ...overrides,
+    },
+    linkedPaymentCount: 0,
+    recalculatedBaseAmount: 149000,
+    ...rest,
+  };
+}
+
+test("정상 적립금 0원 approved → 전용 표시 + 실행 버튼", () => {
+  const actions = refundCardActions("approved", zeroPointsProjection(zeroFacts()));
+  assert.equal(actions.execute, true);
+  assert.equal(actions.zeroPoints, true);
+});
+
+test("근거가 어긋나면 적립금 0원 버튼이 나오지 않고 기존 unknown 안내로 남는다", () => {
+  const cases: [string, ZeroPointsRefundFacts][] = [
+    ["payment 존재", zeroFacts({}, {}, { linkedPaymentCount: 1 })],
+    ["위조 pointsUsed(100% 할인 뒤)", zeroFacts({ referralCode: "AD9", referralDiscount: "149000" })],
+    ["pointsUsed 과다", zeroFacts({ pointsUsed: "500000" })],
+    ["baseAmount 불일치", zeroFacts({}, { baseAmount: 159000 })],
+    ["재계산 불가", zeroFacts({}, {}, { recalculatedBaseAmount: null })],
+    ["promotion", zeroFacts({ promotion: "open-event" })],
+    ["coupon 흔적", zeroFacts({ couponId: "cp-1" })],
+    ["couponFree 흔적", zeroFacts({ couponFree: "1" })],
+  ];
+  for (const [name, facts] of cases) {
+    const projection = zeroPointsProjection(facts);
+    assert.equal(projection, "unknown", name);
+    const actions = refundCardActions("approved", projection);
+    assert.equal(actions.execute, false, name);
+    assert.equal(actions.zeroPoints, undefined, name);
+    assert.ok(actions.notice, name);
+  }
+});
+
+test("관리자 목록: 무료 쿠폰 먼저, 같은 주문 값·결제 전체 건수로 적립금 0원 판정, 실패 시 둘 다 비움", () => {
+  const source = readFileSync(new URL("./server/refundRequests.ts", import.meta.url), "utf8");
+  const squash = (text: string) => text.replace(/\s+/g, " ");
+  const code = squash(source);
+  for (const part of [
+    "const linkedPaymentCount = paymentCounts.get(row.order_id)?.totalCount ?? 0;",
+    "const decision = await evaluateFreeCouponRefund(order, linkedPaymentCount); if (decision.kind === \"eligible\") { freeCouponOrders.add(row.order_id); continue; }",
+    "const zero = await evaluateZeroPointsRefund(order, linkedPaymentCount); if (zero.kind === \"eligible\") zeroPointsOrders.add(row.order_id);",
+    "freeCouponOrders.clear(); zeroPointsOrders.clear();",
+    "refundExecution: freeCouponOrders.has(stored.orderId) ? \"free-coupon-no-payment\" : zeroPointsOrders.has(stored.orderId) ? \"zero-points-no-payment\" : projectRefundExecution(",
+  ]) {
+    assert.ok(code.includes(part), part);
+  }
+  // 판정 규칙을 복제하지 않는다. 적립금 0원 판정은 evaluateZeroPointsRefund 한 곳뿐이다.
+  assert.equal(code.includes("pointsUsed"), false);
+});
+
+test("관리자 화면: 적립금 0원 버튼은 같은 실행 API를 부르고 실제 동작을 알린다", () => {
+  const page = readFileSync(new URL("../app/admin/page.tsx", import.meta.url), "utf8");
+  assert.ok(page.includes('"결제 없음 — 적립금 복원 후 취소 완료"'));
+  assert.ok(page.includes("PG 취소 없이 사용한 적립금을 돌려주고 취소 완료 처리됩니다."));
+  // 버튼 종류와 무관하게 실행 요청은 하나뿐이다.
+  assert.equal(page.match(/action: "executeApprovedRefund"/g)?.length, 1);
 });

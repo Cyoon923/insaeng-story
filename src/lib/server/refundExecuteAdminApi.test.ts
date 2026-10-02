@@ -13,10 +13,12 @@ import {
   executeApprovedRefund,
   readExecuteApprovedRefundBody,
   toExecuteApprovedRefundResponse,
+  ZERO_POINTS_COMPLETED_MESSAGE,
 } from "./refundExecuteAdminApi.ts";
-import type { ExecuteApprovedRefundDeps } from "./refundExecuteAdminApi.ts";
+import type { ExecuteApprovedRefundDeps, ZeroPointsRefundCompletion } from "./refundExecuteAdminApi.ts";
 import type { RefundExecutionGateResult } from "./refundExecutionGate.ts";
 import type { RefundPaymentNormalFinalizeResult } from "./refundPaymentNormalFinalize.ts";
+import type { FreeCouponRefundResult } from "./freeCouponRefund.ts";
 import type { Payment } from "@/lib/types/app";
 
 const REQUEST_ID = "rr-1";
@@ -315,4 +317,136 @@ test("route는 관리자 인증 뒤에서 이 action을 처리하고 body의 ord
   const block = route.slice(actionIndex, route.indexOf('action === "toggleBlockSlot"'));
   assert.equal(block.includes("body.orderId"), false);
   assert.equal(block.includes("runRefundPaymentRecovery"), false);
+});
+
+/* ── 적립금 전액 사용 0원 (P1-09 3단계) ────────────────────── */
+
+function zeroHarness(options: {
+  free?: FreeCouponRefundResult;
+  zero?: ZeroPointsRefundCompletion | (() => never);
+  result?: RefundPaymentNormalFinalizeResult;
+}) {
+  const calls: string[] = [];
+  const zeroInputs: unknown[] = [];
+  const deps: ExecuteApprovedRefundDeps = {
+    authorize: async () => {
+      calls.push("authorize");
+      return ALLOWED;
+    },
+    execute: async () => {
+      calls.push("execute");
+      return options.result ?? COMPLETED;
+    },
+    completeFreeCoupon: async () => {
+      calls.push("free");
+      return options.free ?? { kind: "not-applicable", reason: "points-used" };
+    },
+    completeZeroPoints: async (input) => {
+      calls.push("zero");
+      zeroInputs.push(input);
+      const next = options.zero ?? { kind: "completed", alreadyCompleted: false };
+      return typeof next === "function" ? next() : next;
+    },
+    cleanupConsultation: async () => {
+      calls.push("cleanup");
+    },
+  };
+  return { deps, calls, zeroInputs };
+}
+
+test("적립금 0원 eligible -> 저장 1회, 상담 정리, PG 실행 0회, 완료 응답", async () => {
+  const h = zeroHarness({});
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.deepEqual(response, {
+    status: 200,
+    body: { ok: true, status: "completed", message: ZERO_POINTS_COMPLETED_MESSAGE },
+  });
+  assert.deepEqual(h.calls, ["authorize", "free", "zero", "cleanup"]);
+  // 주문·회원·문의는 gate가 DB에서 읽어 준 값만 넘긴다.
+  assert.deepEqual(h.zeroInputs, [{ refundRequestId: REQUEST_ID, orderId: DB_ORDER_ID, userId: "u-1" }]);
+});
+
+test("동시 실행으로 이미 완료돼 있던 적립금 0원 건 -> 같은 완료 응답, PG 실행 0회", async () => {
+  const h = zeroHarness({ zero: { kind: "completed", alreadyCompleted: true } });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.equal(response.status, 200);
+  assert.deepEqual(h.calls, ["authorize", "free", "zero", "cleanup"]);
+});
+
+test("적립금 0원 대상 아님(not-applicable) -> 기존 PG 흐름 1회", async () => {
+  const h = zeroHarness({ zero: { kind: "not-applicable", reason: "amount-not-zero" } });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.deepEqual(response.body, { ok: true, status: "completed" });
+  assert.deepEqual(h.calls, ["authorize", "free", "zero", "execute"]);
+});
+
+test("무료 쿠폰 분기가 먼저: completed면 적립금 판정도 PG도 없다", async () => {
+  const h = zeroHarness({ free: { kind: "completed", alreadyCompleted: false } });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.equal(response.status, 200);
+  assert.deepEqual(h.calls, ["authorize", "free", "cleanup"]);
+});
+
+test("무료 쿠폰 not-completed면 기존대로 409, 적립금 판정·PG 없음", async () => {
+  const h = zeroHarness({ free: { kind: "not-completed" } });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.equal(response.status, 409);
+  assert.deepEqual(h.calls, ["authorize", "free"]);
+});
+
+for (const reason of [
+  "cas-conflict",
+  "not-approved",
+  "order-not-matched",
+  "payment-exists",
+  "user-withdrawn",
+  "user-not-found",
+  "restored-without-completion",
+]) {
+  test(`적립금 0원 저장 실패(${reason}) -> 409, PG fallback 없음, 정리 없음`, async () => {
+    const h = zeroHarness({ zero: { kind: "not-completed", reason } });
+    const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+    assert.equal(response.status, 409);
+    assert.equal((response.body as { status: string }).status, "manual-review-required");
+    assert.deepEqual(h.calls, ["authorize", "free", "zero"]);
+    // 내부 사유·식별자는 응답에 담지 않는다.
+    const json = JSON.stringify(response.body);
+    for (const leak of [reason, DB_ORDER_ID, "u-1"]) {
+      assert.equal(json.includes(leak), false, `${leak}이 응답에 있으면 안 된다`);
+    }
+  });
+}
+
+test("적립금 0원 판정·저장 예외 -> 500, PG fallback 없음", async () => {
+  const h = zeroHarness({
+    zero: () => {
+      throw new Error("db down");
+    },
+  });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.equal(response.status, 500);
+  assert.deepEqual(h.calls, ["authorize", "free", "zero"]);
+  assert.equal(JSON.stringify(response.body).includes("db down"), false);
+});
+
+test("gate가 막으면 무료 쿠폰·적립금 판정 모두 없다", async () => {
+  const h = zeroHarness({});
+  h.deps.authorize = async () => ({ kind: "not-approved" });
+  const response = await executeApprovedRefund(REQUEST_ID, h.deps);
+  assert.equal(response.status, 409);
+  assert.deepEqual(h.calls, []);
+});
+
+test("기본 deps: 결제 전체 건수로 판정하고, 대상일 때만 원자 저장 함수를 부른다", () => {
+  const source = readFileSync(new URL("./refundExecuteAdminApi.ts", import.meta.url), "utf8");
+  const block = source.slice(source.indexOf("completeZeroPoints: async ("));
+  assert.match(block, /summarizeOrderPaymentStatuses\(\[orderId\]\)\)\.get\(orderId\)/);
+  assert.match(block, /evaluateZeroPointsRefund\(order, summary\?\.totalCount \?\? 0\)/);
+  assert.match(block, /if \(decision\.kind !== "eligible"\) return \{ kind: "not-applicable"/);
+  assert.match(block, /store\.completeZeroPointsRefundOnce\(await store\.readData\(\)/);
+  // 재시도는 version 충돌에만, 정해 둔 횟수까지만.
+  assert.match(block, /if \(saved\.reason !== "cas-conflict"\) return \{ kind: "not-completed"/);
+  assert.match(source, /const ZERO_POINTS_SAVE_ATTEMPTS = 3;/);
+  // 원장만 있고 completed가 아닌 상태를 완료로 읽지 않는다.
+  assert.match(block, /hasCompletedRefundRequestForOrder\(orderId\)/);
 });

@@ -91,9 +91,33 @@ test("종결은 approved에서만, 결제가 실제로 바뀐 경우에만 일�
 
 test("이미 있는 종결 시각을 덮어쓰지 않는다", () => {
   assert.match(COMPLETED_CTE, /COALESCE\(completed_at,/);
-  // 덮어쓰는 별도 경로를 만들지 않았다. completed_at을 쓰는 문장은 이 CTE 하나뿐이다.
-  const writes = STORE_CODE.match(/completed_at\s*=/g) ?? [];
-  assert.equal(writes.length, 1, "종결 시각을 쓰는 자리는 한 곳뿐이어야 한다");
+});
+
+/**
+ * store.ts에서 completed_at을 쓰는 자리는 정해 둔 두 함수뿐이다(P1-09 2단계).
+ *   - finalizeRefundPaymentCancel  : PG 환불 최종화
+ *   - completeZeroPointsRefundOnce : 적립금 전액 0원 환불 완료
+ * 둘 다 approved인 문의만 completed로 올리고 최초 종결 시각을 덮어쓰지 않는다.
+ * 세 번째 쓰기 자리가 생기면 여기서 실패한다.
+ */
+test("종결 시각을 쓰는 자리는 정해 둔 두 함수뿐이고, 모두 approved에서 최초값만 남긴다", () => {
+  const writers: string[] = [];
+  for (const match of STORE_CODE.matchAll(/completed_at\s*=/g)) {
+    const at = match.index ?? 0;
+    const before = STORE_CODE.slice(0, at);
+    const owner = [...before.matchAll(/export async function (\w+)\(/g)].at(-1)?.[1] ?? "(없음)";
+    writers.push(owner);
+
+    // 이 쓰기를 담은 UPDATE 문 하나만 떼어 본다.
+    const start = before.lastIndexOf("UPDATE refund_requests");
+    const end = STORE_CODE.indexOf("RETURNING id", at);
+    assert.ok(start >= 0 && end > at, `${owner}: refund_requests UPDATE 안의 쓰기가 아니다`);
+    // SQL 줄 주석(-- ...)은 걷어낸다. 설명이 SET 사이에 끼어 있어도 같은 문장으로 본다.
+    const update = STORE_CODE.slice(start, end).replace(/--.*$/gm, "");
+    assert.match(update, /SET status = 'completed',\s*completed_at = COALESCE\(completed_at, \$\d+::timestamptz\)/, owner);
+    assert.match(update, /AND status = 'approved'/, owner);
+  }
+  assert.deepEqual(writers.sort(), ["completeZeroPointsRefundOnce", "finalizeRefundPaymentCancel"]);
 });
 
 /* ── 서버 now 전달 ──────────────────────────────────── */

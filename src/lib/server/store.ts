@@ -1123,6 +1123,222 @@ export async function restoreOrderPointsOnce(
 }
 
 /* ------------------------------------------------------------------ *
+ * 적립금 전액 사용 0원 건의 환불 완료 (P1-09 2단계)
+ * ------------------------------------------------------------------ */
+
+/** settledPayment가 적립금 전액 사용 0원 주문에 남기는 결제수단 문구. */
+const ZERO_POINTS_PAYMENT_LABEL = "적립금";
+
+/**
+ * 결과. 호출부가 다시 시도할지, 사람이 볼지만 가를 수 있게 나눈다.
+ * - already-completed : 이미 복원 원장이 있거나 문의가 completed다. 끝난 일이다.
+ * - not-approved      : 그 문의가 없거나(주문·회원 불일치 포함) approved가 아니다.
+ * - order-not-matched : 주문 행이 판정 근거(0원·적립금·금액·details)와 다르다.
+ * - payment-exists    : 그 주문에 결제 행이 생겼다. PG 흐름의 몫이다.
+ * - cas-conflict      : 저장소가 그사이 바뀌었다. readData부터 다시 하면 된다.
+ * - user-not-found / user-withdrawn / invalid-amount : 재시도 대상이 아니다.
+ */
+export type CompleteZeroPointsRefundResult =
+  | { applied: true; amount: number }
+  | {
+      applied: false;
+      reason:
+        | "already-completed"
+        | "not-approved"
+        | "order-not-matched"
+        | "payment-exists"
+        | "cas-conflict"
+        | "user-not-found"
+        | "user-withdrawn"
+        | "invalid-amount";
+    };
+
+/**
+ * 적립금 전액 사용 0원 주문의 환불을 **한 문장으로** 끝낸다.
+ *   ① 잔액 복원(app_store CAS)  ② 원장 refund-restore 1행  ③ 문의 approved → completed
+ *
+ * 셋 중 하나만 성립하는 상태를 만들지 않는다. 따로 쓰면 "completed인데 복원 없음"이
+ * 남을 수 있고, 그 건은 결제 행이 없어 기존 복원 재시도(runRefundPointsRestore)로도 고칠 수 없다.
+ *
+ * 문장의 의존 관계 (restoreOrderPointsOnce·saveFreeCouponRefundCompleted와 같은 방식)
+ *  · target_order  : 주문 행이 판정 근거와 그대로 같고, 그 주문의 결제 행이 0건일 때만 1행.
+ *  · target_refund : 그 문의가 이 주문·회원의 approved일 때만 1행. FOR UPDATE로 잠근다.
+ *  · cas           : 위 둘이 있고 복원 원장이 없을 때만 app_store를 version CAS로 갱신한다.
+ *  · inserted      : cas가 성립했을 때만 원장에 기록한다. UNIQUE (order_id, type)이 두 번째를 막는다.
+ *  · closed_refund : cas가 성립했을 때만 approved → completed. completed_at은 최초값만 남긴다.
+ *  · guard         : cas는 성립했는데 원장이나 완료가 0행이면 1/0으로 문장 전체를 실패시킨다.
+ *                    → 잔액만, 원장만, completed만 반영되는 경우가 없다.
+ * 동시 2요청은 app_store version CAS·문의 행 잠금·원장 UNIQUE 중 하나에서 막혀 한 번만 성립한다.
+ *
+ * 입력 값은 decideZeroPointsRefund(zeroPointsRefund.ts)의 eligible 결과에서 온다.
+ * 이 함수는 그 판정을 믿지 않고 저장 순간의 주문·결제·문의 행으로 다시 확인한다.
+ * 결제·PG·쿠폰·주문 진행 상태는 이 문장에 없다.
+ */
+export async function completeZeroPointsRefundOnce(
+  data: AppData,
+  input: {
+    refundRequestId: string;
+    orderId: string;
+    /** 주문 주인. 주문·문의 행과 일치할 때만 기록된다. */
+    userId: string;
+    /** 돌려줄 적립금. 주문 details.pointsUsed와 정확히 같아야 한다. */
+    pointsUsed: number;
+    /** 주문 행 base_amount와 정확히 같아야 한다. */
+    baseAmount: number;
+  },
+): Promise<CompleteZeroPointsRefundResult> {
+  if (!Number.isSafeInteger(input.baseAmount) || input.baseAmount <= 0) {
+    return { applied: false, reason: "invalid-amount" };
+  }
+  const plan = prepareRestoredPoints(data, input.userId, input.pointsUsed);
+  if (!plan.ok) return { applied: false, reason: plan.reason };
+  if (plan.user.withdrawnAt) return { applied: false, reason: "user-withdrawn" };
+  if (!input.refundRequestId.trim() || !input.orderId.trim()) {
+    return { applied: false, reason: "not-approved" };
+  }
+
+  const sql = sqlClient();
+  if (!sql) {
+    throw new Error("적립금 복원은 DATABASE_URL이 설정된 환경에서만 할 수 있습니다.");
+  }
+  await ensureTable(sql);
+  await ensureAppStoreVersion(sql);
+  await pointTransactionsModule().then((m) => m.ensurePointTransactions(sql));
+  await refundRequestsModule().then((m) => m.ensureRefundRequests(sql));
+
+  // 행이 없는 저장소에는 회원도 없다(위에서 걸린다). 그래도 INSERT 분기로 가지 않게 막는다.
+  const expected = expectedVersionOf(data);
+  if (expected === NO_ROW_VERSION) return { applied: false, reason: "cas-conflict" };
+
+  // 판정·저장 순간 기준. 잔액만 올린 채 직렬화하고, 성립하지 않으면 아래에서 되돌린다.
+  const { user, previousPoints, nextPoints } = plan;
+  user.points = nextPoints;
+
+  type Row = {
+    version: string | number | null;
+    inserted: string | number;
+    closed: string | number;
+    order_ok: string | number;
+    refund_status: string | null;
+    payment_count: string | number;
+    restored: string | number;
+  };
+  let rows: Row[];
+  try {
+    rows = (await sql.query(
+      `
+        WITH target_order AS (
+          SELECT o.id FROM orders o
+          WHERE o.id = $4 AND o.user_id = $5
+            AND o.amount = 0
+            AND o.base_amount = $7
+            AND o.payment = $9
+            AND o.details->>'usePoints' = '1'
+            AND o.details->>'pointsUsed' = $8
+            AND COALESCE(o.details->>'couponId', '') = ''
+            AND COALESCE(o.details->>'couponFree', '') = ''
+            AND COALESCE(o.details->>'promotion', '') = ''
+            -- 저장 순간에도 이 주문의 결제 행이 0건이어야 한다.
+            AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id = o.id)
+        ),
+        target_refund AS (
+          SELECT r.id FROM refund_requests r
+          WHERE r.id = $3 AND r.order_id = $4 AND r.user_id = $5 AND r.status = 'approved'
+          FOR UPDATE
+        ),
+        cas AS (
+          UPDATE app_store SET data = $1::jsonb, version = version + 1
+          WHERE id = 1 AND version = $2
+            AND EXISTS (SELECT 1 FROM target_order)
+            AND EXISTS (SELECT 1 FROM target_refund)
+            AND NOT EXISTS (
+              SELECT 1 FROM point_transactions
+              WHERE order_id = $4 AND type = 'refund-restore'
+            )
+          RETURNING version
+        ),
+        inserted AS (
+          INSERT INTO point_transactions (id, order_id, type, amount, refund_request_id)
+          SELECT $10, $4, 'refund-restore', $6, $3
+          WHERE EXISTS (SELECT 1 FROM cas)
+          ON CONFLICT (order_id, type) DO NOTHING
+          RETURNING id
+        ),
+        closed_refund AS (
+          UPDATE refund_requests
+          SET status = 'completed',
+              completed_at = COALESCE(completed_at, $11::timestamptz)
+          WHERE id = (SELECT id FROM target_refund)
+            AND status = 'approved'
+            AND EXISTS (SELECT 1 FROM cas)
+          RETURNING id
+        )
+        SELECT
+          (SELECT version FROM cas) AS version,
+          (SELECT count(*) FROM inserted) AS inserted,
+          (SELECT count(*) FROM closed_refund) AS closed,
+          -- 아래 넷은 0행일 때 사유를 가르는 안내용 읽기다. 안전장치는 위 조건이다.
+          (SELECT count(*) FROM target_order) AS order_ok,
+          (SELECT status FROM refund_requests
+             WHERE id = $3 AND order_id = $4 AND user_id = $5) AS refund_status,
+          (SELECT count(*) FROM payments WHERE order_id = $4) AS payment_count,
+          (SELECT count(*) FROM point_transactions
+             WHERE order_id = $4 AND type = 'refund-restore') AS restored,
+          -- 잔액은 바뀌었는데 원장이나 완료가 남지 않는 경우를 문장 실패로 만든다(전체 되돌림).
+          -- 분모를 실제 행 수로 둬야 계획 단계에서 접히지 않는다(restoreOrderPointsOnce와 같다).
+          CASE
+            WHEN (SELECT count(*) FROM cas) = 1
+             AND ((SELECT count(*) FROM inserted) = 0 OR (SELECT count(*) FROM closed_refund) = 0)
+            THEN 1 / LEAST((SELECT count(*) FROM inserted), (SELECT count(*) FROM closed_refund))::int
+            ELSE 0
+          END AS guard
+      `,
+      [
+        JSON.stringify(data),
+        expected,
+        input.refundRequestId,
+        input.orderId,
+        input.userId,
+        input.pointsUsed,
+        input.baseAmount,
+        String(input.pointsUsed),
+        ZERO_POINTS_PAYMENT_LABEL,
+        nowId(),
+        new Date().toISOString(),
+      ],
+    )) as Row[];
+  } catch (error) {
+    user.points = previousPoints;
+    // guard가 걸렸다. 문장 전체가 되돌아갔다. 경쟁으로 진 경우라 다시 읽고 판단하면 된다.
+    if (error instanceof Error && /division by zero/i.test(error.message)) {
+      return { applied: false, reason: "cas-conflict" };
+    }
+    throw error;
+  }
+
+  const row = rows[0];
+  if (
+    row?.version !== null &&
+    row?.version !== undefined &&
+    Number(row.inserted) === 1 &&
+    Number(row.closed) === 1
+  ) {
+    advanceVersion(data, Number(row.version));
+    return { applied: true, amount: input.pointsUsed };
+  }
+
+  // 아무것도 바뀌지 않았다. 올려 둔 잔액을 되돌린다.
+  user.points = previousPoints;
+  if (Number(row?.restored ?? 0) > 0 || row?.refund_status === "completed") {
+    return { applied: false, reason: "already-completed" };
+  }
+  if (row?.refund_status !== "approved") return { applied: false, reason: "not-approved" };
+  if (Number(row?.payment_count ?? 0) > 0) return { applied: false, reason: "payment-exists" };
+  if (Number(row?.order_ok ?? 0) === 0) return { applied: false, reason: "order-not-matched" };
+  return { applied: false, reason: "cas-conflict" };
+}
+
+/* ------------------------------------------------------------------ *
  * 결제(payments)
  *
  * 주문이 만들어지기 전 단계부터 기록하므로 order_id는 비워 둔 채로 시작한다.

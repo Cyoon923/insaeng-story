@@ -25,6 +25,11 @@ export interface RefundCardActions {
    * 같은 실행 API를 부르며, PG 취소 여부는 서버가 다시 판정한다.
    */
   freeCoupon?: true;
+  /**
+   * execute 버튼이 적립금 전액 사용 0원 건의 "결제 없음 — 적립금 복원 후 취소 완료"인지.
+   * 같은 실행 API를 부르며, PG 취소 여부와 복원 금액은 서버가 다시 판정한다.
+   */
+  zeroPoints?: true;
 }
 
 const NONE: RefundCardActions = { execute: false, recover: false, notice: null };
@@ -46,6 +51,9 @@ export function refundCardActions(
     case "free-coupon-no-payment":
       // 무료 쿠폰 0원 건. 결제가 없어 PG 취소 없이 완료 처리만 보인다.
       return { execute: true, recover: false, notice: null, freeCoupon: true };
+    case "zero-points-no-payment":
+      // 적립금 전액 0원 건. 결제가 없어 PG 취소 없이 적립금 복원과 완료 처리만 보인다.
+      return { execute: true, recover: false, notice: null, zeroPoints: true };
     case "recoverable":
       // 이미 실행이 시작·기록된 건. 다시 실행하지 않고 상태 확인만 보인다.
       return { execute: false, recover: true, notice: null };

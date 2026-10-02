@@ -14,8 +14,8 @@
  * - cancelNicepayPayment / claimPaymentCancellation / executeRefundPaymentCancellation
  * - runRefundPaymentRecovery (복구는 자동으로 돌리지 않는다)
  * - Payment / RefundRequest 직접 UPDATE
- * 부를 수 있는 바깥 기능은 deps의 gate와 normal orchestration 둘뿐이고, 어떤 결과에서도
- * 같은 요청 안에서 다시 부르지 않는다.
+ * 부를 수 있는 바깥 기능은 deps의 gate와 normal orchestration, 그리고 결제 없는 0원 완료
+ * (무료 쿠폰·적립금)뿐이고, 어떤 결과에서도 같은 요청 안에서 PG 실행을 다시 부르지 않는다.
  *
  * TODO(다음 단계): Payment.cancelExecutionStatus='succeeded' + Payment.status='paid' +
  * RefundRequest.status='approved'로 남은 건(취소는 성공했으나 조회·최종화가 끝나지 않음)은
@@ -44,11 +44,45 @@ export interface ExecuteApprovedRefundDeps {
    */
   completeFreeCoupon?: (orderId: string) => Promise<FreeCouponRefundResult>;
   /**
+   * 적립금 전액 사용 0원 건의 결제 없는 완료(P1-09). 무료 쿠폰이 not-applicable일 때만 1회 부른다.
+   *
+   * not-applicable이면 execute로 넘어간다(기존 흐름 그대로). 그 밖의 결과와 예외에서는
+   * execute를 부르지 않는다(fail-closed). 없으면 이 분기 자체가 없다.
+   */
+  completeZeroPoints?: (input: {
+    refundRequestId: string;
+    orderId: string;
+    userId: string;
+  }) => Promise<ZeroPointsRefundCompletion>;
+  /**
    * 무료 쿠폰 0원 건이 completed가 된 뒤 상담 취소 표시(슬롯 반환). 유료 경로의 정상·복구 흐름과
    * 같은 후처리다. 실패해도 응답을 바꾸지 않는다. 없으면 부르지 않는다.
    */
   cleanupConsultation?: (orderId: string) => Promise<unknown>;
 }
+
+/**
+ * 적립금 전액 사용 0원 건의 처리 결과.
+ * - not-applicable : 이 경로의 대상이 아니다. 기존 PG 흐름이 맡는다.
+ * - completed      : 복원·원장·completed가 한 문장으로 반영됐다(또는 이미 반영돼 있었다).
+ * - not-completed  : 대상이었지만 저장 조건이 맞지 않았다. PG로 넘기지 않고 사람이 본다.
+ */
+export type ZeroPointsRefundCompletion =
+  | { kind: "not-applicable"; reason: string }
+  | { kind: "completed"; alreadyCompleted: boolean }
+  | { kind: "not-completed"; reason: string };
+
+/** 적립금 0원 건 완료 안내. PG 취소가 없었고 사용 적립금을 돌려줬다는 사실을 알린다. */
+export const ZERO_POINTS_COMPLETED_MESSAGE =
+  "결제 없음 — PG 취소 없이 적립금 0원 주문 취소를 완료하고 사용 적립금을 복원했습니다.";
+
+/** 저장이 다른 요청과 겹쳐 끝내 반영하지 못했을 때. 반영된 것이 없으므로 다시 실행해도 안전하다. */
+const ZERO_POINTS_CONFLICT_MESSAGE =
+  "다른 처리와 겹쳐 반영하지 못했습니다. 반영된 내용은 없으니 잠시 후 다시 실행해 주세요.";
+
+/** 적립금 0원 건인데 저장 시점 조건이 맞지 않았을 때. */
+const ZERO_POINTS_NOT_COMPLETED_MESSAGE =
+  "적립금 0원 건의 완료 조건이 저장 시점에 맞지 않았습니다. 담당자 확인이 필요합니다.";
 
 /** 무료 쿠폰 0원 건 완료 안내. PG 취소가 없었다는 사실을 함께 알린다. */
 export const FREE_COUPON_COMPLETED_MESSAGE = "결제 없음 — PG 취소 없이 0원 주문 취소 완료 처리했습니다.";
@@ -281,7 +315,52 @@ export async function executeApprovedRefund(
         },
       };
     }
-    // not-applicable: 무료 쿠폰 0원 건이 아니다. 아래 기존 흐름이 그대로 맡는다.
+    // not-applicable: 무료 쿠폰 0원 건이 아니다. 아래 적립금 0원 판정 또는 기존 흐름이 맡는다.
+  }
+
+  if (deps.completeZeroPoints) {
+    let zero: ZeroPointsRefundCompletion;
+    try {
+      // 주문·회원은 gate가 DB에서 읽어 준 값이다. 판정·저장도 서버 저장 값으로만 한다.
+      zero = await deps.completeZeroPoints({
+        refundRequestId: gate.refundRequestId,
+        orderId: gate.orderId,
+        userId: gate.userId,
+      });
+    } catch (error) {
+      // 판정·저장이 끊겼다. 한 문장이라 반쯤 반영된 것은 없다. PG 흐름으로 넘기지 않는다.
+      console.error(
+        "[admin] zero points refund failed",
+        { refundRequestId, orderId: gate.orderId },
+        error,
+      );
+      return {
+        status: 500,
+        body: { ok: false, error: "처리하지 못했습니다. 상태를 확인해 주세요." },
+      };
+    }
+    if (zero.kind === "completed") {
+      await runEventConsultationCleanupSafely(deps.cleanupConsultation, gate.orderId);
+      return {
+        status: 200,
+        body: { ok: true, status: "completed", message: ZERO_POINTS_COMPLETED_MESSAGE },
+      };
+    }
+    if (zero.kind === "not-completed") {
+      // 대상인 건은 결제가 없으므로 PG 흐름으로 넘기지 않는다(fail-closed).
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          status: "manual-review-required",
+          message:
+            zero.reason === "cas-conflict"
+              ? ZERO_POINTS_CONFLICT_MESSAGE
+              : ZERO_POINTS_NOT_COMPLETED_MESSAGE,
+        },
+      };
+    }
+    // not-applicable: 적립금 0원 건도 아니다. 아래 기존 흐름이 그대로 맡는다.
   }
 
   let result: RefundPaymentNormalFinalizeResult;
@@ -306,15 +385,20 @@ export async function executeApprovedRefund(
   return toExecuteApprovedRefundResponse(result);
 }
 
+/** 적립금 0원 저장이 version 충돌로 밀렸을 때 다시 해 보는 최대 횟수. */
+const ZERO_POINTS_SAVE_ATTEMPTS = 3;
+
 /**
  * 제품 코드에서 쓸 실제 구현들.
  *
- * gate와 정상 완결 흐름, 무료 쿠폰 0원 완료만 읽는다. 취소 client·복구 흐름은 읽지 않는다.
+ * gate와 정상 완결 흐름, 무료 쿠폰 0원 완료, 적립금 0원 완료만 읽는다. 취소 client·복구 흐름은 읽지 않는다.
  */
 export async function defaultExecuteApprovedRefundDeps(): Promise<ExecuteApprovedRefundDeps> {
   const gate = await import("@/lib/server/refundExecutionGate");
   const normal = await import("@/lib/server/refundPaymentNormalFinalize");
   const freeCoupon = await import("@/lib/server/freeCouponRefund");
+  const zeroPoints = await import("@/lib/server/zeroPointsRefund");
+  const store = await import("@/lib/server/store");
   return {
     authorize: (refundRequestId) => gate.authorizeRefundExecution(refundRequestId),
     execute: async (orderId) =>
@@ -323,6 +407,33 @@ export async function defaultExecuteApprovedRefundDeps(): Promise<ExecuteApprove
         await normal.defaultRefundPaymentNormalFinalizeDeps(),
       ),
     completeFreeCoupon: (orderId) => freeCoupon.completeFreeCouponRefund(orderId),
+    completeZeroPoints: async ({ refundRequestId, orderId, userId }) => {
+      // 결제 행은 상태를 가리지 않은 전체 건수로 판정한다(무료 쿠폰과 같은 기준).
+      const order = await store.getOrderById(orderId);
+      const summary = (await store.summarizeOrderPaymentStatuses([orderId])).get(orderId);
+      const decision = await zeroPoints.evaluateZeroPointsRefund(order, summary?.totalCount ?? 0);
+      if (decision.kind !== "eligible") return { kind: "not-applicable", reason: decision.reason };
+      // version 충돌만 최신 내용으로 몇 번 다시 한다. 충돌은 아무것도 반영되지 않은 상태다.
+      for (let attempt = 1; attempt <= ZERO_POINTS_SAVE_ATTEMPTS; attempt += 1) {
+        const saved = await store.completeZeroPointsRefundOnce(await store.readData(), {
+          refundRequestId,
+          orderId: decision.orderId,
+          userId,
+          pointsUsed: decision.pointsUsed,
+          baseAmount: decision.baseAmount,
+        });
+        if (saved.applied) return { kind: "completed", alreadyCompleted: false };
+        if (saved.reason === "already-completed") {
+          // 원장만 있고 문의가 completed가 아닌 어긋난 상태는 완료로 읽지 않는다.
+          const refundRequests = await import("@/lib/server/refundRequests");
+          return (await refundRequests.hasCompletedRefundRequestForOrder(orderId))
+            ? { kind: "completed", alreadyCompleted: true }
+            : { kind: "not-completed", reason: "restored-without-completion" };
+        }
+        if (saved.reason !== "cas-conflict") return { kind: "not-completed", reason: saved.reason };
+      }
+      return { kind: "not-completed", reason: "cas-conflict" };
+    },
     cleanupConsultation: async (orderId) =>
       (await import("@/lib/server/eventConsultationRefund")).cleanupConsultationAfterRefund(orderId),
   };
