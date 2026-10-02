@@ -41,9 +41,16 @@ export default async function ApplyCompletePage({
   let eventOrderId = "";
   /** 이미 만들어진 이벤트 상담 id. 있으면 완료 화면이 자동 예약을 다시 부르지 않는다. */
   let bookedId = "";
+  /**
+   * 결제까지 끝난 주문인지(P2-07). 금액이 있는 주문은 결제 승인 뒤에만 만들어지므로
+   * 로그인 회원 본인의 주문이고 금액이 0보다 크면 결제가 끝난 것이다.
+   * 0원 신청(쿠폰·적립금)이나 주문을 확인할 수 없으면 기존 문구를 그대로 둔다.
+   */
+  let isPaidOrder = false;
   if (type === "order" && id) {
     const userId = await getActiveUserId();
     const order = userId ? await getOrderById(id).catch(() => null) : null;
+    isPaidOrder = Boolean(userId && order && order.userId === userId && order.amount > 0);
     if (userId && order && order.userId === userId && isEventConsultationOrder(order)) {
       bookHref = eventConsultationBookHref(order.id);
       eventOrderId = order.id;
@@ -91,6 +98,12 @@ export default async function ApplyCompletePage({
               상담 신청을 저장했습니다.
               <br />
               일정이 가까워지면 연락드리겠습니다.
+            </>
+          ) : isPaidOrder ? (
+            <>
+              신청과 결제가 완료되었습니다.
+              <br />
+              제작 진행 상황은 MY에서 확인하실 수 있습니다.
             </>
           ) : (
             <>
