@@ -600,6 +600,27 @@ export async function hasCompletedRefundRequestForOrder(orderId: string): Promis
 }
 
 /**
+ * 회원의 환불 문의 주문 id와 상태 (P1-08 탈퇴 판정용). 읽기만 한다.
+ *
+ * 탈퇴 판정이 "환불이 끝난 주문·상담은 종료", "처리 중인 환불은 차단"을 가리는 데만 쓴다.
+ * 사유·메시지 같은 다른 열은 읽지 않는다. 파일 모드(DB 없음)에는 환불 문의가 없어 빈 목록이다.
+ */
+export async function listRefundRequestStatusesByUser(
+  userId: string,
+): Promise<{ orderId: string; status: RefundRequestStatus }[]> {
+  const id = userId.trim();
+  if (!id) return [];
+  const sql = sqlClient();
+  if (!sql) return [];
+  await ready(sql);
+  const rows = (await sql.query(
+    `SELECT order_id, status FROM refund_requests WHERE user_id = $1`,
+    [id],
+  )) as { order_id: string; status: RefundRequestStatus }[];
+  return rows.map((row) => ({ orderId: row.order_id, status: row.status }));
+}
+
+/**
  * 고객 화면에 보여 줄, 주문별 **가장 최근** 환불 문의 요약.
  *
  * 활성 목록(listActiveRefundRequestsByUser)과 다른 점은 상태를 가리지 않는다는 것뿐이다.

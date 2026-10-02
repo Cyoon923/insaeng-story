@@ -11,7 +11,8 @@
 import { getUserId } from "@/lib/server/session";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { countPendingPaymentsByUser, listOrdersByUser, readData } from "@/lib/server/store";
-import type { AppData, Consultation, Order, User } from "@/lib/types/app";
+import { consultationRefundOrderId } from "@/lib/server/eventConsultation";
+import type { AppData, Consultation, Order, RefundRequestStatus, User } from "@/lib/types/app";
 
 /** 더 진행할 일이 남지 않은 주문 상태. */
 const ORDER_FINISHED = "완료";
@@ -24,7 +25,7 @@ export const WITHDRAWN_NAME = "탈퇴회원";
 
 /** 탈퇴를 막는 사유 하나. reason은 사용자에게 그대로 보여줄 수 있는 문구다. */
 export interface WithdrawBlocker {
-  kind: "order" | "consultation" | "payment";
+  kind: "order" | "consultation" | "payment" | "refund";
   reason: string;
   count: number;
 }
@@ -38,26 +39,60 @@ function isServiceOrder(order: Order): boolean {
   return order.product !== "consultation";
 }
 
-function isOrderInProgress(order: Order): boolean {
-  return isServiceOrder(order) && order.status !== ORDER_FINISHED;
-}
+/** 처리 중인 환불 문의 상태. refundRequests.ACTIVE_REFUND_REQUEST_STATUSES와 같은 값이다. */
+const ACTIVE_REFUND_STATUSES: readonly RefundRequestStatus[] = ["requested", "reviewing", "approved"];
 
-function isConsultationInProgress(item: Consultation): boolean {
-  return item.status !== CONSULT_FINISHED;
+/**
+ * 주문이 아직 진행 중인지. "완료"이거나 환불이 끝난(completed 환불 문의가 있는) 주문은 끝난 것이다.
+ * 환불이 끝난 주문은 진행 상태가 잠겨 "완료"로 바뀔 수 없으므로(Refund-Completed-Progress-Lock-1)
+ * 상태만 보면 영영 진행 중으로 남는다(P1-08).
+ */
+function isOrderInProgress(order: Order, refunded: ReadonlySet<string>): boolean {
+  return isServiceOrder(order) && order.status !== ORDER_FINISHED && !refunded.has(order.id);
 }
 
 /**
+ * 상담이 아직 진행 중인지. "상담 완료", 환불 완료, 취소 표시(cancelledAt)는 끝난 것이다.
+ * 환불은 관리자 잠금과 같은 기준(consultationRefundOrderId: 일반 상담은 상담 id,
+ * OPEN EVENT 상담은 원 이벤트 주문 id)으로 찾는다.
+ */
+function isConsultationInProgress(item: Consultation, refunded: ReadonlySet<string>): boolean {
+  if (item.status === CONSULT_FINISHED) return false;
+  if (item.cancelledAt) return false;
+  return !refunded.has(consultationRefundOrderId(item));
+}
+
+/** 판정에 쓰는 저장소 조회. 기본값은 실제 저장소이고, 테스트는 대역을 넘긴다. */
+export interface WithdrawBlockerDeps {
+  listOrders: (userId: string) => Promise<Order[]>;
+  countPendingPayments: (userId: string) => Promise<number>;
+  listRefundStatuses: (userId: string) => Promise<{ orderId: string; status: RefundRequestStatus }[]>;
+}
+
+const defaultBlockerDeps: WithdrawBlockerDeps = {
+  listOrders: listOrdersByUser,
+  countPendingPayments: countPendingPaymentsByUser,
+  // refundRequests는 필요할 때만 읽는다(무거운 모듈이라 이 파일을 쓰는 순수 테스트까지 끌어오지 않게).
+  listRefundStatuses: async (userId) =>
+    (await import("@/lib/server/refundRequests")).listRefundRequestStatusesByUser(userId),
+};
+
+/**
  * 탈퇴를 막아야 하는 사유를 모두 모은다. 빈 배열이면 탈퇴할 수 있다.
- * 결제는 회원별 조회가 필요해 저장소를 직접 읽으므로 async다.
+ * 결제·환불은 회원별 조회가 필요해 저장소를 직접 읽으므로 async다.
  */
 export async function findWithdrawBlockers(
   data: AppData,
   userId: string,
+  deps: WithdrawBlockerDeps = defaultBlockerDeps,
 ): Promise<WithdrawBlocker[]> {
   const blockers: WithdrawBlocker[] = [];
 
-  const orders = await listOrdersByUser(userId);
-  const runningOrders = orders.filter(isOrderInProgress);
+  const refunds = await deps.listRefundStatuses(userId);
+  const refunded = new Set(refunds.filter((item) => item.status === "completed").map((item) => item.orderId));
+
+  const orders = await deps.listOrders(userId);
+  const runningOrders = orders.filter((order) => isOrderInProgress(order, refunded));
   if (runningOrders.length > 0) {
     blockers.push({
       kind: "order",
@@ -67,7 +102,7 @@ export async function findWithdrawBlockers(
   }
 
   const runningConsults = data.consultations.filter(
-    (item) => item.userId === userId && isConsultationInProgress(item),
+    (item) => item.userId === userId && isConsultationInProgress(item, refunded),
   );
   if (runningConsults.length > 0) {
     blockers.push({
@@ -77,12 +112,22 @@ export async function findWithdrawBlockers(
     });
   }
 
-  const pendingPayments = await countPendingPaymentsByUser(userId);
+  const pendingPayments = await deps.countPendingPayments(userId);
   if (pendingPayments > 0) {
     blockers.push({
       kind: "payment",
       count: pendingPayments,
       reason: "진행 중인 결제가 있습니다.",
+    });
+  }
+
+  // 처리 중인 환불은 주문·상담이 이미 끝났어도 막는다(환불 결과가 남은 일이다).
+  const activeRefunds = refunds.filter((item) => ACTIVE_REFUND_STATUSES.includes(item.status));
+  if (activeRefunds.length > 0) {
+    blockers.push({
+      kind: "refund",
+      count: activeRefunds.length,
+      reason: "처리 중인 환불이 있습니다.",
     });
   }
 
