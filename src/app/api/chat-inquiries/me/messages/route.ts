@@ -5,7 +5,12 @@
  * 데이터 계층이 셋을 모두 null로 돌려주므로 여기서도 같은 404다.
  */
 import { NextResponse } from "next/server";
-import { addCustomerMessage } from "@/lib/server/chatInquiries";
+import { addCustomerMessage, normalizeBody } from "@/lib/server/chatInquiries";
+import { defaultLoginAttemptStore, requestIp } from "@/lib/server/loginRateLimit";
+import {
+  gatePublicInquiry,
+  PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE,
+} from "@/lib/server/publicInquiryRateLimit";
 import { resolveChatRequester } from "@/lib/server/chatGuest";
 import {
   badRequest,
@@ -28,6 +33,12 @@ export async function POST(request: Request) {
   try {
     const { userId, guestTokenHash } = await resolveChatRequester();
     if (!userId && !guestTokenHash) return notFound();
+    normalizeBody(message);
+
+    // 반복 요청 제한(IP당, P1-06 Stage 2). 입력 확인 뒤 저장 직전에 센다.
+    if (!(await gatePublicInquiry(await defaultLoginAttemptStore(), "chatMessage", requestIp(request)))) {
+      return NextResponse.json({ error: PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE }, { status: 429 });
+    }
 
     const saved = await addCustomerMessage({
       inquiryId,

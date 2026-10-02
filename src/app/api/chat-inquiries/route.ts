@@ -17,6 +17,7 @@ import {
   getChatInquiryForGuest,
   getChatInquiryForUser,
   isChatContactMethod,
+  normalizeBody,
   normalizeMobilePhone,
   normalizeName,
   ChatInquiryError,
@@ -24,6 +25,11 @@ import {
 } from "@/lib/server/chatInquiries";
 import { ensureGuestTokenHash } from "@/lib/server/chatGuest";
 import { getVerifiedUserId } from "@/lib/server/withdrawAccount";
+import { defaultLoginAttemptStore, requestIp } from "@/lib/server/loginRateLimit";
+import {
+  gatePublicInquiry,
+  PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE,
+} from "@/lib/server/publicInquiryRateLimit";
 import {
   badRequest,
   handleChatError,
@@ -60,6 +66,12 @@ export async function POST(request: Request) {
     normalizeMobilePhone(phone);
     if (!isChatContactMethod(contactMethod)) {
       throw new ChatInquiryError("연락받을 방법을 선택해 주세요.");
+    }
+    normalizeBody(message);
+
+    // 반복 요청 제한(IP당, P1-06 Stage 2). 입력 확인 뒤, 비회원 쿠키 발급·저장 전에 센다.
+    if (!(await gatePublicInquiry(await defaultLoginAttemptStore(), "chat", requestIp(request)))) {
+      return NextResponse.json({ error: PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE }, { status: 429 });
     }
 
     // 회원으로 인정하는 기준은 휴대폰 본인확인까지 마친 회원이다.

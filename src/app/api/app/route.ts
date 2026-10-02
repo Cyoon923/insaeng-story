@@ -67,6 +67,7 @@ import {
   verifyCodeInTable,
 } from "@/lib/server/verificationCodes";
 import { runSendCode, SMS_RATE_LIMITED_MESSAGE } from "@/lib/server/smsVerification";
+import { gatePublicInquiry, PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE } from "@/lib/server/publicInquiryRateLimit";
 import type { VerificationSource } from "@/lib/server/verificationCodes";
 import type { VerificationConsume } from "@/lib/server/store";
 import { unlinkKakao } from "@/lib/server/kakaoUnlink";
@@ -1329,6 +1330,10 @@ async function handlePost(request: Request) {
       if (!message) {
         return NextResponse.json({ error: "문의 내용을 입력해 주세요." }, { status: 400 });
       }
+    }
+    // 반복 접수 제한(IP당, P1-06 Stage 2). 입력 확인을 통과한 뒤 저장 직전에 센다.
+    if (!(await gatePublicInquiry(await defaultLoginAttemptStore(), "inquiry", requestIp(request)))) {
+      return NextResponse.json({ error: PUBLIC_INQUIRY_RATE_LIMITED_MESSAGE }, { status: 429 });
     }
     const item: Inquiry = {
       id: nowId(),
