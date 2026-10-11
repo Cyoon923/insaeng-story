@@ -143,7 +143,7 @@ export function areLegalVersionsConfirmed(): boolean {
 export const BUSINESS_INFO = {
   name: "비앤비어드바이저리",
   ceo: "정문경",
-  registrationNumber: "158-25-00095",
+  registrationNumber: "158-25-00995",
   mailOrderNumber: "2020-서울강서-3858",
   address: "경기도 안산시 단원구 시화호수로 623, 2825호 (성곡동, 아티스큐브2차)",
   email: "code8jmk@gmail.com",
