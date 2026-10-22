@@ -43,7 +43,7 @@ const SLIDES = [
  */
 const OPEN_EVENT_SLIDE = {
   id: "event",
-  image: "/images/sajulog-open-event-2026-10-22-to-11-30-19900.png",
+  image: "/images/sajulog-open-event-mobile-options-19900-20261022.png",
   imageAlt: "사주 인생곡 오픈 이벤트 보러 가기",
   href: "/events/saju-song-open",
   /** 이 프로모션의 종료일(promotions.ts endsOn)이 지나면 Hero에서 자동으로 뺀다. */
