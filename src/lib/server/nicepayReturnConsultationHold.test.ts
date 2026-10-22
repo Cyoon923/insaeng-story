@@ -70,7 +70,8 @@ function consultationPayment(): Record<string, unknown> {
 }
 
 function orderPayment(promotion?: string): Record<string, unknown> {
-  const amount = promotion ? 19000 : 99000;
+  // 지금 정책으로 준비된 결제(snapshot)다. 승인은 이 금액과 서버 재계산 금액이 같을 때만 진행된다.
+  const amount = promotion ? 19900 : 99000;
   return {
     provider: "nicepay",
     merchantOrderId: MOID,

@@ -43,7 +43,7 @@ const RECOMMENDS = [
 const FAQS = [
   {
     question: "이벤트는 언제부터인가요?",
-    answer: "2026년 10월 4일부터 이벤트가로 신청하실 수 있습니다.",
+    answer: "2026년 10월 22일부터 이벤트가로 신청하실 수 있습니다.",
   },
   {
     question: "쿠폰이나 적립금과 함께 쓸 수 있나요?",
@@ -86,7 +86,7 @@ export default function SajuSongOpenEventPage() {
       {/* Hero. 이미지 비율(1672×941)을 그대로 두고 자르지 않는다. */}
       <section>
         <Image
-          src="/images/sajulog-open-event-hero-retro-final.png"
+          src="/images/sajulog-open-event-2026-10-22-to-11-30-19900.png"
           alt="사주 인생곡 오픈 이벤트"
           width={1672}
           height={941}
@@ -95,7 +95,7 @@ export default function SajuSongOpenEventPage() {
           className="h-auto w-full"
         />
         <div className="px-4 py-6">
-          <p className="text-[14px] font-semibold text-[#8a5a3b]">OPEN EVENT · 2026년 10월 4일 OPEN</p>
+          <p className="text-[14px] font-semibold text-[#8a5a3b]">OPEN EVENT · 2026년 10월 22일 OPEN</p>
           <h1 className="mt-2 font-serif text-[28px] font-bold leading-snug text-[#403A49]">
             사주 인생곡
             <br />
@@ -103,7 +103,7 @@ export default function SajuSongOpenEventPage() {
           </h1>
           <p className="mt-4 text-[16px] text-[#6B6570] line-through">정상가 {won(REGULAR_PRICE)}</p>
           <p className="mt-1 text-[30px] font-bold text-[#5c3d2e]">{won(EVENT_PRICE)}</p>
-          <p className="mt-1 text-[15px] font-semibold text-[#8a5a3b]">2026.10.04 ~ 2026.10.31</p>
+          <p className="mt-1 text-[15px] font-semibold text-[#8a5a3b]">2026.10.22 ~ 2026.11.30</p>
           <div className="mt-5">
             <ApplyButton />
           </div>
@@ -199,11 +199,11 @@ export default function SajuSongOpenEventPage() {
             <br />
             노래로 간직하세요
           </p>
-          <p className="mt-2 text-[15px] text-[#6B6570]">2026년 10월 4일 OPEN · {won(EVENT_PRICE)}</p>
+          <p className="mt-2 text-[15px] text-[#6B6570]">2026년 10월 22일 OPEN · {won(EVENT_PRICE)}</p>
           <div className="mt-5">
             <ApplyButton />
           </div>
-          <p className="mt-3 text-[14px] text-[#6B6570]">이벤트 가격은 2026년 10월 31일까지 적용됩니다.</p>
+          <p className="mt-3 text-[14px] text-[#6B6570]">이벤트 가격은 2026년 11월 30일까지 적용됩니다.</p>
         </div>
       </section>
     </MobileShell>

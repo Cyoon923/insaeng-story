@@ -96,7 +96,7 @@ test("할인 차단이 네 경로 모두에서 apply* 앞에 있다", () => {
 
 test("이벤트 가격은 그대로다", () => {
   // 이번 변경이 금액을 건드리지 않았는지 값으로 고정한다.
-  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice, 19000);
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice, 19900);
   assert.equal(PROMOTION_PRICES["saju-song-open-2026"].product, "saju-song");
 });
 
@@ -107,8 +107,8 @@ function blocked(couponId: string, promotion?: string): boolean {
 }
 
 test("옵션이 붙어 금액이 올라가도 막는다", () => {
-  assert.equal(blocked("c-1", "saju-song-open-2026"), true);   // 19,000원
-  assert.equal(blocked("c-1", "saju-song-open-2026"), true);   // +리포트 29,000원도 같은 판정
+  assert.equal(blocked("c-1", "saju-song-open-2026"), true);   // 19,900원
+  assert.equal(blocked("c-1", "saju-song-open-2026"), true);   // +리포트 29,900원도 같은 판정
   assert.equal(blocked("c-1", undefined), false);              // 정가 99,000원은 기존대로
   assert.equal(blocked("", "saju-song-open-2026"), false);     // 쿠폰을 안 쓰면 이벤트는 정상
 });
@@ -126,10 +126,10 @@ function optionPrice(id: string): number {
 test("이벤트 금액 구성이 그대로다", () => {
   const base = PROMOTION_PRICES["saju-song-open-2026"].basePrice;
   const report = optionPrice("saju-report-2026-2027");
-  assert.equal(base, 19000, "이벤트 기본가");
+  assert.equal(base, 19900, "이벤트 기본가");
   assert.equal(report, 10000, "사주풀이 리포트");
   // calcOrderAmount는 기본가에 옵션가를 더한다(옵션 합산 규칙 자체는 미변경).
-  assert.equal(base + report, 29000, "이벤트 + 리포트");
+  assert.equal(base + report, 29900, "이벤트 + 리포트");
 });
 
 test("기존 제작 옵션 가격은 건드리지 않았다", () => {
@@ -137,38 +137,38 @@ test("기존 제작 옵션 가격은 건드리지 않았다", () => {
   assert.equal(optionPrice("photo-mv"), 50000);
   assert.equal(optionPrice("lyric-edit"), 10000);
   // 이벤트가에도 기존 옵션가가 같은 방식으로 더해진다.
-  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice + optionPrice("ai-mv"), 119000);
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice + optionPrice("ai-mv"), 119900);
 });
 
-test("오픈 이벤트 시작은 한국 2026-10-04 00:00이다", async () => {
+test("오픈 이벤트 시작은 한국 2026-10-22 00:00이다", async () => {
   const { isPromotionOpen, PROMOTION_PRICES } = await import("../constants/promotions.ts");
-  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].startsOn, "2026-10-04");
-  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice, 19000);
-  // 한국 10-03 23:59:59 = UTC 10-03 14:59:59
-  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-03T14:59:59.000Z")), false);
-  // 한국 10-04 00:00:00 = UTC 10-03 15:00:00
-  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-03T15:00:00.000Z")), true);
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].startsOn, "2026-10-22");
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].basePrice, 19900);
+  // 한국 10-21 23:59:59 = UTC 10-21 14:59:59
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-21T14:59:59.000Z")), false);
+  // 한국 10-22 00:00:00 = UTC 10-21 15:00:00
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-21T15:00:00.000Z")), true);
   assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-01T00:00:00.000Z")), false);
 });
 
-test("오픈 이벤트 종료는 한국 2026-10-31 23:59:59이다", async () => {
+test("오픈 이벤트 종료는 한국 2026-11-30 23:59:59이다", async () => {
   const { isPromotionOpen, PROMOTION_PRICES } = await import("../constants/promotions.ts");
-  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].endsOn, "2026-10-31");
-  // 한국 10-31 23:59:59 = UTC 10-31 14:59:59
-  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-31T14:59:59.000Z")), true);
-  // 한국 11-01 00:00:00 = UTC 10-31 15:00:00
-  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-10-31T15:00:00.000Z")), false);
+  assert.equal(PROMOTION_PRICES["saju-song-open-2026"].endsOn, "2026-11-30");
+  // 한국 11-30 23:59:59 = UTC 11-30 14:59:59
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-11-30T14:59:59.000Z")), true);
+  // 한국 12-01 00:00:00 = UTC 11-30 15:00:00
+  assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-11-30T15:00:00.000Z")), false);
   assert.equal(isPromotionOpen("saju-song-open-2026", new Date("2026-12-01T00:00:00.000Z")), false);
 });
 
-test("홈 Hero의 OPEN EVENT 슬라이드는 한국 2026-11-01 00:00부터 빠진다", async () => {
+test("홈 Hero의 OPEN EVENT 슬라이드는 한국 2026-12-01 00:00부터 빠진다", async () => {
   const { isPromotionEnded } = await import("../constants/promotions.ts");
   // 시작 전(현재 공지 기간)에는 종료가 아니다 → 슬라이드 유지.
   assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-09-30T00:00:00.000Z")), false);
-  // 한국 10-31 23:59:59 → 유지
-  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-10-31T14:59:59.000Z")), false);
-  // 한국 11-01 00:00:00 → 제외
-  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-10-31T15:00:00.000Z")), true);
+  // 한국 11-30 23:59:59 → 유지
+  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-11-30T14:59:59.000Z")), false);
+  // 한국 12-01 00:00:00 → 제외
+  assert.equal(isPromotionEnded("saju-song-open-2026", new Date("2026-11-30T15:00:00.000Z")), true);
   // Hero는 이 판정으로 OPEN EVENT만 빼고, 나머지 슬라이드(SLIDES)는 그대로 둔다.
   const hero = readFileSync(new URL("../../components/home/HeroSection.tsx", import.meta.url), "utf8");
   assert.match(hero, /isPromotionEnded\(OPEN_EVENT_SLIDE\.promotion\)/);

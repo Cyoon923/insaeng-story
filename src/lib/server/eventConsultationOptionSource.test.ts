@@ -34,10 +34,10 @@ test("옵션 id와 가격이 가격표에 있다", () => {
 test("이벤트 금액 네 가지", () => {
   const report = optionPrice("saju-report-2026-2027");
   const consult = optionPrice("saju-consultation");
-  assert.equal(BASE, 19000, "이벤트 기본");
-  assert.equal(BASE + report, 29000, "이벤트 + 리포트");
-  assert.equal(BASE + consult, 119000, "이벤트 + 상담");
-  assert.equal(BASE + report + consult, 129000, "이벤트 + 리포트 + 상담");
+  assert.equal(BASE, 19900, "이벤트 기본");
+  assert.equal(BASE + report, 29900, "이벤트 + 리포트");
+  assert.equal(BASE + consult, 119900, "이벤트 + 상담");
+  assert.equal(BASE + report + consult, 129900, "이벤트 + 리포트 + 상담");
 });
 
 test("기존 제작 옵션은 그대로 가산된다", () => {
@@ -45,7 +45,7 @@ test("기존 제작 옵션은 그대로 가산된다", () => {
   assert.equal(optionPrice("photo-mv"), 50000);
   assert.equal(optionPrice("lyric-edit"), 10000);
   // 이벤트 + 상담 + 뮤직비디오
-  assert.equal(BASE + optionPrice("saju-consultation") + optionPrice("ai-mv"), 219000);
+  assert.equal(BASE + optionPrice("saju-consultation") + optionPrice("ai-mv"), 219900);
 });
 
 test("이벤트 전용 제한이 상품 제한과 함께 걸린다", () => {
