@@ -2,7 +2,7 @@
  * 일반 문의·채팅 보존기간 정리 실행 (Privacy-Inquiries-Chat-Cleanup-2).
  *
  * 규칙은 inquiryChatCleanup.ts가 정한다. 이 파일은 그 규칙대로 실제 저장소를 바꾼다.
- * 관리자 API에는 아직 연결하지 않는다. 일정에 따라 스스로 도는 구조도 만들지 않는다.
+ * 관리자 API에서 호출한다. 보존 분류 검증이 갖춰질 때까지 실행·사전 확인은 중단한다.
  *
  * ── 한 번에 얼마나 지우는가 ──
  *
@@ -22,6 +22,7 @@
  * 건수와 정해 둔 사유뿐이다. 문의 id·이름·연락처·본문·회원 정보는 담지 않는다.
  */
 import {
+  INQUIRY_CHAT_CLEANUP_PAUSED,
   COUNT_EXPIRED_CHAT_SQL,
   DELETE_CHAT_BY_IDS_SQL,
   SELECT_EXPIRED_CHAT_IDS_SQL,
@@ -75,6 +76,10 @@ export async function runExpiredInquiryCleanup(
   const cutoff = cleanupCutoff(now);
   if (cutoff === null) return { ok: false, reason: "invalid-now", attempts: 0 };
 
+  if (INQUIRY_CHAT_CLEANUP_PAUSED) {
+    return { ok: false, reason: "classification-required", attempts: 0 };
+  }
+
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     // 회차마다 새로 읽는다. 지난 회차의 자료도 결과도 쓰지 않는다.
     const data = await deps.readData();
@@ -123,6 +128,8 @@ export async function runExpiredChatCleanup(
   const cutoff = cleanupCutoff(now);
   if (cutoff === null) return { ok: false, reason: "invalid-now" };
 
+  if (INQUIRY_CHAT_CLEANUP_PAUSED) return { ok: false, reason: "classification-required" };
+
   const sql = sqlClient();
   if (!sql) return { ok: false, reason: "database-required" };
 
@@ -152,6 +159,9 @@ export async function runInquiryChatCleanupPreflight(
 ): Promise<InquiryChatPreflightResult> {
   const cutoff = cleanupCutoff(now);
   if (cutoff === null) return { ok: false, reason: "invalid-now" };
+
+  // 날짜만 센 건수를 삭제 가능한 건수로 안내하지 않는다.
+  if (INQUIRY_CHAT_CLEANUP_PAUSED) return { ok: false, reason: "classification-required" };
 
   const sql = sqlClient();
   if (!sql) return { ok: false, reason: "database-required" };

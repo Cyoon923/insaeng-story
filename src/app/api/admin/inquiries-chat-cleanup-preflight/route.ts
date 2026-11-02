@@ -28,6 +28,7 @@ export const dynamic = "force-dynamic";
 
 /** 거절 사유마다 상태 코드가 하나로 정해져 있다. 문구도 고정이다. */
 const FAILURE = {
+  "classification-required": { status: 409, message: "문의 분류와 보존 여부 확인 전까지 문의·채팅 정리를 중단합니다." },
   "invalid-now": { status: 500, message: "기준 시각을 만들지 못했습니다." },
   "database-required": { status: 409, message: "데이터베이스 모드에서만 확인할 수 있습니다." },
   "count-failed": { status: 500, message: "만료 건수를 확인하지 못했습니다." },

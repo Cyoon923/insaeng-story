@@ -40,6 +40,13 @@
  */
 export const INQUIRY_CHAT_RETENTION_DAYS = 90;
 
+/**
+ * 기존 기록에는 보존 분류가 없어 완료 상태·90일 경과만으로 삭제할 수 없다.
+ * 분류와 보류 여부를 실행 직전 검증하는 구조가 갖춰질 때까지 실행·사전 확인을 중단한다.
+ * 환경변수로 해제할 수 있는 운영 스위치가 아니다.
+ */
+export const INQUIRY_CHAT_CLEANUP_PAUSED = true;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -200,7 +207,7 @@ export type InquiryChatPreflightResult =
       expiredLegacyInquiries: number;
       expiredChatInquiries: number;
     }
-  | { ok: false; reason: "invalid-now" | "database-required" | "count-failed" };
+  | { ok: false; reason: "invalid-now" | "database-required" | "count-failed" | "classification-required" };
 
 /**
  * 만료된 legacy 문의 수를 센다. 배열을 바꾸지 않는다.
@@ -231,8 +238,8 @@ export function countExpiredInquiries<T extends HasCreatedAt>(
 export type InquiryCleanupResult =
   | { ok: true; deleted: number; attempts: number }
   | { ok: false; reason: "cas-conflict"; attempts: number }
-  | { ok: false; reason: "invalid-now" | "invalid-limit"; attempts: 0 };
+  | { ok: false; reason: "invalid-now" | "invalid-limit" | "classification-required"; attempts: 0 };
 
 export type ChatCleanupResult =
   | { ok: true; deleted: number }
-  | { ok: false; reason: "invalid-now" | "invalid-limit" | "database-required" };
+  | { ok: false; reason: "invalid-now" | "invalid-limit" | "database-required" | "classification-required" };
