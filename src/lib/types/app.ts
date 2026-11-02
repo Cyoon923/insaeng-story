@@ -1,3 +1,5 @@
+import type { InquiryRetention } from "./inquiryRetention";
+
 export type ProductId = "story" | "premium" | "saju-song";
 export type CouponProduct = ProductId | "consultation";
 /** 주문에 기록되는 상품. 1:1 사주상담도 결제 귀속을 위해 주문으로 남긴다. */
@@ -261,6 +263,8 @@ export interface Consultation {
 
 export interface Inquiry {
   id: string;
+  /** 내부 보존 판단. 고객 응답에는 포함하지 않는다. 없으면 미분류다. */
+  retention?: InquiryRetention | null;
   /** 비회원 문의도 접수할 수 있어 회원 문의에만 채워진다. */
   userId?: string;
   name: string;

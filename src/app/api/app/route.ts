@@ -360,7 +360,11 @@ export async function GET() {
      */
     latestRefundRequests: await latestRefundRequests(userId),
     consultations: data.consultations.filter((item) => item.userId === userId),
-    inquiries: (data.inquiries ?? []).filter((item) => item.userId === userId),
+    inquiries: (data.inquiries ?? []).filter((item) => item.userId === userId).map((item) => {
+      const publicInquiry = { ...item };
+      delete publicInquiry.retention;
+      return publicInquiry;
+    }),
     wishlist: data.wishlists[userId] ?? [],
     coupons: data.coupons[userId] ?? [],
     notifications: data.notifications[userId] ?? [],
