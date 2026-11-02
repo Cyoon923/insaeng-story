@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MobileShell } from "@/components/layout/MobileShell";
+import { InquiryRetentionEditor } from "@/components/admin/InquiryRetentionEditor";
 import { hasVerifiedPhone } from "@/lib/phoneVerification";
 import { formatAdminDate } from "@/lib/adminDate";
 import { reviewKindLabel, reviewTargetLabel } from "@/lib/adminReviews";
@@ -3358,6 +3359,7 @@ export default function AdminPage() {
                   {refundMessage[item.id] ? (
                     <p className="mt-2 text-[13px] text-[#8a5a3b]">{refundMessage[item.id]}</p>
                   ) : null}
+                  <InquiryRetentionEditor kind="refund" id={item.id} />
                 </article>
               );
             })
@@ -3398,6 +3400,7 @@ export default function AdminPage() {
                     {item.product} · {formatDate(item.createdAt)}
                   </p>
                   <HandledControls item={item} onToggle={handleMarkInquiryHandled} />
+                  <InquiryRetentionEditor kind="inquiry" id={item.id} />
                 </article>
               );
             })
@@ -3417,6 +3420,7 @@ export default function AdminPage() {
             {selectedChatThread ? (
               // 상세. 폭이 좁은 관리자 셸이라 목록 대신 대화만 보여 준다.
               <section className="space-y-3">
+                <InquiryRetentionEditor key={selectedChatThread.id} kind="chat" id={selectedChatThread.id} />
                 <button
                   type="button"
                   onClick={() => setSelectedChatId("")}

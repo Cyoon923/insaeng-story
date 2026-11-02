@@ -104,7 +104,7 @@ function positiveInt(value: unknown): number | null {
  * 승인 뒤 확정 저장이 app_store CAS 충돌로 밀렸을 때의 최대 시도 횟수(P1-05).
  * 기존 app_store 작업들(CONSULTATION_HOLD_MAX_ATTEMPTS 등)과 같은 3이다.
  */
-export const PAID_COMMIT_MAX_ATTEMPTS = 3;
+const PAID_COMMIT_MAX_ATTEMPTS = 3;
 
 export async function POST(request: Request) {
   if (!nicepayConfigured()) {
