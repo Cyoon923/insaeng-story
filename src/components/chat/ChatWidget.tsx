@@ -371,7 +371,8 @@ const CHAT_NODES: Record<ChatNodeId, ChatNode> = {
   },
   "lyric-edit": {
     label: "가사 수정은 몇 번 되나요?",
-    answer: `기본 가사 수정 1회가 포함되어 있어요 🐾\n\n더 고치고 싶으시면\n가사 수정 1회 추가 옵션(+${formatPrice(ORDER_OPTION_PRICES["lyric-edit"])})을\n선택하실 수 있어요.`,
+    // 가사 수정(기본 1회 + 추가 옵션)은 이야기·프리미엄 인생곡에만 있다. 사주 인생곡은 가사 수정이 없다.
+    answer: `이야기로 만드는 인생곡과\n프리미엄 인생곡은 기본 가사 수정 1회가 포함되어 있어요 🐾\n더 고치고 싶으시면\n가사 수정 1회 추가 옵션(+${formatPrice(ORDER_OPTION_PRICES["lyric-edit"])})을 선택하실 수 있어요.\n\n사주 인생곡은 사주 분석을 바탕으로 제작되는 상품으로,\n가사 수정은 제공되지 않아요.`,
     next: ["delivery", "duration", "apply", "more"],
   },
   delivery: {

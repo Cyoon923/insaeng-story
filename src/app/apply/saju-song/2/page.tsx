@@ -55,12 +55,6 @@ const OPTIONS = [
     desc: "보내주신 사진을 인생곡에 맞춰 영상으로 편집합니다.",
   },
   {
-    id: "lyric-edit",
-    title: "가사 수정 1회 추가",
-    price: 10000,
-    desc: "기본 수정 1회에 더해 가사 수정을 1회 추가합니다.",
-  },
-  {
     id: SAJU_REPORT_OPTION_ID,
     title: "2026·2027년 사주풀이 리포트",
     // 가격은 서버 가격표에서 읽는다. 여기에 숫자를 따로 적으면 서버와 갈라진다.
@@ -76,6 +70,36 @@ const OPTIONS = [
     eventOnly: true,
   },
 ];
+
+/**
+ * 추가 옵션을 화면에 보여 주는 순서. 사주풀이 리포트를 맨 위에 둔다.
+ *
+ * OPTIONS 배열 순서는 그대로 둔다. 저장되는 options(한글명)·optionIds 문자열이 그 순서로
+ * 만들어지므로, 표시 순서만 여기서 바꿔 기존 주문 데이터 형식이 달라지지 않게 한다.
+ */
+const OPTION_DISPLAY_ORDER = [
+  SAJU_REPORT_OPTION_ID,
+  "ai-mv",
+  "photo-mv",
+  SAJU_CONSULTATION_OPTION_ID,
+];
+
+/**
+ * 가사에 이름을 넣을지. draft·주문 details의 lyricNameUse에 이 id 그대로 저장한다.
+ * 이름은 다시 받지 않는다. "include"면 1단계에서 받은 이름(details.name)을 쓴다.
+ */
+const LYRIC_NAME_CHOICES = [
+  {
+    id: "include",
+    title: "이름을 넣어주세요",
+    desc: "가사에 주인공의 이름을 자연스럽게 넣어 제작합니다.",
+  },
+  {
+    id: "exclude",
+    title: "이름 없이 만들어주세요",
+    desc: "이름을 직접 언급하지 않고 자연스럽게 제작합니다.",
+  },
+] as const;
 
 /**
  * 지금 이 신청이 오픈 이벤트인지.
@@ -108,6 +132,8 @@ export default function ApplyStep5Page() {
   const [reportEmail, setReportEmail] = useState("");
   /** 신청서에 적힌 연락처. 카카오톡으로 받을 때 어디로 가는지 보여 주기만 한다. */
   const [applyPhone, setApplyPhone] = useState("");
+  /** 가사에 이름을 넣을지("include" | "exclude"). 기본 선택은 없고, 고르기 전에는 빈 문자열이다. */
+  const [lyricNameUse, setLyricNameUse] = useState("");
 
   /*
    * 1:1 사주상담 일정 사전선택(OPEN EVENT 상담 옵션 전용).
@@ -175,6 +201,16 @@ export default function ApplyStep5Page() {
         ? sellable.filter((opt) => draft.options.includes(opt.title)).map((opt) => opt.id)
         : [];
     if (ids.length) setSelected(ids);
+    /*
+     * 더 이상 팔지 않는 옵션(사주 인생곡의 가사 수정 등)이 예전 draft에 남아 있으면 draft에서도 뺀다.
+     * 화면에서만 빼면 확인 화면과 주문 details(options 한글명)에 지난 선택이 남는다.
+     */
+    if (savedIds.some((id) => !ids.includes(id))) {
+      saveDraft("saju-song", {
+        options: OPTIONS.filter((opt) => ids.includes(opt.id)).map((opt) => opt.title).join(", "),
+        optionIds: ids.join(","),
+      });
+    }
     if (draft.videoStyle) {
       const exists = VIDEO_STYLES.some((style) => style.name === draft.videoStyle);
       setVideoStyle(exists ? draft.videoStyle : "AI 실사 영상풍");
@@ -185,6 +221,9 @@ export default function ApplyStep5Page() {
     if (draft.sajuReportEmail) setReportEmail(draft.sajuReportEmail);
     // 1단계에서 받은 연락처. 카카오톡 안내에 보여 주기만 하고 다시 저장하지 않는다.
     if (draft.phone) setApplyPhone(draft.phone);
+    if (LYRIC_NAME_CHOICES.some((choice) => choice.id === draft.lyricNameUse)) {
+      setLyricNameUse(draft.lyricNameUse);
+    }
   }, []);
 
   // 상담 옵션을 고른 이벤트 신청에서만 날짜 목록을 읽는다. 지난 선택은 draft에서 되살린다.
@@ -302,7 +341,13 @@ export default function ApplyStep5Page() {
    * 다음 단계로 가기 전 확인. 규칙은 서버와 같은 함수(checkSajuReportDelivery)가 정한다.
    * 화면에만 규칙을 두면 결제 단계에서 다른 이유로 막힐 수 있다.
    */
+  const chooseLyricNameUse = (next: string) => {
+    setLyricNameUse(next);
+    saveDraft("saju-song", { lyricNameUse: next });
+  };
+
   const validateNext = () => {
+    if (!lyricNameUse) return "노래에 이름을 넣을지 선택해 주세요.";
     const check = checkSajuReportDelivery(selected, {
       sajuReportDelivery: delivery,
       sajuReportEmail: reportEmail,
@@ -317,8 +362,10 @@ export default function ApplyStep5Page() {
     return "";
   };
 
-  /** 이 신청에서 실제로 팔 수 있는 옵션만 화면에 낸다. */
-  const visibleOptions = OPTIONS.filter((opt) => eventApply || !opt.eventOnly);
+  /** 이 신청에서 실제로 팔 수 있는 옵션만, 표시 순서대로 화면에 낸다. */
+  const visibleOptions = OPTIONS.filter((opt) => eventApply || !opt.eventOnly).sort(
+    (a, b) => OPTION_DISPLAY_ORDER.indexOf(a.id) - OPTION_DISPLAY_ORDER.indexOf(b.id),
+  );
 
   const total = OPTIONS.filter((opt) => selected.includes(opt.id)).reduce(
     (sum, opt) => sum + (opt.price ?? 0),
@@ -334,15 +381,57 @@ export default function ApplyStep5Page() {
       prevHref="/apply/saju-song/1"
       nextHref="/apply/saju-song/3"
       validateNext={validateNext}
-      heroText={"필요한 추가 옵션을\n선택해 주세요"}
+      heroText={"나만의 노래를 위한\n설정을 선택해 주세요"}
     
       stepperTheme={CHARCOAL_STEPPER}
       shellBg="bg-[#FFFFFF]"
     >
-      <h2 className="text-[22px] font-bold text-[#403A49]">2. 추가 옵션을 선택해주세요</h2>
-      <p className="mt-2 text-[14px] text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
+      <h2 className="text-[22px] font-bold text-[#403A49]">2. 노래 설정</h2>
 
-      <div className="mt-5 space-y-3">
+      <div className="mt-6">
+        <h3 className="text-[17px] font-semibold text-[#403A49]">
+          노래에 이름을 넣을까요? <span className="text-red-500">*</span>
+        </h3>
+        <p className="mt-1 text-[14px] leading-relaxed text-[#6B6570]">
+          가사에 이름을 넣으면
+          <br />
+          나만의 노래나 특별한 선물로 더욱 의미 있게 만들 수 있습니다.
+        </p>
+        <div role="radiogroup" aria-label="노래에 이름을 넣을까요?" className="mt-3 space-y-3">
+          {LYRIC_NAME_CHOICES.map((choice) => {
+            const active = lyricNameUse === choice.id;
+            return (
+              <button
+                key={choice.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => chooseLyricNameUse(choice.id)}
+                className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left ${
+                  active ? "border-[#403A49] bg-[#faf6f1]" : "border-[#e8dfd4] bg-white"
+                }`}
+              >
+                <span
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                    active ? "border-[#403A49]" : "border-[#d4c8ba] bg-white"
+                  }`}
+                >
+                  {active ? <span className="h-3 w-3 rounded-full bg-[#403A49]" /> : null}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[16px] font-bold text-[#403A49]">{choice.title}</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-[#6B6570]">{choice.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <h3 className="mt-10 text-[17px] font-semibold text-[#403A49]">추가 옵션</h3>
+      <p className="mt-1 text-[14px] text-[#6B6570]">여러 개를 함께 선택하실 수 있습니다.</p>
+
+      <div className="mt-3 space-y-3">
         {visibleOptions.map((opt) => {
           const active = selected.includes(opt.id);
           return (

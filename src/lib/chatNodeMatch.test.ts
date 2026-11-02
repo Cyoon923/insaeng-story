@@ -301,3 +301,32 @@ test("CTA 주소가 비어 있지 않다", () => {
     assert.ok(href.length > 1, id);
   }
 });
+
+/* ── 가사 수정 안내: 상품별 ─────────────────────────── */
+
+test("가사 수정 안내: 이야기·프리미엄은 기본 1회 + 추가 옵션, 사주 인생곡은 가사 수정 미제공", () => {
+  const node = CHAT_NODES["lyric-edit"];
+  assert.match(node.answer, /^이야기로 만드는 인생곡과\n프리미엄 인생곡은 기본 가사 수정 1회가 포함되어 있어요/);
+  assert.match(node.answer, /가사 수정 1회 추가 옵션\(\+10,000원\)을 선택하실 수 있어요\./);
+  assert.match(node.answer, /사주 인생곡은 사주 분석을 바탕으로 제작되는 상품으로,\n가사 수정은 제공되지 않아요\.$/);
+  // 기본 수정 포함을 상품 구분 없이 말하는 문장으로 시작하지 않는다.
+  assert.equal(node.answer.startsWith("기본 가사 수정"), false);
+  // 질문 매칭과 연결은 그대로다.
+  assert.equal(matchChatNode("가사 수정 몇 번 돼요"), "lyric-edit");
+});
+
+test("FAQ 가사 수정 답변도 같은 정책이고, 챗봇 지식(buildFaqKnowledge)에 그대로 실린다", async () => {
+  const { FAQS } = await import("@/lib/constants/faq");
+  const { buildFaqKnowledge } = await import("@/lib/server/chatKnowledge");
+  const { ORDER_OPTION_PRICES } = await import("@/lib/server/pricing");
+  const faq = FAQS.find((item) => item.question === "수정은 몇 번까지 가능한가요?")!;
+  assert.match(faq.answer, /^이야기로 만드는 인생곡과 프리미엄 인생곡은 기본 가사 수정 1회가 포함되어 있으며/);
+  assert.match(faq.answer, /추가 수정 1회는 옵션\(\+10,000원\)으로/);
+  assert.match(faq.answer, /사주 인생곡은 사주 분석을 바탕으로 제작되는 상품으로, 가사 수정은 제공되지 않습니다\.$/);
+  // FAQ의 금액 표기는 서버 가격표와 같다.
+  assert.equal(ORDER_OPTION_PRICES["lyric-edit"], 10000);
+  // 챗봇 지식은 FAQS를 그대로 읽는다(질문 수와 이 답변 원문이 그대로 실린다).
+  const knowledge = buildFaqKnowledge();
+  assert.ok(knowledge.includes(`Q. ${faq.question}\nA. ${faq.answer}`));
+  assert.equal(knowledge.split("\n").filter((line) => line.startsWith("Q. ")).length, FAQS.length);
+});

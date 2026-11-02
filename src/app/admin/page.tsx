@@ -331,6 +331,7 @@ const ORDER_DETAIL_FIELDS: { key: string; label: string }[] = [
   { key: "customMood", label: "직접 입력한 분위기" },
   { key: "분위기", label: "분위기 요약" },
   { key: "songs", label: "참고 가수·노래" },
+  { key: "lyricNameUse", label: "가사 이름 사용" },
   { key: "options", label: "선택 옵션" },
   { key: "옵션", label: "옵션 요약" },
   { key: "videoStyle", label: "영상 스타일" },
@@ -350,6 +351,11 @@ function orderDetailValue(key: string, value: string): string {
   if (key === "sajuReportDelivery") {
     if (value === "kakao") return "카카오톡";
     if (value === "email") return "이메일";
+    return value;
+  }
+  if (key === "lyricNameUse") {
+    if (value === "include") return "이름 넣기";
+    if (value === "exclude") return "이름 없이";
     return value;
   }
   if (key === "subject") {

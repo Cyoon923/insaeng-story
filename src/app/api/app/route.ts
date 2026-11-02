@@ -80,6 +80,7 @@ import {
   calcOrderAmount,
   checkPromotionEntry,
   checkSajuReportDelivery,
+  checkSajuSongApply,
 } from "@/lib/server/pricing";
 import {
   applyFreeCoupon,
@@ -1761,8 +1762,10 @@ async function handlePost(request: Request) {
       }
 
       // 겹친 요청이 새 주문·상담을 만들었을 수 있다. 기존 정책을 최신 내용에 그대로 다시 적용한다.
-      const freshBlockers =
-        attempt === 1 ? blockers : await findWithdrawBlockers(fresh, freshTarget.id);
+      // 첫 회차도 다시 본다. 위 3) 판정 뒤 소셜 연결 해제(수 초) 사이에 생긴 카드 결제(ready·processing)는
+      // payments 테이블에만 쓰여 app_store CAS 충돌로 드러나지 않기 때문이다.
+      // 이 재확인과 아래 writeData 사이의 짧은 틈은 여전히 남는다(회원 단위 잠금이 아니다).
+      const freshBlockers = await findWithdrawBlockers(fresh, freshTarget.id);
       if (freshBlockers.length > 0) {
         lateBlockers = freshBlockers;
         break;
@@ -1906,6 +1909,15 @@ async function handlePost(request: Request) {
     );
     if (!reportCheck.ok) {
       return NextResponse.json({ error: reportCheck.error }, { status: 400 });
+    }
+    // 새 사주 인생곡 신청 규칙(가사 수정 옵션 미판매, 가사 이름 사용 필수). 다른 상품은 통과한다.
+    const sajuSongCheck = checkSajuSongApply(
+      body.product,
+      Array.isArray(body.options) ? body.options : [],
+      (body.details as Record<string, string>) ?? {},
+    );
+    if (!sajuSongCheck.ok) {
+      return NextResponse.json({ error: sajuSongCheck.error }, { status: 400 });
     }
 
     const result = await commitOrder(data, user, {
@@ -2144,6 +2156,11 @@ async function handlePost(request: Request) {
       const deliveryCheck = checkSajuReportDelivery(priced.optionIds, details);
       if (!deliveryCheck.ok) {
         return NextResponse.json({ error: deliveryCheck.error }, { status: 400 });
+      }
+      // 새 사주 인생곡 신청 규칙. 승인·복구는 snapshot을 그대로 쓰므로 여기서 한 번만 본다.
+      const sajuSongCheck = checkSajuSongApply(product, priced.optionIds, details);
+      if (!sajuSongCheck.ok) {
+        return NextResponse.json({ error: sajuSongCheck.error }, { status: 400 });
       }
       details.optionIds = priced.optionIds.join(",");
       baseAmount = priced.amount;

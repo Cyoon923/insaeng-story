@@ -235,6 +235,34 @@ export function checkSajuReportDelivery(
   return { ok: true };
 }
 
+/** 사주 인생곡 "노래에 이름을 넣을까요?"의 저장값(details.lyricNameUse). */
+export const LYRIC_NAME_USE_VALUES = ["include", "exclude"] as const;
+
+/**
+ * 새 사주 인생곡 신청만 보는 규칙. 다른 상품이면 그대로 통과한다.
+ *
+ * - 가사 수정 1회 추가(lyric-edit)는 사주 인생곡에서 더 이상 팔지 않는다.
+ * - 가사에 이름을 넣을지(lyricNameUse)를 반드시 고른다(include / exclude).
+ *
+ * calcOrderAmount에 넣지 않은 이유: 승인·관리자 재확정·환불의 금액 재계산은 이미 준비되거나
+ * 확정된 예전 주문(옵션이 남아 있을 수 있다)을 그대로 다시 계산해야 하기 때문이다.
+ * 그래서 새 신청이 들어오는 두 자리(0원 신청, 결제 준비)에서만 부른다.
+ */
+export function checkSajuSongApply(
+  product: unknown,
+  optionIds: readonly unknown[],
+  details: Record<string, string>,
+): ReportDeliveryCheck {
+  if (product !== "saju-song") return { ok: true };
+  if (optionIds.includes("lyric-edit")) {
+    return { ok: false, error: "사주 인생곡에서는 선택할 수 없는 옵션이 있습니다. 추가 옵션을 다시 선택해 주세요." };
+  }
+  if (!(LYRIC_NAME_USE_VALUES as readonly string[]).includes(details.lyricNameUse ?? "")) {
+    return { ok: false, error: "노래에 이름을 넣을지 선택해 주세요." };
+  }
+  return { ok: true };
+}
+
 /**
  * 1:1 사주상담 금액. 옵션은 report / extraPerson 두 개뿐이라
  * 신청 화면이 보내는 "1" 여부만 본다.

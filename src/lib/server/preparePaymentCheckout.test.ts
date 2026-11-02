@@ -88,7 +88,8 @@ function orderBody(extra: Record<string, unknown> = {}, details: Record<string, 
     title: "사주 인생곡",
     options: [],
     payment: "신용/체크카드",
-    details: { applyConsent: "1", copyrightConsent: "1", ...details },
+    // 새 사주 인생곡 신청은 가사 이름 사용(lyricNameUse)을 반드시 고른다.
+    details: { applyConsent: "1", copyrightConsent: "1", lyricNameUse: "include", ...details },
     ...extra,
   };
 }
@@ -234,6 +235,7 @@ test("상담 시간이 잘못되면 기존 400, 조회·저장 없음", async ()
 
 test("상품 금액은 기존 서버 가격표 그대로 결제 준비된다", async () => {
   reset();
-  await POST(orderBody({ checkoutId: UUID, options: ["lyric-edit"] }));
-  assert.equal(created[0].requestedAmount, 109000);
+  // 사주 인생곡은 가사 수정 옵션을 팔지 않아, 계속 파는 추억사진 영상(+50,000)으로 본다.
+  await POST(orderBody({ checkoutId: UUID, options: ["photo-mv"] }));
+  assert.equal(created[0].requestedAmount, 149000);
 });

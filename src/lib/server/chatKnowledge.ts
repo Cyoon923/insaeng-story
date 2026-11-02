@@ -23,7 +23,8 @@ import { TEACHERS } from "@/lib/constants/consultationTeachers";
 const ORDER_OPTION_LABELS: Record<keyof typeof ORDER_OPTION_PRICES, string> = {
   "ai-mv": "내 얼굴 AI 뮤직비디오",
   "photo-mv": "추억사진 영상 제작",
-  "lyric-edit": "가사 수정 1회 추가",
+  // 사주 인생곡은 가사 수정(기본·추가 모두)이 없다. 상품을 나누지 않는 목록이라 이름에 그 사실을 함께 적는다.
+  "lyric-edit": "가사 수정 1회 추가 (이야기로 만드는 인생곡·프리미엄 인생곡 전용, 사주 인생곡은 가사 수정 미제공)",
   // 사주 정보를 받는 상품에서만 파는 옵션이라 이름에 그 사실을 함께 적는다.
   // 이 목록은 상품을 나누지 않고 한 번에 안내되므로, 여기서 밝히지 않으면
   // 다른 인생곡에도 붙일 수 있는 것처럼 읽힌다.

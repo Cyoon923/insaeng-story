@@ -23,7 +23,6 @@ const OPTIONS = [
   { title: "1:1 사주상담", price: ORDER_OPTION_PRICES["saju-consultation"] },
   { title: "AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
   { title: "추억사진 영상", price: ORDER_OPTION_PRICES["photo-mv"] },
-  { title: "가사 수정", price: ORDER_OPTION_PRICES["lyric-edit"] },
 ];
 
 const STEPS = [

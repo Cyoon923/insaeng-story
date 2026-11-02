@@ -151,7 +151,9 @@ test("다른 회원의 상담은 판정에 들어가지 않는다", async () => 
 test("route: 사전 판정과 CAS 재시도(lateBlockers)가 같은 findWithdrawBlockers를 기본 저장소로 부른다", () => {
   const ROUTE = readFileSync(new URL("../../app/api/app/route.ts", import.meta.url), "utf8");
   assert.match(ROUTE, /const blockers = await findWithdrawBlockers\(latest, target\.id\);/);
-  assert.match(ROUTE, /attempt === 1 \? blockers : await findWithdrawBlockers\(fresh, freshTarget\.id\)/);
+  // 저장 루프는 첫 회차를 포함해 매 회차 다시 판정한다(withdrawSaveRecheck.test.ts가 동작을 고정).
+  assert.match(ROUTE, /const freshBlockers = await findWithdrawBlockers\(fresh, freshTarget\.id\);/);
+  assert.equal(ROUTE.includes("attempt === 1 ? blockers :"), false);
 });
 
 test("refundRequests: 회원별 조회는 order_id·status만 읽는다(사유·메시지 미조회)", () => {

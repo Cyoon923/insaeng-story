@@ -59,7 +59,6 @@ function basePriceOf(promotion: ReturnType<typeof usablePromotion>): number {
 const OPTION_PRICES = [
   { id: "ai-mv", name: "내 얼굴 AI 뮤직비디오", price: ORDER_OPTION_PRICES["ai-mv"] },
   { id: "photo-mv", name: "추억사진 영상 제작", price: ORDER_OPTION_PRICES["photo-mv"] },
-  { id: "lyric-edit", name: "가사 수정 1회 추가", price: ORDER_OPTION_PRICES["lyric-edit"] },
   {
     id: SAJU_REPORT_OPTION_ID,
     name: "2026·2027년 사주풀이 리포트",
@@ -94,6 +93,13 @@ function selectedOptions(draft: Record<string, string>) {
   const raw = draft.options ?? "";
   if (!raw) return [];
   return OPTION_PRICES.filter((opt) => raw.includes(opt.name));
+}
+
+/** 2단계 "노래에 이름을 넣을까요?" 선택. 고르지 않았으면 "선택 필요"다. */
+function lyricNameUseLabel(draft: Record<string, string>): string {
+  if (draft.lyricNameUse === "include") return "이름 넣기";
+  if (draft.lyricNameUse === "exclude") return "이름 없이";
+  return "선택 필요";
 }
 
 function sajuLabel(draft: Record<string, string>) {
@@ -160,6 +166,7 @@ export default function ApplyStep6Page() {
 
   const rows = [
     { label: "사주 정보", value: sajuLabel(draft), href: "/apply/saju-song/1" },
+    { label: "가사 이름 사용", value: lyricNameUseLabel(draft), href: "/apply/saju-song/2" },
     { label: "추가 옵션", value: optionLabel, href: "/apply/saju-song/2" },
     // 리포트를 고른 경우에만 한 줄 더 보여 준다. 고르지 않았으면 기존 화면 그대로다.
     ...(reportDelivery
