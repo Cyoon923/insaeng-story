@@ -33,10 +33,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 const INPUT = { tid: "tid-123", orderId: "is-abc", reason: "고객 환불 승인" };
 
-test("취소 성공코드 2001 + cancelled 이면 succeeded", async () => {
+test("v1 취소 성공코드 0000 + cancelled 이면 succeeded", async () => {
   const { impl } = fakeFetch(() =>
     jsonResponse({
-      resultCode: "2001",
+      resultCode: "0000",
       resultMsg: "취소성공",
       status: "cancelled",
       tid: "tid-123",
@@ -55,41 +55,27 @@ test("취소 성공코드 2001 + cancelled 이면 succeeded", async () => {
   assert.equal(outcome.result.amount, 100000);
   assert.equal(outcome.result.cancelledAmt, 100000);
   assert.equal(outcome.result.balanceAmt, 0);
-  assert.equal(outcome.raw.resultCode, "2001");
+  assert.equal(outcome.raw.resultCode, "0000");
 });
 
-test("환불 성공코드 2211 + cancelled 이면 succeeded", async () => {
-  const { impl } = fakeFetch(() =>
-    jsonResponse({ resultCode: "2211", resultMsg: "환불성공", status: "cancelled" }),
-  );
-  const outcome = await cancelNicepayPayment(INPUT, impl);
-  assert.equal(outcome.kind, "succeeded");
-});
-
-test("성공코드인데 상태가 취소가 아니면 확정하지 않는다", async () => {
-  // 돈이 움직였을 수 있으므로 실패로 단정하지 않는다.
-  for (const code of ["2001", "2211"]) {
-    const { impl } = fakeFetch(() =>
-      jsonResponse({ resultCode: code, resultMsg: "성공", status: "paid" }),
+test("0000이어도 전액취소 상태가 아니면 확정하지 않는다", async () => {
+  for (const status of ["paid", "ready", "partialCancelled", "failed", "expired", undefined]) {
+    const { impl, calls } = fakeFetch(() =>
+      jsonResponse({ resultCode: "0000", status }),
     );
-    const outcome = await cancelNicepayPayment(INPUT, impl);
-    assert.equal(outcome.kind, "unknown", code);
+    assert.equal((await cancelNicepayPayment(INPUT, impl)).kind, "unknown", status);
+    assert.equal(calls.length, 1);
   }
 });
 
-test("승인 성공코드 0000은 취소 성공으로 보지 않는다", async () => {
-  // 0000이 취소 성공이라는 근거가 repo에 없다. 상태가 cancelled라 실패로도 단정하지 않는다.
-  const { impl } = fakeFetch(() =>
-    jsonResponse({ resultCode: "0000", resultMsg: "성공", status: "cancelled" }),
-  );
-  const outcome = await cancelNicepayPayment(INPUT, impl);
-  assert.equal(outcome.kind, "unknown");
-
-  // 상태까지 취소가 아니면 분명한 거절이다.
-  const other = fakeFetch(() =>
-    jsonResponse({ resultCode: "0000", resultMsg: "성공", status: "paid" }),
-  );
-  assert.equal((await cancelNicepayPayment(INPUT, other.impl)).kind, "declined");
+test("v1 성공코드가 아닌 cancelled 응답은 unknown으로 두고 재취소하지 않는다", async () => {
+  for (const resultCode of ["2001", "2211", "9999", undefined]) {
+    const { impl, calls } = fakeFetch(() =>
+      jsonResponse({ resultCode, status: "cancelled" }),
+    );
+    assert.equal((await cancelNicepayPayment(INPUT, impl)).kind, "unknown", resultCode);
+    assert.equal(calls.length, 1);
+  }
 });
 
 test("명확한 취소 실패 코드면 declined", async () => {
@@ -144,7 +130,7 @@ test("본문을 읽을 수 없으면 unknown", async () => {
 test("HTTP 상태만 보고 실패로 단정하지 않는다", async () => {
   // 4xx라도 본문이 성공을 말하면 성공으로 읽는다(반대로 200이어도 본문이 기준이다).
   const { impl } = fakeFetch(() =>
-    jsonResponse({ resultCode: "2001", status: "cancelled", tid: "tid-123" }, 400),
+    jsonResponse({ resultCode: "0000", status: "cancelled", tid: "tid-123" }, 400),
   );
   const outcome = await cancelNicepayPayment(INPUT, impl);
   assert.equal(outcome.kind, "succeeded");
@@ -156,7 +142,7 @@ test("빈 값은 HTTP 요청 전에 막는다", async () => {
     { ...INPUT, orderId: "" },
     { ...INPUT, reason: "\t\n" },
   ]) {
-    const { impl, calls } = fakeFetch(() => jsonResponse({ resultCode: "2001" }));
+    const { impl, calls } = fakeFetch(() => jsonResponse({ resultCode: "0000" }));
     await assert.rejects(() => cancelNicepayPayment(bad, impl), NicepayCancelInputError);
     assert.equal(calls.length, 0, "요청을 보내면 안 된다");
   }
@@ -164,7 +150,7 @@ test("빈 값은 HTTP 요청 전에 막는다", async () => {
 
 test("전액취소 규격대로 호출한다", async () => {
   const { impl, calls } = fakeFetch(() =>
-    jsonResponse({ resultCode: "2001", status: "cancelled" }),
+    jsonResponse({ resultCode: "0000", status: "cancelled" }),
   );
   await cancelNicepayPayment({ ...INPUT, tid: "tid/특수" }, impl);
 
@@ -193,7 +179,7 @@ test("전액취소 규격대로 호출한다", async () => {
 
 test("결과 어디에도 secret이 담기지 않는다", async () => {
   const { impl } = fakeFetch(() =>
-    jsonResponse({ resultCode: "2001", status: "cancelled", tid: "tid-123" }),
+    jsonResponse({ resultCode: "0000", status: "cancelled", tid: "tid-123" }),
   );
   const outcome = await cancelNicepayPayment(INPUT, impl);
   const dumped = JSON.stringify(outcome);

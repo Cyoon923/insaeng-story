@@ -12,8 +12,7 @@
  *  - 전액취소 POST https://api.nicepay.co.kr/v1/payments/{tid}/cancel
  *    Authorization: Basic base64(clientKey:secretKey)   (승인과 같은 계열)
  *    body: reason(필수), orderId(필수)
- *  - 취소 성공 resultCode는 2001(취소 성공)과 2211(환불 성공)이다.
- *    승인 성공코드(0000)와 다르므로 승인 쪽 판정을 그대로 가져다 쓰지 않는다.
+ *  - v1 취소 성공 resultCode는 0000이며, status=cancelled도 함께 확인한다.
  *  - cancelAmt를 보내지 않으면 전액취소다. 이 프로젝트는 전액취소만 다루므로 보내지 않는다.
  *  - 구형 webapi cancel_process.jsp는 쓰지 않는다.
  *  - 망취소(/v1/payments/netcancel)는 승인 자체를 무르는 다른 기능이라 여기서 쓰지 않는다.
@@ -22,17 +21,8 @@ import type { PaymentStatus } from "@/lib/types/app";
 
 const PAYMENTS_ENDPOINT = "https://api.nicepay.co.kr/v1/payments";
 
-/**
- * 취소가 끝났음을 뜻하는 결과코드.
- *
- * 2001 취소 성공, 2211 환불 성공. 두 값을 같은 성공으로 본다.
- *
- * 승인 성공코드 0000은 여기에 넣지 않는다. repo 안에서 0000이 나오는 곳은
- * nicepayApprove.ts의 승인 판정과 returnUrl 인증 결과(AUTH_SUCCESS)뿐이고,
- * 취소 응답에서도 0000이 성공이라는 근거는 어디에도 없다. 근거 없이 넣으면
- * 취소되지 않은 응답을 성공으로 읽게 되므로 넣지 않는다.
- */
-const CANCEL_SUCCESS_CODES = new Set(["2001", "2211"]);
+/** v1 취소 규격: https://github.com/nicepayments/nicepay-manual/blob/main/api/cancel.md */
+const CANCEL_SUCCESS_CODE = "0000";
 
 /** 취소 응답에서 우리가 실제로 읽는 필드만 선언한다(승인 쪽과 같은 방식). */
 export interface NicepayCancelResult {
@@ -179,7 +169,7 @@ export async function cancelNicepayPayment(
   }
 
   const result = raw as NicepayCancelResult;
-  const successCode = CANCEL_SUCCESS_CODES.has(String(result.resultCode ?? ""));
+  const successCode = result.resultCode === CANCEL_SUCCESS_CODE;
   const cancelledStatus = result.status === "cancelled";
 
   // 결과코드와 상태가 둘 다 취소를 가리킬 때만 성공으로 확정한다.
